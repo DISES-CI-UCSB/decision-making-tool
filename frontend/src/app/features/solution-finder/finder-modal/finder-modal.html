@@ -255,15 +255,17 @@
       </section>
     }
 
-    <section
-      id="solution-finder-modal-targets-column"
-      class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
+    <div
+      id="solution-finder-modal-land-steps-grid"
+      class="relative z-10 grid min-h-0 w-full gap-x-4 gap-y-3 lg:col-span-12 lg:grid-cols-3 lg:grid-rows-[auto_minmax(0,1fr)]"
       [class.hidden]="selectedDomain !== 'land'"
       [attr.inert]="selectedDomain !== 'land' ? '' : null"
       [attr.aria-hidden]="selectedDomain !== 'land'"
-      aria-labelledby="solution-finder-modal-targets-heading"
     >
-      <div id="solution-finder-modal-step1-header-block" #finderColumnHeader class="space-y-3">
+      <div
+        id="solution-finder-modal-step1-header-block"
+        class="space-y-3 lg:col-start-1 lg:row-start-1"
+      >
         <h4
           id="solution-finder-modal-targets-heading"
           class="finder-step-heading text-base text-slate-800"
@@ -289,505 +291,560 @@
         </p>
       </div>
 
-      <div id="solution-finder-modal-targets-cards-group" class="relative min-h-0 flex-1">
-        <article
-          id="solution-finder-modal-step1-target-type-card"
-          class="finder-modal-scrollbar h-full overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
-        >
-          <div id="solution-finder-modal-step1-target-type-options" class="space-y-2">
-            @for (option of targetTypeOptions; track option.id) {
-              <div
-                [id]="'solution-finder-modal-step1-target-type-card-' + option.id"
-                class="rounded-md border px-3 py-2 outline-none focus:outline-none focus-visible:outline-none"
-                [class.border-amber-300]="isTargetTypeLevelMissing(option.id)"
-                [class.bg-amber-50]="isTargetTypeLevelMissing(option.id)"
-                [class.finder-selected-card-border]="
-                  isTargetTypeSelected(option.id) && !isTargetTypeLevelMissing(option.id)
-                "
-                [class.bg-sky-100]="
-                  isTargetTypeSelected(option.id) && !isTargetTypeLevelMissing(option.id)
-                "
-                [class.border-slate-200]="
-                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
-                "
-                [class.border-slate-300]="!isTargetTypeAvailable(option.id)"
-                [class.bg-white]="
-                  !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
-                "
-                [class.bg-slate-50]="!isTargetTypeAvailable(option.id)"
-                [class.cursor-pointer]="
-                  option.id !== 'ecosystems' && isTargetTypeAvailable(option.id)
-                "
-                [class.cursor-not-allowed]="!isTargetTypeAvailable(option.id)"
-                [attr.role]="
-                  option.id !== 'ecosystems' && isTargetTypeAvailable(option.id) ? 'button' : null
-                "
-                [attr.tabindex]="
-                  option.id !== 'ecosystems' && isTargetTypeAvailable(option.id) ? 0 : -1
-                "
-                [attr.aria-pressed]="isTargetTypeSelected(option.id)"
-                [attr.aria-disabled]="
-                  option.id === 'ecosystems' || !isTargetTypeAvailable(option.id)
-                "
-                [attr.aria-describedby]="
-                  'solution-finder-modal-step1-target-type-help-' +
-                  option.id +
-                  (option.id === 'species-richness' || option.id === 'ecosystem-services'
-                    ? ' solution-finder-modal-step1-target-type-prerequisite-' + option.id
-                    : '')
-                "
-                (click)="isTargetTypeAvailable(option.id) && toggleTargetType(option.id)"
-                (keydown.enter)="isTargetTypeAvailable(option.id) && toggleTargetType(option.id)"
-                (keydown.space)="
-                  $event.preventDefault();
-                  isTargetTypeAvailable(option.id) && toggleTargetType(option.id)
-                "
-              >
+      <section
+        id="solution-finder-modal-targets-column"
+        class="relative min-h-0 lg:col-start-1 lg:row-start-2"
+        aria-labelledby="solution-finder-modal-targets-heading"
+      >
+        <div id="solution-finder-modal-targets-cards-group" class="relative min-h-0 h-full">
+          <article
+            id="solution-finder-modal-step1-target-type-card"
+            class="finder-modal-scrollbar h-full overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div id="solution-finder-modal-step1-target-type-options" class="space-y-2">
+              @for (option of targetTypeOptions; track option.id) {
                 <div
-                  [id]="'solution-finder-modal-step1-target-type-select-button-' + option.id"
-                  class="flex w-full flex-col gap-1 text-left"
+                  [id]="'solution-finder-modal-step1-target-type-card-' + option.id"
+                  class="rounded-md border px-3 py-2 outline-none focus:outline-none focus-visible:outline-none"
+                  [class.border-amber-300]="isTargetTypeLevelMissing(option.id)"
+                  [class.bg-amber-50]="isTargetTypeLevelMissing(option.id)"
+                  [class.finder-selected-card-border]="
+                    isTargetTypeSelected(option.id) && !isTargetTypeLevelMissing(option.id)
+                  "
+                  [class.bg-sky-100]="
+                    isTargetTypeSelected(option.id) && !isTargetTypeLevelMissing(option.id)
+                  "
+                  [class.border-slate-200]="
+                    !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
+                  "
+                  [class.border-slate-300]="!isTargetTypeAvailable(option.id)"
+                  [class.bg-white]="
+                    !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
+                  "
+                  [class.bg-slate-50]="!isTargetTypeAvailable(option.id)"
+                  [class.cursor-pointer]="
+                    option.id !== 'ecosystems' && isTargetTypeAvailable(option.id)
+                  "
+                  [class.cursor-not-allowed]="!isTargetTypeAvailable(option.id)"
+                  [attr.role]="
+                    option.id !== 'ecosystems' && isTargetTypeAvailable(option.id) ? 'button' : null
+                  "
+                  [attr.tabindex]="
+                    option.id !== 'ecosystems' && isTargetTypeAvailable(option.id) ? 0 : -1
+                  "
+                  [attr.aria-pressed]="isTargetTypeSelected(option.id)"
+                  [attr.aria-disabled]="
+                    option.id === 'ecosystems' || !isTargetTypeAvailable(option.id)
+                  "
+                  [attr.aria-describedby]="
+                    'solution-finder-modal-step1-target-type-help-' +
+                    option.id +
+                    (option.id === 'species-richness' || option.id === 'ecosystem-services'
+                      ? ' solution-finder-modal-step1-target-type-prerequisite-' + option.id
+                      : '')
+                  "
+                  (click)="isTargetTypeAvailable(option.id) && toggleTargetType(option.id)"
+                  (keydown.enter)="isTargetTypeAvailable(option.id) && toggleTargetType(option.id)"
+                  (keydown.space)="
+                    $event.preventDefault();
+                    isTargetTypeAvailable(option.id) && toggleTargetType(option.id)
+                  "
                 >
                   <div
-                    [id]="'solution-finder-modal-step1-target-type-label-row-' + option.id"
-                    class="flex items-start justify-between gap-2"
+                    [id]="'solution-finder-modal-step1-target-type-select-button-' + option.id"
+                    class="flex w-full flex-col gap-1 text-left"
                   >
-                    <span
-                      [id]="'solution-finder-modal-step1-target-type-label-' + option.id"
-                      class="min-w-0 flex-1 pr-2 text-sm font-semibold"
-                      [class.text-sky-900]="isTargetTypeSelected(option.id)"
-                      [class.text-slate-900]="
-                        !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
-                      "
-                      [class.text-slate-500]="!isTargetTypeAvailable(option.id)"
-                    >
-                      {{ option.labelKey | translate }}
-                    </span>
                     <div
-                      [id]="'solution-finder-modal-step1-target-type-status-row-' + option.id"
-                      class="flex shrink-0 items-center gap-1"
+                      [id]="'solution-finder-modal-step1-target-type-label-row-' + option.id"
+                      class="flex items-start justify-between gap-2"
                     >
-                      @if (option.id === 'ecosystems') {
-                        <span
-                          id="solution-finder-modal-step1-ecosystems-required-badge"
-                          class="rounded-md border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-800"
-                        >
-                          {{ 'solutionControls.finder.step1.requiredBadge' | translate }}
-                        </span>
-                      }
-                      @if (!option.isAvailable) {
-                        <span
-                          [id]="
-                            'solution-finder-modal-step1-target-type-missing-badge-' + option.id
-                          "
-                          class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-slate-400 bg-transparent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
-                        >
-                          {{ 'solutionControls.finder.step1.inputLayerNotFoundBadge' | translate }}
-                        </span>
-                      }
-                    </div>
-                  </div>
-                </div>
-
-                <p
-                  [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
-                  class="mt-1 text-xs font-normal leading-snug"
-                  [class.finder-subtext-dark]="isTargetTypeAvailable(option.id)"
-                  [class.text-slate-400]="!isTargetTypeAvailable(option.id)"
-                  [class.finder-target-help-clamp]="!isTargetTypeSelected(option.id)"
-                  [attr.title]="option.helpKey | translate"
-                >
-                  {{ option.helpKey | translate }}
-                </p>
-                @if (option.id === 'species-richness' || option.id === 'ecosystem-services') {
-                  <p
-                    [id]="'solution-finder-modal-step1-target-type-prerequisite-' + option.id"
-                    class="mt-1 text-xs font-semibold leading-snug"
-                    [class.text-amber-700]="!isTargetTypeAvailable(option.id)"
-                    [class.text-slate-600]="isTargetTypeAvailable(option.id)"
-                  >
-                    {{
-                      (option.id === 'species-richness'
-                        ? 'solutionControls.finder.step1.speciesPrerequisite'
-                        : 'solutionControls.finder.step1.servicesPrerequisite'
-                      ) | translate
-                    }}
-                  </p>
-                }
-
-                @if (option.sourceLinks?.length) {
-                  <div
-                    [id]="'solution-finder-modal-step1-target-type-source-links-' + option.id"
-                    class="mt-1 flex flex-wrap gap-x-3 gap-y-1"
-                  >
-                    @for (sourceLink of option.sourceLinks; track sourceLink.labelKey) {
-                      <a
-                        [id]="
-                          'solution-finder-modal-step1-target-type-source-link-' +
-                          option.id +
-                          '-' +
-                          $index
+                      <span
+                        [id]="'solution-finder-modal-step1-target-type-label-' + option.id"
+                        class="min-w-0 flex-1 pr-2 text-sm font-semibold"
+                        [class.text-sky-900]="isTargetTypeSelected(option.id)"
+                        [class.text-slate-900]="
+                          !isTargetTypeSelected(option.id) && isTargetTypeAvailable(option.id)
                         "
-                        class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
-                        [href]="sourceLink.urlKey | translate"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        (click)="$event.stopPropagation()"
-                        (keydown.enter)="$event.stopPropagation()"
-                        (keydown.space)="$event.stopPropagation()"
+                        [class.text-slate-500]="!isTargetTypeAvailable(option.id)"
                       >
-                        {{ sourceLink.labelKey | translate }}
-                      </a>
-                    }
-                  </div>
-                } @else if (option.sourceLabelKey && option.sourceUrlKey) {
-                  <a
-                    [id]="'solution-finder-modal-step1-target-type-source-link-' + option.id"
-                    class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
-                    [href]="option.sourceUrlKey | translate"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    (click)="$event.stopPropagation()"
-                    (keydown.enter)="$event.stopPropagation()"
-                    (keydown.space)="$event.stopPropagation()"
-                  >
-                    {{ option.sourceLabelKey | translate }}
-                  </a>
-                }
-
-                @if (isTargetTypeAvailable(option.id)) {
-                  <div
-                    [id]="'solution-finder-modal-step1-target-level-panel-' + option.id"
-                    class="finder-target-level-panel rounded-md bg-white"
-                    [class.finder-target-level-panel-visible]="isTargetTypeSelected(option.id)"
-                    [attr.aria-hidden]="!isTargetTypeSelected(option.id)"
-                  >
-                    <div
-                      [id]="'solution-finder-modal-step1-target-level-row-' + option.id"
-                      class="flex flex-wrap items-center justify-between gap-2"
-                    >
+                        {{ option.labelKey | translate }}
+                      </span>
                       <div
-                        [id]="'solution-finder-modal-step1-target-level-title-' + option.id"
-                        class="finder-subtext-dark relative text-[11px] font-semibold uppercase tracking-wide"
+                        [id]="'solution-finder-modal-step1-target-type-status-row-' + option.id"
+                        class="flex shrink-0 items-center gap-1"
                       >
-                        <span
-                          [id]="'solution-finder-modal-step1-target-level-label-row-' + option.id"
-                          class="inline-flex items-center gap-1"
-                        >
+                        @if (option.id === 'ecosystems') {
+                          <span
+                            id="solution-finder-modal-step1-ecosystems-required-badge"
+                            class="rounded-md border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-800"
+                          >
+                            {{ 'solutionControls.finder.step1.requiredBadge' | translate }}
+                          </span>
+                        }
+                        @if (!option.isAvailable) {
                           <span
                             [id]="
-                              'solution-finder-modal-step1-target-level-coverage-label-' + option.id
+                              'solution-finder-modal-step1-target-type-missing-badge-' + option.id
                             "
-                            class="finder-all-caps-optical finder-target-level-title-optical"
+                            class="finder-all-caps-badge finder-all-caps-optical inline-flex rounded-md border border-slate-400 bg-transparent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
                           >
-                            {{ 'solutionControls.finder.step1.coverageLevelLabel' | translate }}
+                            {{
+                              'solutionControls.finder.step1.inputLayerNotFoundBadge' | translate
+                            }}
                           </span>
-                          @if (isTargetTypeLevelMissing(option.id)) {
-                            <span
-                              [id]="
-                                'solution-finder-modal-step1-target-level-required-label-' +
-                                option.id
-                              "
-                              class="finder-all-caps-optical finder-target-level-title-optical text-red-600"
-                            >
-                              {{ 'solutionControls.finder.step1.requiredInline' | translate }}
-                            </span>
-                          }
-                          <span
-                            [id]="'solution-finder-modal-step1-target-level-rationale-' + option.id"
-                            class="group relative z-20 inline-flex normal-case tracking-normal hover:z-100 focus-within:z-100"
-                          >
-                            <button
-                              [id]="
-                                'solution-finder-modal-step1-target-level-rationale-toggle-' +
-                                option.id
-                              "
-                              type="button"
-                              class="finder-layer-info-button inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-                              [attr.aria-label]="
-                                'solutionControls.finder.step1.targetLevelRationaleToggle'
-                                  | translate
-                              "
-                              [attr.aria-describedby]="
-                                'solution-finder-modal-step1-target-level-rationale-tooltip-' +
-                                option.id
-                              "
-                              (click)="$event.stopPropagation()"
-                            >
-                              <span
-                                [id]="
-                                  'solution-finder-modal-step1-target-level-rationale-icon-' +
-                                  option.id
-                                "
-                                class="finder-info-icon-glyph"
-                                aria-hidden="true"
-                                >i</span
-                              >
-                            </button>
-                            <span
-                              [id]="
-                                'solution-finder-modal-step1-target-level-rationale-tooltip-' +
-                                option.id
-                              "
-                              role="tooltip"
-                              class="pointer-events-none absolute left-1/2 top-full z-100 mt-2 w-72 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
-                            >
-                              <span
-                                [id]="
-                                  'solution-finder-modal-step1-target-level-rationale-text-' +
-                                  option.id
-                                "
-                                class="block"
-                              >
-                                {{
-                                  'solutionControls.finder.step1.targetLevelRationale' | translate
-                                }}
-                              </span>
-                              <span
-                                [id]="
-                                  'solution-finder-modal-step1-target-level-rationale-sources-' +
-                                  option.id
-                                "
-                                class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1"
-                              >
-                                <a
-                                  [id]="
-                                    'solution-finder-modal-step1-target-level-rationale-aichi-source-' +
-                                    option.id
-                                  "
-                                  class="pointer-events-auto font-semibold text-sky-700 underline-offset-2 hover:underline"
-                                  [href]="
-                                    'solutionControls.finder.step1.targetLevelAichiSourceUrl'
-                                      | translate
-                                  "
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  (click)="$event.stopPropagation()"
-                                  (keydown.enter)="$event.stopPropagation()"
-                                  (keydown.space)="$event.stopPropagation()"
-                                >
-                                  {{
-                                    'solutionControls.finder.step1.targetLevelAichiSourceLabel'
-                                      | translate
-                                  }}
-                                </a>
-                                <span
-                                  [id]="
-                                    'solution-finder-modal-step1-target-level-rationale-source-separator-' +
-                                    option.id
-                                  "
-                                  aria-hidden="true"
-                                >
-                                  ·
-                                </span>
-                                <a
-                                  [id]="
-                                    'solution-finder-modal-step1-target-level-rationale-kunming-source-' +
-                                    option.id
-                                  "
-                                  class="pointer-events-auto font-semibold text-sky-700 underline-offset-2 hover:underline"
-                                  [href]="
-                                    'solutionControls.finder.step1.targetLevelKunmingSourceUrl'
-                                      | translate
-                                  "
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  (click)="$event.stopPropagation()"
-                                  (keydown.enter)="$event.stopPropagation()"
-                                  (keydown.space)="$event.stopPropagation()"
-                                >
-                                  {{
-                                    'solutionControls.finder.step1.targetLevelKunmingSourceLabel'
-                                      | translate
-                                  }}
-                                </a>
-                              </span>
-                            </span>
-                          </span>
-                        </span>
-                      </div>
-                      <div
-                        [id]="'solution-finder-modal-step1-target-level-group-' + option.id"
-                        class="flex items-center gap-1"
-                        role="radiogroup"
-                        [attr.aria-label]="
-                          'solutionControls.finder.step1.targetLevelRequiredTitle' | translate
-                        "
-                      >
-                        @if (option.id === 'species-richness') {
-                          <button
-                            id="solution-finder-modal-step1-species-method-representation-17"
-                            type="button"
-                            class="rounded-md border px-2 py-1.5 text-xs font-semibold transition"
-                            [class.border-sky-600]="speciesTargetMethod === 'representation-17'"
-                            [class.bg-sky-600]="speciesTargetMethod === 'representation-17'"
-                            [class.text-white]="speciesTargetMethod === 'representation-17'"
-                            [class.border-slate-200]="speciesTargetMethod !== 'representation-17'"
-                            [attr.aria-pressed]="speciesTargetMethod === 'representation-17'"
-                            (click)="
-                              $event.stopPropagation();
-                              selectSpeciesTargetMethod('representation-17')
-                            "
-                          >
-                            {{
-                              'solutionControls.finder.step1.speciesRepresentation17' | translate
-                            }}
-                          </button>
-                          <button
-                            id="solution-finder-modal-step1-species-method-representation-30"
-                            type="button"
-                            class="rounded-md border px-2 py-1.5 text-xs font-semibold transition"
-                            [class.border-sky-600]="speciesTargetMethod === 'representation-30'"
-                            [class.bg-sky-600]="speciesTargetMethod === 'representation-30'"
-                            [class.text-white]="speciesTargetMethod === 'representation-30'"
-                            [class.border-slate-200]="speciesTargetMethod !== 'representation-30'"
-                            [attr.aria-pressed]="speciesTargetMethod === 'representation-30'"
-                            (click)="
-                              $event.stopPropagation();
-                              selectSpeciesTargetMethod('representation-30')
-                            "
-                          >
-                            {{
-                              'solutionControls.finder.step1.speciesRepresentation30' | translate
-                            }}
-                          </button>
-                          <button
-                            id="solution-finder-modal-step1-species-method-national-responsibility"
-                            type="button"
-                            class="rounded-md border px-2 py-1.5 text-xs font-semibold transition"
-                            [class.border-sky-600]="
-                              speciesTargetMethod === 'national-responsibility'
-                            "
-                            [class.bg-sky-600]="speciesTargetMethod === 'national-responsibility'"
-                            [class.text-white]="speciesTargetMethod === 'national-responsibility'"
-                            [class.border-slate-200]="
-                              speciesTargetMethod !== 'national-responsibility'
-                            "
-                            [attr.aria-pressed]="speciesTargetMethod === 'national-responsibility'"
-                            [attr.aria-describedby]="'solution-finder-modal-step1-species-national-responsibility-help'"
-                            (click)="
-                              $event.stopPropagation();
-                              selectSpeciesTargetMethod('national-responsibility')
-                            "
-                          >
-                            {{
-                              'solutionControls.finder.step1.speciesNationalResponsibility'
-                                | translate
-                            }}
-                          </button>
-                        } @else {
-                          <button
-                            [id]="'solution-finder-modal-step1-target-level-17-' + option.id"
-                            type="button"
-                            class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                            [attr.aria-label]="
-                              ('solutionControls.finder.step1.targetLevelTitle' | translate) +
-                              ' 17%'
-                            "
-                            [disabled]="
-                              !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
-                            "
-                            [class.border-sky-600]="getTargetLevel(option.id) === 17"
-                            [class.bg-sky-600]="getTargetLevel(option.id) === 17"
-                            [class.text-white]="getTargetLevel(option.id) === 17"
-                            [class.finder-target-level-choice-cue]="
-                              isTargetTypeLevelMissing(option.id)
-                            "
-                            [class.border-amber-300]="
-                              getTargetLevel(option.id) !== 17 &&
-                              isTargetTypeLevelMissing(option.id)
-                            "
-                            [class.border-slate-200]="
-                              getTargetLevel(option.id) !== 17 &&
-                              !isTargetTypeLevelMissing(option.id)
-                            "
-                            [class.bg-white]="getTargetLevel(option.id) !== 17"
-                            [class.text-slate-700]="getTargetLevel(option.id) !== 17"
-                            [attr.aria-pressed]="getTargetLevel(option.id) === 17"
-                            (click)="$event.stopPropagation(); selectTargetLevel(option.id, 17)"
-                          >
-                            <span
-                              [id]="
-                                'solution-finder-modal-step1-target-level-17-label-' + option.id
-                              "
-                              class="finder-target-level-choice-label-optical"
-                            >
-                              17%
-                            </span>
-                          </button>
-                          <button
-                            [id]="'solution-finder-modal-step1-target-level-30-' + option.id"
-                            type="button"
-                            class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                            [attr.aria-label]="
-                              ('solutionControls.finder.step1.targetLevelTitle' | translate) +
-                              ' 30%'
-                            "
-                            [disabled]="
-                              !isTargetTypeSelected(option.id) || !isTargetTypeAvailable(option.id)
-                            "
-                            [class.border-sky-600]="getTargetLevel(option.id) === 30"
-                            [class.bg-sky-600]="getTargetLevel(option.id) === 30"
-                            [class.text-white]="getTargetLevel(option.id) === 30"
-                            [class.finder-target-level-choice-cue]="
-                              isTargetTypeLevelMissing(option.id)
-                            "
-                            [class.finder-target-level-choice-cue-delayed]="
-                              isTargetTypeLevelMissing(option.id)
-                            "
-                            [class.border-amber-300]="
-                              getTargetLevel(option.id) !== 30 &&
-                              isTargetTypeLevelMissing(option.id)
-                            "
-                            [class.border-slate-200]="
-                              getTargetLevel(option.id) !== 30 &&
-                              !isTargetTypeLevelMissing(option.id)
-                            "
-                            [class.bg-white]="getTargetLevel(option.id) !== 30"
-                            [class.text-slate-700]="getTargetLevel(option.id) !== 30"
-                            [attr.aria-pressed]="getTargetLevel(option.id) === 30"
-                            (click)="$event.stopPropagation(); selectTargetLevel(option.id, 30)"
-                          >
-                            <span
-                              [id]="
-                                'solution-finder-modal-step1-target-level-30-label-' + option.id
-                              "
-                              class="finder-target-level-choice-label-optical"
-                            >
-                              30%
-                            </span>
-                          </button>
                         }
                       </div>
                     </div>
-                    @if (option.id === 'species-richness') {
-                      <p
-                        id="solution-finder-modal-step1-species-national-responsibility-help"
-                        class="mt-2 text-xs leading-snug text-slate-600"
-                      >
-                        {{
-                          'solutionControls.finder.step1.speciesNationalResponsibilityHelp'
-                            | translate
-                        }}
-                      </p>
-                    }
                   </div>
-                }
-              </div>
-            }
-          </div>
-        </article>
-      </div>
-    </section>
 
-    <section
-      id="solution-finder-modal-step2b-column"
-      class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
-      [class.hidden]="selectedDomain !== 'land'"
-      [attr.inert]="selectedDomain !== 'land' ? '' : null"
-      [attr.aria-hidden]="selectedDomain !== 'land'"
-      aria-labelledby="solution-finder-modal-step2b-heading"
-    >
-      <div id="solution-finder-modal-step2b-header-block" #finderColumnHeader class="space-y-3">
+                  <p
+                    [id]="'solution-finder-modal-step1-target-type-help-' + option.id"
+                    class="mt-1 text-xs font-normal leading-snug"
+                    [class.finder-subtext-dark]="isTargetTypeAvailable(option.id)"
+                    [class.text-slate-400]="!isTargetTypeAvailable(option.id)"
+                    [class.finder-target-help-clamp]="!isTargetTypeSelected(option.id)"
+                    [attr.title]="option.helpTooltipKey ? null : (option.helpKey | translate)"
+                  >
+                    <span [id]="'solution-finder-modal-step1-target-type-help-text-' + option.id">
+                      {{ option.helpKey | translate }}
+                    </span>
+                    @if (option.helpTooltipKey && option.helpTooltipToggleKey) {
+                      <span
+                        [id]="
+                          'solution-finder-modal-step1-target-type-help-tooltip-wrap-' + option.id
+                        "
+                        class="group relative z-20 ml-1 inline-flex align-middle hover:z-100 focus-within:z-100"
+                      >
+                        <button
+                          [id]="
+                            'solution-finder-modal-step1-target-type-help-tooltip-toggle-' +
+                            option.id
+                          "
+                          type="button"
+                          class="finder-layer-info-button inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                          [attr.aria-label]="option.helpTooltipToggleKey | translate"
+                          [attr.aria-describedby]="
+                            'solution-finder-modal-step1-target-type-help-tooltip-' + option.id
+                          "
+                          (click)="$event.stopPropagation()"
+                        >
+                          <span
+                            [id]="
+                              'solution-finder-modal-step1-target-type-help-tooltip-icon-' +
+                              option.id
+                            "
+                            class="finder-info-icon-glyph"
+                            aria-hidden="true"
+                            >i</span
+                          >
+                        </button>
+                        <span
+                          [id]="'solution-finder-modal-step1-target-type-help-tooltip-' + option.id"
+                          role="tooltip"
+                          class="pointer-events-none absolute left-1/2 top-full z-100 mt-2 w-72 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
+                        >
+                          <span
+                            [id]="
+                              'solution-finder-modal-step1-target-type-help-tooltip-text-' +
+                              option.id
+                            "
+                          >
+                            {{ option.helpTooltipKey | translate }}
+                          </span>
+                        </span>
+                      </span>
+                    }
+                  </p>
+                  @if (option.id === 'species-richness' || option.id === 'ecosystem-services') {
+                    <p
+                      [id]="'solution-finder-modal-step1-target-type-prerequisite-' + option.id"
+                      class="mt-1 text-xs font-semibold leading-snug"
+                      [class.text-amber-700]="!isTargetTypeAvailable(option.id)"
+                      [class.text-slate-600]="isTargetTypeAvailable(option.id)"
+                    >
+                      {{
+                        (option.id === 'species-richness'
+                          ? 'solutionControls.finder.step1.speciesPrerequisite'
+                          : 'solutionControls.finder.step1.servicesPrerequisite'
+                        ) | translate
+                      }}
+                    </p>
+                  }
+
+                  @if (option.sourceLinks?.length) {
+                    <div
+                      [id]="'solution-finder-modal-step1-target-type-source-links-' + option.id"
+                      class="mt-1 flex flex-wrap gap-x-3 gap-y-1"
+                    >
+                      @for (sourceLink of option.sourceLinks; track sourceLink.labelKey) {
+                        <a
+                          [id]="
+                            'solution-finder-modal-step1-target-type-source-link-' +
+                            option.id +
+                            '-' +
+                            $index
+                          "
+                          class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                          [href]="sourceLink.urlKey | translate"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          (click)="$event.stopPropagation()"
+                          (keydown.enter)="$event.stopPropagation()"
+                          (keydown.space)="$event.stopPropagation()"
+                        >
+                          {{ sourceLink.labelKey | translate }}
+                        </a>
+                      }
+                    </div>
+                  } @else if (option.sourceLabelKey && option.sourceUrlKey) {
+                    <a
+                      [id]="'solution-finder-modal-step1-target-type-source-link-' + option.id"
+                      class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                      [href]="option.sourceUrlKey | translate"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      (click)="$event.stopPropagation()"
+                      (keydown.enter)="$event.stopPropagation()"
+                      (keydown.space)="$event.stopPropagation()"
+                    >
+                      {{ option.sourceLabelKey | translate }}
+                    </a>
+                  }
+
+                  @if (isTargetTypeAvailable(option.id)) {
+                    <div
+                      [id]="'solution-finder-modal-step1-target-level-panel-' + option.id"
+                      class="finder-target-level-panel rounded-md bg-white"
+                      [class.finder-target-level-panel-visible]="isTargetTypeSelected(option.id)"
+                      [attr.aria-hidden]="!isTargetTypeSelected(option.id)"
+                    >
+                      <div
+                        [id]="'solution-finder-modal-step1-target-level-row-' + option.id"
+                        class="flex flex-wrap items-center justify-between gap-2"
+                      >
+                        <div
+                          [id]="'solution-finder-modal-step1-target-level-title-' + option.id"
+                          class="finder-subtext-dark relative text-[11px] font-semibold uppercase tracking-wide"
+                        >
+                          <span
+                            [id]="'solution-finder-modal-step1-target-level-label-row-' + option.id"
+                            class="inline-flex items-center gap-1"
+                          >
+                            <span
+                              [id]="
+                                'solution-finder-modal-step1-target-level-coverage-label-' +
+                                option.id
+                              "
+                              class="finder-target-coverage-question-label"
+                            >
+                              {{ getTargetCoverageQuestion(option.id) }}
+                            </span>
+                            @if (isTargetTypeLevelMissing(option.id)) {
+                              <span
+                                [id]="
+                                  'solution-finder-modal-step1-target-level-required-label-' +
+                                  option.id
+                                "
+                                class="finder-all-caps-optical finder-target-level-title-optical text-red-600"
+                              >
+                                {{ 'solutionControls.finder.step1.requiredInline' | translate }}
+                              </span>
+                            }
+                            <span
+                              [id]="
+                                'solution-finder-modal-step1-target-level-rationale-' + option.id
+                              "
+                              class="group relative z-20 inline-flex normal-case tracking-normal hover:z-100 focus-within:z-100"
+                            >
+                              <button
+                                [id]="
+                                  'solution-finder-modal-step1-target-level-rationale-toggle-' +
+                                  option.id
+                                "
+                                type="button"
+                                class="finder-layer-info-button inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                [attr.aria-label]="
+                                  'solutionControls.finder.step1.targetLevelRationaleToggle'
+                                    | translate
+                                "
+                                [attr.aria-describedby]="
+                                  'solution-finder-modal-step1-target-level-rationale-tooltip-' +
+                                  option.id
+                                "
+                                (click)="$event.stopPropagation()"
+                              >
+                                <span
+                                  [id]="
+                                    'solution-finder-modal-step1-target-level-rationale-icon-' +
+                                    option.id
+                                  "
+                                  class="finder-info-icon-glyph"
+                                  aria-hidden="true"
+                                  >i</span
+                                >
+                              </button>
+                              <span
+                                [id]="
+                                  'solution-finder-modal-step1-target-level-rationale-tooltip-' +
+                                  option.id
+                                "
+                                role="tooltip"
+                                class="pointer-events-none absolute left-1/2 top-full z-100 mt-2 w-72 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
+                              >
+                                <span
+                                  [id]="
+                                    'solution-finder-modal-step1-target-level-rationale-text-' +
+                                    option.id
+                                  "
+                                  class="block"
+                                >
+                                  {{
+                                    'solutionControls.finder.step1.targetLevelRationale' | translate
+                                  }}
+                                </span>
+                                <span
+                                  [id]="
+                                    'solution-finder-modal-step1-target-level-rationale-sources-' +
+                                    option.id
+                                  "
+                                  class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1"
+                                >
+                                  <a
+                                    [id]="
+                                      'solution-finder-modal-step1-target-level-rationale-aichi-source-' +
+                                      option.id
+                                    "
+                                    class="pointer-events-auto font-semibold text-sky-700 underline-offset-2 hover:underline"
+                                    [href]="
+                                      'solutionControls.finder.step1.targetLevelAichiSourceUrl'
+                                        | translate
+                                    "
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    (click)="$event.stopPropagation()"
+                                    (keydown.enter)="$event.stopPropagation()"
+                                    (keydown.space)="$event.stopPropagation()"
+                                  >
+                                    {{
+                                      'solutionControls.finder.step1.targetLevelAichiSourceLabel'
+                                        | translate
+                                    }}
+                                  </a>
+                                  <span
+                                    [id]="
+                                      'solution-finder-modal-step1-target-level-rationale-source-separator-' +
+                                      option.id
+                                    "
+                                    aria-hidden="true"
+                                  >
+                                    ·
+                                  </span>
+                                  <a
+                                    [id]="
+                                      'solution-finder-modal-step1-target-level-rationale-kunming-source-' +
+                                      option.id
+                                    "
+                                    class="pointer-events-auto font-semibold text-sky-700 underline-offset-2 hover:underline"
+                                    [href]="
+                                      'solutionControls.finder.step1.targetLevelKunmingSourceUrl'
+                                        | translate
+                                    "
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    (click)="$event.stopPropagation()"
+                                    (keydown.enter)="$event.stopPropagation()"
+                                    (keydown.space)="$event.stopPropagation()"
+                                  >
+                                    {{
+                                      'solutionControls.finder.step1.targetLevelKunmingSourceLabel'
+                                        | translate
+                                    }}
+                                  </a>
+                                </span>
+                              </span>
+                            </span>
+                          </span>
+                        </div>
+                        <div
+                          [id]="'solution-finder-modal-step1-target-level-group-' + option.id"
+                          class="flex items-center gap-1"
+                          role="radiogroup"
+                          [attr.aria-label]="getTargetCoverageQuestion(option.id)"
+                        >
+                          @if (option.id === 'species-richness') {
+                            <button
+                              id="solution-finder-modal-step1-species-method-representation-17"
+                              type="button"
+                              class="rounded-md border px-2 py-1.5 text-xs font-semibold transition"
+                              [class.border-sky-600]="speciesTargetMethod === 'representation-17'"
+                              [class.bg-sky-600]="speciesTargetMethod === 'representation-17'"
+                              [class.text-white]="speciesTargetMethod === 'representation-17'"
+                              [class.border-slate-200]="speciesTargetMethod !== 'representation-17'"
+                              [attr.aria-pressed]="speciesTargetMethod === 'representation-17'"
+                              (click)="
+                                $event.stopPropagation();
+                                selectSpeciesTargetMethod('representation-17')
+                              "
+                            >
+                              {{
+                                'solutionControls.finder.step1.speciesRepresentation17' | translate
+                              }}
+                            </button>
+                            <button
+                              id="solution-finder-modal-step1-species-method-representation-30"
+                              type="button"
+                              class="rounded-md border px-2 py-1.5 text-xs font-semibold transition"
+                              [class.border-sky-600]="speciesTargetMethod === 'representation-30'"
+                              [class.bg-sky-600]="speciesTargetMethod === 'representation-30'"
+                              [class.text-white]="speciesTargetMethod === 'representation-30'"
+                              [class.border-slate-200]="speciesTargetMethod !== 'representation-30'"
+                              [attr.aria-pressed]="speciesTargetMethod === 'representation-30'"
+                              (click)="
+                                $event.stopPropagation();
+                                selectSpeciesTargetMethod('representation-30')
+                              "
+                            >
+                              {{
+                                'solutionControls.finder.step1.speciesRepresentation30' | translate
+                              }}
+                            </button>
+                            <button
+                              id="solution-finder-modal-step1-species-method-national-responsibility"
+                              type="button"
+                              class="rounded-md border px-2 py-1.5 text-xs font-semibold transition"
+                              [class.border-sky-600]="
+                                speciesTargetMethod === 'national-responsibility'
+                              "
+                              [class.bg-sky-600]="speciesTargetMethod === 'national-responsibility'"
+                              [class.text-white]="speciesTargetMethod === 'national-responsibility'"
+                              [class.border-slate-200]="
+                                speciesTargetMethod !== 'national-responsibility'
+                              "
+                              [attr.aria-pressed]="
+                                speciesTargetMethod === 'national-responsibility'
+                              "
+                              [attr.aria-describedby]="'solution-finder-modal-step1-species-national-responsibility-help'"
+                              (click)="
+                                $event.stopPropagation();
+                                selectSpeciesTargetMethod('national-responsibility')
+                              "
+                            >
+                              {{
+                                'solutionControls.finder.step1.speciesNationalResponsibility'
+                                  | translate
+                              }}
+                            </button>
+                          } @else {
+                            <button
+                              [id]="'solution-finder-modal-step1-target-level-17-' + option.id"
+                              type="button"
+                              class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                              [attr.aria-label]="
+                                ('solutionControls.finder.step1.targetLevelTitle' | translate) +
+                                ' 17%'
+                              "
+                              [disabled]="
+                                !isTargetTypeSelected(option.id) ||
+                                !isTargetTypeAvailable(option.id)
+                              "
+                              [class.border-sky-600]="getTargetLevel(option.id) === 17"
+                              [class.bg-sky-600]="getTargetLevel(option.id) === 17"
+                              [class.text-white]="getTargetLevel(option.id) === 17"
+                              [class.finder-target-level-choice-cue]="
+                                isTargetTypeLevelMissing(option.id)
+                              "
+                              [class.border-amber-300]="
+                                getTargetLevel(option.id) !== 17 &&
+                                isTargetTypeLevelMissing(option.id)
+                              "
+                              [class.border-slate-200]="
+                                getTargetLevel(option.id) !== 17 &&
+                                !isTargetTypeLevelMissing(option.id)
+                              "
+                              [class.bg-white]="getTargetLevel(option.id) !== 17"
+                              [class.text-slate-700]="getTargetLevel(option.id) !== 17"
+                              [attr.aria-pressed]="getTargetLevel(option.id) === 17"
+                              (click)="$event.stopPropagation(); selectTargetLevel(option.id, 17)"
+                            >
+                              <span
+                                [id]="
+                                  'solution-finder-modal-step1-target-level-17-label-' + option.id
+                                "
+                                class="finder-target-level-choice-label-optical"
+                              >
+                                17%
+                              </span>
+                            </button>
+                            <button
+                              [id]="'solution-finder-modal-step1-target-level-30-' + option.id"
+                              type="button"
+                              class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                              [attr.aria-label]="
+                                ('solutionControls.finder.step1.targetLevelTitle' | translate) +
+                                ' 30%'
+                              "
+                              [disabled]="
+                                !isTargetTypeSelected(option.id) ||
+                                !isTargetTypeAvailable(option.id)
+                              "
+                              [class.border-sky-600]="getTargetLevel(option.id) === 30"
+                              [class.bg-sky-600]="getTargetLevel(option.id) === 30"
+                              [class.text-white]="getTargetLevel(option.id) === 30"
+                              [class.finder-target-level-choice-cue]="
+                                isTargetTypeLevelMissing(option.id)
+                              "
+                              [class.finder-target-level-choice-cue-delayed]="
+                                isTargetTypeLevelMissing(option.id)
+                              "
+                              [class.border-amber-300]="
+                                getTargetLevel(option.id) !== 30 &&
+                                isTargetTypeLevelMissing(option.id)
+                              "
+                              [class.border-slate-200]="
+                                getTargetLevel(option.id) !== 30 &&
+                                !isTargetTypeLevelMissing(option.id)
+                              "
+                              [class.bg-white]="getTargetLevel(option.id) !== 30"
+                              [class.text-slate-700]="getTargetLevel(option.id) !== 30"
+                              [attr.aria-pressed]="getTargetLevel(option.id) === 30"
+                              (click)="$event.stopPropagation(); selectTargetLevel(option.id, 30)"
+                            >
+                              <span
+                                [id]="
+                                  'solution-finder-modal-step1-target-level-30-label-' + option.id
+                                "
+                                class="finder-target-level-choice-label-optical"
+                              >
+                                30%
+                              </span>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                      @if (option.id === 'species-richness') {
+                        <p
+                          id="solution-finder-modal-step1-species-national-responsibility-help"
+                          class="mt-2 text-xs leading-snug text-slate-600"
+                        >
+                          {{
+                            'solutionControls.finder.step1.speciesNationalResponsibilityHelp'
+                              | translate
+                          }}
+                        </p>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <div
+        id="solution-finder-modal-step2b-header-block"
+        class="space-y-3 lg:col-start-2 lg:row-start-1"
+      >
         <h4
           id="solution-finder-modal-step2b-heading"
           class="finder-step-heading text-base text-slate-800"
@@ -812,245 +869,234 @@
           {{ 'solutionControls.finder.stepIntros.step2b' | translate }}
         </p>
       </div>
-      <div id="solution-finder-modal-step2b-card-wrapper" class="relative min-h-0 flex-1">
-        <article
-          id="solution-finder-modal-step2b-card"
-          class="finder-modal-scrollbar h-full space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
-        >
-          <div id="solution-finder-modal-step2b-options" class="space-y-2">
-            <div
-              id="solution-finder-modal-step2b-option-human-footprint-card"
-              class="rounded-md border transition"
-              [class.finder-selected-card-border]="selectedCostLayerId === 'human-footprint'"
-              [class.bg-sky-100]="selectedCostLayerId === 'human-footprint'"
-              [class.border-slate-200]="selectedCostLayerId !== 'human-footprint'"
-              [class.bg-white]="selectedCostLayerId !== 'human-footprint'"
-              [class.cursor-not-allowed]="
-                !isStep2Unlocked() || !isCostLayerAvailable('human-footprint')
-              "
-              [class.opacity-60]="!isStep2Unlocked() || !isCostLayerAvailable('human-footprint')"
-            >
+
+      <section
+        id="solution-finder-modal-step2b-column"
+        class="relative min-h-0 lg:col-start-2 lg:row-start-2"
+        aria-labelledby="solution-finder-modal-step2b-heading"
+      >
+        <div id="solution-finder-modal-step2b-card-wrapper" class="relative min-h-0 h-full">
+          <article
+            id="solution-finder-modal-step2b-card"
+            class="finder-modal-scrollbar h-full space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div id="solution-finder-modal-step2b-options" class="space-y-2">
               <div
-                id="solution-finder-modal-step2b-option-human-footprint"
-                class="flex w-full items-center justify-between gap-3 rounded-t-md px-2 pt-2 text-left transition"
+                id="solution-finder-modal-step2b-option-human-footprint-card"
+                class="rounded-md border transition"
+                [class.finder-selected-card-border]="selectedCostLayerId === 'human-footprint'"
+                [class.bg-sky-100]="selectedCostLayerId === 'human-footprint'"
+                [class.border-slate-200]="selectedCostLayerId !== 'human-footprint'"
+                [class.bg-white]="selectedCostLayerId !== 'human-footprint'"
+                [class.cursor-not-allowed]="
+                  !isStep2Unlocked() || !isCostLayerAvailable('human-footprint')
+                "
+                [class.opacity-60]="!isStep2Unlocked() || !isCostLayerAvailable('human-footprint')"
               >
-                <span id="solution-finder-modal-step2b-option-hf-copy" class="min-w-0 flex-1">
-                  <span id="solution-finder-modal-step2b-option-hf-title-row" class="block">
-                    <span
-                      id="solution-finder-modal-step2b-option-hf-title"
-                      class="text-sm font-semibold text-slate-900"
-                    >
-                      {{ 'solutionControls.finder.step2b.humanFootprintLabel' | translate }}
-                    </span>
-                    @if (!isCostLayerAvailable('human-footprint')) {
+                <div
+                  id="solution-finder-modal-step2b-option-human-footprint"
+                  class="flex w-full items-center justify-between gap-3 rounded-t-md px-2 pt-2 text-left transition"
+                >
+                  <span id="solution-finder-modal-step2b-option-hf-copy" class="min-w-0 flex-1">
+                    <span id="solution-finder-modal-step2b-option-hf-title-row" class="block">
                       <span
-                        id="solution-finder-modal-step2b-option-hf-unavailable-badge"
-                        class="ml-2 rounded-md border border-slate-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                        id="solution-finder-modal-step2b-option-hf-title"
+                        class="text-sm font-semibold text-slate-900"
                       >
-                        {{ 'solutionControls.finder.step2b.notAvailableBadge' | translate }}
+                        {{ 'solutionControls.finder.step2b.humanFootprintLabel' | translate }}
                       </span>
-                    }
+                      @if (!isCostLayerAvailable('human-footprint')) {
+                        <span
+                          id="solution-finder-modal-step2b-option-hf-unavailable-badge"
+                          class="ml-2 rounded-md border border-slate-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                        >
+                          {{ 'solutionControls.finder.step2b.notAvailableBadge' | translate }}
+                        </span>
+                      }
+                    </span>
+                    <span
+                      id="solution-finder-modal-step2b-option-hf-help"
+                      class="finder-subtext-dark mt-1 block text-xs font-normal leading-snug"
+                    >
+                      {{ 'solutionControls.finder.step2b.humanFootprintHelp' | translate }}
+                    </span>
                   </span>
                   <span
-                    id="solution-finder-modal-step2b-option-hf-help"
-                    class="finder-subtext-dark mt-1 block text-xs font-normal leading-snug"
+                    id="solution-finder-modal-step2b-option-hf-toggle-label"
+                    class="shrink-0 rounded-md border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-800"
                   >
-                    {{ 'solutionControls.finder.step2b.humanFootprintHelp' | translate }}
+                    <span id="solution-finder-modal-step2b-option-hf-required-label">
+                      {{ 'solutionControls.finder.step2b.requiredBadge' | translate }}
+                    </span>
                   </span>
-                </span>
-                <span
-                  id="solution-finder-modal-step2b-option-hf-toggle-label"
-                  class="shrink-0 rounded-md border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-800"
+                </div>
+                <div
+                  id="solution-finder-modal-step2b-human-footprint-year-group"
+                  class="mx-2 mt-3 grid grid-cols-2 gap-2"
+                  role="radiogroup"
+                  [attr.aria-label]="
+                    'solutionControls.finder.step2b.humanFootprintYearLabel' | translate
+                  "
                 >
-                  <span id="solution-finder-modal-step2b-option-hf-required-label">
-                    {{ 'solutionControls.finder.step2b.requiredBadge' | translate }}
-                  </span>
-                </span>
+                  <button
+                    id="solution-finder-modal-step2b-human-footprint-year-2022"
+                    type="button"
+                    class="rounded-md border px-3 py-2 text-sm font-semibold transition"
+                    [class.border-sky-600]="humanFootprintYear === 2022"
+                    [class.bg-sky-600]="humanFootprintYear === 2022"
+                    [class.text-white]="humanFootprintYear === 2022"
+                    [class.border-slate-200]="humanFootprintYear !== 2022"
+                    [attr.aria-checked]="humanFootprintYear === 2022"
+                    role="radio"
+                    (click)="selectHumanFootprintYear(2022)"
+                  >
+                    2022
+                  </button>
+                  <button
+                    id="solution-finder-modal-step2b-human-footprint-year-2030"
+                    type="button"
+                    class="rounded-md border px-3 py-2 text-sm font-semibold transition"
+                    [class.border-sky-600]="humanFootprintYear === 2030"
+                    [class.bg-sky-600]="humanFootprintYear === 2030"
+                    [class.text-white]="humanFootprintYear === 2030"
+                    [class.border-slate-200]="humanFootprintYear !== 2030"
+                    [attr.aria-checked]="humanFootprintYear === 2030"
+                    role="radio"
+                    (click)="selectHumanFootprintYear(2030)"
+                  >
+                    2030
+                  </button>
+                </div>
+                <a
+                  id="solution-finder-modal-step2b-option-hf-source-link"
+                  class="mx-2 mb-2 mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  [href]="'solutionControls.finder.step2b.humanFootprintSourceUrl' | translate"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ 'solutionControls.finder.step2b.humanFootprintSourceLabel' | translate }}
+                </a>
               </div>
-              <div
-                id="solution-finder-modal-step2b-human-footprint-year-group"
-                class="mx-2 mt-3 grid grid-cols-2 gap-2"
-                role="radiogroup"
-                [attr.aria-label]="
-                  'solutionControls.finder.step2b.humanFootprintYearLabel' | translate
-                "
-              >
-                <button
-                  id="solution-finder-modal-step2b-human-footprint-year-2022"
-                  type="button"
-                  class="rounded-md border px-3 py-2 text-sm font-semibold transition"
-                  [class.border-sky-600]="humanFootprintYear === 2022"
-                  [class.bg-sky-600]="humanFootprintYear === 2022"
-                  [class.text-white]="humanFootprintYear === 2022"
-                  [class.border-slate-200]="humanFootprintYear !== 2022"
-                  [attr.aria-checked]="humanFootprintYear === 2022"
-                  role="radio"
-                  (click)="selectHumanFootprintYear(2022)"
-                >
-                  2022
-                </button>
-                <button
-                  id="solution-finder-modal-step2b-human-footprint-year-2030"
-                  type="button"
-                  class="rounded-md border px-3 py-2 text-sm font-semibold transition"
-                  [class.border-sky-600]="humanFootprintYear === 2030"
-                  [class.bg-sky-600]="humanFootprintYear === 2030"
-                  [class.text-white]="humanFootprintYear === 2030"
-                  [class.border-slate-200]="humanFootprintYear !== 2030"
-                  [attr.aria-checked]="humanFootprintYear === 2030"
-                  role="radio"
-                  (click)="selectHumanFootprintYear(2030)"
-                >
-                  2030
-                </button>
-              </div>
-              <details
-                id="solution-finder-modal-step2b-option-hf-definition"
-                class="mx-2 mt-1 text-xs leading-snug text-slate-600"
-              >
-                <summary
-                  id="solution-finder-modal-step2b-option-hf-definition-toggle"
-                  class="cursor-pointer font-semibold text-slate-700 underline-offset-2 hover:underline"
-                >
-                  {{ 'solutionControls.finder.step2b.humanFootprintDefinitionToggle' | translate }}
-                </summary>
-                <p id="solution-finder-modal-step2b-option-hf-definition-text" class="mt-1">
-                  {{ 'solutionControls.finder.step2b.humanFootprintDefinition' | translate }}
-                </p>
-              </details>
-              <a
-                id="solution-finder-modal-step2b-option-hf-source-link"
-                class="mx-2 mb-2 mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
-                [href]="'solutionControls.finder.step2b.humanFootprintSourceUrl' | translate"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {{ 'solutionControls.finder.step2b.humanFootprintSourceLabel' | translate }}
-              </a>
-            </div>
 
-            <div
-              id="solution-finder-modal-step2b-option-carbon-card"
-              class="hidden"
-              [class.finder-selected-card-border]="selectedCostLayerId === 'carbon-opportunity'"
-              [class.bg-sky-100]="selectedCostLayerId === 'carbon-opportunity'"
-              [class.border-slate-200]="selectedCostLayerId !== 'carbon-opportunity'"
-              [class.bg-white]="selectedCostLayerId !== 'carbon-opportunity'"
-              [class.cursor-not-allowed]="
-                !isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')
-              "
-              [class.opacity-60]="!isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')"
-            >
-              <button
-                id="solution-finder-modal-step2b-option-carbon"
-                type="button"
-                class="flex w-full items-center justify-between gap-3 rounded-t-md px-2 pt-2 text-left transition"
+              <div
+                id="solution-finder-modal-step2b-option-carbon-card"
+                class="hidden"
+                [class.finder-selected-card-border]="selectedCostLayerId === 'carbon-opportunity'"
+                [class.bg-sky-100]="selectedCostLayerId === 'carbon-opportunity'"
+                [class.border-slate-200]="selectedCostLayerId !== 'carbon-opportunity'"
+                [class.bg-white]="selectedCostLayerId !== 'carbon-opportunity'"
                 [class.cursor-not-allowed]="
                   !isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')
                 "
-                [disabled]="!isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')"
-                [attr.aria-pressed]="selectedCostLayerId === 'carbon-opportunity'"
-                (click)="selectCostLayer('carbon-opportunity')"
+                [class.opacity-60]="
+                  !isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')
+                "
               >
-                <span id="solution-finder-modal-step2b-option-co-copy" class="min-w-0 flex-1">
-                  <span id="solution-finder-modal-step2b-option-co-title-row" class="block">
-                    <span
-                      id="solution-finder-modal-step2b-option-co-title"
-                      class="text-sm font-semibold text-slate-900"
-                    >
-                      {{ 'solutionControls.finder.step2b.carbonOpportunityLabel' | translate }}
-                    </span>
-                    @if (!isCostLayerAvailable('carbon-opportunity')) {
+                <button
+                  id="solution-finder-modal-step2b-option-carbon"
+                  type="button"
+                  class="flex w-full items-center justify-between gap-3 rounded-t-md px-2 pt-2 text-left transition"
+                  [class.cursor-not-allowed]="
+                    !isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')
+                  "
+                  [disabled]="!isStep2Unlocked() || !isCostLayerAvailable('carbon-opportunity')"
+                  [attr.aria-pressed]="selectedCostLayerId === 'carbon-opportunity'"
+                  (click)="selectCostLayer('carbon-opportunity')"
+                >
+                  <span id="solution-finder-modal-step2b-option-co-copy" class="min-w-0 flex-1">
+                    <span id="solution-finder-modal-step2b-option-co-title-row" class="block">
                       <span
-                        id="solution-finder-modal-step2b-option-co-unavailable-badge"
-                        class="ml-2 rounded-md border border-slate-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                        id="solution-finder-modal-step2b-option-co-title"
+                        class="text-sm font-semibold text-slate-900"
                       >
-                        {{ 'solutionControls.finder.step2b.notAvailableBadge' | translate }}
+                        {{ 'solutionControls.finder.step2b.carbonOpportunityLabel' | translate }}
                       </span>
-                    }
+                      @if (!isCostLayerAvailable('carbon-opportunity')) {
+                        <span
+                          id="solution-finder-modal-step2b-option-co-unavailable-badge"
+                          class="ml-2 rounded-md border border-slate-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                        >
+                          {{ 'solutionControls.finder.step2b.notAvailableBadge' | translate }}
+                        </span>
+                      }
+                    </span>
+                    <span
+                      id="solution-finder-modal-step2b-option-co-help"
+                      class="finder-subtext-dark mt-1 block text-xs font-normal leading-snug"
+                    >
+                      {{ 'solutionControls.finder.step2b.carbonOpportunityHelp' | translate }}
+                    </span>
                   </span>
                   <span
-                    id="solution-finder-modal-step2b-option-co-help"
-                    class="finder-subtext-dark mt-1 block text-xs font-normal leading-snug"
+                    id="solution-finder-modal-step2b-option-co-toggle-label"
+                    class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
+                    [class.bg-sky-600]="selectedCostLayerId === 'carbon-opportunity'"
+                    [class.text-white]="selectedCostLayerId === 'carbon-opportunity'"
+                    [class.bg-slate-300]="selectedCostLayerId !== 'carbon-opportunity'"
+                    [class.text-slate-800]="selectedCostLayerId !== 'carbon-opportunity'"
                   >
-                    {{ 'solutionControls.finder.step2b.carbonOpportunityHelp' | translate }}
+                    <span class="finder-fixed-toggle-label">
+                      {{
+                        (selectedCostLayerId === 'carbon-opportunity'
+                          ? 'solutionControls.finder.toggle.on'
+                          : 'solutionControls.finder.toggle.off'
+                        ) | translate
+                      }}
+                    </span>
                   </span>
-                </span>
-                <span
-                  id="solution-finder-modal-step2b-option-co-toggle-label"
-                  class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
-                  [class.bg-sky-600]="selectedCostLayerId === 'carbon-opportunity'"
-                  [class.text-white]="selectedCostLayerId === 'carbon-opportunity'"
-                  [class.bg-slate-300]="selectedCostLayerId !== 'carbon-opportunity'"
-                  [class.text-slate-800]="selectedCostLayerId !== 'carbon-opportunity'"
+                </button>
+                <details
+                  id="solution-finder-modal-step2b-option-carbon-definition"
+                  class="mx-2 mt-1 text-xs leading-snug text-slate-600"
                 >
-                  <span class="finder-fixed-toggle-label">
+                  <summary
+                    id="solution-finder-modal-step2b-option-carbon-definition-toggle"
+                    class="cursor-pointer font-semibold text-slate-700 underline-offset-2 hover:underline"
+                  >
                     {{
-                      (selectedCostLayerId === 'carbon-opportunity'
-                        ? 'solutionControls.finder.toggle.on'
-                        : 'solutionControls.finder.toggle.off'
-                      ) | translate
+                      'solutionControls.finder.step2b.carbonOpportunityDefinitionToggle' | translate
                     }}
-                  </span>
-                </span>
-              </button>
-              <details
-                id="solution-finder-modal-step2b-option-carbon-definition"
-                class="mx-2 mt-1 text-xs leading-snug text-slate-600"
-              >
-                <summary
-                  id="solution-finder-modal-step2b-option-carbon-definition-toggle"
-                  class="cursor-pointer font-semibold text-slate-700 underline-offset-2 hover:underline"
+                  </summary>
+                  <p id="solution-finder-modal-step2b-option-carbon-definition-text" class="mt-1">
+                    {{ 'solutionControls.finder.step2b.carbonOpportunityDefinition' | translate }}
+                  </p>
+                </details>
+                <a
+                  id="solution-finder-modal-step2b-option-carbon-source-link"
+                  class="mx-2 mb-2 mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  [href]="'solutionControls.finder.step2b.carbonOpportunitySourceUrl' | translate"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  {{
-                    'solutionControls.finder.step2b.carbonOpportunityDefinitionToggle' | translate
-                  }}
-                </summary>
-                <p id="solution-finder-modal-step2b-option-carbon-definition-text" class="mt-1">
-                  {{ 'solutionControls.finder.step2b.carbonOpportunityDefinition' | translate }}
-                </p>
-              </details>
-              <a
-                id="solution-finder-modal-step2b-option-carbon-source-link"
-                class="mx-2 mb-2 mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
-                [href]="'solutionControls.finder.step2b.carbonOpportunitySourceUrl' | translate"
-                target="_blank"
-                rel="noopener noreferrer"
+                  {{ 'solutionControls.finder.step2b.carbonOpportunitySourceLabel' | translate }}
+                </a>
+              </div>
+            </div>
+          </article>
+          <div
+            id="solution-finder-modal-step2b-lock-overlay"
+            class="finder-step-lock-overlay absolute inset-0 z-10 rounded-md p-3"
+            [class.hidden]="isStep2Unlocked()"
+          >
+            <div
+              id="solution-finder-modal-step2b-lock-overlay-content"
+              class="flex h-full items-center justify-center text-center"
+            >
+              <p
+                id="solution-finder-modal-step2b-lock-overlay-message"
+                class="finder-step-lock-overlay-message max-w-55 text-sm font-semibold leading-snug"
               >
-                {{ 'solutionControls.finder.step2b.carbonOpportunitySourceLabel' | translate }}
-              </a>
+                {{ getStep2LockReasonKey() | translate }}
+              </p>
             </div>
           </div>
-        </article>
-        <div
-          id="solution-finder-modal-step2b-lock-overlay"
-          class="finder-step-lock-overlay absolute inset-0 z-10 rounded-md p-3"
-          [class.hidden]="isStep2Unlocked()"
-        >
-          <div
-            id="solution-finder-modal-step2b-lock-overlay-content"
-            class="flex h-full items-center justify-center text-center"
-          >
-            <p
-              id="solution-finder-modal-step2b-lock-overlay-message"
-              class="finder-step-lock-overlay-message max-w-55 text-sm font-semibold leading-snug"
-            >
-              {{ getStep2LockReasonKey() | translate }}
-            </p>
-          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section
-      id="solution-finder-modal-step2a-column"
-      class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
-      [class.hidden]="selectedDomain !== 'land'"
-      [attr.inert]="selectedDomain !== 'land' ? '' : null"
-      [attr.aria-hidden]="selectedDomain !== 'land'"
-      aria-labelledby="solution-finder-modal-step2a-heading"
-    >
-      <div id="solution-finder-modal-step2a-header-block" #finderColumnHeader class="space-y-3">
+      <div
+        id="solution-finder-modal-step2a-header-block"
+        class="space-y-3 lg:col-start-3 lg:row-start-1"
+      >
         <h4
           id="solution-finder-modal-step2a-heading"
           class="finder-step-heading text-base text-slate-800"
@@ -1075,162 +1121,162 @@
           {{ 'solutionControls.finder.stepIntros.step2a' | translate }}
         </p>
       </div>
-      <div id="solution-finder-modal-step2a-card-wrapper" class="relative min-h-0 flex-1">
-        <article
-          id="solution-finder-modal-step2a-card"
-          class="finder-modal-scrollbar h-full space-y-3 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
-        >
-          <div
-            id="solution-finder-modal-step2a-row-omec"
-            class="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
-            [class.finder-selected-card-border]="includeOmecs"
-            [class.bg-sky-100]="includeOmecs"
-            [class.border-slate-200]="!includeOmecs"
-            [class.bg-white]="!includeOmecs"
-            [class.cursor-pointer]="isStep2Unlocked()"
-            [class.cursor-not-allowed]="!isStep2Unlocked()"
-            [attr.role]="isStep2Unlocked() ? 'button' : null"
-            [attr.tabindex]="isStep2Unlocked() ? 0 : -1"
-            [attr.aria-pressed]="includeOmecs"
-            [attr.aria-disabled]="!isStep2Unlocked()"
-            (click)="isStep2Unlocked() && toggleIncludeOmecs()"
-            (keydown.enter)="isStep2Unlocked() && toggleIncludeOmecs()"
-            (keydown.space)="$event.preventDefault(); isStep2Unlocked() && toggleIncludeOmecs()"
-          >
-            <div id="solution-finder-modal-step2a-row-omec-copy" class="min-w-0 flex-1">
-              <p
-                id="solution-finder-modal-step2a-row-omec-label"
-                class="text-sm font-semibold text-slate-900"
-              >
-                {{ 'solutionControls.finder.step2a.includeOmecsLabel' | translate }}
-              </p>
-              <p
-                id="solution-finder-modal-step2a-row-omec-help"
-                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
-              >
-                {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
-              </p>
-              <a
-                id="solution-finder-modal-step2a-row-omec-source-link"
-                class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
-                [href]="'solutionControls.finder.step2a.includeOmecsSourceUrl' | translate"
-                target="_blank"
-                rel="noopener noreferrer"
-                (click)="$event.stopPropagation()"
-                (keydown.enter)="$event.stopPropagation()"
-                (keydown.space)="$event.stopPropagation()"
-              >
-                {{ 'solutionControls.finder.step2a.includeOmecsSourceLabel' | translate }}
-              </a>
-            </div>
-            <button
-              id="solution-finder-modal-step2a-row-omec-toggle"
-              type="button"
-              role="switch"
-              class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
-              [class.bg-sky-600]="includeOmecs"
-              [class.text-white]="includeOmecs"
-              [class.bg-slate-300]="!includeOmecs"
-              [class.text-slate-800]="!includeOmecs"
-              [class.cursor-not-allowed]="!isStep2Unlocked()"
-              [class.opacity-60]="!isStep2Unlocked()"
-              [disabled]="!isStep2Unlocked()"
-              [attr.aria-checked]="includeOmecs"
-              [attr.aria-label]="'solutionControls.finder.step2a.includeOmecsLabel' | translate"
-              (click)="$event.stopPropagation(); toggleIncludeOmecs()"
-            >
-              <span
-                id="solution-finder-modal-step2a-row-omec-toggle-label"
-                class="finder-fixed-toggle-label"
-              >
-                {{
-                  (includeOmecs
-                    ? 'solutionControls.finder.toggle.on'
-                    : 'solutionControls.finder.toggle.off'
-                  ) | translate
-                }}
-              </span>
-            </button>
-          </div>
 
-          <div
-            id="solution-finder-modal-step2a-always-section"
-            class="border-t border-slate-200 pt-3"
+      <section
+        id="solution-finder-modal-step2a-column"
+        class="relative min-h-0 lg:col-start-3 lg:row-start-2"
+        aria-labelledby="solution-finder-modal-step2a-heading"
+      >
+        <div id="solution-finder-modal-step2a-card-wrapper" class="relative min-h-0 h-full">
+          <article
+            id="solution-finder-modal-step2a-card"
+            class="finder-modal-scrollbar h-full space-y-3 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
           >
-            <p
-              id="solution-finder-modal-step2a-always-heading"
-              class="finder-all-caps-optical finder-subtext-dark text-[11px] font-semibold uppercase tracking-[0.12em]"
-            >
-              {{ 'solutionControls.finder.step2a.alwaysAppliedHeading' | translate }}
-            </p>
+            <div id="solution-finder-modal-step2a-always-section">
+              <div
+                id="solution-finder-modal-step2a-always-runap"
+                class="flex items-center justify-between gap-3 rounded-md border border-sky-300 bg-sky-100 px-3 py-2"
+              >
+                <div id="solution-finder-modal-step2a-always-runap-copy" class="min-w-0 flex-1">
+                  <p
+                    id="solution-finder-modal-step2a-always-runap-label"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysRunapLabel' | translate }}
+                  </p>
+                  <p
+                    id="solution-finder-modal-step2a-always-runap-help"
+                    class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysRunapHelp' | translate }}
+                  </p>
+                  <a
+                    id="solution-finder-modal-step2a-always-runap-source-link"
+                    class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                    [href]="'solutionControls.finder.step2a.alwaysRunapSourceUrl' | translate"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysRunapSourceLabel' | translate }}
+                  </a>
+                </div>
+                <span
+                  id="solution-finder-modal-step2a-always-runap-chip"
+                  class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
+                >
+                  <span
+                    id="solution-finder-modal-step2a-always-runap-chip-label"
+                    class="finder-fixed-toggle-label"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}
+                  </span>
+                </span>
+              </div>
+            </div>
+
             <div
-              id="solution-finder-modal-step2a-always-runap"
-              class="mt-2 flex items-center justify-between gap-3 rounded-md border border-sky-300 bg-sky-100 px-3 py-2"
+              id="solution-finder-modal-step2a-row-omec"
+              class="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
+              [class.finder-selected-card-border]="includeOmecs"
+              [class.bg-sky-100]="includeOmecs"
+              [class.border-slate-200]="!includeOmecs"
+              [class.bg-white]="!includeOmecs"
+              [class.cursor-pointer]="isStep2Unlocked()"
+              [class.cursor-not-allowed]="!isStep2Unlocked()"
+              [attr.role]="isStep2Unlocked() ? 'button' : null"
+              [attr.tabindex]="isStep2Unlocked() ? 0 : -1"
+              [attr.aria-pressed]="includeOmecs"
+              [attr.aria-disabled]="!isStep2Unlocked()"
+              (click)="isStep2Unlocked() && toggleIncludeOmecs()"
+              (keydown.enter)="isStep2Unlocked() && toggleIncludeOmecs()"
+              (keydown.space)="$event.preventDefault(); isStep2Unlocked() && toggleIncludeOmecs()"
             >
-              <div id="solution-finder-modal-step2a-always-runap-copy" class="min-w-0 flex-1">
+              <div id="solution-finder-modal-step2a-row-omec-copy" class="min-w-0 flex-1">
                 <p
-                  id="solution-finder-modal-step2a-always-runap-label"
+                  id="solution-finder-modal-step2a-row-omec-label"
                   class="text-sm font-semibold text-slate-900"
                 >
-                  {{ 'solutionControls.finder.step2a.alwaysRunapLabel' | translate }}
+                  {{ 'solutionControls.finder.step2a.includeOmecsLabel' | translate }}
                 </p>
                 <p
-                  id="solution-finder-modal-step2a-always-runap-help"
+                  id="solution-finder-modal-step2a-row-omec-help"
                   class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
                 >
-                  {{ 'solutionControls.finder.step2a.alwaysRunapHelp' | translate }}
+                  {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
                 </p>
                 <a
-                  id="solution-finder-modal-step2a-always-runap-source-link"
+                  id="solution-finder-modal-step2a-row-omec-source-link"
                   class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
-                  [href]="'solutionControls.finder.step2a.alwaysRunapSourceUrl' | translate"
+                  [href]="'solutionControls.finder.step2a.includeOmecsSourceUrl' | translate"
                   target="_blank"
                   rel="noopener noreferrer"
+                  (click)="$event.stopPropagation()"
+                  (keydown.enter)="$event.stopPropagation()"
+                  (keydown.space)="$event.stopPropagation()"
                 >
-                  {{ 'solutionControls.finder.step2a.alwaysRunapSourceLabel' | translate }}
+                  {{ 'solutionControls.finder.step2a.includeOmecsSourceLabel' | translate }}
                 </a>
               </div>
-              <span
-                id="solution-finder-modal-step2a-always-runap-chip"
-                class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
+              <button
+                id="solution-finder-modal-step2a-row-omec-toggle"
+                type="button"
+                role="switch"
+                class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
+                [class.bg-sky-600]="includeOmecs"
+                [class.text-white]="includeOmecs"
+                [class.bg-slate-300]="!includeOmecs"
+                [class.text-slate-800]="!includeOmecs"
+                [class.cursor-not-allowed]="!isStep2Unlocked()"
+                [class.opacity-60]="!isStep2Unlocked()"
+                [disabled]="!isStep2Unlocked()"
+                [attr.aria-checked]="includeOmecs"
+                [attr.aria-label]="'solutionControls.finder.step2a.includeOmecsLabel' | translate"
+                (click)="$event.stopPropagation(); toggleIncludeOmecs()"
               >
                 <span
-                  id="solution-finder-modal-step2a-always-runap-chip-label"
+                  id="solution-finder-modal-step2a-row-omec-toggle-label"
                   class="finder-fixed-toggle-label"
                 >
-                  {{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}
+                  {{
+                    (includeOmecs
+                      ? 'solutionControls.finder.toggle.on'
+                      : 'solutionControls.finder.toggle.off'
+                    ) | translate
+                  }}
                 </span>
-              </span>
+              </button>
+            </div>
+          </article>
+          <div
+            id="solution-finder-modal-step2a-lock-overlay"
+            class="finder-step-lock-overlay absolute inset-0 z-10 rounded-md p-3"
+            [class.hidden]="isStep2Unlocked()"
+          >
+            <div
+              id="solution-finder-modal-step2a-lock-overlay-content"
+              class="flex h-full items-center justify-center text-center"
+            >
+              <p
+                id="solution-finder-modal-step2a-lock-overlay-message"
+                class="finder-step-lock-overlay-message max-w-55 text-sm font-semibold leading-snug"
+              >
+                {{ getStep2LockReasonKey() | translate }}
+              </p>
             </div>
           </div>
-        </article>
-        <div
-          id="solution-finder-modal-step2a-lock-overlay"
-          class="finder-step-lock-overlay absolute inset-0 z-10 rounded-md p-3"
-          [class.hidden]="isStep2Unlocked()"
-        >
-          <div
-            id="solution-finder-modal-step2a-lock-overlay-content"
-            class="flex h-full items-center justify-center text-center"
-          >
-            <p
-              id="solution-finder-modal-step2a-lock-overlay-message"
-              class="finder-step-lock-overlay-message max-w-55 text-sm font-semibold leading-snug"
-            >
-              {{ getStep2LockReasonKey() | translate }}
-            </p>
-          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
 
     @if (selectedDomain === 'marine') {
-      <section
-        id="solution-finder-modal-marine-target-column"
-        class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
-        aria-labelledby="solution-finder-modal-marine-target-heading"
+      <div
+        id="solution-finder-modal-marine-steps-grid"
+        class="relative z-10 grid min-h-0 w-full gap-x-4 gap-y-3 lg:col-span-12 lg:grid-cols-3 lg:grid-rows-[auto_minmax(0,1fr)]"
       >
-        <div id="solution-finder-modal-marine-target-header" #finderColumnHeader class="space-y-3">
+        <div
+          id="solution-finder-modal-marine-target-header"
+          class="space-y-3 lg:col-start-1 lg:row-start-1"
+        >
           <h4
             id="solution-finder-modal-marine-target-heading"
             class="finder-step-heading text-base text-slate-800"
@@ -1256,99 +1302,104 @@
           </p>
         </div>
 
-        <article
-          id="solution-finder-modal-marine-target-card"
-          class="finder-modal-scrollbar h-full overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+        <section
+          id="solution-finder-modal-marine-target-column"
+          class="relative min-h-0 lg:col-start-1 lg:row-start-2"
+          aria-labelledby="solution-finder-modal-marine-target-heading"
         >
-          <div
-            id="solution-finder-modal-marine-target-bundle"
-            class="finder-selected-card-border rounded-md border bg-sky-100 px-3 py-2"
+          <article
+            id="solution-finder-modal-marine-target-card"
+            class="finder-modal-scrollbar h-full overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
           >
-            <p
-              id="solution-finder-modal-marine-target-bundle-label"
-              class="text-sm font-semibold text-sky-900"
-            >
-              {{ 'solutionControls.finder.marine.targetBundleLabel' | translate }}
-            </p>
-            <p
-              id="solution-finder-modal-marine-target-bundle-help"
-              class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
-            >
-              {{ 'solutionControls.finder.marine.targetBundleHelp' | translate }}
-            </p>
             <div
-              id="solution-finder-modal-marine-target-level-panel"
-              class="finder-target-level-panel finder-target-level-panel-visible rounded-md bg-white"
+              id="solution-finder-modal-marine-target-bundle"
+              class="finder-selected-card-border rounded-md border bg-sky-100 px-3 py-2"
             >
-              <div
-                id="solution-finder-modal-marine-target-level-row"
-                class="flex flex-wrap items-center justify-between gap-2"
+              <p
+                id="solution-finder-modal-marine-target-bundle-label"
+                class="text-sm font-semibold text-sky-900"
               >
-                <p
-                  id="solution-finder-modal-marine-target-level-label"
-                  class="finder-all-caps-optical finder-subtext-dark finder-target-level-title-optical text-[11px] font-semibold uppercase tracking-wide"
-                >
-                  {{ 'solutionControls.finder.step1.coverageLevelLabel' | translate }}
-                </p>
+                {{ 'solutionControls.finder.marine.targetBundleLabel' | translate }}
+              </p>
+              <p
+                id="solution-finder-modal-marine-target-bundle-help"
+                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+              >
+                {{ 'solutionControls.finder.marine.targetBundleHelp' | translate }}
+              </p>
+              <div
+                id="solution-finder-modal-marine-target-level-panel"
+                class="finder-target-level-panel finder-target-level-panel-visible rounded-md bg-white"
+              >
                 <div
-                  id="solution-finder-modal-marine-target-level-buttons"
-                  class="flex items-center gap-1"
-                  role="radiogroup"
-                  [attr.aria-label]="'solutionControls.finder.step1.coverageLevelLabel' | translate"
+                  id="solution-finder-modal-marine-target-level-row"
+                  class="flex flex-wrap items-center justify-between gap-2"
                 >
-                  <button
-                    id="solution-finder-modal-marine-target-30-button"
-                    type="button"
-                    class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none"
-                    [class.border-sky-600]="marineTargetPercent === 30"
-                    [class.bg-sky-600]="marineTargetPercent === 30"
-                    [class.text-white]="marineTargetPercent === 30"
-                    [class.border-slate-200]="marineTargetPercent !== 30"
-                    [class.bg-white]="marineTargetPercent !== 30"
-                    [class.text-slate-700]="marineTargetPercent !== 30"
-                    [attr.aria-pressed]="marineTargetPercent === 30"
-                    (click)="selectMarineTargetPercent(30)"
+                  <p
+                    id="solution-finder-modal-marine-target-level-label"
+                    class="finder-all-caps-optical finder-subtext-dark finder-target-level-title-optical text-[11px] font-semibold uppercase tracking-wide"
                   >
-                    <span
-                      id="solution-finder-modal-marine-target-30-label"
-                      class="finder-target-level-choice-label-optical"
-                    >
-                      30%
-                    </span>
-                  </button>
-                  <button
-                    id="solution-finder-modal-marine-target-50-button"
-                    type="button"
-                    class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none"
-                    [class.border-sky-600]="marineTargetPercent === 50"
-                    [class.bg-sky-600]="marineTargetPercent === 50"
-                    [class.text-white]="marineTargetPercent === 50"
-                    [class.border-slate-200]="marineTargetPercent !== 50"
-                    [class.bg-white]="marineTargetPercent !== 50"
-                    [class.text-slate-700]="marineTargetPercent !== 50"
-                    [attr.aria-pressed]="marineTargetPercent === 50"
-                    (click)="selectMarineTargetPercent(50)"
+                    {{ 'solutionControls.finder.step1.coverageLevelLabel' | translate }}
+                  </p>
+                  <div
+                    id="solution-finder-modal-marine-target-level-buttons"
+                    class="flex items-center gap-1"
+                    role="radiogroup"
+                    [attr.aria-label]="
+                      'solutionControls.finder.step1.coverageLevelLabel' | translate
+                    "
                   >
-                    <span
-                      id="solution-finder-modal-marine-target-50-label"
-                      class="finder-target-level-choice-label-optical"
+                    <button
+                      id="solution-finder-modal-marine-target-30-button"
+                      type="button"
+                      class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none"
+                      [class.border-sky-600]="marineTargetPercent === 30"
+                      [class.bg-sky-600]="marineTargetPercent === 30"
+                      [class.text-white]="marineTargetPercent === 30"
+                      [class.border-slate-200]="marineTargetPercent !== 30"
+                      [class.bg-white]="marineTargetPercent !== 30"
+                      [class.text-slate-700]="marineTargetPercent !== 30"
+                      [attr.aria-pressed]="marineTargetPercent === 30"
+                      (click)="selectMarineTargetPercent(30)"
                     >
-                      50%
-                    </span>
-                  </button>
+                      <span
+                        id="solution-finder-modal-marine-target-30-label"
+                        class="finder-target-level-choice-label-optical"
+                      >
+                        30%
+                      </span>
+                    </button>
+                    <button
+                      id="solution-finder-modal-marine-target-50-button"
+                      type="button"
+                      class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none"
+                      [class.border-sky-600]="marineTargetPercent === 50"
+                      [class.bg-sky-600]="marineTargetPercent === 50"
+                      [class.text-white]="marineTargetPercent === 50"
+                      [class.border-slate-200]="marineTargetPercent !== 50"
+                      [class.bg-white]="marineTargetPercent !== 50"
+                      [class.text-slate-700]="marineTargetPercent !== 50"
+                      [attr.aria-pressed]="marineTargetPercent === 50"
+                      (click)="selectMarineTargetPercent(50)"
+                    >
+                      <span
+                        id="solution-finder-modal-marine-target-50-label"
+                        class="finder-target-level-choice-label-optical"
+                      >
+                        50%
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </article>
-      </section>
+          </article>
+        </section>
 
-      <section
-        id="solution-finder-modal-marine-cost-column"
-        class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
-        aria-labelledby="solution-finder-modal-marine-cost-heading"
-      >
-        <div id="solution-finder-modal-marine-cost-header" #finderColumnHeader class="space-y-3">
+        <div
+          id="solution-finder-modal-marine-cost-header"
+          class="space-y-3 lg:col-start-2 lg:row-start-1"
+        >
           <h4
             id="solution-finder-modal-marine-cost-heading"
             class="finder-step-heading text-base text-slate-800"
@@ -1374,52 +1425,51 @@
           </p>
         </div>
 
-        <article
-          id="solution-finder-modal-marine-cost-card"
-          class="finder-modal-scrollbar h-full space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+        <section
+          id="solution-finder-modal-marine-cost-column"
+          class="relative min-h-0 lg:col-start-2 lg:row-start-2"
+          aria-labelledby="solution-finder-modal-marine-cost-heading"
         >
-          <div
-            id="solution-finder-modal-marine-hhm-row"
-            class="finder-selected-card-border flex items-center justify-between gap-3 rounded-md border bg-sky-100 px-3 py-2"
+          <article
+            id="solution-finder-modal-marine-cost-card"
+            class="finder-modal-scrollbar h-full space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
           >
-            <div id="solution-finder-modal-marine-hhm-copy" class="min-w-0 flex-1">
-              <p
-                id="solution-finder-modal-marine-hhm-label"
-                class="text-sm font-semibold text-slate-900"
-              >
-                {{ 'solutionControls.finder.marine.hhmLabel' | translate }}
-              </p>
-              <p
-                id="solution-finder-modal-marine-hhm-help"
-                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
-              >
-                {{ 'solutionControls.finder.marine.hhmHelp' | translate }}
-              </p>
-            </div>
-            <span
-              id="solution-finder-modal-marine-hhm-chip"
-              class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
+            <div
+              id="solution-finder-modal-marine-hhm-row"
+              class="finder-selected-card-border flex items-center justify-between gap-3 rounded-md border bg-sky-100 px-3 py-2"
             >
+              <div id="solution-finder-modal-marine-hhm-copy" class="min-w-0 flex-1">
+                <p
+                  id="solution-finder-modal-marine-hhm-label"
+                  class="text-sm font-semibold text-slate-900"
+                >
+                  {{ 'solutionControls.finder.marine.hhmLabel' | translate }}
+                </p>
+                <p
+                  id="solution-finder-modal-marine-hhm-help"
+                  class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                >
+                  {{ 'solutionControls.finder.marine.hhmHelp' | translate }}
+                </p>
+              </div>
               <span
-                id="solution-finder-modal-marine-hhm-chip-label"
-                class="finder-fixed-toggle-label"
+                id="solution-finder-modal-marine-hhm-chip"
+                class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
               >
-                {{ 'solutionControls.finder.marine.fixedChip' | translate }}
+                <span
+                  id="solution-finder-modal-marine-hhm-chip-label"
+                  class="finder-fixed-toggle-label"
+                >
+                  {{ 'solutionControls.finder.marine.fixedChip' | translate }}
+                </span>
               </span>
-            </span>
-          </div>
-        </article>
-      </section>
+            </div>
+          </article>
+        </section>
 
-      <section
-        id="solution-finder-modal-marine-includes-column"
-        class="relative z-10 flex min-h-0 flex-col gap-3 lg:col-span-4"
-        aria-labelledby="solution-finder-modal-marine-includes-heading"
-      >
         <div
           id="solution-finder-modal-marine-includes-header"
-          #finderColumnHeader
-          class="space-y-3"
+          class="space-y-3 lg:col-start-3 lg:row-start-1"
         >
           <h4
             id="solution-finder-modal-marine-includes-heading"
@@ -1446,129 +1496,126 @@
           </p>
         </div>
 
-        <article
-          id="solution-finder-modal-marine-includes-card"
-          class="finder-modal-scrollbar h-full space-y-3 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+        <section
+          id="solution-finder-modal-marine-includes-column"
+          class="relative min-h-0 lg:col-start-3 lg:row-start-2"
+          aria-labelledby="solution-finder-modal-marine-includes-heading"
         >
-          <div
-            id="solution-finder-modal-marine-omec-row"
-            class="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
-            [class.finder-selected-card-border]="marineIncludeOmecs"
-            [class.bg-sky-100]="marineIncludeOmecs"
-            [class.border-slate-200]="!marineIncludeOmecs"
-            [class.bg-white]="!marineIncludeOmecs"
-            role="button"
-            tabindex="0"
-            [attr.aria-pressed]="marineIncludeOmecs"
-            (click)="toggleMarineIncludeOmecs()"
-            (keydown.enter)="toggleMarineIncludeOmecs()"
-            (keydown.space)="$event.preventDefault(); toggleMarineIncludeOmecs()"
+          <article
+            id="solution-finder-modal-marine-includes-card"
+            class="finder-modal-scrollbar h-full space-y-3 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
           >
-            <div id="solution-finder-modal-marine-omec-copy" class="min-w-0 flex-1">
-              <p
-                id="solution-finder-modal-marine-omec-label"
-                class="text-sm font-semibold text-slate-900"
+            <div id="solution-finder-modal-marine-fixed-includes">
+              <div
+                id="solution-finder-modal-marine-runap-row"
+                class="flex items-center justify-between gap-3 rounded-md border border-sky-300 bg-sky-100 px-3 py-2"
               >
-                {{ 'solutionControls.finder.marine.omecLabel' | translate }}
-              </p>
-              <p
-                id="solution-finder-modal-marine-omec-help"
-                class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
-              >
-                {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
-              </p>
-              <a
-                id="solution-finder-modal-marine-omec-source-link"
-                class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
-                [href]="'solutionControls.finder.step2a.includeOmecsSourceUrl' | translate"
-                target="_blank"
-                rel="noopener noreferrer"
-                (click)="$event.stopPropagation()"
-                (keydown.enter)="$event.stopPropagation()"
-                (keydown.space)="$event.stopPropagation()"
-              >
-                {{ 'solutionControls.finder.step2a.includeOmecsSourceLabel' | translate }}
-              </a>
+                <div id="solution-finder-modal-marine-runap-copy" class="min-w-0 flex-1">
+                  <p
+                    id="solution-finder-modal-marine-runap-label"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysRunapLabel' | translate }}
+                  </p>
+                  <p
+                    id="solution-finder-modal-marine-runap-help"
+                    class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysRunapHelp' | translate }}
+                  </p>
+                  <a
+                    id="solution-finder-modal-marine-runap-source-link"
+                    class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                    [href]="'solutionControls.finder.step2a.alwaysRunapSourceUrl' | translate"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysRunapSourceLabel' | translate }}
+                  </a>
+                </div>
+                <span
+                  id="solution-finder-modal-marine-runap-chip"
+                  class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
+                >
+                  <span
+                    id="solution-finder-modal-marine-runap-chip-label"
+                    class="finder-fixed-toggle-label"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}
+                  </span>
+                </span>
+              </div>
             </div>
-            <button
-              id="solution-finder-modal-marine-omec-toggle"
-              type="button"
-              role="switch"
-              class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold"
-              [class.bg-sky-600]="marineIncludeOmecs"
-              [class.text-white]="marineIncludeOmecs"
-              [class.bg-slate-300]="!marineIncludeOmecs"
-              [class.text-slate-800]="!marineIncludeOmecs"
-              [attr.aria-checked]="marineIncludeOmecs"
-              [attr.aria-label]="'solutionControls.finder.marine.omecLabel' | translate"
-              (click)="$event.stopPropagation(); toggleMarineIncludeOmecs()"
-            >
-              <span
-                id="solution-finder-modal-marine-omec-state-label"
-                class="finder-fixed-toggle-label"
-              >
-                {{
-                  (marineIncludeOmecs
-                    ? 'solutionControls.finder.toggle.on'
-                    : 'solutionControls.finder.toggle.off'
-                  ) | translate
-                }}
-              </span>
-            </button>
-          </div>
 
-          <div
-            id="solution-finder-modal-marine-fixed-includes"
-            class="border-t border-slate-200 pt-3"
-          >
-            <p
-              id="solution-finder-modal-marine-fixed-includes-heading"
-              class="finder-all-caps-optical finder-subtext-dark text-[11px] font-semibold uppercase tracking-[0.12em]"
-            >
-              {{ 'solutionControls.finder.step2a.alwaysAppliedHeading' | translate }}
-            </p>
             <div
-              id="solution-finder-modal-marine-runap-row"
-              class="mt-2 flex items-center justify-between gap-3 rounded-md border border-sky-300 bg-sky-100 px-3 py-2"
+              id="solution-finder-modal-marine-omec-row"
+              class="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2"
+              [class.finder-selected-card-border]="marineIncludeOmecs"
+              [class.bg-sky-100]="marineIncludeOmecs"
+              [class.border-slate-200]="!marineIncludeOmecs"
+              [class.bg-white]="!marineIncludeOmecs"
+              role="button"
+              tabindex="0"
+              [attr.aria-pressed]="marineIncludeOmecs"
+              (click)="toggleMarineIncludeOmecs()"
+              (keydown.enter)="toggleMarineIncludeOmecs()"
+              (keydown.space)="$event.preventDefault(); toggleMarineIncludeOmecs()"
             >
-              <div id="solution-finder-modal-marine-runap-copy" class="min-w-0 flex-1">
+              <div id="solution-finder-modal-marine-omec-copy" class="min-w-0 flex-1">
                 <p
-                  id="solution-finder-modal-marine-runap-label"
+                  id="solution-finder-modal-marine-omec-label"
                   class="text-sm font-semibold text-slate-900"
                 >
-                  {{ 'solutionControls.finder.step2a.alwaysRunapLabel' | translate }}
+                  {{ 'solutionControls.finder.marine.omecLabel' | translate }}
                 </p>
                 <p
-                  id="solution-finder-modal-marine-runap-help"
+                  id="solution-finder-modal-marine-omec-help"
                   class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
                 >
-                  {{ 'solutionControls.finder.step2a.alwaysRunapHelp' | translate }}
+                  {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
                 </p>
                 <a
-                  id="solution-finder-modal-marine-runap-source-link"
+                  id="solution-finder-modal-marine-omec-source-link"
                   class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
-                  [href]="'solutionControls.finder.step2a.alwaysRunapSourceUrl' | translate"
+                  [href]="'solutionControls.finder.step2a.includeOmecsSourceUrl' | translate"
                   target="_blank"
                   rel="noopener noreferrer"
+                  (click)="$event.stopPropagation()"
+                  (keydown.enter)="$event.stopPropagation()"
+                  (keydown.space)="$event.stopPropagation()"
                 >
-                  {{ 'solutionControls.finder.step2a.alwaysRunapSourceLabel' | translate }}
+                  {{ 'solutionControls.finder.step2a.includeOmecsSourceLabel' | translate }}
                 </a>
               </div>
-              <span
-                id="solution-finder-modal-marine-runap-chip"
-                class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
+              <button
+                id="solution-finder-modal-marine-omec-toggle"
+                type="button"
+                role="switch"
+                class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold"
+                [class.bg-sky-600]="marineIncludeOmecs"
+                [class.text-white]="marineIncludeOmecs"
+                [class.bg-slate-300]="!marineIncludeOmecs"
+                [class.text-slate-800]="!marineIncludeOmecs"
+                [attr.aria-checked]="marineIncludeOmecs"
+                [attr.aria-label]="'solutionControls.finder.marine.omecLabel' | translate"
+                (click)="$event.stopPropagation(); toggleMarineIncludeOmecs()"
               >
                 <span
-                  id="solution-finder-modal-marine-runap-chip-label"
+                  id="solution-finder-modal-marine-omec-state-label"
                   class="finder-fixed-toggle-label"
                 >
-                  {{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}
+                  {{
+                    (marineIncludeOmecs
+                      ? 'solutionControls.finder.toggle.on'
+                      : 'solutionControls.finder.toggle.off'
+                    ) | translate
+                  }}
                 </span>
-              </span>
+              </button>
             </div>
-          </div>
-        </article>
-      </section>
+          </article>
+        </section>
+      </div>
     }
   </section>
 

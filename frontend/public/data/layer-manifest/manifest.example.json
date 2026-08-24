@@ -130,7 +130,7 @@
     {
       "id": "solutions",
       "spanishLabel": "Soluciones",
-      "englishLabel": "Solutions",
+      "englishLabel": "Scenarios",
       "styleDefaults": {
         "selectedColor": "#9d174d",
         "startColor": "#fce7f3",
@@ -413,7 +413,7 @@
     {
       "id": "solution_national_30",
       "spanishLabel": "Soluci\u00f3n nacional 30%",
-      "englishLabel": "National 30% Solution",
+      "englishLabel": "National 30% Scenario",
       "description": "Example national solution layer used to display a selected conservation prioritization solution.",
       "tooltip": "Shows the selected national conservation solution on the map.",
       "dataRole": "solution_layer",

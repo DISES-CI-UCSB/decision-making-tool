@@ -115,9 +115,6 @@
       <p id="landing-welcome-modal-description" class="text-sm leading-6 text-slate-700">
         {{ 'landingWelcome.description' | translate }}
       </p>
-      <p id="landing-welcome-modal-decision-support-note" class="text-sm leading-6 text-slate-700">
-        {{ 'landingWelcome.decisionSupportNote' | translate }}
-      </p>
     </div>
 
     <section
@@ -191,15 +188,11 @@
       </ol>
     </section>
 
+    <p id="landing-welcome-modal-decision-support-note" class="text-sm leading-6 text-slate-700">
+      {{ 'landingWelcome.decisionSupportNote' | translate }}
+    </p>
+
     <div id="landing-welcome-modal-actions" class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-      <button
-        id="landing-welcome-modal-dismiss-button"
-        type="button"
-        class="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-        (click)="closeLandingWelcomeModal()"
-      >
-        {{ 'landingWelcome.actions.exploreFirst' | translate }}
-      </button>
       <button
         id="landing-welcome-modal-select-solution-button"
         type="button"

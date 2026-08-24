@@ -335,7 +335,7 @@ describe('runtime release manifest compaction', () => {
         visibleInMapLayers: true,
       },
     );
-    assert.equal(newTerritorial.englishLabel, 'Territorial SIRAPs (new)');
+    assert.equal(newTerritorial.englishLabel, 'Territorial SIRAPs');
     assert.equal(newTerritorial.dataRole, 'administrative_boundary');
     assert.equal(newTerritorial.selectableInFinder, undefined);
     assert.equal(newTerritorial.roleInMetricCalculation, 'none');

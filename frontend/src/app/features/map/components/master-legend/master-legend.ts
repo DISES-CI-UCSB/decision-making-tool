@@ -49,12 +49,12 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   readonly baselineName = computed(
     () =>
       this.appState.activeSolution$()?.name ??
-      this.localizedText('mapLegend.solutionAFallback', 'Solution A'),
+      this.localizedText('mapLegend.solutionAFallback', 'Scenario A'),
   );
   readonly candidateName = computed(
     () =>
       this.appState.comparisonSolution$()?.name ??
-      this.localizedText('mapLegend.solutionBFallback', 'Solution B'),
+      this.localizedText('mapLegend.solutionBFallback', 'Scenario B'),
   );
   readonly solutionColor = this.solutionLayer.solutionColor$;
   readonly existingProtectedColor = this.solutionLayer.existingProtectedColor$;
@@ -70,10 +70,13 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   readonly includedAreasLegendLabel = computed(() => {
     const loaded = this.loaded();
     if (!loaded) {
-      return this.localizedText('mapLegend.includedAreasFallback', 'Included areas in solution');
+      return this.localizedText('mapLegend.includedAreasFallback', 'Existing conservation areas');
     }
     return getSolutionIncludedAreasLegendLabel(loaded.solution, this.appLocaleService.locale());
   });
+  readonly newCoverageLegendLabel = computed(() =>
+    this.localizedText('mapLegend.newCoverage', 'Candidate conservation areas'),
+  );
 
   readonly selectedLayerEntries = computed<MapLegendLayerEntry[]>(() =>
     this.appState.selectedLegendLayers$(),

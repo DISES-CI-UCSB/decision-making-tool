@@ -62,6 +62,7 @@ import {
   normalizeSelectedLayerOrder,
   reorderRowsByDropTarget,
   reorderRowsById,
+  individualSpeciesCollectionScenarioStatus,
   scenarioLayerStatus,
   speciesMatchesSearch,
   taxonMatchesSearch,
@@ -787,6 +788,21 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected scenarioLayerStatus(row: LayerControlRow): ScenarioLayerStatus | null {
+    if (row.id === SPECIES_COLLECTION_ROW_ID) {
+      const catalogSolution = this.findActiveCatalogSolution(this.appState.activeSolution$());
+      if (!catalogSolution) {
+        return null;
+      }
+
+      return individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: catalogSolution.finderInputs.targetFeatureIds,
+          structuredTargets: catalogSolution.finderInputs.structuredTargets,
+        },
+        this.hasScenarioLayerStatus(),
+      );
+    }
+
     return scenarioLayerStatus(
       row.id,
       MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID[row.id],
@@ -824,13 +840,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       return this.scenarioLayerStatus({ ...taxon, id: richnessLayerId });
     }
 
-    if (!this.hasScenarioLayerStatus()) {
-      return null;
-    }
-
-    return taxon.species.some((species) => this.scenarioLayerStatus(species) === 'considered')
-      ? 'considered'
-      : 'reference';
+    return null;
   }
 
   private findActiveCatalogSolution(solution: Solution | null) {
@@ -1020,7 +1030,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         normalizeManifestRendering: (row) => this.normalizeManifestRendering(row),
         layerCountLabel: (count) => this.toLayerCountLabel(count),
         individualSpeciesName: () =>
-          this.localizedTextOrFallback('mapLayersPanel.individualSpecies', 'Individual species'),
+          this.localizedTextOrFallback(
+            'mapLayersPanel.individualSpecies',
+            'Individual species ranges',
+          ),
         speciesRichnessTaxonName: (definition) =>
           this.localizedTextOrFallback(
             `mapLayersPanel.taxaNames.${definition.taxonId}`,
@@ -1045,10 +1058,31 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
-    if (manifestRow.id === 'siraps') {
+    const sirapBoundaryNameKeys: Record<string, { key: string; fallback: string }> = {
+      siraps: {
+        key: 'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
+        fallback: 'SIRAP',
+      },
+      siraps_territorial_updated: {
+        key: 'mapLayersPanel.boundaryNames.territorialSirapsUpdated',
+        fallback: 'Territorial SIRAPs',
+      },
+      siraps_thematic: {
+        key: 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
+        fallback: 'Thematic SIRAPs',
+      },
+    };
+    const sirapBoundaryName = sirapBoundaryNameKeys[manifestRow.id];
+    if (sirapBoundaryName) {
+      return this.localizedTextOrFallback(sirapBoundaryName.key, sirapBoundaryName.fallback);
+    }
+    if (manifestRow.id === 'zonas_reserva_campesina_constituida') {
+      if (this.activeLanguage() === 'es') {
+        return manifestRow.spanishLabel;
+      }
       return this.localizedTextOrFallback(
-        'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
-        'SIRAP',
+        'mapLayersPanel.layerNames.campesinaReserveZones',
+        'Campesina Reserve Zones',
       );
     }
     if (manifestRow.id === IAVH_ECOSYSTEM_LAYER_ID) {
@@ -3398,7 +3432,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         id: BASELINE_SOLUTION_OVERLAY_ID,
         name: this.localizedTextOrFallback(
           'mapLayersPanel.overlayNames.conservationSolution',
-          'Conservation Solution',
+          'Conservation Scenario',
         ),
         selected: true,
         visible: true,
@@ -4261,7 +4295,7 @@ export class MapLayersPanelComponent implements OnDestroy {
             ...row,
             name: this.localizedTextOrFallback(
               'mapLayersPanel.overlayNames.conservationSolution',
-              'Conservation Solution',
+              'Conservation Scenario',
             ),
           };
         }
@@ -4317,7 +4351,7 @@ export class MapLayersPanelComponent implements OnDestroy {
               ...row,
               name: this.localizedTextOrFallback(
                 'mapLayersPanel.individualSpecies',
-                'Individual species',
+                'Individual species ranges',
               ),
             };
           }
@@ -4392,8 +4426,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     const boundaryNameFallbacks: Record<string, string> = {
       'boundary-siraps': 'SIRAP',
       'boundary-siraps_territorial': 'Territorial SIRAPs (outdated)',
-      'boundary-siraps_territorial_updated': 'Territorial SIRAPs (new)',
-      'boundary-siraps_thematic': 'Thematic SIRAP additions',
+      'boundary-siraps_territorial_updated': 'Territorial SIRAPs',
+      'boundary-siraps_thematic': 'Thematic SIRAPs',
       'boundary-admin_country_outline': 'Colombia Outline',
       'boundary-admin_departments': 'Departments',
       'boundary-admin_municipalities': 'Municipalities',

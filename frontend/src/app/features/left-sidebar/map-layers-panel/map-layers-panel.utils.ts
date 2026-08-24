@@ -186,6 +186,7 @@ export function normalizeLayerIdAliases(id: string | null | undefined): string[]
   const normalized = trimmed
     .replace(/^layer-/, '')
     .replace(/^overlay-/, '')
+    .replace(/^species-/, '')
     .replace(/^(?:feat|incl|cost)_/, '')
     .replace(/-/g, '_');
 
@@ -198,13 +199,125 @@ export function buildConsideredLayerIdSet(ids: (string | null | undefined)[]): S
   return new Set(ids.flatMap((id) => normalizeLayerIdAliases(id)));
 }
 
+const SCENARIO_CONSIDERABLE_LAYER_IDS = buildConsideredLayerIdSet([
+  'ecosistemas',
+  'layer-ecosistemas',
+  'paramos',
+  'wetlands',
+  'bosque_seco',
+  'mangroves',
+  'layer-paramos',
+  'layer-wetlands',
+  'layer-bosque_seco',
+  'layer-mangroves',
+  'layer-eco-paramos',
+  'layer-eco-wetlands',
+  'layer-eco-dry-forest',
+  'layer-eco-mangroves',
+  'overlay-runap',
+  'overlay-runap-national-parks',
+  'overlay-runap-protected-areas',
+  'overlay-omecs',
+  'runap',
+  'runap_national_parks',
+  'runap_protected_areas',
+  'omec',
+  'omecs',
+  'layer-hhm',
+  'hhm',
+  'human_footprint',
+  'human_footprint_2022',
+  'layer-human_footprint',
+  'layer-human_footprint_2022',
+  'layer-soc-human-footprint',
+  'soc-human-footprint',
+  'layer-species',
+  'species',
+]);
+
+const AGGREGATE_SCENARIO_TARGET_IDS = new Set([
+  'ecosistemas',
+  'ecosystems',
+  'strategic_ecosystems',
+  'paramos',
+  'wetlands',
+  'bosque_seco',
+  'mangroves',
+  'species_richness',
+  'marine_ecosystems',
+  'marine_ecosystems_and_mangroves',
+  'ecosystem_services',
+  'esp_rn',
+  'runap',
+  'runap_national_parks',
+  'omec',
+  'omecs',
+  'hhm',
+  'human_footprint',
+  'human_footprint_2022',
+  'species',
+]);
+
+export interface IndividualSpeciesScenarioTargetInput {
+  targetFeatureIds: readonly string[];
+  structuredTargets?: {
+    speciesRepresentation?: readonly { featureId: string }[];
+    espRn?: readonly { featureId: string }[];
+  };
+}
+
+export function hasIndividualSpeciesScenarioTargets(
+  input: IndividualSpeciesScenarioTargetInput,
+): boolean {
+  if ((input.structuredTargets?.espRn?.length ?? 0) > 0) {
+    return true;
+  }
+
+  const speciesRepresentation = input.structuredTargets?.speciesRepresentation ?? [];
+  if (
+    speciesRepresentation.some((target) => {
+      const [primaryAlias] = normalizeLayerIdAliases(target.featureId);
+      return primaryAlias !== 'species';
+    })
+  ) {
+    return true;
+  }
+
+  return input.targetFeatureIds.some((rawId) => {
+    const [primaryAlias] = normalizeLayerIdAliases(rawId);
+    return !AGGREGATE_SCENARIO_TARGET_IDS.has(primaryAlias);
+  });
+}
+
+export function individualSpeciesCollectionScenarioStatus(
+  input: IndividualSpeciesScenarioTargetInput,
+  hasStatus: boolean,
+): ScenarioLayerStatus | null {
+  if (!hasStatus) {
+    return null;
+  }
+
+  return hasIndividualSpeciesScenarioTargets(input) ? 'considered' : 'reference';
+}
+
+export function isScenarioConsiderableLayer(
+  rowId: string,
+  manifestOverlayLayerId: string | undefined,
+): boolean {
+  const aliases = [
+    ...normalizeLayerIdAliases(rowId),
+    ...normalizeLayerIdAliases(manifestOverlayLayerId),
+  ];
+  return aliases.some((id) => SCENARIO_CONSIDERABLE_LAYER_IDS.has(id));
+}
+
 export function scenarioLayerStatus(
   rowId: string,
   manifestOverlayLayerId: string | undefined,
   consideredIds: ReadonlySet<string>,
   hasStatus: boolean,
 ): ScenarioLayerStatus | null {
-  if (!hasStatus) {
+  if (!hasStatus || !isScenarioConsiderableLayer(rowId, manifestOverlayLayerId)) {
     return null;
   }
 

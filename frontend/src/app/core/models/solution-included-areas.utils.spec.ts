@@ -6,7 +6,7 @@ describe('solution included areas utils', () => {
     const solution = buildSolution(['runap'], 'Ecos30+RUNAP_HF');
 
     expect(getSolutionIncludedAreasLegendLabel(solution)).toBe(
-      'Included areas in solution (RUNAP)',
+      'Existing conservation areas (RUNAP)',
     );
   });
 
@@ -14,7 +14,7 @@ describe('solution included areas utils', () => {
     const solution = buildSolution(['runap', 'omecs'], 'Ecos30+RUNAP+OMEC_HF_comunidades');
 
     expect(getSolutionIncludedAreasLegendLabel(solution)).toBe(
-      'Included areas in solution (RUNAP + OMECs + Community Councils for Black Communities and Indigenous Territories)',
+      'Existing conservation areas (RUNAP + OMECs + Community Councils for Black Communities and Indigenous Territories)',
     );
   });
 });

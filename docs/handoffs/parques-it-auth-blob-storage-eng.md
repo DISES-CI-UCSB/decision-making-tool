@@ -1,5 +1,7 @@
 # Parques IT Authentication And Blob Storage Handoff
 
+> **Note:** The full technical handoff package now lives in [`docs/handoffs/parques-it/english/`](./parques-it/english/README.md), which consolidates and supersedes this document's architecture and security content (see [`architecture.md`](./parques-it/english/architecture.md) and [`cybersecurity.md`](./parques-it/english/cybersecurity.md)). This file is kept for its original review context but should not be treated as the current source.
+
 _Last updated: 2026-05-21_  
 _Prepared for: Andre, Parques IT cloud engineering review_  
 _Scope: Firebase Authentication flow and Vercel Blob Storage flow_

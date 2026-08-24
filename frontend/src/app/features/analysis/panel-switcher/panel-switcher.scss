@@ -416,6 +416,7 @@
 }
 
 #right-sidebar-v3-overview-gains-content-inner,
+#right-sidebar-v3-overview-ecosystem-services-content-inner,
 #right-sidebar-v3-overview-costs-content-inner,
 #aoi-body-carbon-inner {
   overflow: visible;
@@ -541,6 +542,14 @@
 
 #right-sidebar-v3-overview-gains-head {
   margin-top: 0;
+}
+
+#right-sidebar-v3-overview-ecosystem-services-label {
+  color: #0f766e;
+}
+
+#right-sidebar-v3-overview-ecosystem-services-dot {
+  background: #0f766e;
 }
 
 #right-sidebar-v3-overview-costs-label {

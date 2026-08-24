@@ -824,6 +824,266 @@
                   </div>
                 </section>
 
+                <section id="right-sidebar-v3-overview-ecosystem-services-section" class="v3-section">
+                  <button
+                    id="right-sidebar-v3-overview-ecosystem-services-head"
+                    type="button"
+                    class="v3-section-head"
+                    [attr.aria-expanded]="isOverviewSectionExpanded('ecosystemServices')"
+                    (click)="toggleOverviewSection('ecosystemServices')"
+                  >
+                    <span
+                      id="right-sidebar-v3-overview-ecosystem-services-dot"
+                      class="v3-section-dot"
+                    ></span>
+                    <span
+                      id="right-sidebar-v3-overview-ecosystem-services-label"
+                      class="v3-section-label rs-header-optical-nudge"
+                      >{{ 'analysis.overview.sections.ecosystemServices' | translate }}</span
+                    >
+                    <span
+                      id="right-sidebar-v3-overview-ecosystem-services-chevron"
+                      class="v3-section-chevron"
+                      [class.v3-section-chevron-collapsed]="
+                        !isOverviewSectionExpanded('ecosystemServices')
+                      "
+                      aria-hidden="true"
+                    >
+                      <svg
+                        class="v3-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    id="right-sidebar-v3-overview-ecosystem-services-content"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isOverviewSectionExpanded('ecosystemServices')"
+                    [attr.aria-hidden]="!isOverviewSectionExpanded('ecosystemServices')"
+                  >
+                    <div
+                      id="right-sidebar-v3-overview-ecosystem-services-content-inner"
+                      class="collapse-motion-inner"
+                    >
+                      <div
+                        id="right-sidebar-v3-overview-ecosystem-services-table"
+                        class="v3-metric-table"
+                      >
+                        @for (entry of overviewEcosystemServicesMetrics(); track entry.id) {
+                          <article
+                            [id]="'right-sidebar-v3-overview-ecosystem-services-row-' + entry.id"
+                            class="v3-metric-row"
+                            [class.v3-metric-row-unavailable]="entry.unavailable"
+                            [class.flex-wrap]="!!entry.partialNote"
+                          >
+                            <div
+                              [id]="
+                                'right-sidebar-v3-overview-ecosystem-services-icon-shell-' +
+                                entry.id
+                              "
+                              class="v3-m-icon"
+                            >
+                              <i
+                                [id]="
+                                  'right-sidebar-v3-overview-ecosystem-services-icon-' + entry.id
+                                "
+                                [class]="entry.iconClass"
+                                aria-hidden="true"
+                              ></i>
+                            </div>
+                            <div
+                              [id]="
+                                'right-sidebar-v3-overview-ecosystem-services-body-' + entry.id
+                              "
+                              class="v3-m-body"
+                            >
+                              <p
+                                [id]="
+                                  'right-sidebar-v3-overview-ecosystem-services-name-' + entry.id
+                                "
+                                class="v3-m-name"
+                              >
+                                {{ entry.labelKey | translate }}
+                                @if (entry.methodologyKey) {
+                                  <span
+                                    [id]="
+                                      'right-sidebar-v3-overview-ecosystem-services-methodology-help-' +
+                                      entry.id
+                                    "
+                                    class="v3-methodology-help"
+                                  >
+                                    <button
+                                      [id]="
+                                        'right-sidebar-v3-overview-ecosystem-services-methodology-trigger-' +
+                                        entry.id
+                                      "
+                                      type="button"
+                                      class="v3-methodology-trigger"
+                                      [attr.aria-label]="
+                                        'analysis.overview.methodologyInfoLabel' | translate
+                                      "
+                                      [attr.aria-describedby]="
+                                        'right-sidebar-v3-overview-ecosystem-services-methodology-tooltip-' +
+                                        entry.id
+                                      "
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-ecosystem-services-methodology-indicator-' +
+                                          entry.id
+                                        "
+                                        class="v3-methodology-indicator trim-cut"
+                                        aria-hidden="true"
+                                        >i</span
+                                      >
+                                    </button>
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-ecosystem-services-methodology-tooltip-' +
+                                        entry.id
+                                      "
+                                      role="tooltip"
+                                      class="v3-methodology-tooltip"
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-ecosystem-services-methodology-text-' +
+                                          entry.id
+                                        "
+                                        class="v3-methodology-tooltip-text"
+                                      >
+                                        {{ entry.methodologyKey | translate }}
+                                      </span>
+                                      @if (entry.sourceLabelKey && entry.sourceUrlKey) {
+                                        <a
+                                          [id]="
+                                            'right-sidebar-v3-overview-ecosystem-services-methodology-source-' +
+                                            entry.id
+                                          "
+                                          class="v3-methodology-source-link"
+                                          [href]="entry.sourceUrlKey | translate"
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          {{ entry.sourceLabelKey | translate }}
+                                        </a>
+                                      }
+                                    </span>
+                                  </span>
+                                }
+                                @if (entry.unavailable) {
+                                  <span
+                                    [id]="
+                                      'right-sidebar-v3-overview-ecosystem-services-unavailable-help-' +
+                                      entry.id
+                                    "
+                                    class="v3-unavailable-help"
+                                  >
+                                    <button
+                                      [id]="
+                                        'right-sidebar-v3-overview-ecosystem-services-unavailable-trigger-' +
+                                        entry.id
+                                      "
+                                      type="button"
+                                      class="v3-unavailable-trigger"
+                                      [attr.aria-label]="
+                                        'analysis.overview.unavailableInfoLabel' | translate
+                                      "
+                                      [attr.aria-describedby]="
+                                        'right-sidebar-v3-overview-ecosystem-services-unavailable-tooltip-' +
+                                        entry.id
+                                      "
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-ecosystem-services-unavailable-indicator-' +
+                                          entry.id
+                                        "
+                                        class="v3-unavailable-indicator"
+                                        aria-hidden="true"
+                                        >i</span
+                                      >
+                                    </button>
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-ecosystem-services-unavailable-tooltip-' +
+                                        entry.id
+                                      "
+                                      role="tooltip"
+                                      class="v3-unavailable-tooltip"
+                                    >
+                                      {{ 'analysis.overview.unavailableTooltip' | translate }}
+                                    </span>
+                                  </span>
+                                }
+                              </p>
+                              <p
+                                [id]="
+                                  'right-sidebar-v3-overview-ecosystem-services-desc-' + entry.id
+                                "
+                                class="v3-m-desc"
+                              >
+                                {{ entry.descriptionKey | translate }}
+                              </p>
+                            </div>
+                            <div
+                              [id]="
+                                'right-sidebar-v3-overview-ecosystem-services-value-shell-' +
+                                entry.id
+                              "
+                            >
+                              <p
+                                [id]="
+                                  'right-sidebar-v3-overview-ecosystem-services-value-' + entry.id
+                                "
+                                class="v3-m-val"
+                                [attr.data-full-value]="
+                                  entry.fullValue && entry.fullValue !== entry.value
+                                    ? entry.fullValue
+                                    : null
+                                "
+                                [attr.tabindex]="
+                                  entry.fullValue && entry.fullValue !== entry.value ? 0 : null
+                                "
+                              >
+                                {{ entry.value }}
+                              </p>
+                              @if (entry.unit) {
+                                <p
+                                  [id]="
+                                    'right-sidebar-v3-overview-ecosystem-services-unit-' + entry.id
+                                  "
+                                  class="v3-m-unit"
+                                >
+                                  {{ entry.unit }}
+                                </p>
+                              }
+                            </div>
+                            @if (entry.partialNote) {
+                              <p
+                                [id]="
+                                  'right-sidebar-v3-overview-ecosystem-services-partial-note-' +
+                                  entry.id
+                                "
+                                class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
+                              >
+                                {{ entry.partialNote }}
+                              </p>
+                            }
+                          </article>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
                 <section id="right-sidebar-v3-overview-costs-section" class="v3-section">
                   <button
                     id="right-sidebar-v3-overview-costs-head"

@@ -1,6 +1,6 @@
 import type { CustomPolygonMetricId, MetricValue } from '@core/models';
 
-export type OverviewMetricSection = 'gains' | 'costs';
+export type OverviewMetricSection = 'gains' | 'ecosystemServices' | 'costs';
 export type ComparisonSectionId = 'general' | 'biodiversity' | 'ecosystems' | 'protection';
 export type ComparisonDeltaTone = 'positive' | 'negative' | 'neutral';
 
@@ -436,7 +436,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
   },
   {
     id: 'metric-05-carbon-storage-capacity',
-    section: 'gains',
+    section: 'ecosystemServices',
     labelKey: 'analysis.overview.metrics.carbonStorageCapacity',
     descriptionKey: 'analysis.overview.metrics.carbonStorageCapacityDesc',
     methodologyKey: 'analysis.overview.metrics.carbonStorageCapacityMethodology',
@@ -449,7 +449,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
   },
   {
     id: 'metric-06-water-regulation-services',
-    section: 'gains',
+    section: 'ecosystemServices',
     labelKey: 'analysis.overview.metrics.waterRegulationServices',
     descriptionKey: 'analysis.overview.metrics.waterRegulationServicesDesc',
     methodologyKey: 'analysis.overview.metrics.waterRegulationServicesMethodology',

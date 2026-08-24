@@ -48,12 +48,47 @@ describe('FinderModalComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
 
+    expect(compiled.querySelector('#solution-finder-modal-land-steps-grid')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-targets-column')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2a-column')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2a-row-comunidades')).toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2a-row-resguardos')).toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-step2b-column')).not.toBeNull();
     expect(compiled.querySelector('#solution-finder-modal-results-column')).toBeNull();
+  });
+
+  it('keeps step headers and card stacks in semantic DOM order with shared desktop grid placement', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const landGrid = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-land-steps-grid',
+    ) as HTMLElement;
+    const landChildIds = Array.from(landGrid.children).map((child) => child.id);
+
+    expect(landChildIds).toEqual([
+      'solution-finder-modal-step1-header-block',
+      'solution-finder-modal-targets-column',
+      'solution-finder-modal-step2b-header-block',
+      'solution-finder-modal-step2b-column',
+      'solution-finder-modal-step2a-header-block',
+      'solution-finder-modal-step2a-column',
+    ]);
+
+    expect(landGrid.className).toContain('lg:grid-cols-3');
+    expect(landGrid.className).toContain('lg:grid-rows-[auto_minmax(0,1fr)]');
+    expect(
+      landGrid.querySelector('#solution-finder-modal-step1-header-block')?.className,
+    ).toContain('lg:col-start-1');
+    expect(landGrid.querySelector('#solution-finder-modal-targets-column')?.className).toContain(
+      'lg:row-start-2',
+    );
+    expect(
+      landGrid.querySelector('#solution-finder-modal-step2b-header-block')?.className,
+    ).toContain('lg:col-start-2');
+    expect(landGrid.querySelector('#solution-finder-modal-step2a-column')?.className).toContain(
+      'lg:col-start-3',
+    );
   });
 
   it('does not render conflict as a trade-off option', () => {
@@ -112,6 +147,48 @@ describe('FinderModalComponent', () => {
     expect(sourceLink.textContent).toContain(
       'solutionControls.finder.step1.speciesRichnessBioModelosSourceLabel',
     );
+  });
+
+  it('renders the approved species range help text with a technical-details tooltip only on the species card', () => {
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const speciesHelp = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-species-richness',
+    );
+    const speciesHelpToggle = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-toggle-species-richness',
+    );
+    const speciesHelpTooltip = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-species-richness',
+    );
+    const ecosystemsHelpToggle = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-toggle-ecosystems',
+    );
+    const strategicHelpToggle = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-toggle-strategic-ecosystems',
+    );
+    const servicesHelpToggle = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-toggle-ecosystem-services',
+    );
+
+    expect(speciesHelp?.textContent).toContain('solutionControls.finder.step1.speciesRichnessHelp');
+    expect(speciesHelp?.getAttribute('title')).toBeNull();
+    expect(speciesHelpToggle).not.toBeNull();
+    expect(speciesHelpToggle?.getAttribute('aria-label')).toContain(
+      'solutionControls.finder.step1.speciesRichnessTechnicalHelpToggle',
+    );
+    expect(speciesHelpToggle?.getAttribute('aria-describedby')).toBe(
+      'solution-finder-modal-step1-target-type-help-tooltip-species-richness',
+    );
+    expect(speciesHelpTooltip?.getAttribute('role')).toBe('tooltip');
+    expect(speciesHelpTooltip?.textContent).toContain(
+      'solutionControls.finder.step1.speciesRichnessTechnicalHelp',
+    );
+    expect(ecosystemsHelpToggle).toBeNull();
+    expect(strategicHelpToggle).toBeNull();
+    expect(servicesHelpToggle).toBeNull();
   });
 
   it('renders ecosystem services disabled until Species is selected', () => {
@@ -476,31 +553,26 @@ describe('FinderModalComponent', () => {
     );
   });
 
-  it('renders expandable definitions for cost choices', () => {
+  it('renders the expandable definition for the carbon cost choice only', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const expectedDefinitions = [
-      {
-        id: 'solution-finder-modal-step2b-option-hf-definition',
-        toggleKey: 'solutionControls.finder.step2b.humanFootprintDefinitionToggle',
-        definitionKey: 'solutionControls.finder.step2b.humanFootprintDefinition',
-      },
-      {
-        id: 'solution-finder-modal-step2b-option-carbon-definition',
-        toggleKey: 'solutionControls.finder.step2b.carbonOpportunityDefinitionToggle',
-        definitionKey: 'solutionControls.finder.step2b.carbonOpportunityDefinition',
-      },
-    ];
+    const humanFootprintDefinition = compiled.querySelector(
+      '#solution-finder-modal-step2b-option-hf-definition',
+    );
+    const carbonDefinition = compiled.querySelector(
+      '#solution-finder-modal-step2b-option-carbon-definition',
+    );
 
-    for (const { id, toggleKey, definitionKey } of expectedDefinitions) {
-      const definition = compiled.querySelector(`#${id}`);
-
-      expect(definition).not.toBeNull();
-      expect(definition?.textContent).toContain(toggleKey);
-      expect(definition?.textContent).toContain(definitionKey);
-    }
+    expect(humanFootprintDefinition).toBeNull();
+    expect(carbonDefinition).not.toBeNull();
+    expect(carbonDefinition?.textContent).toContain(
+      'solutionControls.finder.step2b.carbonOpportunityDefinitionToggle',
+    );
+    expect(carbonDefinition?.textContent).toContain(
+      'solutionControls.finder.step2b.carbonOpportunityDefinition',
+    );
   });
 
   it('emits closeRequested when requestClose is called', () => {
@@ -838,7 +910,9 @@ describe('FinderModalComponent', () => {
     fixture.detectChanges();
 
     expect(
-      compiled.querySelector('#solution-finder-modal-targets-column')?.classList.contains('hidden'),
+      compiled
+        .querySelector('#solution-finder-modal-land-steps-grid')
+        ?.classList.contains('hidden'),
     ).toBe(true);
     const marineTargetBundle = compiled.querySelector(
       '#solution-finder-modal-marine-target-bundle',
@@ -873,8 +947,11 @@ describe('FinderModalComponent', () => {
       compiled.querySelector('#solution-finder-modal-marine-runap-source-link'),
     ).not.toBeNull();
     expect(
-      compiled.querySelector('#solution-finder-modal-step2a-column')?.classList.contains('hidden'),
+      compiled
+        .querySelector('#solution-finder-modal-land-steps-grid')
+        ?.classList.contains('hidden'),
     ).toBe(true);
+    expect(compiled.querySelector('#solution-finder-modal-marine-steps-grid')).not.toBeNull();
     expect(
       compiled.querySelector('#solution-finder-modal-marine-hhm-row')?.getAttribute('disabled'),
     ).toBeNull();

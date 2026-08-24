@@ -935,7 +935,7 @@
                 id="aoi-mec-level-iavh-run-badge"
                 class="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[8px] font-bold tracking-wide text-emerald-800 uppercase"
               >
-                Considered in run
+                Considered in scenario
               </span>
             </button>
             <button
@@ -1567,7 +1567,7 @@
         modalBrowserTitle.textContent = breakdown.title;
         modalBrowserDescription.textContent =
           mecBreakdownSelect.value === "iavh"
-            ? "Available area and solution coverage within this AOI. These IAvH biome-region classes were considered in the run."
+            ? "Available area and solution coverage within this AOI. These IAvH biome-region classes were considered in the scenario."
             : "Available area and solution coverage within this AOI. These are reporting categories, not additional optimization targets.";
         modalBrowserCount.textContent = `${visibleRows.length} shown · ${Math.min(
           breakdown.presentCount,
@@ -1579,7 +1579,7 @@
               <article id="aoi-mec-category-row-${index}" class="grid gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 lg:grid-cols-[minmax(180px,1fr)_128px_minmax(300px,1.35fr)] lg:items-center">
                 <div id="aoi-mec-category-copy-${index}" class="min-w-0">
                   <p id="aoi-mec-category-label-${index}" class="m-0 text-xs font-semibold text-slate-800">${row.label}</p>
-                  <p id="aoi-mec-category-status-${index}" class="mt-0.5 mb-0 text-[10px] text-slate-500">${row.availableArea > 0 ? "Present in this AOI" : "Not present in this AOI"} · ${mecBreakdownSelect.value === "iavh" ? "considered in run" : "reporting category, not a separate target"}</p>
+                  <p id="aoi-mec-category-status-${index}" class="mt-0.5 mb-0 text-[10px] text-slate-500">${row.availableArea > 0 ? "Present in this AOI" : "Not present in this AOI"} · ${mecBreakdownSelect.value === "iavh" ? "considered in scenario" : "reporting category, not a separate target"}</p>
                 </div>
                 <div id="aoi-mec-category-available-${index}">
                   <p id="aoi-mec-category-available-label-${index}" class="m-0 text-[9px] font-semibold tracking-wide text-slate-500 uppercase">Available in AOI</p>

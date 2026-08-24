@@ -60,7 +60,7 @@ describe('panel switcher metric configuration', () => {
   it('keeps expected overview and comparison section coverage', () => {
     expect(OVERVIEW_SECTION_ORDER).toEqual(['ecology', 'climate', 'finance']);
     expect(new Set(OVERVIEW_METRIC_BLUEPRINTS.map(({ section }) => section))).toEqual(
-      new Set(['gains', 'costs']),
+      new Set(['gains', 'ecosystemServices', 'costs']),
     );
 
     expect(COMPARISON_SECTION_ORDER).toEqual([

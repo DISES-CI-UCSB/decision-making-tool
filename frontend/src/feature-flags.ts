@@ -15,7 +15,7 @@ const FLAGS = {
     customAoiAreaProfile: true,
     sirapLayers: {
       combined: false,
-      territorial: true,
+      territorial: false,
       territorialUpdated: true,
       thematic: true,
     },
@@ -25,7 +25,7 @@ const FLAGS = {
     customAoiAreaProfile: true,
     sirapLayers: {
       combined: false,
-      territorial: true,
+      territorial: false,
       territorialUpdated: true,
       thematic: true,
     },

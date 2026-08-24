@@ -613,6 +613,9 @@ export class PanelSwitcherComponent {
   protected readonly overviewGainMetrics = computed<OverviewMetricDisplayEntry[]>(() =>
     this.buildOverviewMetricDisplayEntries('gains'),
   );
+  protected readonly overviewEcosystemServicesMetrics = computed<OverviewMetricDisplayEntry[]>(() =>
+    this.buildOverviewMetricDisplayEntries('ecosystemServices'),
+  );
   protected readonly overviewCostMetrics = computed<OverviewMetricDisplayEntry[]>(() =>
     this.buildOverviewMetricDisplayEntries('costs'),
   );
@@ -792,6 +795,7 @@ export class PanelSwitcherComponent {
   });
   protected readonly overviewSectionExpanded = signal<Record<OverviewMetricSection, boolean>>({
     gains: true,
+    ecosystemServices: true,
     costs: true,
   });
 
@@ -3084,6 +3088,10 @@ export class PanelSwitcherComponent {
 
     return [
       ...buildRows('analysis.overview.sections.conservationGains', this.overviewGainMetrics()),
+      ...buildRows(
+        'analysis.overview.sections.ecosystemServices',
+        this.overviewEcosystemServicesMetrics(),
+      ),
       ...buildRows('analysis.overview.sections.costsAndTradeoffs', this.overviewCostMetrics()),
     ];
   }

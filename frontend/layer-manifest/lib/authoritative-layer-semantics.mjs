@@ -12,8 +12,8 @@ const TERRITORIAL_SIRAP_SEMANTICS = {
     visibleInMapLayers: true,
   },
   siraps_territorial_updated: {
-    spanishLabel: 'SIRAP territoriales (nuevos)',
-    englishLabel: 'Territorial SIRAPs (new)',
+    spanishLabel: 'SIRAP territoriales',
+    englishLabel: 'Territorial SIRAPs',
     description:
       'Authoritative six-feature Territorial SIRAP boundaries used for AOI selection and metric lookup.',
     tooltip:
