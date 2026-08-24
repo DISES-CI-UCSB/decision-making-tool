@@ -1,0 +1,5 @@
+{
+  "format": "weighted-boundary-fanout-integration-ab-checksum-v1",
+  "path": "data/metrics/release-specs/solutions-v3-0-0/weighted-boundary-fanout-integration-ab-v1.json",
+  "sha256": "2e1a42260e52d0d6addfebc00381238b4a2f6fee3c6d4083c9b2dce260645628"
+}

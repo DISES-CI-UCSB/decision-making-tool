@@ -1,0 +1,165 @@
+{
+  "accumulatorSpeedup": 3.8518440505332854,
+  "bufferedV2": {
+    "npzBytes": 1993562044,
+    "npzOpens": 8298,
+    "peakRssBytes": 3964354560,
+    "phaseSeconds": {
+      "accumulator": 581.7476679242682,
+      "evaluation": 1395.5602101660334,
+      "exactRead": 103.23114326945506,
+      "output": 45.0
+    },
+    "systemSeconds": 1141.31,
+    "userSeconds": 2694.0,
+    "wallSeconds": 3672.85
+  },
+  "classification": "fresh-process full-catalog eight-solution v1-vs-buffered-v2 candidate",
+  "declaredCanonicalExclusions": {
+    "executionModeProvenance": [
+      "solutionInputSignature.sha256",
+      "metricsProvenance.catalogSignature.digest",
+      "metricsProvenance.generationConfig.speciesExecution"
+    ],
+    "runtimeTimestampDerivedChecksumKeys": [
+      "artifactSha256",
+      "payloadSha256"
+    ],
+    "runtimeTimestampKeys": [
+      "generatedAt"
+    ]
+  },
+  "endToEndWallSpeedup": 1.4824073948024015,
+  "format": "species-solution-buffered-full-catalog-candidate-v2",
+  "gates": {
+    "accumulatorSpeedupAtLeast1_5x": true,
+    "canonicalDocumentsEqual": true,
+    "metricDetailsMismatchCountZero": true,
+    "metricStatusMismatchCountZero": true,
+    "microbatchPeakRssBelow16GiB": true,
+    "outputOrderEqual": true,
+    "speciesCompletenessEqual": true,
+    "speciesGoalsEqual": true
+  },
+  "parity": {
+    "canonicalDocumentMismatchCount": 0,
+    "metricDetailsMismatchCount": 0,
+    "metricStatusMismatchCount": 0,
+    "orderedSolutionIds": [
+      "eco17_estr17_esprep17_runap_iheh2022",
+      "eco17_estr17_esprep30_runap_omec_iheh2030",
+      "eco17_estr30_esprn_runap_iheh2022",
+      "eco17_estr30_esprn_runap_omec_iheh2030",
+      "eco30_estr17_runap_iheh2022",
+      "eco30_estr17_runap_omec_iheh2030",
+      "eco30_estr30_esprep17_runap_omec_iheh2022",
+      "eco30_estr30_esprep30_runap_iheh2030"
+    ],
+    "outputOrderEqual": true,
+    "perSolution": [
+      {
+        "canonicalDocumentEqual": true,
+        "canonicalIndependentSha256": "5a6c79db35d5e91043ec0ee26e9fb7aeb0ebb44b9bfed061805b25604cd4bd2f",
+        "canonicalMicrobatchSha256": "5a6c79db35d5e91043ec0ee26e9fb7aeb0ebb44b9bfed061805b25604cd4bd2f",
+        "metricDetailsMismatchCount": 0,
+        "metricStatusMismatchCount": 0,
+        "solutionId": "eco17_estr17_esprep17_runap_iheh2022",
+        "speciesCompletenessEqual": true
+      },
+      {
+        "canonicalDocumentEqual": true,
+        "canonicalIndependentSha256": "2a1b1a621e3999090c445ca492e39a20d2bd981755989720f1bb49d00f00c808",
+        "canonicalMicrobatchSha256": "2a1b1a621e3999090c445ca492e39a20d2bd981755989720f1bb49d00f00c808",
+        "metricDetailsMismatchCount": 0,
+        "metricStatusMismatchCount": 0,
+        "solutionId": "eco17_estr17_esprep30_runap_omec_iheh2030",
+        "speciesCompletenessEqual": true
+      },
+      {
+        "canonicalDocumentEqual": true,
+        "canonicalIndependentSha256": "083a85b96fd88c4737de686e64b8e73d2621a287d604c74428618bb6ac719a49",
+        "canonicalMicrobatchSha256": "083a85b96fd88c4737de686e64b8e73d2621a287d604c74428618bb6ac719a49",
+        "metricDetailsMismatchCount": 0,
+        "metricStatusMismatchCount": 0,
+        "solutionId": "eco17_estr30_esprn_runap_iheh2022",
+        "speciesCompletenessEqual": true
+      },
+      {
+        "canonicalDocumentEqual": true,
+        "canonicalIndependentSha256": "5378a3773bb68ee95244a66a6e3922b10d6d99514eb40f300737d2966bf5b591",
+        "canonicalMicrobatchSha256": "5378a3773bb68ee95244a66a6e3922b10d6d99514eb40f300737d2966bf5b591",
+        "metricDetailsMismatchCount": 0,
+        "metricStatusMismatchCount": 0,
+        "solutionId": "eco17_estr30_esprn_runap_omec_iheh2030",
+        "speciesCompletenessEqual": true
+      },
+      {
+        "canonicalDocumentEqual": true,
+        "canonicalIndependentSha256": "3b442d7b5d026fd0e719453a4d677a1afbf206604d6d8f6aca8eb5b760734b0e",
+        "canonicalMicrobatchSha256": "3b442d7b5d026fd0e719453a4d677a1afbf206604d6d8f6aca8eb5b760734b0e",
+        "metricDetailsMismatchCount": 0,
+        "metricStatusMismatchCount": 0,
+        "solutionId": "eco30_estr17_runap_iheh2022",
+        "speciesCompletenessEqual": true
+      },
+      {
+        "canonicalDocumentEqual": true,
+        "canonicalIndependentSha256": "8ddb4f93d691ae826bf6adbf0afe3380401fd17f3ce6f0696928329edd351746",
+        "canonicalMicrobatchSha256": "8ddb4f93d691ae826bf6adbf0afe3380401fd17f3ce6f0696928329edd351746",
+        "metricDetailsMismatchCount": 0,
+        "metricStatusMismatchCount": 0,
+        "solutionId": "eco30_estr17_runap_omec_iheh2030",
+        "speciesCompletenessEqual": true
+      },
+      {
+        "canonicalDocumentEqual": true,
+        "canonicalIndependentSha256": "f15893acaab5a193fa7adba3c4c7238d1d76f1dc3ff871e6917b424ac7bd8146",
+        "canonicalMicrobatchSha256": "f15893acaab5a193fa7adba3c4c7238d1d76f1dc3ff871e6917b424ac7bd8146",
+        "metricDetailsMismatchCount": 0,
+        "metricStatusMismatchCount": 0,
+        "solutionId": "eco30_estr30_esprep17_runap_omec_iheh2022",
+        "speciesCompletenessEqual": true
+      },
+      {
+        "canonicalDocumentEqual": true,
+        "canonicalIndependentSha256": "0519b603f0ac103c7db41e662d6eff23bf261e21682a71107dfd45aa856c817a",
+        "canonicalMicrobatchSha256": "0519b603f0ac103c7db41e662d6eff23bf261e21682a71107dfd45aa856c817a",
+        "metricDetailsMismatchCount": 0,
+        "metricStatusMismatchCount": 0,
+        "solutionId": "eco30_estr30_esprep30_runap_iheh2030",
+        "speciesCompletenessEqual": true
+      }
+    ],
+    "solutionCount": 8,
+    "speciesCompletenessMismatchCount": 0,
+    "speciesGoals": {
+      "fileCount": 99,
+      "mismatchCount": 0,
+      "pathSetsEqual": true
+    }
+  },
+  "passed": true,
+  "performanceGate": {
+    "metric": "accumulatorSpeedup",
+    "operator": ">=",
+    "predeclaredExperimentTarget": true,
+    "rationale": "Buffered v2 changes only accumulator delivery, so its predeclared >=1.5x accumulator target is the hard performance gate. End-to-end wall and combined species speedups are reported separately; this does not move or reinterpret the v1 >=2x species-throughput gate.",
+    "threshold": 1.5
+  },
+  "recommendation": "RETAIN as a guarded default-off v2 candidate; evidence supports continued use and evaluation, not a default flip.",
+  "speciesSpeedup": 1.7910011004050839,
+  "v1": {
+    "npzBytes": 1993562044,
+    "npzOpens": 8298,
+    "peakRssBytes": 3430645760,
+    "phaseSeconds": {
+      "accumulator": 2240.8012936057057,
+      "evaluation": 1385.600034788251,
+      "exactRead": 99.84634829708375,
+      "output": 46.99000000000001
+    },
+    "systemSeconds": 1814.58,
+    "userSeconds": 2952.63,
+    "wallSeconds": 5444.66
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "format": "land-binary-sparse-bindings-v1",
+  "releaseSpecId": "solutions-v3-0-0",
+  "createdAt": "2026-08-20T03:11:00Z",
+  "immutableBlobPrefix": "releases/solutions-v3-0-0/sparse/aligned-v1/layers/",
+  "referenceRaster": {
+    "url": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v0-2-0-20260805/solutions/land/Eco17+Estr17+EspRep17+RUNAP_IHEH2022.tif",
+    "sha256": "e886a24bf4dc1de77336e36d7abdf56ab2011bcc24bfe2f18aececdc943da6ef"
+  },
+  "grid": {
+    "width": 1353,
+    "height": 1838,
+    "transform": [1000.0, 0.0, 4331309.911856957, 0.0, -999.9999999999999, 2933186.9308051495],
+    "crs": "EPSG:9377"
+  },
+  "layers": [
+    {
+      "layerId": "bosque_seco",
+      "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/bosque_seco.tif",
+      "sourcePathname": "inputs/features/strategic/bosque_seco.tif",
+      "sourceSha256": "12955e237e1769a7ed02a3dd191b93c4e1559317f5871716cb58eb6b14abfbf6",
+      "sourceNodata": 0.0,
+      "sourceBytes": 30668,
+      "sparseUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/sparse/aligned-v1/layers/bosque_seco.sparse.gz",
+      "sparsePathname": "releases/solutions-v3-0-0/sparse/aligned-v1/layers/bosque_seco.sparse.gz",
+      "sparseSha256": "0d271d765a11cf3c7e231b28bea15ad87d8833dd2b78ccc72e35e4448cf094e0",
+      "sparseBytes": 9384,
+      "renderingSelection": {"valueType": "binary", "selectedValues": [1]}
+    },
+    {
+      "layerId": "comunidades",
+      "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/comunidades.tif",
+      "sourcePathname": "inputs/includes/comunidades.tif",
+      "sourceSha256": "1729a29bce1708e1db6a6c5231b2cb3dc52b1d84e5d90dfa563dced99d73fc4d",
+      "sourceNodata": "NaN",
+      "sourceBytes": 12402310,
+      "sparseUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/sparse/aligned-v1/layers/comunidades.sparse.gz",
+      "sparsePathname": "releases/solutions-v3-0-0/sparse/aligned-v1/layers/comunidades.sparse.gz",
+      "sparseSha256": "6b57f388e5fbac9c8dbc1c7ab8b86d8ba52ca654100d1bbe4236004f44aee018",
+      "sparseBytes": 7030,
+      "renderingSelection": {"valueType": "binary", "selectedValues": [1]}
+    },
+    {
+      "layerId": "mangroves",
+      "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/mangroves.tif",
+      "sourcePathname": "inputs/features/strategic/mangroves.tif",
+      "sourceSha256": "3991b6a425b608bc112a7769bb28ecff35921b473caf67c0403a1122a1104375",
+      "sourceNodata": -2.0,
+      "sourceBytes": 12414736,
+      "sparseUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/sparse/aligned-v1/layers/mangroves.sparse.gz",
+      "sparsePathname": "releases/solutions-v3-0-0/sparse/aligned-v1/layers/mangroves.sparse.gz",
+      "sparseSha256": "1453c53061abd92187339db1202d8d996f24ac04c812deb5d90d9b03a20c71c4",
+      "sparseBytes": 2528,
+      "renderingSelection": {"valueType": "binary", "selectedValues": [1]}
+    },
+    {
+      "layerId": "paramos",
+      "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/paramos.tif",
+      "sourcePathname": "inputs/features/strategic/paramos.tif",
+      "sourceSha256": "63ce434cdaebc9e00a0f48868d65219e8d022a39e012efa1d55de18863d97074",
+      "sourceNodata": 255.0,
+      "sourceBytes": 49394,
+      "sparseUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/sparse/aligned-v1/layers/paramos.sparse.gz",
+      "sparsePathname": "releases/solutions-v3-0-0/sparse/aligned-v1/layers/paramos.sparse.gz",
+      "sparseSha256": "06ba8a7562593edf3aa4de1ee5c113c4a14c6e36024eed1cbf52aba4091fa9e8",
+      "sparseBytes": 9097,
+      "renderingSelection": {"valueType": "binary", "selectedValues": [1]}
+    },
+    {
+      "layerId": "resguardos",
+      "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/resguardos.tif",
+      "sourcePathname": "inputs/includes/resguardos.tif",
+      "sourceSha256": "c71bddedf4140cb143ac938c93677f31657f951a62f3ecdab803a3e9aea6a644",
+      "sourceNodata": "NaN",
+      "sourceBytes": 12402308,
+      "sparseUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/sparse/aligned-v1/layers/resguardos.sparse.gz",
+      "sparsePathname": "releases/solutions-v3-0-0/sparse/aligned-v1/layers/resguardos.sparse.gz",
+      "sparseSha256": "05e368f87b1364132461fb48931c438e7e4df859320c4c67c993f597d37972e4",
+      "sparseBytes": 24991,
+      "renderingSelection": {"valueType": "binary", "selectedValues": [1]}
+    },
+    {
+      "layerId": "wetlands",
+      "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/strategic/humedales.tif",
+      "sourcePathname": "inputs/features/strategic/humedales.tif",
+      "sourceSha256": "f8dc422e7a0cf8e3e5066a61c3593a0e3a699850008f3ccfe97429cfa6af52b5",
+      "sourceNodata": 255.0,
+      "sourceBytes": 143244,
+      "sparseUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/solutions-v3-0-0/sparse/aligned-v1/layers/wetlands.sparse.gz",
+      "sparsePathname": "releases/solutions-v3-0-0/sparse/aligned-v1/layers/wetlands.sparse.gz",
+      "sparseSha256": "3a50450cb381a6b269d225dc364710e7663000ce58cc663fd24be8c65120300c",
+      "sparseBytes": 94422,
+      "renderingSelection": {"valueType": "binary", "selectedValues": [1]}
+    }
+  ]
+}
