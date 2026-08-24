@@ -6,6 +6,7 @@ import { AppStateService } from '@core/services/app-state.service';
 import { DevToolsPanelComponent } from '@features/map/components/dev-tools-panel/dev-tools-panel';
 import { AuthModalComponent } from '@features/auth/auth-modal/auth-modal';
 import { AdminAccessRequestsPanelComponent } from '@features/auth/admin-access-requests-panel/admin-access-requests-panel';
+import { SirapAccessPanelComponent } from '@features/auth/sirap-access-panel/sirap-access-panel';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 @Component({
@@ -16,6 +17,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
     DevToolsPanelComponent,
     AuthModalComponent,
     AdminAccessRequestsPanelComponent,
+    SirapAccessPanelComponent,
   ],
   templateUrl: './header.html',
   styleUrl: './header.scss',
@@ -28,7 +30,9 @@ export class HeaderComponent {
 
   protected readonly authModalOpen = signal(false);
   protected readonly adminPanelOpen = signal(false);
-  protected readonly isAuthenticated = computed(
+  protected readonly sirapAccessPanelOpen = signal(false);
+  protected readonly isSignedIn = computed(() => this.appState.userIsSignedIn$());
+  protected readonly isApproved = computed(
     () => this.appState.userTier$() >= UserTier.DecisionMaker,
   );
   protected readonly isAdmin = computed(() => this.appState.userIsAdmin$());
@@ -73,9 +77,18 @@ export class HeaderComponent {
     this.adminPanelOpen.set(false);
   }
 
+  protected openSirapAccessPanel(): void {
+    this.sirapAccessPanelOpen.set(true);
+  }
+
+  protected closeSirapAccessPanel(): void {
+    this.sirapAccessPanelOpen.set(false);
+  }
+
   protected logout(): void {
     this.authModalOpen.set(false);
     this.adminPanelOpen.set(false);
+    this.sirapAccessPanelOpen.set(false);
     void this.authService.logout();
   }
 }

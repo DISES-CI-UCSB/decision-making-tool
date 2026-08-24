@@ -11,6 +11,7 @@ import {
   inject,
 } from '@angular/core';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
+import { isSirapRegionId, type SirapRegionId } from '@core/models/sirap-access.model';
 import {
   getSolutionIncludeFlags,
   getSolutionHumanFootprintYear,
@@ -38,14 +39,6 @@ type FinderMatchState = 'empty' | 'loading' | 'ready';
 type FinderTargetType = SolutionTargetType;
 type CostLayerChoice = SolutionCostChoice;
 type MarineTargetPercent = 30 | 50;
-
-type SirapRegionId =
-  | 'caribe'
-  | 'pacifico'
-  | 'andes-occidentales'
-  | 'andes-nororientales'
-  | 'orinoquia'
-  | 'amazonia';
 
 interface SirapRegionOption {
   id: SirapRegionId;
@@ -185,7 +178,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   @Output() readonly closeRequested = new EventEmitter<void>();
   @Output() readonly solutionApplied = new EventEmitter<SolutionMatch>();
 
-  protected readonly showScopeBar = this.appState.showFinderScopeBar$;
+  protected readonly showScopeBar = this.appState.canAccessSirapScope;
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly savedSolutionScenarios = this.appState.savedSolutionScenarios$;
   protected readonly finderSelectionMemory = this.appState.finderSelectionMemory$;
@@ -228,6 +221,11 @@ export class FinderModalComponent implements OnDestroy, OnInit {
       departments: 'Guainía, Guaviare, Vaupés, Putumayo, Amazonas, Caquetá',
     },
   ];
+
+  protected accessibleSirapRegions(): readonly SirapRegionOption[] {
+    const accessibleIds = this.appState.accessibleSirapIds();
+    return this.sirapRegions.filter((region) => accessibleIds.includes(region.id));
+  }
 
   /** Step 1 */
   protected selectedTargetTypeIds: FinderTargetType[] = ['ecosystems'];
@@ -433,6 +431,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     this.matchState = 'loading';
     const filtered = this.solutionCatalog
       .getAll()
+      .filter((solution) => this.userCanAccessSolution(solution))
       .filter((solution) => this.solutionMatchesSelection(solution));
     this.matchResults = filtered.map((solution) => this.toSolutionMatch(solution));
     this.selectedMatchId = this.matchResults.length === 1 ? this.matchResults[0].id : null;
@@ -441,6 +440,9 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   }
 
   protected selectScope(scope: 'nacional' | 'sirap'): void {
+    if (scope === 'sirap' && !this.appState.canAccessSirapScope()) {
+      return;
+    }
     if (scope === this.selectedScope) return;
     this.selectedScope = scope;
     this.selectedSirapRegion = null;
@@ -449,7 +451,9 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   protected selectSirapRegion(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
-    this.selectedSirapRegion = (value || null) as SirapRegionId | null;
+    const accessibleIds = this.appState.accessibleSirapIds();
+    this.selectedSirapRegion =
+      isSirapRegionId(value) && accessibleIds.includes(value) ? value : null;
     this.clearSelections({ remember: true });
   }
 
@@ -481,7 +485,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   protected applySavedSolutionScenario(scenario: SavedSolutionScenario): void {
     const solution = this.solutionCatalog.getById(scenario.solutionId);
-    if (!solution) {
+    if (!solution || !this.userCanAccessSolution(solution)) {
       return;
     }
 
@@ -721,8 +725,14 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   }
 
   private normalizeLandSelection(): void {
-    this.selectedScope = 'nacional';
-    this.selectedSirapRegion = null;
+    const accessibleIds = this.appState.accessibleSirapIds();
+    if (
+      this.selectedScope === 'sirap' &&
+      (!this.selectedSirapRegion || !accessibleIds.includes(this.selectedSirapRegion))
+    ) {
+      this.selectedScope = 'nacional';
+      this.selectedSirapRegion = null;
+    }
 
     if (!this.selectedTargetTypeIds.includes('ecosystems')) {
       this.selectedTargetTypeIds.unshift('ecosystems');
@@ -756,7 +766,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   }
 
   private isSirapRegionId(value: string | null): value is SirapRegionId {
-    return this.sirapRegions.some((region) => region.id === value);
+    return isSirapRegionId(value);
   }
 
   private toTargetLevelsByType(
@@ -892,6 +902,16 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     }
 
     return !this.selectedSirapRegion || solution.sirapId === this.selectedSirapRegion;
+  }
+
+  private userCanAccessSolution(solution: CatalogSolution): boolean {
+    const solutionScope = normalizeSolutionToken(solution.finderInputs.scope || solution.scope);
+    if (solutionScope !== 'sirap') {
+      return true;
+    }
+    return isSirapRegionId(solution.sirapId)
+      ? this.appState.accessibleSirapIds().includes(solution.sirapId)
+      : false;
   }
 
   private solutionTargetTypesMatchSelection(solution: CatalogSolution): boolean {

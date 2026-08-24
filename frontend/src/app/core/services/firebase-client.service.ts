@@ -8,7 +8,14 @@ import {
   type Unsubscribe,
   type User,
 } from 'firebase/auth';
-import { doc, getDoc, type DocumentData, getFirestore, type Firestore } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  type DocumentData,
+  getFirestore,
+  onSnapshot,
+  type Firestore,
+} from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -60,6 +67,19 @@ export class FirebaseClientService {
 
     const snapshot = await getDoc(doc(firestore, 'users', uid));
     return snapshot.exists() ? snapshot.data() : null;
+  }
+
+  subscribeToUserDocument(
+    uid: string,
+    callback: (data: DocumentData | null) => void,
+  ): Unsubscribe | null {
+    const firestore = this.firestore;
+    if (!firestore) {
+      return null;
+    }
+    return onSnapshot(doc(firestore, 'users', uid), (snapshot) => {
+      callback(snapshot.exists() ? snapshot.data() : null);
+    });
   }
 
   private ensureApp(): FirebaseApp {

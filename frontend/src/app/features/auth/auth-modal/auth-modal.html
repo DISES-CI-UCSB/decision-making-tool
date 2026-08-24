@@ -440,7 +440,7 @@
                 for="auth-modal-email-request-org-input"
                 class="mb-1.5 block text-xs font-semibold text-slate-700"
               >
-                Organization / SIRAP
+                Organization
                 <span class="font-normal text-slate-400">&middot; optional</span>
               </label>
               <input
@@ -451,6 +451,14 @@
                 (input)="updateRequestField('organization', $any($event.target).value)"
               />
             </div>
+
+            <aside
+              id="auth-modal-email-request-firebase-notice"
+              class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+            >
+              Email registration remains a UI demo. Use Google to create real Firebase and SIRAP
+              requests.
+            </aside>
 
             <div id="auth-modal-email-request-reason-row">
               <label
@@ -792,7 +800,7 @@
                   for="auth-modal-post-google-org-input"
                   class="mb-1.5 block text-xs font-semibold text-slate-700"
                 >
-                  Organization / SIRAP
+                  Organization
                   <span class="font-normal text-slate-400">&middot; optional</span>
                 </label>
                 <input
@@ -807,6 +815,38 @@
                   Helps admins recognize you faster.
                 </p>
               </div>
+
+              <fieldset
+                id="auth-modal-post-google-sirap-fieldset"
+                class="rounded-lg border border-slate-200 bg-slate-50 p-3"
+              >
+                <legend
+                  id="auth-modal-post-google-sirap-legend"
+                  class="px-1 text-xs font-semibold text-slate-700"
+                >
+                  SIRAP access requested · select at least one
+                </legend>
+                <div
+                  id="auth-modal-post-google-sirap-options"
+                  class="mt-2 grid gap-2 sm:grid-cols-2"
+                >
+                  @for (region of sirapRegions; track region.id) {
+                    <label
+                      [id]="'auth-modal-post-google-sirap-label-' + region.id"
+                      class="flex items-center gap-2 rounded-md bg-white px-2.5 py-2 text-xs text-slate-700 ring-1 ring-slate-200"
+                    >
+                      <input
+                        [id]="'auth-modal-post-google-sirap-checkbox-' + region.id"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-300 text-sky-600"
+                        [checked]="postGoogleForm().requestedSirapIds.includes(region.id)"
+                        (change)="togglePostGoogleSirap(region.id)"
+                      />
+                      {{ region.label }}
+                    </label>
+                  }
+                </div>
+              </fieldset>
 
               <div id="auth-modal-post-google-reason-row">
                 <label
@@ -831,7 +871,7 @@
                 id="auth-modal-post-google-submit-btn"
                 type="submit"
                 class="mt-1 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                [disabled]="isSubmitting()"
+                [disabled]="isSubmitting() || postGoogleForm().requestedSirapIds.length === 0"
               >
                 @if (isSubmitting()) {
                   <span
@@ -847,7 +887,7 @@
                 id="auth-modal-post-google-skip-hint"
                 class="mt-3 text-center text-[11px] text-slate-500"
               >
-                Both fields are optional &mdash; you can submit without them.
+                Organization and reason are optional. Choose at least one SIRAP.
               </p>
             </form>
           </div>

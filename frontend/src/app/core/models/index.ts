@@ -10,6 +10,7 @@ export * from './solution-identity-summary.model';
 export * from './solution.model';
 export * from './solution-catalog.model';
 export * from './solution-goals.model';
+export * from './sirap-access.model';
 export * from './species-goals.model';
 export * from './strategic-ecosystem-outcomes.model';
 export * from './user-tier.model';

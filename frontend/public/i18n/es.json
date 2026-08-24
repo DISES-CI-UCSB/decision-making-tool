@@ -25,10 +25,11 @@
     "languageToggleLabel": "Cambiar a {{lang}}",
     "languageEnglish": "inglés",
     "languageSpanish": "español",
-    "adminAccess": "Acceso de administrador",
+    "adminAccess": "Consola de administración",
     "logout": "Cerrar sesión",
     "loginRegister": "Iniciar sesión / Registrarse",
-    "tierChip": "Nivel {{tier}}"
+    "tierChip": "Nivel {{tier}}",
+    "pendingAccess": "Sesión iniciada · Acceso pendiente"
   },
   "common": {
     "close": "Cerrar"

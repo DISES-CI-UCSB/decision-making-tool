@@ -1178,6 +1178,41 @@ describe('FinderModalComponent', () => {
     expect(component.selectedCostLayerId).toBe('human-footprint');
   });
 
+  it('preserves an authorized remembered SIRAP and only lists accessible regions', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.allowedSirapIds$.set(['caribe']);
+    appState.setFinderSelectionMemory({
+      planningDomain: 'land',
+      selectedScope: 'sirap',
+      selectedSirapRegion: 'caribe',
+      selectedTargetTypeIds: ['ecosystems'],
+      targetLevelByType: { ecosystems: 17 },
+      speciesTargetMethod: null,
+      includeOmecs: false,
+      includeComunidades: false,
+      includeResguardos: false,
+      selectedCostLayerId: 'human-footprint',
+      humanFootprintYear: 2022,
+      marineTargetPercent: 30,
+      marineIncludeOmecs: false,
+    });
+
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      selectedScope: string;
+      selectedSirapRegion: string | null;
+    };
+    const regionSelect = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-scope-bar-sirap-region-select',
+    ) as HTMLSelectElement;
+
+    expect(component.selectedScope).toBe('sirap');
+    expect(component.selectedSirapRegion).toBe('caribe');
+    expect(regionSelect).not.toBeNull();
+    expect([...regionSelect.options].map((option) => option.value)).toEqual(['', 'caribe']);
+  });
+
   it('renders mandatory Ecosystems and explicit required Human Footprint years', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();

@@ -67,8 +67,14 @@ export function getSolutionIncludedAreasLegendLabel(
   solution: CatalogSolution,
   locale: LayerLocale = 'en',
 ): string {
-  const labels = getSolutionIncludedAreaLabels(solution, locale);
+  const conservationAreaLabels = getSolutionIncludedAreaKeys(solution)
+    .filter(
+      (key): key is Exclude<SolutionIncludedAreaKey, 'afroIndigenous'> => key !== 'afroIndigenous',
+    )
+    .map((key) => INCLUDED_AREA_LABELS[key][locale]);
   const prefix = LEGEND_PREFIX[locale];
 
-  return labels.length > 0 ? `${prefix} (${labels.join(' + ')})` : prefix;
+  return conservationAreaLabels.length > 0
+    ? `${prefix} (${conservationAreaLabels.join(' + ')})`
+    : prefix;
 }

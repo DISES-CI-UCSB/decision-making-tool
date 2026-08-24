@@ -25,10 +25,11 @@
     "languageToggleLabel": "Switch to {{lang}}",
     "languageEnglish": "English",
     "languageSpanish": "Spanish",
-    "adminAccess": "Admin access",
+    "adminAccess": "Admin console",
     "logout": "Logout",
     "loginRegister": "Login / Register",
-    "tierChip": "Tier {{tier}}"
+    "tierChip": "Tier {{tier}}",
+    "pendingAccess": "Signed in · Access pending"
   },
   "common": {
     "close": "Close"

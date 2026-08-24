@@ -1,0 +1,151 @@
+<div
+  id="sirap-access-panel-overlay"
+  class="fixed inset-0 z-1000 flex items-start justify-center overflow-y-auto bg-slate-900/55 p-4 backdrop-blur-sm sm:p-8"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="sirap-access-panel-title"
+  (mousedown)="onScrimClick($event)"
+>
+  <section
+    #panelCard
+    id="sirap-access-panel-card"
+    class="mt-8 w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+  >
+    <header
+      id="sirap-access-panel-header"
+      class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5"
+    >
+      <div id="sirap-access-panel-heading-copy">
+        <p
+          id="sirap-access-panel-eyebrow"
+          class="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-700"
+        >
+          Regional access
+        </p>
+        <h2 id="sirap-access-panel-title" class="mt-1 text-lg font-semibold text-slate-900">
+          Your SIRAP access
+        </h2>
+        <p id="sirap-access-panel-subtitle" class="mt-1 text-sm text-slate-500">
+          Review your status and request additional regions individually.
+        </p>
+      </div>
+      <button
+        id="sirap-access-panel-close-button"
+        type="button"
+        aria-label="Close SIRAP access panel"
+        class="flex h-9 w-9 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+        [disabled]="isSubmitting()"
+        (click)="requestClose()"
+      >
+        <span id="sirap-access-panel-close-icon" aria-hidden="true">×</span>
+      </button>
+    </header>
+
+    <main id="sirap-access-panel-body" class="space-y-5 px-6 py-5">
+      <aside
+        id="sirap-access-panel-demo-notice"
+        class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900"
+      >
+        This prototype uses public dummy regional scenarios. Approval demonstrates the workflow; it
+        is not yet a protected-data boundary.
+      </aside>
+
+      @if (error(); as message) {
+        <p
+          id="sirap-access-panel-error"
+          class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+          role="alert"
+        >
+          {{ message }}
+        </p>
+      }
+      @if (successMessage(); as message) {
+        <p
+          id="sirap-access-panel-success"
+          class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+          role="status"
+        >
+          {{ message }}
+        </p>
+      }
+
+      @if (isLoading()) {
+        <p id="sirap-access-panel-loading" class="py-10 text-center text-sm text-slate-500">
+          Loading your access…
+        </p>
+      } @else {
+        <fieldset id="sirap-access-panel-region-fieldset">
+          <legend
+            id="sirap-access-panel-region-legend"
+            class="text-sm font-semibold text-slate-900"
+          >
+            SIRAP regions
+          </legend>
+          <div id="sirap-access-panel-region-list" class="mt-3 grid gap-3 sm:grid-cols-2">
+            @for (region of regions; track region.id) {
+              <label
+                [id]="'sirap-access-panel-region-label-' + region.id"
+                class="rounded-xl border p-3"
+                [class.border-sky-300]="selectedSirapIds().includes(region.id)"
+                [class.bg-sky-50]="selectedSirapIds().includes(region.id)"
+                [class.border-slate-200]="!selectedSirapIds().includes(region.id)"
+                [class.opacity-70]="!canRequest(region.id)"
+              >
+                <span
+                  [id]="'sirap-access-panel-region-heading-' + region.id"
+                  class="flex items-start gap-2"
+                >
+                  <input
+                    [id]="'sirap-access-panel-region-checkbox-' + region.id"
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-slate-300 text-sky-600"
+                    [checked]="selectedSirapIds().includes(region.id)"
+                    [disabled]="!canRequest(region.id)"
+                    (change)="toggleSirap(region.id)"
+                  />
+                  <span
+                    [id]="'sirap-access-panel-region-name-' + region.id"
+                    class="text-sm font-semibold text-slate-800"
+                  >
+                    {{ region.label }}
+                  </span>
+                </span>
+                <span
+                  [id]="'sirap-access-panel-region-status-' + region.id"
+                  class="mt-1 block pl-6 text-xs text-slate-500"
+                >
+                  {{ statusLabel(statusFor(region.id)) }}
+                </span>
+              </label>
+            }
+          </div>
+        </fieldset>
+
+        <label
+          id="sirap-access-panel-reason-label"
+          for="sirap-access-panel-reason-input"
+          class="block text-xs font-semibold text-slate-700"
+        >
+          Reason for this request · optional
+          <textarea
+            id="sirap-access-panel-reason-input"
+            rows="3"
+            class="mt-1.5 w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+            [value]="reason()"
+            (input)="updateReason($event)"
+          ></textarea>
+        </label>
+
+        <button
+          id="sirap-access-panel-submit-button"
+          type="button"
+          class="flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          [disabled]="!canSubmit()"
+          (click)="submitRequests()"
+        >
+          {{ isSubmitting() ? 'Submitting…' : 'Submit selected requests' }}
+        </button>
+      }
+    </main>
+  </section>
+</div>
