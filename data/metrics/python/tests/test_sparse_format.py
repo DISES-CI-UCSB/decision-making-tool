@@ -7,6 +7,10 @@ encoding correctly preserves per-species offsets and counts.
 
 from __future__ import annotations
 
+import gzip
+import json
+import struct
+
 import numpy as np
 import pytest
 
@@ -238,11 +242,48 @@ def test_empty_artifact_roundtrip():
 
 
 def test_invalid_magic_raises():
-    import gzip as _gzip
-
-    bogus = _gzip.compress(b"NOT A SPARSE ARTIFACT")
+    bogus = gzip.compress(b"NOT A SPARSE ARTIFACT")
     with pytest.raises(SparseFormatError):
         decode_sparse_bytes(bogus)
+
+
+def _encoded_raw_metadata(payload) -> bytes:
+    metadata = json.dumps(payload).encode("utf-8")
+    raw = b"SMTX" + bytes([LAYER_TYPE_BINARY])
+    raw += struct.pack("<H", len(metadata)) + metadata
+    return gzip.compress(raw)
+
+
+@pytest.mark.parametrize("payload", [[], 7, None])
+def test_sparse_metadata_must_be_json_object(payload):
+    with pytest.raises(SparseFormatError, match="JSON object"):
+        decode_sparse_bytes(_encoded_raw_metadata(payload))
+
+
+def test_overflowing_sparse_metadata_is_normalized():
+    payload = {
+        **_BASE_GRID,
+        "width": 1e309,
+        "height": 1,
+        "nodata": None,
+        "count": 0,
+    }
+
+    with pytest.raises(SparseFormatError, match="invalid sparse metadata"):
+        decode_sparse_bytes(_encoded_raw_metadata(payload))
+
+
+@pytest.mark.parametrize(
+    "blob",
+    [
+        b"",
+        b"not-gzip",
+        b"\x1f\x8b\x08\x00",
+    ],
+)
+def test_malformed_sparse_bytes_are_normalized(blob):
+    with pytest.raises(SparseFormatError):
+        decode_sparse_bytes(blob)
 
 
 def test_species_matrix_roundtrip():

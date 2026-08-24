@@ -36,6 +36,10 @@ def _binding(**changes) -> candidate.CandidateBinding:
         "metrics_schema_version": 4,
         "catalog_signature": "metrics-catalog-v4:" + "d" * 64,
         "species_target_policy": None,
+        "boundary_fanout": pipeline.boundary_fanout_identity("legacy"),
+        "weighted_boundary_execution": pipeline.weighted_execution_identity(
+            "scalar"
+        ),
     }
     values.update(changes)
     return candidate.CandidateBinding(**values)
@@ -57,6 +61,12 @@ def _payload(*, policy=None, status="ready", empty=False) -> dict:
             "catalogSignature": "metrics-catalog-v4:" + "d" * 64,
             "releaseId": "v0.2",
             "speciesTargetPolicy": policy,
+            "generationConfig": {
+                "boundaryFanout": pipeline.boundary_fanout_identity("legacy"),
+                "weightedBoundaryExecution": pipeline.weighted_execution_identity(
+                    "scalar"
+                ),
+            },
         },
         "fixtureState": {
             "metricStatus": status,
@@ -135,6 +145,62 @@ def test_candidate_round_trips_metric_fixture_variants(
     assert verified.envelope["validation"] == {"state": "pending", "issues": []}
 
 
+def test_candidate_rejects_weighted_execution_identity_drift(tmp_path: Path):
+    candidate.write_metrics_candidate(tmp_path, _binding(), _payload())
+    drifted = _binding(
+        weighted_boundary_execution=pipeline.weighted_execution_identity(
+            "grouped-weighted-v1"
+        )
+    )
+
+    verified, issues = candidate.read_verified_candidate(tmp_path, drifted)
+
+    assert verified is None
+    assert "candidate metricsContract binding mismatch" in issues
+
+
+@pytest.mark.parametrize(
+    ("candidate_mode", "requested_mode"),
+    [
+        ("scalar", "grouped-weighted-v1"),
+        ("grouped-weighted-v1", "scalar"),
+    ],
+)
+def test_candidate_promotion_orchestration_rejects_other_weighted_mode(
+    tmp_path: Path,
+    candidate_mode: str,
+    requested_mode: str,
+):
+    candidate_identity = pipeline.weighted_execution_identity(candidate_mode)
+    requested_identity = pipeline.weighted_execution_identity(requested_mode)
+    candidate_binding = _binding(weighted_boundary_execution=candidate_identity)
+    payload = _payload()
+    payload["metricsProvenance"]["generationConfig"][
+        "weightedBoundaryExecution"
+    ] = candidate_identity
+    candidate.write_metrics_candidate(tmp_path, candidate_binding, payload)
+    solution, manifest = _solution_and_manifest()
+
+    entry = pipeline._promote_resumable_candidate(
+        solution=solution,
+        manifest=manifest,
+        output_dir=tmp_path,
+        cache_blob_directory="metrics/cache",
+        binding=_binding(weighted_boundary_execution=requested_identity),
+        national_only=False,
+        skip_species=False,
+        skip_species_boundary_levels=set(),
+        species_csv_url="https://example.test/species.csv",
+        species_exception_binding=None,
+        species_target_policy=None,
+        boundary_fanout_mode="grouped",
+        weighted_boundary_fanout_mode=requested_mode,
+    )
+
+    assert entry is None
+    assert not cache_solution_path(tmp_path, "fixture-land").exists()
+
+
 def test_validation_failure_writes_full_candidate_and_all_diagnostics(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -204,6 +270,33 @@ def test_tampered_payload_is_rejected_without_deleting_evidence(tmp_path: Path):
 
     assert verified is None
     assert "candidate payload checksum mismatch" in issues
+
+
+def test_candidate_rejects_payload_species_execution_mutation(tmp_path: Path):
+    execution = {
+        "requestedMode": "solution-microbatch-v1",
+        "effectiveMode": "solution-microbatch-v1",
+        "algorithmVersion": "solution-microbatch-exact-npz-v1",
+        "batchSize": 8,
+        "batchOrdinal": 0,
+        "orderedSolutionIds": ["fixture-land"],
+        "bindingSha256": "e" * 64,
+    }
+    binding = _binding(species_execution=execution)
+    payload = _payload()
+    payload["metricsProvenance"]["generationConfig"]["speciesExecution"] = execution
+    path = candidate.write_metrics_candidate(tmp_path, binding, payload)
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw["payload"]["metricsProvenance"]["generationConfig"]["speciesExecution"][
+        "batchOrdinal"
+    ] = 1
+    raw["payloadSha256"] = candidate.payload_sha256(raw["payload"])
+    path.write_text(json.dumps(raw), encoding="utf-8")
+
+    verified, issues = candidate.read_verified_candidate(tmp_path, binding)
+
+    assert verified is None
+    assert "candidate payload metrics provenance speciesExecution mismatch" in issues
     assert path.exists()
 
 
@@ -244,6 +337,22 @@ def test_rechecks_payload_bindings_even_with_recomputed_checksum(tmp_path: Path)
                 "kind": "per_species",
             }
         ),
+        _binding(boundary_fanout=pipeline.boundary_fanout_identity("grouped")),
+        _binding(
+            boundary_fanout={
+                **pipeline.boundary_fanout_identity("legacy"),
+                "algorithmVersion": "boundary-fanout-dense-mask-v2",
+            }
+        ),
+        _binding(
+            species_execution={
+                "requestedMode": "solution-microbatch-v1",
+                "effectiveMode": "solution-microbatch-v1",
+                "algorithmVersion": "solution-microbatch-exact-npz-v1",
+                "batchSize": 8,
+                "batchOrdinal": 1,
+            }
+        ),
     ],
     ids=[
         "release",
@@ -253,6 +362,9 @@ def test_rechecks_payload_bindings_even_with_recomputed_checksum(tmp_path: Path)
         "schema",
         "metric-catalog",
         "target-policy",
+        "boundary-fanout",
+        "boundary-fanout-algorithm",
+        "species-execution",
     ],
 )
 def test_stale_scientific_or_computation_binding_forces_recompute(

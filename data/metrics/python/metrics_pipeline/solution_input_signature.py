@@ -7,6 +7,7 @@ import json
 from typing import Any
 
 from blob_manifest import ResolvedManifest
+from metrics_contract import signature_generation_config
 from solution_catalog import SolutionCatalogEntry
 
 SOLUTION_INPUT_SIGNATURE_FORMAT = "solution-input-signature-v3"
@@ -42,6 +43,11 @@ def build_solution_input_signature(
         for key, value in metrics_provenance.items()
         if key not in {"releaseId", "reusedFromReleaseId"}
     }
+    generation_config = provenance_contract.get("generationConfig")
+    if isinstance(generation_config, dict):
+        provenance_contract["generationConfig"] = signature_generation_config(
+            generation_config
+        )
     descriptor = {
         "format": SOLUTION_INPUT_SIGNATURE_FORMAT,
         "catalogSolution": catalog_entry.to_dict(),

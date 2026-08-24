@@ -15,12 +15,12 @@ import math
 import os
 import sqlite3
 import tempfile
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
-
 from species_data import SpeciesRecord
 from species_target_policy import SpeciesTargetPolicy
 
@@ -329,6 +329,7 @@ class SpeciesGoalsPipeline:
             """
         )
         self._writes_since_commit = 0
+        self._closed = False
 
     def record_national(
         self,
@@ -392,6 +393,110 @@ class SpeciesGoalsPipeline:
                 float(new_prioritizr[scope_index]),
             )
             self._insert(level, scope_index, species_index, observation)
+
+    def record_species_chunk(
+        self,
+        species_records: Sequence[SpeciesRecord],
+        national_selected: np.ndarray,
+        national_total: np.ndarray,
+        national_pre_existing: np.ndarray,
+        national_new_prioritizr: np.ndarray,
+        boundary_channels: Mapping[
+            str,
+            tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+        ],
+    ) -> None:
+        """Insert one catalog-ordered species chunk in contiguous level batches."""
+
+        count = len(species_records)
+        national_arrays = (
+            national_selected,
+            national_total,
+            national_pre_existing,
+            national_new_prioritizr,
+        )
+        if any(array.shape != (count,) for array in national_arrays):
+            raise SpeciesGoalsContractError("national chunk arrays differ")
+
+        rows: list[tuple[Any, ...]] = []
+        if "national" in self.active_levels:
+            for row_index, species in enumerate(species_records):
+                rows.append(
+                    (
+                        "national",
+                        0,
+                        self._species_index(species),
+                        *self._observation(
+                            species,
+                            float(national_selected[row_index]),
+                            float(national_total[row_index]),
+                            float(national_pre_existing[row_index]),
+                            float(national_new_prioritizr[row_index]),
+                        ),
+                    )
+                )
+        for level, channels in boundary_channels.items():
+            if level not in self.active_levels:
+                continue
+            selected, total, pre_existing, new_prioritizr = channels
+            if (
+                selected.ndim != 2
+                or selected.shape[0] != count
+                or any(array.shape != selected.shape for array in channels[1:])
+            ):
+                raise SpeciesGoalsContractError(
+                    f"{level} buffered overlap arrays differ"
+                )
+            for row_index, species in enumerate(species_records):
+                species_index = self._species_index(species)
+                for scope_index in np.flatnonzero(total[row_index] > 0).tolist():
+                    rows.append(
+                        (
+                            level,
+                            scope_index,
+                            species_index,
+                            *self._observation(
+                                species,
+                                float(selected[row_index, scope_index]),
+                                float(total[row_index, scope_index]),
+                                float(pre_existing[row_index, scope_index]),
+                                float(new_prioritizr[row_index, scope_index]),
+                            ),
+                        )
+                    )
+        if not rows:
+            return
+
+        self._connection.execute("SAVEPOINT buffered_species_chunk")
+        try:
+            self._connection.executemany(
+                """
+                INSERT INTO observations VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(geography_level, scope_index, species_index)
+                DO UPDATE SET
+                    range_area_m2 = excluded.range_area_m2,
+                    selected_area_m2 = excluded.selected_area_m2,
+                    pre_existing_area_m2 = excluded.pre_existing_area_m2,
+                    new_prioritizr_area_m2 = excluded.new_prioritizr_area_m2,
+                    configured_target_pct = excluded.configured_target_pct
+                """,
+                rows,
+            )
+            self._connection.execute("RELEASE SAVEPOINT buffered_species_chunk")
+        except Exception as exc:
+            try:
+                self._connection.execute("ROLLBACK TO SAVEPOINT buffered_species_chunk")
+                self._connection.execute("RELEASE SAVEPOINT buffered_species_chunk")
+            except Exception as rollback_exc:  # noqa: BLE001 - preserve insert failure
+                exc.add_note(
+                    "Buffered chunk rollback also failed: "
+                    f"{type(rollback_exc).__name__}: {rollback_exc}"
+                )
+            raise
+        self._writes_since_commit += len(rows)
+        if self._writes_since_commit >= 2_000:
+            self._connection.commit()
+            self._writes_since_commit = 0
 
     def write_partition(
         self,
@@ -625,7 +730,7 @@ class SpeciesGoalsPipeline:
         species_index: int,
         observation: list[float | None] | tuple[float | None, ...],
     ) -> list[Any]:
-        total_m2, selected_m2, pre_existing_m2, new_prioritizr_m2, target = observation
+        total_m2, _selected_m2, pre_existing_m2, new_prioritizr_m2, target = observation
         pre_existing = round(pre_existing_m2 / 1_000_000, 6)
         new_prioritizr = round(new_prioritizr_m2 / 1_000_000, 6)
         selected = round(pre_existing + new_prioritizr, 6)
@@ -717,11 +822,22 @@ class SpeciesGoalsPipeline:
             self._writes_since_commit = 0
 
     def close(self) -> None:
+        """Finalize and release this owned spool exactly once."""
+
+        if self._closed:
+            return
         self._connection.commit()
         self._connection.close()
+        self._closed = True
         self.spool_path.unlink(missing_ok=True)
         self.spool_path.with_name(f"{self.spool_path.name}-wal").unlink(missing_ok=True)
         self.spool_path.with_name(f"{self.spool_path.name}-shm").unlink(missing_ok=True)
+
+    @property
+    def closed(self) -> bool:
+        """Whether the SQLite connection has already been finalized."""
+
+        return self._closed
 
 
 def validate_compact(

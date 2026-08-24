@@ -58,6 +58,14 @@ def _grid_dict_from_dataset(dataset: rasterio.io.DatasetReader) -> dict[str, Any
         "yOrigin": float(transform.f),
         "xScale": float(transform.a),
         "yScale": float(transform.e),
+        "transform": (
+            float(transform.a),
+            float(transform.b),
+            float(transform.c),
+            float(transform.d),
+            float(transform.e),
+            float(transform.f),
+        ),
         "crs": str(dataset.crs) if dataset.crs else None,
     }
 
