@@ -231,11 +231,19 @@ export class AppStateService {
   }
 
   labelActiveSolution(label: string | null): void {
-    if (!this.activeSolution$()) {
+    const activeSolution = this.activeSolution$();
+    if (!activeSolution) {
       return;
     }
 
     this.activeSolutionLabel$.set(label);
+    if (label) {
+      this.upsertSavedSolutionScenario({
+        solutionId: this.resolveSolutionId(activeSolution),
+        label,
+        solutionName: activeSolution.name,
+      });
+    }
   }
 
   clearSolution(): void {
@@ -418,6 +426,9 @@ export class AppStateService {
       (item) => item.solutionId !== solutionId,
     );
     this.savedSolutionScenarios$.set(nextScenarios);
+    if (this.getActiveSolutionCatalogId() === solutionId) {
+      this.activeSolutionLabel$.set(null);
+    }
   }
 
   getActiveSolutionCatalogId(): string | null {

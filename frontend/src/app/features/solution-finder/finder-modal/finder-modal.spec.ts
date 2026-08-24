@@ -386,11 +386,7 @@ describe('FinderModalComponent', () => {
       metrics: [],
       metadata: { solutionId: savedSolution.id },
     });
-    appState.upsertSavedSolutionScenario({
-      solutionId: savedSolution.id,
-      label: 'Coastal priority run',
-      solutionName: savedSolution.name,
-    });
+    appState.labelActiveSolution('Coastal priority run');
 
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
@@ -436,11 +432,7 @@ describe('FinderModalComponent', () => {
       metrics: [],
       metadata: { solutionId: savedSolution.id },
     });
-    appState.upsertSavedSolutionScenario({
-      solutionId: savedSolution.id,
-      label: 'Coastal priority run',
-      solutionName: savedSolution.name,
-    });
+    appState.labelActiveSolution('Coastal priority run');
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance as unknown as {

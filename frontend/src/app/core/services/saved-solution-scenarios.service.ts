@@ -73,12 +73,13 @@ export class SavedSolutionScenariosService {
   async removeScenario(solutionId: string): Promise<boolean> {
     const uid = this.firebase.currentUser?.uid;
     const firestore = this.firebase.firestore;
+    this.appState.removeSavedSolutionScenario(solutionId);
+
     if (!uid || !firestore) {
-      return false;
+      return true;
     }
 
     const scenarioId = `saved-scenario-${solutionId}`;
-    this.appState.removeSavedSolutionScenario(solutionId);
     await deleteDoc(doc(firestore, 'users', uid, 'savedSolutionScenarios', scenarioId));
     return true;
   }

@@ -753,6 +753,9 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     const nextLabel = this.activeSolutionLabelDraft().trim();
     this.appState.labelActiveSolution(nextLabel.length > 0 ? nextLabel : null);
+    if (nextLabel) {
+      void this.persistActiveSolutionScenario(nextLabel);
+    }
     this.activeSolutionLabelDraft.set(nextLabel);
     this.activeSolutionLabelEditorOpen.set(false);
 
@@ -774,17 +777,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.activeSolutionLabelEditorOpen.set(false);
   }
 
-  protected async saveActiveSolutionScenario(event?: Event): Promise<void> {
-    event?.preventDefault();
-
+  private async persistActiveSolutionScenario(label: string): Promise<void> {
     const activeSolution = this.appState.activeSolution$();
     const solutionId = this.appState.getActiveSolutionCatalogId();
     if (!activeSolution || !solutionId || !this.userIsSignedIn()) {
-      return;
-    }
-
-    const label = (this.activeSolutionLabel() ?? activeSolution.name).trim();
-    if (!label) {
       return;
     }
 

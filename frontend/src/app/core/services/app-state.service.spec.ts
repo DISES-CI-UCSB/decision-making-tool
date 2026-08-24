@@ -116,7 +116,7 @@ describe('AppStateService', () => {
     expect(service.rightSidebarMode$()).toBe('welcome');
   });
 
-  it('labels the active solution without saving a reusable scenario', () => {
+  it('makes the active solution label reusable during the current browser session', () => {
     const solution: Solution = {
       id: 'solution-1',
       name: 'Demo Solution',
@@ -130,7 +130,13 @@ describe('AppStateService', () => {
 
     expect(service.activeSolution$()).toEqual(solution);
     expect(service.activeSolutionLabel$()).toBe('Regional workshop draft');
-    expect(service.savedSolutionScenarios$()).toEqual([]);
+    expect(service.savedSolutionScenarios$()[0]).toEqual(
+      expect.objectContaining({
+        solutionId: 'solution-1',
+        label: 'Regional workshop draft',
+        solutionName: 'Demo Solution',
+      }),
+    );
   });
 
   it('stores saved scenarios only when explicitly upserted', () => {
@@ -147,6 +153,23 @@ describe('AppStateService', () => {
         solutionName: 'Demo Solution',
       }),
     );
+  });
+
+  it('clears the active label when removing its saved scenario', () => {
+    const solution: Solution = {
+      id: 'solution-1',
+      name: 'Demo Solution',
+      matchPercentage: 72,
+      geometryUrl: '/geometry/solution-1.json',
+      metrics: [],
+    };
+
+    service.loadSolution(solution);
+    service.labelActiveSolution('Regional workshop draft');
+    service.removeSavedSolutionScenario('solution-1');
+
+    expect(service.activeSolutionLabel$()).toBeNull();
+    expect(service.savedSolutionScenarios$()).toEqual([]);
   });
 
   it('clears the active solution label when changing or clearing solutions', () => {
