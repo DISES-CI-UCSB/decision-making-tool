@@ -672,6 +672,8 @@
           },
           "ofNationalModeledRange": "Percentage of the species’ national modeled range",
           "ofSpeciesRangeInsideAoi": "Percentage of this species’ modeled range inside the AOI",
+          "ofMesaCellsInsideAoi": "Percentage of occupied planning cells inside the AOI held by the scenario",
+          "mesaCellCount": "{{held}} of {{total}} planning cells",
           "nationalModeledRangeTotal": "National modeled range total: {{area}}",
           "tableScrollLabel": "Scrollable species coverage table",
           "showing": "Showing {{count}} species"
@@ -835,6 +837,8 @@
             "newCoverage": "What percentage of this ecosystem type’s area inside the AOI was newly selected by the prioritization analysis?"
           },
           "customTableCaption": "Coverage percentages use that ecosystem type’s area inside the AOI. Area values are shown in km².",
+          "customMesaTableCaption": "Scenario coverage uses Mesa planning-cell counts within the custom AOI; it is not combined with legacy composition-area coverage.",
+          "mesaCellCount": "{{held}} of {{total}} planning cells",
           "predefinedTableCaption": "Ecosystem coverage by classification category.",
           "tableScrollLabel": "Scrollable ecosystem classification table",
           "solutionCoverage": "Total scenario coverage of ecosystem type in AOI",

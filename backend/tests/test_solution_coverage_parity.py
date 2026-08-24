@@ -12,17 +12,28 @@ from fastapi.testclient import TestClient
 from rasterio.warp import transform_geom
 
 from app import main as main_module
-from app.artifacts import ArtifactState, RuntimeArtifact
+from app.artifacts import (
+    ArtifactState,
+    ArtifactValidationError,
+    RuntimeArtifact,
+    _validate_required_mesa_coverage,
+)
+from app.config import Settings
 from app.main import app
 from app.metric_adapters import build_custom_aoi_raster
+from app.species_index import RuntimeSpeciesBitsetIndex
 from app.solution_coverage import (
+    CoverageSourceBinding,
+    CoverageTarget,
     RuntimeMesaCoverage,
+    SolutionCoverageError,
     calculate_ecosystem_aoi_coverage,
     calculate_ecosystem_national_coverage,
     load_runtime_mesa_coverage,
 )
 from mesa_coverage import evaluate_categorical_aoi
 from raster_metrics import read_solution_raster
+from app.solution_registry import RasterFingerprint
 
 
 GRID = Affine(
@@ -92,6 +103,14 @@ def _coverage_fixture(tmp_path: Path) -> tuple[RuntimeMesaCoverage, Path]:
                         },
                     ]
                 },
+                "source_bindings": {
+                    SOLUTION_ID: {
+                        "url": "https://example.test/fixture-goals",
+                        "sha256": "a" * 64,
+                        "ecosystem_feature_count": 2,
+                        "species_feature_count": 0,
+                    }
+                },
             }
         ),
         encoding="utf-8",
@@ -109,6 +128,7 @@ def _coverage_fixture(tmp_path: Path) -> tuple[RuntimeMesaCoverage, Path]:
 
 def test_core_national_coverage_matches_mesa_cell_counts(tmp_path: Path) -> None:
     coverage, solution_path = _coverage_fixture(tmp_path)
+    assert coverage.source_bindings_by_solution[SOLUTION_ID].sha256 == "a" * 64
     rows = calculate_ecosystem_national_coverage(
         coverage,
         SOLUTION_ID,
@@ -122,6 +142,80 @@ def test_core_national_coverage_matches_mesa_cell_counts(tmp_path: Path) -> None
         ("Forest", 2.0, 2.0, 1.0),
         ("Wetland", 2.0, 0.0, 0.0),
     ]
+
+
+@pytest.mark.parametrize(
+    "feature",
+    ["For est", "for EST", "FOR_EST", " for   est ", "For_est"],
+)
+def test_runtime_loader_rejects_normalized_duplicate_features(
+    tmp_path: Path,
+    feature: str,
+) -> None:
+    targets_path = tmp_path / "targets.json"
+    targets_path.write_text(
+        json.dumps(
+            {
+                "format": "mesa-solution-targets-v1",
+                "solutions": {
+                    SOLUTION_ID: [
+                        {
+                            "feature": "For est",
+                            "feature_type": "ecosystem",
+                            "relative_target": 0.5,
+                        },
+                        {
+                            "feature": feature,
+                            "feature_type": "ecosystem",
+                            "relative_target": 0.5,
+                        },
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SolutionCoverageError, match="duplicate normalized feature"):
+        load_runtime_mesa_coverage(
+            tmp_path / "ecosystems.tif",
+            tmp_path / "ecosystems.csv",
+            targets_path,
+            [],
+        )
+
+
+@pytest.mark.parametrize("relative_target", [float("nan"), float("inf"), -0.1, 1.1])
+def test_runtime_loader_rejects_invalid_targets(
+    tmp_path: Path,
+    relative_target: float,
+) -> None:
+    targets_path = tmp_path / "targets.json"
+    targets_path.write_text(
+        json.dumps(
+            {
+                "format": "mesa-solution-targets-v1",
+                "solutions": {
+                    SOLUTION_ID: [
+                        {
+                            "feature": "Forest",
+                            "feature_type": "ecosystem",
+                            "relative_target": relative_target,
+                        }
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SolutionCoverageError, match="relative_target"):
+        load_runtime_mesa_coverage(
+            tmp_path / "ecosystems.tif",
+            tmp_path / "ecosystems.csv",
+            targets_path,
+            [],
+        )
 
 
 def test_boundary_coverage_preserves_both_denominators() -> None:
@@ -201,4 +295,201 @@ def test_area_profile_api_matches_shared_coverage_calculation(
     )
     assert records[0]["contribution_to_national_target"] == pytest.approx(
         expected["forest"].contribution_to_national_target
+    )
+
+
+def test_production_validation_allows_sparse_non_golden_species_targets() -> None:
+    coverage, manifest, fingerprint = _production_coverage_fixture()
+
+    _validate_required_mesa_coverage(
+        _production_settings(),
+        manifest,
+        coverage,
+        fingerprint,
+        3,
+        _production_species_index(),
+    )
+
+
+def test_production_validation_rejects_missing_golden_solution() -> None:
+    coverage, manifest, fingerprint = _production_coverage_fixture()
+    manifest["mesa_coverage"]["contract"]["golden_master_solution_id"] = "missing"
+
+    with pytest.raises(ArtifactValidationError, match="not present in packaged targets"):
+        _validate_required_mesa_coverage(
+            _production_settings(),
+            manifest,
+            coverage,
+            fingerprint,
+            3,
+            _production_species_index(),
+        )
+
+
+@pytest.mark.parametrize(
+    "binding",
+    [
+        CoverageSourceBinding("http://example.test/goals", "a" * 64, 417, 7_980),
+        CoverageSourceBinding("https://example.test/goals", "A" * 64, 417, 7_980),
+        CoverageSourceBinding("https://example.test/goals", "a" * 64, 416, 7_980),
+    ],
+)
+def test_production_validation_rejects_invalid_source_bindings(
+    binding: CoverageSourceBinding,
+) -> None:
+    coverage, manifest, fingerprint = _production_coverage_fixture()
+    coverage.source_bindings_by_solution["golden"] = binding
+
+    with pytest.raises(ArtifactValidationError, match="invalid Mesa target source binding"):
+        _validate_required_mesa_coverage(
+            _production_settings(),
+            manifest,
+            coverage,
+            fingerprint,
+            3,
+            _production_species_index(),
+        )
+
+
+def test_production_validation_rejects_valid_cell_mismatch() -> None:
+    coverage, manifest, fingerprint = _production_coverage_fixture()
+
+    with pytest.raises(ArtifactValidationError, match="valid planning-cell count"):
+        _validate_required_mesa_coverage(
+            _production_settings(),
+            manifest,
+            coverage,
+            fingerprint,
+            2,
+            _production_species_index(),
+        )
+
+
+def test_production_validation_rejects_semantic_duplicate_targets() -> None:
+    coverage, manifest, fingerprint = _production_coverage_fixture()
+    targets = list(coverage.targets_by_solution["sparse"])
+    targets[1] = CoverageTarget(
+        " ECOSYSTEM-0 ",
+        "ecosystem",
+        None,
+        0.5,
+        None,
+    )
+    coverage.targets_by_solution["sparse"] = tuple(targets)
+
+    with pytest.raises(ArtifactValidationError, match="duplicate normalized feature"):
+        _validate_required_mesa_coverage(
+            _production_settings(),
+            manifest,
+            coverage,
+            fingerprint,
+            3,
+            _production_species_index(),
+        )
+
+
+def test_production_validation_requires_complete_runtime_species_bitset() -> None:
+    coverage, manifest, fingerprint = _production_coverage_fixture()
+
+    with pytest.raises(ArtifactValidationError, match="species bitset"):
+        _validate_required_mesa_coverage(
+            _production_settings(),
+            manifest,
+            coverage,
+            fingerprint,
+            3,
+            _production_species_index(species_count=7_979),
+        )
+
+
+def _production_coverage_fixture() -> tuple[
+    RuntimeMesaCoverage,
+    dict,
+    RasterFingerprint,
+]:
+    fingerprint = RasterFingerprint(
+        width=2,
+        height=2,
+        transform=tuple(GRID)[:6],
+        crs="EPSG:9377",
+    )
+    ecosystems = tuple(
+        CoverageTarget(f"ecosystem-{index}", "ecosystem", None, 0.5, None)
+        for index in range(417)
+    )
+    species = tuple(
+        CoverageTarget(f"species-{index}", "species", None, 0.5, None)
+        for index in range(7_980)
+    )
+    coverage = RuntimeMesaCoverage(
+        ecosystem_raster_path=Path("ecosystems.tif"),
+        ecosystem_catalog_path=Path("ecosystems.csv"),
+        targets_by_solution={
+            "golden": ecosystems + species,
+            "sparse": ecosystems + species[:1],
+        },
+        source_bindings_by_solution={
+            "golden": CoverageSourceBinding(
+                "https://example.test/golden",
+                "a" * 64,
+                417,
+                7_980,
+            ),
+            "sparse": CoverageSourceBinding(
+                "https://example.test/sparse",
+                "b" * 64,
+                417,
+                1,
+            ),
+        },
+        species_groups=("mammals",),
+    )
+    manifest = {
+        "reference_grid": {"pin": {"valid_cell_count": 3}},
+        "reference_raster_checksum": {
+            "algorithm": "sha256",
+            "value": "c" * 64,
+        },
+        "mesa_coverage": {
+            "contract": {
+                "format": "coverage-parity-contract-v1",
+                "release_id": "solutions-v3-0-0",
+                "sha256": "d" * 64,
+                "ecosystem_feature_count": 417,
+                "species_feature_count": 7_980,
+                "golden_master_solution_id": "golden",
+                "grid": {
+                    "crs": fingerprint.crs,
+                    "width": fingerprint.width,
+                    "height": fingerprint.height,
+                    "transform": list(fingerprint.transform),
+                    "valid_planning_cell_count": 3,
+                    "template_sha256": "c" * 64,
+                },
+            }
+        },
+    }
+    return coverage, manifest, fingerprint
+
+
+def _production_settings() -> Settings:
+    return Settings(
+        artifact_dir=Path("runtime-artifacts"),
+        artifact_manifest_path=Path("runtime-artifacts/manifest.json"),
+        artifact_required=True,
+        artifact_schema_version="metrics-artifact-manifest/v1",
+        mesa_coverage_required=True,
+        expected_coverage_release_id="solutions-v3-0-0",
+    )
+
+
+def _production_species_index(
+    species_count: int = 7_980,
+) -> RuntimeSpeciesBitsetIndex:
+    return RuntimeSpeciesBitsetIndex(
+        metadata_document=SimpleNamespace(species_count=species_count),
+        bits=np.empty((0, 0), dtype=np.uint8),
+        data_path=Path("species.cells.bits"),
+        metadata_path=Path("species.cells.json"),
+        groups={},
     )

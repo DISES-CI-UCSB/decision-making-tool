@@ -824,7 +824,10 @@
                   </div>
                 </section>
 
-                <section id="right-sidebar-v3-overview-ecosystem-services-section" class="v3-section">
+                <section
+                  id="right-sidebar-v3-overview-ecosystem-services-section"
+                  class="v3-section"
+                >
                   <button
                     id="right-sidebar-v3-overview-ecosystem-services-head"
                     type="button"
@@ -899,9 +902,7 @@
                               ></i>
                             </div>
                             <div
-                              [id]="
-                                'right-sidebar-v3-overview-ecosystem-services-body-' + entry.id
-                              "
+                              [id]="'right-sidebar-v3-overview-ecosystem-services-body-' + entry.id"
                               class="v3-m-body"
                             >
                               <p
@@ -5205,15 +5206,24 @@
         let-idPrefix="idPrefix"
         let-labelKey="labelKey"
         let-percent="percent"
+        let-heldInAoi="heldInAoi"
+        let-totalInAoi="totalInAoi"
       >
-        @if (percent !== null && areaKm2 !== null) {
+        @if (percent !== null) {
           <div [id]="idPrefix + '-measure'" class="aoi-mec-measure">
             <div
               [id]="idPrefix + '-bar'"
               class="aoi-mec-measure-bar"
               role="img"
               [attr.aria-label]="
-                getCustomMecBarAriaLabel(labelKey, ecosystemLabel, percent, areaKm2)
+                getCustomMecBarAriaLabel(
+                  labelKey,
+                  ecosystemLabel,
+                  percent,
+                  areaKm2,
+                  heldInAoi,
+                  totalInAoi
+                )
               "
             >
               <span
@@ -5225,7 +5235,12 @@
               ></span>
             </div>
             <span [id]="idPrefix + '-value'" class="aoi-mec-measure-value">
-              {{ formatMecCoveragePercent(percent) }} · {{ formatCustomMecAreaKm2(areaKm2) }}
+              {{ formatMecCoveragePercent(percent) }} ·
+              {{
+                areaKm2 !== null
+                  ? formatCustomMecAreaKm2(areaKm2)
+                  : formatMecCellCount(heldInAoi, totalInAoi)
+              }}
             </span>
           </div>
         } @else {
@@ -5257,7 +5272,9 @@
           >
             {{
               (isCustomMecState()
-                ? 'analysis.aoi.mec.modal.customTableCaption'
+                ? hasCustomMecCoverage()
+                  ? 'analysis.aoi.mec.modal.customMesaTableCaption'
+                  : 'analysis.aoi.mec.modal.customTableCaption'
                 : 'analysis.aoi.mec.modal.predefinedTableCaption'
               ) | translate
             }}
@@ -5377,9 +5394,11 @@
                           areaKm2: row.solutionCoverageKm2 ?? null,
                           color: mecAdditionalColor(),
                           ecosystemLabel: row.label,
+                          heldInAoi: row.mesaHeldInAoi ?? null,
                           idPrefix: 'aoi-mec-modal-total-coverage-' + row.id,
                           labelKey: 'analysis.aoi.mec.modal.totalCoverage',
                           percent: row.solutionCoveragePercent ?? null,
+                          totalInAoi: row.mesaTotalInAoi ?? null,
                         }"
                       ></ng-container>
                     } @else {

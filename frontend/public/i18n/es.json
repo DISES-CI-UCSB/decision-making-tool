@@ -595,6 +595,8 @@
           },
           "ofNationalModeledRange": "Porcentaje del rango modelado nacional de la especie",
           "ofSpeciesRangeInsideAoi": "Porcentaje del rango modelado de esta especie dentro del AOI",
+          "ofMesaCellsInsideAoi": "Porcentaje de celdas de planificación ocupadas dentro del AOI incluidas en el escenario",
+          "mesaCellCount": "{{held}} de {{total}} celdas de planificación",
           "nationalModeledRangeTotal": "Rango modelado nacional total: {{area}}",
           "tableScrollLabel": "Tabla desplazable de cobertura de especies",
           "showing": "Mostrando {{count}} especies"
@@ -758,6 +760,8 @@
             "newCoverage": "¿Qué porcentaje del área de este tipo de ecosistema dentro del AOI fue seleccionado por el nuevo análisis de priorización?"
           },
           "customTableCaption": "Los porcentajes de cobertura usan el área de ese tipo de ecosistema dentro del AOI. Los valores de área se muestran en km².",
+          "customMesaTableCaption": "La cobertura del escenario usa conteos de celdas de planificación de Mesa dentro del AOI personalizado; no se combina con la cobertura de área de composición heredada.",
+          "mesaCellCount": "{{held}} de {{total}} celdas de planificación",
           "predefinedTableCaption": "Cobertura de ecosistemas por categoría de clasificación.",
           "tableScrollLabel": "Tabla desplazable de clasificación de ecosistemas",
           "solutionCoverage": "Cobertura total del escenario del tipo de ecosistema en el AOI",

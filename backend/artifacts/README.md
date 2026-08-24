@@ -29,3 +29,5 @@ This fixture is intentionally small and human-readable. It is safe to commit bec
 - If `DMT_ARTIFACT_REQUIRED=true`, a missing or invalid runtime artifact makes `/ready` return `503`.
 - When artifacts are required, `/ready` returns `200` only after the configured runtime artifact has been loaded and validated.
 - Metric endpoints require a loaded runtime artifact before running metric calculations.
+
+The production Compose profile additionally enables `DMT_MESA_COVERAGE_REQUIRED=true` and pins both `DMT_EXPECTED_COVERAGE_RELEASE_ID` and `DMT_EXPECTED_COVERAGE_CONTRACT_SHA256`. Production readiness therefore fails unless the runtime package contains the complete V3 Mesa bundle, its approved grid fingerprint, all 417 ecosystem rows per land solution, and the approved 7,980-species runtime/golden-master universe. Other solutions retain the exact species-row counts in their own summary-derived goals documents.

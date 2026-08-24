@@ -13,6 +13,7 @@ reference grid, and the species bitset falls back to cell-count range areas.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -22,10 +23,10 @@ import pytest
 import rasterio
 from affine import Affine
 
-from app.artifacts import load_runtime_artifact
+from app.artifacts import ArtifactValidationError, load_runtime_artifact
 from app.config import Settings
 from blob_manifest import ResolvedManifest
-from coverage_parity_contract import load_coverage_parity_contract
+from coverage_parity_contract import CoverageParityContract, load_coverage_parity_contract
 from mec_compact import COMPOSITE_PROVENANCE_FORMAT, COMPOSITE_TUPLE_FIELDS
 from scripts import build_runtime_artifact as builder
 from scripts.aligned_cache import (
@@ -266,6 +267,216 @@ def test_v3_parity_contract_selects_mesa_runtime_inputs() -> None:
     } == expected_urls
 
 
+def test_v3_target_bundle_is_extracted_from_release_goals(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    goals = tmp_path / "fixture.goals.json"
+    goals.write_text(
+        json.dumps(
+            {
+                "solutionId": "fixture-solution",
+                "features": {
+                    "ecosystems": [
+                        {
+                            "featureName": "Forest",
+                            "relativeTarget": 0.17,
+                            "evaluationSource": "prioritizr_model",
+                        },
+                        {
+                            "featureName": "Wetland",
+                            "relativeTarget": 0.17,
+                            "evaluationSource": "post_hoc",
+                        },
+                    ],
+                    "species": [
+                        {
+                            "featureName": name,
+                            "relativeTarget": 0.30,
+                            "evaluationSource": "prioritizr_model",
+                            "taxonClass": "Aves",
+                        }
+                        for name in ("Bird one", "Bird two", "Bird three")
+                    ],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    contract = CoverageParityContract(
+        path=tmp_path / "contract.json",
+        document={
+            "ecosystems": {"featureCount": 2},
+            "species": {"summaryFeatureCount": 3},
+            "goldenMaster": {"solutionId": "fixture-solution"},
+        },
+    )
+    monkeypatch.setattr(
+        builder,
+        "download_source",
+        lambda url, target, force: builder.DownloadedSource(
+            goals,
+            sha256_file(goals),
+            goals.stat().st_size,
+        ),
+    )
+
+    targets, bindings = builder._goals_targets_from_release(
+        [
+            {
+                "id": "fixture-solution",
+                "finderInputs": {"domain": "land"},
+                "precomputedMetricUrls": {"goals": "https://example.test/goals.json"},
+            }
+        ],
+        tmp_path / "scratch",
+        force=False,
+        parity_contract=contract,
+    )
+
+    assert len(targets["fixture-solution"]) == 5
+    assert targets["fixture-solution"][0]["feature_type"] == "ecosystem"
+    assert targets["fixture-solution"][-1]["class"] == "Aves"
+    assert bindings["fixture-solution"]["ecosystem_feature_count"] == 2
+    assert bindings["fixture-solution"]["species_feature_count"] == 3
+
+
+def test_v3_target_bundle_accepts_zero_species_non_golden_solution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    targets, bindings = _extract_goals_fixture(
+        tmp_path,
+        monkeypatch,
+        ecosystems=[
+            {"featureName": "Forest", "relativeTarget": 0.0},
+            {"featureName": "Wetland", "relativeTarget": 1.0},
+        ],
+        species=[],
+        golden_solution_id="another-solution",
+    )
+
+    assert len(targets["fixture-solution"]) == 2
+    assert bindings["fixture-solution"]["ecosystem_feature_count"] == 2
+    assert bindings["fixture-solution"]["species_feature_count"] == 0
+
+
+@pytest.mark.parametrize(
+    "ecosystems",
+    [
+        [
+            {"featureName": "Dry forest", "relativeTarget": 0.17},
+            {"featureName": " DRY_forest ", "relativeTarget": 0.17},
+        ],
+        [
+            {"featureName": "Forest", "relativeTarget": 0.17},
+            {"featureName": " \t ", "relativeTarget": 0.17},
+        ],
+        [
+            {"featureName": "Forest", "relativeTarget": float("nan")},
+            {"featureName": "Wetland", "relativeTarget": 0.17},
+        ],
+        [
+            {"featureName": "Forest", "relativeTarget": float("inf")},
+            {"featureName": "Wetland", "relativeTarget": 0.17},
+        ],
+        [
+            {"featureName": "Forest", "relativeTarget": -0.1},
+            {"featureName": "Wetland", "relativeTarget": 0.17},
+        ],
+        [
+            {"featureName": "Forest", "relativeTarget": 1.1},
+            {"featureName": "Wetland", "relativeTarget": 0.17},
+        ],
+    ],
+)
+def test_v3_target_bundle_rejects_invalid_ecosystem_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    ecosystems: list[dict[str, object]],
+) -> None:
+    with pytest.raises(SystemExit, match="conservation goals are invalid"):
+        _extract_goals_fixture(
+            tmp_path,
+            monkeypatch,
+            ecosystems=ecosystems,
+            species=[],
+            golden_solution_id="another-solution",
+        )
+
+
+def test_v3_target_bundle_rejects_duplicate_species_names(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(SystemExit, match="duplicate normalized feature"):
+        _extract_goals_fixture(
+            tmp_path,
+            monkeypatch,
+            ecosystems=[
+                {"featureName": "Forest", "relativeTarget": 0.17},
+                {"featureName": "Wetland", "relativeTarget": 0.17},
+            ],
+            species=[
+                {"featureName": "Panthera onca", "relativeTarget": 0.3},
+                {"featureName": " PANTHERA_onca ", "relativeTarget": 0.3},
+            ],
+            golden_solution_id="another-solution",
+        )
+
+
+def _extract_goals_fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    ecosystems: list[dict[str, object]],
+    species: list[dict[str, object]],
+    golden_solution_id: str,
+) -> tuple[dict[str, list[dict]], dict[str, dict]]:
+    goals = tmp_path / "fixture.goals.json"
+    goals.write_text(
+        json.dumps(
+            {
+                "solutionId": "fixture-solution",
+                "features": {
+                    "ecosystems": ecosystems,
+                    "species": species,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    contract = CoverageParityContract(
+        path=tmp_path / "contract.json",
+        document={
+            "ecosystems": {"featureCount": len(ecosystems)},
+            "species": {"summaryFeatureCount": 7_980},
+            "goldenMaster": {"solutionId": golden_solution_id},
+        },
+    )
+    monkeypatch.setattr(
+        builder,
+        "download_source",
+        lambda url, target, force: builder.DownloadedSource(
+            goals,
+            sha256_file(goals),
+            goals.stat().st_size,
+        ),
+    )
+    return builder._goals_targets_from_release(
+        [
+            {
+                "id": "fixture-solution",
+                "finderInputs": {"domain": "land"},
+                "precomputedMetricUrls": {"goals": "https://example.test/goals.json"},
+            }
+        ],
+        tmp_path / "scratch",
+        force=False,
+        parity_contract=contract,
+    )
+
+
 def publish_both_grids(sources: Path) -> tuple[dict[str, Path], Path]:
     """Map every published URL the builder may reach to a local stand-in."""
     published: dict[str, Path] = {}
@@ -322,6 +533,135 @@ def pin_for(reference: Path) -> ReferenceRasterPin:
         transform=tuple(LAND_GRID)[:6],
         valid_cell_count=MEC_VALID_CELLS,
         rationale="Tiny aligned MEC composite standing in for the national land domain.",
+    )
+
+
+def parity_contract_for(reference: Path) -> CoverageParityContract:
+    document = copy.deepcopy(
+        load_coverage_parity_contract(PARITY_CONTRACT_PATH).document
+    )
+    document["releaseId"] = "solutions-v3-test"
+    document["grid"].update(
+        {
+            "crs": "EPSG:9377",
+            "width": 3,
+            "height": 2,
+            "transform": list(tuple(LAND_GRID)[:6]),
+            "validPlanningCellCount": MEC_VALID_CELLS,
+        }
+    )
+    document["grid"]["template"] = {
+        "logicalPath": "mesa/template-test.tif",
+        "sha256": sha256_file(reference),
+        "url": "https://example.test/releases/solutions-v3-test/template.tif",
+    }
+    return CoverageParityContract(path=PARITY_CONTRACT_PATH, document=document)
+
+
+def test_parity_reference_grid_uses_verified_contract_provenance(tmp_path: Path) -> None:
+    _, reference = publish_both_grids(tmp_path / "published")
+    contract = parity_contract_for(reference)
+    downloaded = builder.DownloadedSource(
+        path=reference,
+        sha256=sha256_file(reference),
+        bytes=reference.stat().st_size,
+    )
+
+    resolved = builder.resolve_reference_grid(
+        builder.REFERENCE_GRIDS["land-solution"],
+        contract.document["grid"]["template"]["url"],
+        downloaded,
+        read_fingerprint(reference),
+        contract,
+    )
+
+    metadata = resolved.manifest_metadata()
+    assert metadata["pin"]["release_id"] == "solutions-v3-test"
+    assert metadata["pin"]["valid_cell_count"] == MEC_VALID_CELLS
+    assert metadata["pin"]["valid_cell_count"] != (
+        builder.LAND_SOLUTION_REFERENCE_PIN.valid_cell_count
+    )
+    assert metadata["pin"]["sha256"] == downloaded.sha256
+    assert metadata["width"] == 3
+    assert metadata["height"] == 2
+    assert metadata["crs"] == "EPSG:9377"
+    assert metadata["transform"] == list(tuple(LAND_GRID)[:6])
+    assert resolved.parity_contract_grid() == {
+        "crs": metadata["crs"],
+        "width": metadata["width"],
+        "height": metadata["height"],
+        "transform": metadata["transform"],
+        "valid_planning_cell_count": metadata["pin"]["valid_cell_count"],
+        "template_sha256": metadata["pin"]["sha256"],
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "expected_error"),
+    [
+        ("sha256", "template SHA-256"),
+        ("crs", "CRS"),
+        ("width", "width"),
+        ("height", "height"),
+        ("transform", "transform"),
+        ("validPlanningCellCount", "valid planning-cell count"),
+    ],
+)
+def test_parity_reference_grid_rejects_contract_raster_mismatch(
+    tmp_path: Path,
+    field: str,
+    expected_error: str,
+) -> None:
+    _, reference = publish_both_grids(tmp_path / "published")
+    contract = parity_contract_for(reference)
+    if field == "sha256":
+        contract.document["grid"]["template"]["sha256"] = "0" * 64
+    elif field == "crs":
+        contract.document["grid"]["crs"] = "EPSG:4326"
+    elif field == "transform":
+        contract.document["grid"]["transform"][0] = 999.0
+    else:
+        contract.document["grid"][field] += 1
+    downloaded = builder.DownloadedSource(
+        path=reference,
+        sha256=sha256_file(reference),
+        bytes=reference.stat().st_size,
+    )
+
+    with pytest.raises(SystemExit, match=expected_error):
+        builder.resolve_reference_grid(
+            builder.REFERENCE_GRIDS["land-solution"],
+            contract.document["grid"]["template"]["url"],
+            downloaded,
+            read_fingerprint(reference),
+            contract,
+        )
+
+
+def test_legacy_land_reference_grid_preserves_land_pin(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, reference = publish_both_grids(tmp_path / "published")
+    pin = pin_for(reference)
+    monkeypatch.setattr(builder, "LAND_SOLUTION_REFERENCE_PIN", pin)
+    downloaded = builder.DownloadedSource(
+        path=reference,
+        sha256=sha256_file(reference),
+        bytes=reference.stat().st_size,
+    )
+
+    resolved = builder.resolve_reference_grid(
+        builder.REFERENCE_GRIDS["land-solution"],
+        pin.url,
+        downloaded,
+        read_fingerprint(reference),
+        None,
+    )
+
+    assert resolved.release_id is None
+    assert resolved.manifest_metadata()["pin"] == builder.reference_raster_pin(
+        "land-solution"
     )
 
 
@@ -423,6 +763,29 @@ def test_land_solution_build_produces_a_loadable_artifact(
     assert manifest["mesa_coverage"]["ecosystems"]["raster_layer_id"] == (
         builder.ECOSYSTEM_LAYER_ID
     )
+
+
+def test_production_runtime_rejects_land_artifact_without_v3_contract(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release_dir = build_tiny_land_solution_artifact(tmp_path, monkeypatch)
+
+    with pytest.raises(
+        ArtifactValidationError,
+        match="declare its parity contract",
+    ):
+        load_runtime_artifact(
+            Settings(
+                artifact_dir=release_dir,
+                artifact_manifest_path=release_dir / "manifest.json",
+                artifact_required=True,
+                artifact_schema_version="metrics-artifact-manifest/v1",
+                mesa_coverage_required=True,
+                expected_coverage_release_id="solutions-v3-0-0",
+                solution_cache_dir=tmp_path / "solution-cache",
+            )
+        )
 
 
 def test_land_solution_pin_rejects_a_drifted_reference_raster(tmp_path: Path) -> None:

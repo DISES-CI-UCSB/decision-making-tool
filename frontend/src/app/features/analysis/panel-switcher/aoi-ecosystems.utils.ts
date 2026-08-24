@@ -4,6 +4,7 @@ import {
   type CustomAoiAreaProfileResponse,
   type CustomAoiEcosystemRecord,
   type CustomAoiProfileSectionStatus,
+  type MesaAoiCoverageRecord,
   type MecCompactDocument,
   type MecViewId,
 } from '@core/models';
@@ -52,10 +53,15 @@ export interface MecCoverageRow {
   newPrioritizrCoverageKm2: number | null;
   preExistingPercent: number | null;
   newPrioritizrPercent: number | null;
+  mesaTotalInAoi?: number | null;
+  mesaHeldInAoi?: number | null;
+  contributionToNationalCoveragePercent?: number | null;
+  contributionToNationalTargetPercent?: number | null;
 }
 
 export interface CustomMecData {
   status: CustomAoiProfileSectionStatus;
+  mode: 'composition' | 'mesa-solution';
   hasSolutionCoverage: boolean;
   rowsByView: ReadonlyMap<MecViewId, MecCoverageRow[]>;
   previewByView: ReadonlyMap<MecViewId, MecPreviewItem[]>;
@@ -115,6 +121,8 @@ export const STRATEGIC_ECOSYSTEM_BARS: readonly StrategicEcosystemBar[] = [
 
 /** The 430 authoritative raster biome IDs collapse to 429 unique conservation-feature labels. */
 export const MEC_IAVH_FEATURE_COUNT = 429;
+/** The V3 Mesa parity contract contains 417 ecosystem conservation features. */
+export const MESA_IAVH_FEATURE_COUNT = 417;
 
 export const MEC_BREAKDOWNS: readonly MecBreakdownConfig[] = [
   {
@@ -349,32 +357,64 @@ export function buildMecPreviewItems(
     });
 }
 
-export function buildCustomMecData(response: CustomAoiAreaProfileResponse): CustomMecData {
+export function buildCustomMecData(
+  response: CustomAoiAreaProfileResponse,
+  expectedSolutionId: string | null = response.solution_id ?? null,
+): CustomMecData {
   const section = response.sections.ecosystems;
   if (!section) {
     throw new Error('Missing custom AOI ecosystems section');
   }
 
+  const hasActiveSolution = expectedSolutionId !== null;
+  if (hasActiveSolution && response.solution_id !== expectedSolutionId) {
+    throw new Error('Missing or mismatched solution id in custom AOI ecosystem response');
+  }
+  if (hasActiveSolution && !Array.isArray(section.solution_coverage)) {
+    throw new Error('Missing Mesa solution coverage for active custom AOI solution');
+  }
+
   const rowsByView = new Map<MecViewId, MecCoverageRow[]>();
   const previewByView = new Map<MecViewId, MecPreviewItem[]>();
-  section.views.forEach((view) => {
-    const rows = view.records.map(buildCustomMecCoverageRow);
-    rowsByView.set(view.id, rows);
+  if (hasActiveSolution) {
+    const rows = validateMesaSolutionCoverage(section.solution_coverage ?? []).map(
+      buildMesaCustomMecCoverageRow,
+    );
+    // Mesa solution coverage is the 417-class IAvH biome-region inventory.
+    // The section's canonical view describes the separate composition taxonomy.
+    const mesaView: MecViewId = 'biomeRegion';
+    rowsByView.set(mesaView, rows);
     previewByView.set(
-      view.id,
-      [...view.records]
-        .sort((a, b) => b.area_km2 - a.area_km2)
+      mesaView,
+      [...rows]
+        .sort((a, b) => (b.solutionCoveragePercent ?? -1) - (a.solutionCoveragePercent ?? -1))
         .slice(0, 5)
-        .map((record) => ({
-          label: record.label,
-          percent: record.share_of_total_aoi_pct ?? null,
+        .map((row) => ({
+          label: row.label,
+          percent: row.solutionCoveragePercent ?? null,
         })),
     );
-  });
+  } else {
+    section.views.forEach((view) => {
+      const rows = view.records.map(buildCustomMecCompositionRow);
+      rowsByView.set(view.id, rows);
+      previewByView.set(
+        view.id,
+        [...view.records]
+          .sort((a, b) => b.area_km2 - a.area_km2)
+          .slice(0, 5)
+          .map((record) => ({
+            label: record.label,
+            percent: record.share_of_total_aoi_pct ?? null,
+          })),
+      );
+    });
+  }
 
   return {
     status: section.status,
-    hasSolutionCoverage: Boolean(response.solution_id),
+    mode: hasActiveSolution ? 'mesa-solution' : 'composition',
+    hasSolutionCoverage: hasActiveSolution,
     rowsByView,
     previewByView,
     scopeSummary: buildCustomMecScopeSummary(
@@ -385,20 +425,124 @@ export function buildCustomMecData(response: CustomAoiAreaProfileResponse): Cust
   };
 }
 
-export function buildCustomMecCoverageRow(record: CustomAoiEcosystemRecord): MecCoverageRow {
+export function buildCustomMecCompositionRow(record: CustomAoiEcosystemRecord): MecCoverageRow {
   return {
     id: slugify(record.id),
     label: record.label,
     ecosystemAreaKm2: record.area_km2,
     ecosystemSharePercent: record.share_of_total_aoi_pct ?? null,
     nationalClassPercent: record.share_of_national_class_pct,
-    solutionCoverageKm2: record.solution_covered_area_km2,
-    solutionCoveragePercent: record.solution_covered_pct_of_aoi,
-    preExistingCoverageKm2: record.pre_existing_covered_area_km2,
-    newPrioritizrCoverageKm2: record.new_covered_area_km2,
-    preExistingPercent: record.pre_existing_covered_pct_of_aoi,
-    newPrioritizrPercent: record.new_covered_pct_of_aoi,
+    solutionCoverageKm2: null,
+    solutionCoveragePercent: null,
+    preExistingCoverageKm2: null,
+    newPrioritizrCoverageKm2: null,
+    preExistingPercent: null,
+    newPrioritizrPercent: null,
   };
+}
+
+export function buildMesaCustomMecCoverageRow(record: MesaAoiCoverageRecord): MecCoverageRow {
+  return {
+    id: slugify(record.feature),
+    label: record.feature,
+    ecosystemAreaKm2: null,
+    ecosystemSharePercent: null,
+    nationalClassPercent: null,
+    solutionCoverageKm2: null,
+    solutionCoveragePercent: fractionToPercent(record.coverage_within_aoi),
+    preExistingCoverageKm2: null,
+    newPrioritizrCoverageKm2: null,
+    preExistingPercent: null,
+    newPrioritizrPercent: null,
+    mesaTotalInAoi: record.total_in_aoi,
+    mesaHeldInAoi: record.held_in_aoi,
+    contributionToNationalCoveragePercent: fractionToPercent(
+      record.contribution_to_national_coverage,
+    ),
+    contributionToNationalTargetPercent: fractionToPercent(record.contribution_to_national_target),
+  };
+}
+
+function validateMesaSolutionCoverage(records: readonly unknown[]): MesaAoiCoverageRecord[] {
+  if (records.length !== MESA_IAVH_FEATURE_COUNT) {
+    throw new Error(
+      `Invalid Mesa solution coverage: expected ${MESA_IAVH_FEATURE_COUNT} rows, received ${records.length}`,
+    );
+  }
+
+  const features = new Set<string>();
+  return records.map((record, index) => {
+    assertMesaSolutionCoverageRecord(record, index);
+    if (features.has(record.feature)) {
+      throw new Error(
+        `Invalid Mesa solution coverage: duplicate feature "${record.feature}" at row ${index + 1}`,
+      );
+    }
+    features.add(record.feature);
+    return record;
+  });
+}
+
+function assertMesaSolutionCoverageRecord(
+  record: unknown,
+  index: number,
+): asserts record is MesaAoiCoverageRecord {
+  const rowLabel = `row ${index + 1}`;
+  if (record === null || typeof record !== 'object') {
+    throw new Error(`Invalid Mesa solution coverage: ${rowLabel} must be an object`);
+  }
+
+  const candidate = record as Record<string, unknown>;
+  if (typeof candidate['feature'] !== 'string' || candidate['feature'].trim().length === 0) {
+    throw new Error(`Invalid Mesa solution coverage: ${rowLabel} has an empty feature`);
+  }
+  assertFiniteNonnegative(candidate['total_in_aoi'], rowLabel, 'total_in_aoi');
+  assertFiniteNonnegative(candidate['held_in_aoi'], rowLabel, 'held_in_aoi');
+  if ((candidate['held_in_aoi'] as number) > (candidate['total_in_aoi'] as number)) {
+    throw new Error(
+      `Invalid Mesa solution coverage: ${rowLabel} has held_in_aoi above total_in_aoi`,
+    );
+  }
+  assertNullableFraction(candidate['coverage_within_aoi'], rowLabel, 'coverage_within_aoi', true);
+  assertNullableFraction(
+    candidate['contribution_to_national_coverage'],
+    rowLabel,
+    'contribution_to_national_coverage',
+  );
+  assertNullableFraction(
+    candidate['contribution_to_national_target'],
+    rowLabel,
+    'contribution_to_national_target',
+  );
+}
+
+function assertFiniteNonnegative(value: unknown, rowLabel: string, field: string): void {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new Error(
+      `Invalid Mesa solution coverage: ${rowLabel} has invalid ${field}; expected a finite nonnegative number`,
+    );
+  }
+}
+
+function assertNullableFraction(
+  value: unknown,
+  rowLabel: string,
+  field: string,
+  bounded = false,
+): void {
+  if (
+    value !== null &&
+    (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || (bounded && value > 1))
+  ) {
+    const expectation = bounded ? 'a finite value from 0 to 1 or null' : 'a finite value or null';
+    throw new Error(
+      `Invalid Mesa solution coverage: ${rowLabel} has invalid ${field}; expected ${expectation}`,
+    );
+  }
+}
+
+function fractionToPercent(value: number | null): number | null {
+  return value === null ? null : value * 100;
 }
 
 export function buildCustomMecScopeSummary(

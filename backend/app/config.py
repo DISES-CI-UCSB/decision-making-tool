@@ -18,6 +18,9 @@ class Settings:
     artifact_manifest_path: Path
     artifact_required: bool
     artifact_schema_version: str
+    mesa_coverage_required: bool = False
+    expected_coverage_release_id: str | None = None
+    expected_coverage_contract_sha256: str | None = None
     solution_cache_dir: Path = Path("runtime-cache/solutions")
     custom_polygon_job_db: Path = Path("runtime-cache/jobs.sqlite3")
     ops_token: str | None = None
@@ -42,5 +45,15 @@ def get_settings() -> Settings:
         artifact_required=_env_bool("DMT_ARTIFACT_REQUIRED", default=False),
         artifact_schema_version=os.getenv(
             "DMT_ARTIFACT_SCHEMA_VERSION", "metrics-artifact-manifest/v1"
+        ),
+        mesa_coverage_required=_env_bool(
+            "DMT_MESA_COVERAGE_REQUIRED",
+            default=False,
+        ),
+        expected_coverage_release_id=(
+            os.getenv("DMT_EXPECTED_COVERAGE_RELEASE_ID") or None
+        ),
+        expected_coverage_contract_sha256=(
+            os.getenv("DMT_EXPECTED_COVERAGE_CONTRACT_SHA256") or None
         ),
     )

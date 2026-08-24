@@ -254,17 +254,27 @@ Run on the metrics host after any manifest or source-raster change that affects 
 
 ```bash
 backend/.venv/bin/python backend/scripts/build_runtime_artifact.py \
-  --manifest-url <approved-manifest-url>
+  --production-v3 \
+  --manifest-url <approved-manifest-url> \
+  --aligned-cache <metrics-pipeline-cache>
 ```
 
-Use `--force` when source bytes changed at an existing URL. Optional `--artifact-dir` changes the output location. `--solution-id` selects only the sample solution recorded for provenance; the current builder’s calculation rasters are manifest/shared sources, not a per-solution runtime set.
+`--production-v3` is mandatory for a production build. It selects the EPSG:9377 land-solution grid, pins the `solutions-v3-0-0` coverage-parity contract, reads each land solution’s exact ecosystem and species rows from its immutable goals document, and writes an immutable release. Every land solution must contain all 417 ecosystems; species goal-row counts remain solution-specific, while the runtime species index and golden-master solution must contain the approved 7,980-species universe. Use `--force` when source bytes changed at an existing URL. Optional `--artifact-dir` changes the output location.
 
-The builder writes a gitignored `backend/runtime-artifacts/manifest.json`, a reference raster, metric rasters, and species matrices. Review file checksums, sizes, metric coverage, source manifest URL, and missing-layer warnings before restart.
+Before activation, verify the new release:
+
+```bash
+backend/.venv/bin/python backend/scripts/verify_runtime_release.py \
+  <runtime-artifact-release-directory> \
+  --require-mesa-v3
+```
+
+The verifier rejects missing Mesa metadata, a stale release or contract checksum, a mismatched grid fingerprint, incomplete source bindings, any solution without all 417 ecosystems, or a runtime/golden-master species universe other than 7,980.
 
 ### 11. Rebuild, restart, and prove readiness
 
 ```bash
-DMT_ARTIFACT_REQUIRED=true \
+DMT_ARTIFACT_MANIFEST=<runtime-artifact-release-directory>/manifest.json \
   docker compose -f backend/docker-compose.yml up -d --build --force-recreate
 
 docker compose -f backend/docker-compose.yml logs --tail=100 backend
@@ -273,7 +283,7 @@ curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/ready
 ```
 
-`/health` proves only that the process is alive. `/ready` proves required read-only artifacts loaded and validated. Do not return the service to traffic when readiness fails.
+The production Compose profile defaults to requiring artifacts, the V3 Mesa bundle, release ID `solutions-v3-0-0`, and the pinned parity-contract checksum. `/health` proves only that the process is alive. `/ready` proves those read-only artifacts loaded and validated. Do not return the service to traffic when readiness fails.
 
 ### 12. Test known/custom parity and arbitrary polygons
 
@@ -283,7 +293,7 @@ curl http://127.0.0.1:8000/ready
 4. Test small, multipart, edge-of-grid, and no-overlap arbitrary polygons.
 5. Monitor backend logs for category-mask, species-matrix, grid, and artifact errors.
 
-**Production defect — engineering fix required:** `build_custom_aoi_raster()` replaces the reference raster's `selected_mask` with the polygon mask but retains the reference raster's pre-existing and new-Prioritizr category masks. For an arbitrary polygon whose selected cells do not exactly equal the union of those retained masks, `SolutionRaster` validation is likely to raise `Solution selected_mask must equal the union of values 1 and 2.` during raster construction. The request therefore fails before metric calculation; this is not merely an unverified category breakdown. Do not claim production support for arbitrary custom AOIs until the implementation clips or rebuilds all category masks consistently and a production-path regression test covers non-matching polygons.
+`build_custom_aoi_raster()` rebuilds all category masks consistently for the drawn polygon: the selected cells become the new-Prioritizr mask and the pre-existing mask is empty. The grid-path regression tests cover arbitrary WGS84 and pre-projected polygons; continue the production checks above for rasterization parity and edge cases.
 
 ## Downstream effects
 
@@ -314,7 +324,7 @@ curl http://127.0.0.1:8000/ready
 - [ ] Runtime artifact manifest checksums and metric coverage were reviewed.
 - [ ] FastAPI logs show successful artifact loading; `/health` and `/ready` both pass.
 - [ ] Known-AOI and equivalent custom-polygon values are scientifically consistent.
-- [ ] Custom-AOI category masks are fixed to match the polygon selection, and a production-path non-matching-polygon regression test passes.
+- [ ] Custom-AOI category masks match the polygon selection, and the arbitrary-polygon grid-path regression tests pass.
 - [ ] Prior publish reports, manifest archive, metrics outputs, and runtime artifacts remain available.
 
 ## Rollback
@@ -344,7 +354,6 @@ DMT_ARTIFACT_REQUIRED=true \
 - MEC upload/manifest wiring and conservation-goal publication are manual/incomplete.
 - Metrics overwrites have no automatic archive; immutable releases or retained local reports are required for reliable rollback.
 - Python dependencies use minimum-version ranges rather than a reproducible lock.
-- Custom-AOI category-mask handling requires a production code fix and arbitrary-polygon regression coverage; the current path is likely to reject non-matching polygons before calculation.
 - Custom-AOI species support must be verified on the target VM; do not infer support from known-AOI species caches.
 - Manifest live-metric URLs and sparse-builder output naming conventions may not match. Verify the actual production artifact format before relying on `compressedDataForLiveMetricsUrl`.
 - No tested Blob disaster-recovery workflow is documented. Escalate storage loss rather than improvising destructive restoration.

@@ -1262,7 +1262,7 @@ export class PanelSwitcherComponent {
                   map(
                     (response): MecPanelState => ({
                       status: 'custom',
-                      data: buildCustomMecData(response),
+                      data: buildCustomMecData(response, request.solutionId ?? null),
                     }),
                   ),
                   catchError(() =>
@@ -1293,7 +1293,14 @@ export class PanelSwitcherComponent {
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((state) => this.mecPanelState.set(state));
+      .subscribe((state) => {
+        this.mecPanelState.set(state);
+        if (state.status === 'custom' && state.data.mode === 'mesa-solution') {
+          this.selectedMecBreakdownId.set('iavh');
+          this.mecModalBreakdownId.set('iavh');
+          this.mecSortId.set('coverage');
+        }
+      });
 
     toObservable(this.customAoiGeometry)
       .pipe(
@@ -2265,7 +2272,10 @@ export class PanelSwitcherComponent {
 
   protected openMecModal(): void {
     this.mecModalBreakdownId.set(this.selectedMecBreakdownId());
-    this.mecSortId.set(this.isCustomMecState() ? 'composition' : 'coverage');
+    const state = this.mecPanelState();
+    this.mecSortId.set(
+      state.status === 'custom' && state.data.mode === 'composition' ? 'composition' : 'coverage',
+    );
     this.mecSearchQuery.set('');
     this.mecModalOpen.set(true);
   }
@@ -2574,14 +2584,30 @@ export class PanelSwitcherComponent {
     metricLabelKey: string,
     ecosystemLabel: string,
     percent: number,
-    areaKm2: number,
+    areaKm2: number | null,
+    heldInAoi: number | null = null,
+    totalInAoi: number | null = null,
   ): string {
+    const amount =
+      areaKm2 !== null
+        ? this.formatCustomMecAreaKm2(areaKm2)
+        : this.formatMecCellCount(heldInAoi, totalInAoi);
     return [
       this.translate.instant(metricLabelKey),
       ecosystemLabel,
       this.formatMecCoveragePercent(percent),
-      this.formatCustomMecAreaKm2(areaKm2),
+      amount,
     ].join(', ');
+  }
+
+  protected formatMecCellCount(heldInAoi: number | null, totalInAoi: number | null): string {
+    if (heldInAoi === null || totalInAoi === null) {
+      return this.translate.instant('analysis.common.valueUnavailable');
+    }
+    return this.translate.instant('analysis.aoi.mec.modal.mesaCellCount', {
+      held: this.formatNumber(heldInAoi, this.metricNumberFormatMode(), 0, 1),
+      total: this.formatNumber(totalInAoi, this.metricNumberFormatMode(), 0, 1),
+    });
   }
 
   protected getMecCoverageTotal(row: MecCoverageRow): number {

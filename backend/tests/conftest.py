@@ -17,6 +17,9 @@ def clear_artifact_env() -> None:
         "DMT_ARTIFACT_MANIFEST",
         "DMT_ARTIFACT_REQUIRED",
         "DMT_ARTIFACT_SCHEMA_VERSION",
+        "DMT_MESA_COVERAGE_REQUIRED",
+        "DMT_EXPECTED_COVERAGE_RELEASE_ID",
+        "DMT_EXPECTED_COVERAGE_CONTRACT_SHA256",
     ]:
         os.environ.pop(name, None)
 

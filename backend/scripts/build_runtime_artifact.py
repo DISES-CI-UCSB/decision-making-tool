@@ -12,6 +12,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import rasterio
+
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_ROOT.parent
 METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
@@ -28,6 +31,12 @@ from metric_definitions import METRIC_CATALOG  # noqa: E402
 from species_data import CLASS_BUCKETS, compute_pool_sizes, load_species_records  # noqa: E402
 from sparse.species_bitset import build_species_bitset  # noqa: E402
 
+from app.coverage_target_validation import (  # noqa: E402
+    CoverageTargetValidationError,
+    MESA_V3_ECOSYSTEM_TARGET_COUNT,
+    MESA_V3_GOLDEN_SPECIES_TARGET_COUNT,
+    validate_coverage_targets,
+)
 from scripts.aligned_cache import (  # noqa: E402
     AlignedCacheError,
     AlignedRaster,
@@ -45,6 +54,14 @@ from scripts.land_solution_inputs import (  # noqa: E402
 
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 DEFAULT_ARTIFACT_DIR = REPO_ROOT / "backend" / "runtime-artifacts"
+DEFAULT_V3_PARITY_CONTRACT = (
+    REPO_ROOT
+    / "data"
+    / "metrics"
+    / "release-specs"
+    / "solutions-v3-0-0"
+    / "coverage-parity-contract.json"
+)
 SPECIES_CSV_PATH = METRICS_PIPELINE / "artifacts" / "species" / "biomod_spp_ranges_updatedIUCN.csv"
 SPECIES_MATRIX_GROUPS = (*CLASS_BUCKETS, "threatened")
 ECOSYSTEM_LAYER_ID = "ecosistemas_IAVH_2024"
@@ -112,6 +129,63 @@ class ReferenceGrid:
     summary: str
 
 
+@dataclass(frozen=True)
+class ResolvedReferenceGrid:
+    """Verified reference bytes and their canonical runtime provenance."""
+
+    name: str
+    summary: str
+    source: str
+    sha256: str
+    size_bytes: int
+    crs: str
+    width: int
+    height: int
+    transform: tuple[float, float, float, float, float, float]
+    valid_cell_count: int
+    release_id: str | None = None
+    logical_path: str | None = None
+
+    def manifest_metadata(self) -> dict[str, Any]:
+        if self.release_id is None:
+            pin = reference_raster_pin(self.name)
+        else:
+            pin = {
+                "source": self.source,
+                "logical_path": self.logical_path,
+                "release_id": self.release_id,
+                "sha256": self.sha256,
+                "size_bytes": self.size_bytes,
+                "valid_cell_count": self.valid_cell_count,
+                "rationale": (
+                    "Coverage-parity template verified against the loaded contract "
+                    "and packaged reference raster."
+                ),
+            }
+        return {
+            "name": self.name,
+            "summary": self.summary,
+            "source": self.source,
+            "crs": self.crs,
+            "width": self.width,
+            "height": self.height,
+            "transform": list(self.transform),
+            "pin": pin,
+        }
+
+    def parity_contract_grid(self) -> dict[str, Any]:
+        if self.release_id is None:
+            raise ValueError("Legacy reference grids do not have parity contract metadata.")
+        return {
+            "crs": self.crs,
+            "width": self.width,
+            "height": self.height,
+            "transform": list(self.transform),
+            "valid_planning_cell_count": self.valid_cell_count,
+            "template_sha256": self.sha256,
+        }
+
+
 # Mirrors `_LAYER_POLICIES` in metrics_pipeline/raster_align.py. Only the two
 # density layers use `average`; resampling them with nearest would corrupt
 # carbon totals. Layers sharing one categorical source (the coberturas and
@@ -155,6 +229,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest-url", default=DEFAULT_MANIFEST_URL)
     parser.add_argument("--solution-id", default=None)
     parser.add_argument("--coverage-parity-contract", type=Path, default=None)
+    parser.add_argument(
+        "--production-v3",
+        action="store_true",
+        help=(
+            "Build the immutable EPSG:9377 Custom AOI release with the pinned "
+            "V3 Mesa coverage contract. This profile fails closed."
+        ),
+    )
     parser.add_argument("--force", action="store_true", help="Re-download source rasters.")
     parser.add_argument(
         "--immutable-release",
@@ -186,6 +268,11 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     args = parser.parse_args()
+    if args.production_v3:
+        args.reference_grid = "land-solution"
+        args.immutable_release = True
+        if args.coverage_parity_contract is None:
+            args.coverage_parity_contract = DEFAULT_V3_PARITY_CONTRACT
     if args.reference_grid == "land-solution":
         if not args.reference_raster and args.coverage_parity_contract is None:
             args.reference_raster = LAND_SOLUTION_REFERENCE_PIN.url
@@ -198,6 +285,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    production_v3 = bool(getattr(args, "production_v3", False))
     parity_contract_path = getattr(args, "coverage_parity_contract", None)
     parity_contract = (
         load_coverage_parity_contract(parity_contract_path)
@@ -208,6 +296,17 @@ def main() -> None:
         if args.reference_grid != "land-solution":
             raise SystemExit("Coverage parity runtime requires --reference-grid land-solution.")
         args.reference_raster = parity_contract.document["grid"]["template"]["url"]
+    if production_v3 and parity_contract is None:
+        raise SystemExit("Production V3 runtime requires the coverage parity contract.")
+    if production_v3 and (
+        parity_contract.ecosystem_feature_count != MESA_V3_ECOSYSTEM_TARGET_COUNT
+        or parity_contract.species_feature_count
+        != MESA_V3_GOLDEN_SPECIES_TARGET_COUNT
+    ):
+        raise SystemExit(
+            "Production V3 coverage contract must declare exactly 417 ecosystems "
+            "and 7,980 golden-solution species."
+        )
     artifact_root = args.artifact_dir.resolve()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     artifact_version = f"colombia-custom-aoi-v1-{now.replace(':', '').replace('-', '')}"
@@ -240,24 +339,20 @@ def main() -> None:
             f"Reference raster {reference_source_url} is {reference_fingerprint.crs}; "
             f"reference grid {reference_grid.name} requires {reference_grid.expected_crs}."
         )
-    if args.reference_grid == "land-solution":
-        if parity_contract is not None:
-            expected = parity_contract.document["grid"]["template"]["sha256"]
-            if reference.sha256 != expected:
-                raise SystemExit(
-                    "Mesa reference raster checksum mismatch: "
-                    f"expected {expected}, observed {reference.sha256}"
-                )
-            print("Reference raster matches the v3 Mesa coverage-parity contract.")
-        else:
-            try:
-                LAND_SOLUTION_REFERENCE_PIN.verify(reference.path, sha256=reference.sha256)
-            except ReferenceRasterPinError as exc:
-                raise SystemExit(str(exc)) from exc
-            print(
-                "Reference raster matches the land-solution pin: "
-                f"{LAND_SOLUTION_REFERENCE_PIN.rationale}"
-            )
+    resolved_reference_grid = resolve_reference_grid(
+        reference_grid,
+        reference_source_url,
+        reference,
+        reference_fingerprint,
+        parity_contract,
+    )
+    if parity_contract is not None:
+        print("Reference raster matches the v3 Mesa coverage-parity contract.")
+    elif args.reference_grid == "land-solution":
+        print(
+            "Reference raster matches the land-solution pin: "
+            f"{LAND_SOLUTION_REFERENCE_PIN.rationale}"
+        )
     print(
         f"Reference fingerprint: {reference_fingerprint.crs} "
         f"{reference_fingerprint.width}x{reference_fingerprint.height}"
@@ -432,7 +527,10 @@ def main() -> None:
         file_entries,
         force=args.force,
         parity_contract=parity_contract,
+        resolved_reference_grid=resolved_reference_grid,
     )
+    if production_v3 and mesa_coverage is None:
+        raise SystemExit("Production V3 runtime did not produce Mesa coverage metadata.")
     aggregate_checksum = aggregate_file_checksum(file_entries)
     runtime_manifest = {
         "artifact_version": artifact_version,
@@ -450,16 +548,7 @@ def main() -> None:
             "sample_solution_name": solution.get("name"),
             "purpose": "Runtime source rasters for live custom AOI metrics on the VM backend.",
         },
-        "reference_grid": {
-            "name": reference_grid.name,
-            "summary": reference_grid.summary,
-            "source": reference_source_url,
-            "crs": reference_fingerprint.crs,
-            "width": reference_fingerprint.width,
-            "height": reference_fingerprint.height,
-            "transform": list(reference_fingerprint.transform),
-            "pin": reference_raster_pin(args.reference_grid),
-        },
+        "reference_grid": resolved_reference_grid.manifest_metadata(),
         "aligned_sources": aligned_source_provenance(
             args.aligned_cache,
             aligned_by_url,
@@ -688,6 +777,118 @@ def load_species_pool_sizes() -> dict[str, Any]:
     }
 
 
+def _goals_targets_from_release(
+    solutions: list[dict[str, Any]],
+    scratch_dir: Path,
+    *,
+    force: bool,
+    parity_contract: CoverageParityContract,
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, dict[str, Any]]]:
+    targets: dict[str, list[dict[str, Any]]] = {}
+    source_bindings: dict[str, dict[str, Any]] = {}
+    expected_ecosystems = parity_contract.ecosystem_feature_count
+    expected_species = parity_contract.species_feature_count
+
+    try:
+        for solution in solutions:
+            finder_inputs = solution.get("finderInputs")
+            if isinstance(finder_inputs, dict) and finder_inputs.get("domain") != "land":
+                continue
+            solution_id = str(solution.get("id") or "")
+            urls = solution.get("precomputedMetricUrls")
+            goals_url = urls.get("goals") if isinstance(urls, dict) else None
+            if not solution_id or not isinstance(goals_url, str) or not goals_url:
+                raise SystemExit(
+                    f"{solution_id or 'unknown solution'} has no V3 conservation goals URL."
+                )
+            downloaded = download_source(
+                goals_url,
+                scratch_dir / f"{safe_filename(solution_id)}.goals.json",
+                force=force,
+            )
+            try:
+                document = json.loads(downloaded.path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise SystemExit(f"{solution_id} conservation goals are invalid: {exc}") from exc
+            if document.get("solutionId") != solution_id:
+                raise SystemExit(f"{solution_id} conservation goals identity is stale.")
+            features = document.get("features")
+            ecosystems = features.get("ecosystems") if isinstance(features, dict) else None
+            species = features.get("species") if isinstance(features, dict) else None
+            if not isinstance(ecosystems, list) or len(ecosystems) != expected_ecosystems:
+                raise SystemExit(
+                    f"{solution_id} must contain {expected_ecosystems} V3 ecosystem rows."
+                )
+            if not isinstance(species, list):
+                raise SystemExit(f"{solution_id} has no V3 species goals inventory.")
+            if (
+                solution_id == parity_contract.solution_id
+                and len(species) != expected_species
+            ):
+                raise SystemExit(
+                    f"The golden solution must contain {expected_species} V3 species rows."
+                )
+            canonical_rows: list[dict[str, Any]] = []
+            for feature_type, raw_features in (
+                ("ecosystem", ecosystems),
+                ("species", species),
+            ):
+                for raw in raw_features:
+                    if not isinstance(raw, dict):
+                        raise SystemExit(
+                            f"{solution_id} has an invalid {feature_type} goals row."
+                        )
+                    try:
+                        canonical_rows.append(
+                            {
+                                "feature": raw["featureName"],
+                                "feature_type": feature_type,
+                                "class": raw.get("taxonClass"),
+                                "relative_target": raw["relativeTarget"],
+                                "evaluated": raw.get("evaluationSource"),
+                            }
+                        )
+                    except KeyError as exc:
+                        raise SystemExit(
+                            f"{solution_id} has an invalid {feature_type} goals row."
+                        ) from exc
+            try:
+                validated_rows = validate_coverage_targets(
+                    canonical_rows,
+                    solution_id=solution_id,
+                    expected_ecosystem_count=expected_ecosystems,
+                    expected_species_count=(
+                        expected_species
+                        if solution_id == parity_contract.solution_id
+                        else None
+                    ),
+                )
+            except CoverageTargetValidationError as exc:
+                raise SystemExit(
+                    f"{solution_id} conservation goals are invalid: {exc}"
+                ) from exc
+            rows = [row.as_dict() for row in validated_rows]
+            ecosystem_count = sum(
+                row.feature_type == "ecosystem" for row in validated_rows
+            )
+            species_count = sum(
+                row.feature_type == "species" for row in validated_rows
+            )
+            targets[solution_id] = rows
+            source_bindings[solution_id] = {
+                "url": goals_url,
+                "sha256": downloaded.sha256,
+                "ecosystem_feature_count": ecosystem_count,
+                "species_feature_count": species_count,
+            }
+    finally:
+        shutil.rmtree(scratch_dir, ignore_errors=True)
+
+    if not targets:
+        raise SystemExit("The V3 release contains no land-solution coverage targets.")
+    return targets, source_bindings
+
+
 def build_mesa_coverage_artifact(
     reference_grid_name: str,
     solutions: list[dict[str, Any]],
@@ -697,35 +898,45 @@ def build_mesa_coverage_artifact(
     *,
     force: bool,
     parity_contract: CoverageParityContract | None = None,
+    resolved_reference_grid: ResolvedReferenceGrid,
 ) -> dict[str, Any] | None:
     """Package parity metadata only when v3 summary coverage is available."""
 
     if reference_grid_name != "land-solution":
         return None
-    targets = {
-        str(solution["id"]): [
-            {
-                "feature": str(row["feature"]),
-                "feature_type": str(row.get("type") or "").strip().lower(),
-                "class": row.get("class"),
-                "relative_target": float(row["relativeTarget"]),
-                "evaluated": row.get("evaluated"),
-            }
-            for row in solution.get("coverage", [])
-            if isinstance(row, dict)
-            and row.get("feature")
-            and row.get("relativeTarget") is not None
-            and str(row.get("type") or "").strip().lower()
-            in {"ecosystem", "species"}
-        ]
-        for solution in solutions
-        if isinstance(solution.get("coverage"), list)
-    }
-    targets = {
-        solution_id: rows
-        for solution_id, rows in targets.items()
-        if rows
-    }
+    source_bindings: dict[str, dict[str, Any]] = {}
+    if parity_contract is not None:
+        targets, source_bindings = _goals_targets_from_release(
+            solutions,
+            sources_dir / ".mesa-goals-cache",
+            force=force,
+            parity_contract=parity_contract,
+        )
+    else:
+        targets = {
+            str(solution["id"]): [
+                {
+                    "feature": str(row["feature"]),
+                    "feature_type": str(row.get("type") or "").strip().lower(),
+                    "class": row.get("class"),
+                    "relative_target": float(row["relativeTarget"]),
+                    "evaluated": row.get("evaluated"),
+                }
+                for row in solution.get("coverage", [])
+                if isinstance(row, dict)
+                and row.get("feature")
+                and row.get("relativeTarget") is not None
+                and str(row.get("type") or "").strip().lower()
+                in {"ecosystem", "species"}
+            ]
+            for solution in solutions
+            if isinstance(solution.get("coverage"), list)
+        }
+        targets = {
+            solution_id: rows
+            for solution_id, rows in targets.items()
+            if rows
+        }
     if not targets:
         return None
 
@@ -759,6 +970,7 @@ def build_mesa_coverage_artifact(
         {
             "format": "mesa-solution-targets-v1",
             "solutions": targets,
+            "source_bindings": source_bindings,
         },
     )
     targets_sha256 = sha256_file(targets_path)
@@ -769,6 +981,21 @@ def build_mesa_coverage_artifact(
     return {
         "format": "mesa-runtime-coverage-v1",
         "grid": "EPSG:9377",
+        **(
+            {
+                "contract": {
+                    "format": str(parity_contract.document["format"]),
+                    "release_id": parity_contract.release_id,
+                    "sha256": sha256_file(parity_contract.path),
+                    "ecosystem_feature_count": parity_contract.ecosystem_feature_count,
+                    "species_feature_count": parity_contract.species_feature_count,
+                    "golden_master_solution_id": parity_contract.solution_id,
+                    "grid": resolved_reference_grid.parity_contract_grid(),
+                }
+            }
+            if parity_contract is not None
+            else {}
+        ),
         "ecosystems": {
             "raster_layer_id": raster_layer_id,
             "catalog": {
@@ -839,6 +1066,79 @@ def resolve_reference_source_url(
     if not layer or not layer.get("displayUrl"):
         raise SystemExit("Manifest layer ecosistemas is required as the custom AOI reference grid.")
     return str(layer["displayUrl"])
+
+
+def resolve_reference_grid(
+    reference_grid: ReferenceGrid,
+    source_url: str,
+    source: DownloadedSource,
+    fingerprint: Any,
+    parity_contract: CoverageParityContract | None,
+) -> ResolvedReferenceGrid:
+    """Verify reference bytes and produce one canonical grid description."""
+
+    with rasterio.open(source.path) as dataset:
+        valid_cell_count = sum(
+            int(np.count_nonzero(dataset.read_masks(1, window=window)))
+            for _, window in dataset.block_windows(1)
+        )
+
+    release_id: str | None = None
+    logical_path: str | None = None
+    if parity_contract is not None:
+        grid = parity_contract.document["grid"]
+        template = grid["template"]
+        expected_transform = tuple(float(value) for value in grid["transform"])
+        mismatches: list[str] = []
+        if source_url != str(template["url"]):
+            mismatches.append("template URL")
+        if source.sha256 != str(template["sha256"]):
+            mismatches.append("template SHA-256")
+        if fingerprint.crs != str(grid["crs"]):
+            mismatches.append("CRS")
+        if fingerprint.width != int(grid["width"]):
+            mismatches.append("width")
+        if fingerprint.height != int(grid["height"]):
+            mismatches.append("height")
+        if len(expected_transform) != len(fingerprint.transform) or any(
+            abs(expected - actual) > 1e-6
+            for expected, actual in zip(
+                expected_transform,
+                fingerprint.transform,
+                strict=True,
+            )
+        ):
+            mismatches.append("transform")
+        if valid_cell_count != int(grid["validPlanningCellCount"]):
+            mismatches.append("valid planning-cell count")
+        if mismatches:
+            raise SystemExit(
+                "Mesa reference raster does not match the coverage-parity contract: "
+                + ", ".join(mismatches)
+                + "."
+            )
+        release_id = parity_contract.release_id
+        logical_path = str(template.get("logicalPath") or "") or None
+    elif reference_grid.name == "land-solution":
+        try:
+            LAND_SOLUTION_REFERENCE_PIN.verify(source.path, sha256=source.sha256)
+        except ReferenceRasterPinError as exc:
+            raise SystemExit(str(exc)) from exc
+
+    return ResolvedReferenceGrid(
+        name=reference_grid.name,
+        summary=reference_grid.summary,
+        source=source_url,
+        sha256=source.sha256,
+        size_bytes=source.bytes,
+        crs=str(fingerprint.crs),
+        width=int(fingerprint.width),
+        height=int(fingerprint.height),
+        transform=tuple(float(value) for value in fingerprint.transform),
+        valid_cell_count=valid_cell_count,
+        release_id=release_id,
+        logical_path=logical_path,
+    )
 
 
 def reference_raster_pin(reference_grid_name: str) -> dict[str, Any] | None:

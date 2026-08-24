@@ -41,7 +41,7 @@ interface SpeciesCoverageMetric {
   labelKey: string;
   denominatorKey: string;
   formattedPercent: string;
-  formattedArea: string;
+  formattedAmount: string;
   barPercent: number;
   color: string;
   ariaLabel: string;
@@ -51,6 +51,42 @@ interface SpeciesCoverageView {
   presence: SpeciesCoverageMetric;
   coverage: readonly SpeciesCoverageMetric[];
   formattedNationalRangeArea: string;
+  contributionToNationalCoveragePercent: number | null;
+  contributionToNationalTargetPercent: number | null;
+}
+
+export interface MesaSpeciesCoverageValues {
+  totalInAoi: number | null;
+  heldInAoi: number | null;
+  coverageWithinAoiPercent: number | null;
+  contributionToNationalCoveragePercent: number | null;
+  contributionToNationalTargetPercent: number | null;
+}
+
+export function mapMesaSpeciesCoverage(
+  record: DetailedSpeciesCoverageRecord,
+): MesaSpeciesCoverageValues {
+  const fields = [
+    record.total_in_aoi,
+    record.held_in_aoi,
+    record.coverage_within_aoi,
+    record.contribution_to_national_coverage,
+    record.contribution_to_national_target,
+  ];
+  if (fields.some((value) => value === undefined)) {
+    throw new Error(`Missing Mesa coverage fields for species ${record.id}`);
+  }
+  return {
+    totalInAoi: record.total_in_aoi ?? null,
+    heldInAoi: record.held_in_aoi ?? null,
+    coverageWithinAoiPercent: fractionToPercent(record.coverage_within_aoi ?? null),
+    contributionToNationalCoveragePercent: fractionToPercent(
+      record.contribution_to_national_coverage ?? null,
+    ),
+    contributionToNationalTargetPercent: fractionToPercent(
+      record.contribution_to_national_target ?? null,
+    ),
+  };
 }
 
 export function clampSpeciesBarPercent(value: number): number {
@@ -369,6 +405,21 @@ export class CustomAoiSpeciesInventoryComponent {
           if (version !== this.contextVersion) {
             return;
           }
+          if (
+            job.status === 'complete' &&
+            (!job.result ||
+              job.result.solution_id !== solutionId ||
+              job.result.records.some((record) => !this.hasMesaCoverageFields(record)))
+          ) {
+            this.coverageJob.set({
+              ...job,
+              status: 'failed',
+              result: null,
+              error_code: 'mesa_coverage_fields_missing',
+            });
+            this.coverageState.set('failed');
+            return;
+          }
           this.coverageJob.set(job);
           this.coverageState.set(
             job.status === 'failed'
@@ -412,6 +463,7 @@ export class CustomAoiSpeciesInventoryComponent {
   }
 
   private buildCoverageView(record: DetailedSpeciesCoverageRecord): SpeciesCoverageView {
+    const mesaCoverage = this.geometry() ? mapMesaSpeciesCoverage(record) : null;
     return {
       presence: this.buildCoverageMetric(
         'range-in-aoi',
@@ -423,15 +475,31 @@ export class CustomAoiSpeciesInventoryComponent {
         '#0284c7',
       ),
       coverage: [
-        this.buildCoverageMetric(
-          'solution-coverage',
-          'analysis.aoi.customProfile.species.solutionCoverage',
-          'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
-          record.scientific_name,
-          record.solution_covered_in_aoi_pct,
-          record.solution_covered_in_aoi_area_km2,
-          '#475569',
-        ),
+        mesaCoverage
+          ? this.buildCoverageMetric(
+              'solution-coverage',
+              'analysis.aoi.customProfile.species.solutionCoverage',
+              'analysis.aoi.customProfile.species.ofMesaCellsInsideAoi',
+              record.scientific_name,
+              mesaCoverage.coverageWithinAoiPercent,
+              null,
+              '#475569',
+              mesaCoverage.heldInAoi === null || mesaCoverage.totalInAoi === null
+                ? this.translate.instant('analysis.common.valueUnavailable')
+                : this.translate.instant('analysis.aoi.customProfile.species.mesaCellCount', {
+                    held: this.areaNumberFormatter().format(mesaCoverage.heldInAoi),
+                    total: this.areaNumberFormatter().format(mesaCoverage.totalInAoi),
+                  }),
+            )
+          : this.buildCoverageMetric(
+              'solution-coverage',
+              'analysis.aoi.customProfile.species.solutionCoverage',
+              'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
+              record.scientific_name,
+              record.solution_covered_in_aoi_pct,
+              record.solution_covered_in_aoi_area_km2,
+              '#475569',
+            ),
         this.buildCoverageMetric(
           'pre-existing',
           'analysis.aoi.customProfile.species.preExistingCoverage',
@@ -452,6 +520,10 @@ export class CustomAoiSpeciesInventoryComponent {
         ),
       ],
       formattedNationalRangeArea: this.formatAreaKm2(record.range_area_km2),
+      contributionToNationalCoveragePercent:
+        mesaCoverage?.contributionToNationalCoveragePercent ?? null,
+      contributionToNationalTargetPercent:
+        mesaCoverage?.contributionToNationalTargetPercent ?? null,
     };
   }
 
@@ -460,31 +532,56 @@ export class CustomAoiSpeciesInventoryComponent {
     labelKey: string,
     denominatorKey: string,
     scientificName: string,
-    percent: number,
-    areaKm2: number,
+    percent: number | null,
+    areaKm2: number | null,
     color: string,
+    formattedAmountOverride?: string,
   ): SpeciesCoverageMetric {
-    const formattedPercent = this.formatPercent(percent);
-    const formattedArea = this.formatAreaKm2(areaKm2);
+    const formattedPercent = this.formatNullablePercent(percent);
+    const formattedAmount =
+      formattedAmountOverride ??
+      (areaKm2 === null
+        ? this.translate.instant('analysis.common.valueUnavailable')
+        : this.formatAreaKm2(areaKm2));
     return {
       id,
       labelKey,
       denominatorKey,
       formattedPercent,
-      formattedArea,
-      barPercent: clampSpeciesBarPercent(percent),
+      formattedAmount,
+      barPercent: percent === null ? 0 : clampSpeciesBarPercent(percent),
       color,
       ariaLabel: [
         this.translate.instant(labelKey),
         scientificName,
         formattedPercent,
-        formattedArea,
+        formattedAmount,
         this.translate.instant(denominatorKey),
       ].join(', '),
     };
   }
 
+  private formatNullablePercent(value: number | null): string {
+    return value === null
+      ? this.translate.instant('analysis.common.valueUnavailable')
+      : this.formatPercent(value);
+  }
+
+  private hasMesaCoverageFields(record: DetailedSpeciesCoverageRecord): boolean {
+    return (
+      record.total_in_aoi !== undefined &&
+      record.held_in_aoi !== undefined &&
+      record.coverage_within_aoi !== undefined &&
+      record.contribution_to_national_coverage !== undefined &&
+      record.contribution_to_national_target !== undefined
+    );
+  }
+
   private toInventoryState(section: CustomAoiSpeciesSection): InventoryState {
     return { status: section.status, data: section };
   }
+}
+
+function fractionToPercent(value: number | null): number | null {
+  return value === null ? null : value * 100;
 }
