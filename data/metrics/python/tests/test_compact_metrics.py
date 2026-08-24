@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -309,6 +310,7 @@ def test_convert_publish_report_writes_compact_cache_and_report(tmp_path: Path):
     assert compact_report["metricsFormat"] == COMPACT_METRICS_FORMAT
     assert compact_path.exists()
     assert entry["expectedBlobPath"] == "metrics/staged/compact/demo_solution.metrics.compact.json"
+    assert entry["artifactSha256"] == hashlib.sha256(compact_path.read_bytes()).hexdigest()
     assert to_verbose_document(json.loads(compact_path.read_text(encoding="utf-8"))) == _verbose_doc()
 
     resumed = convert_publish_report(

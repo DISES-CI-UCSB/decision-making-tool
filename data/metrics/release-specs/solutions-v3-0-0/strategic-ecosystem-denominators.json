@@ -1,0 +1,65 @@
+{
+  "format": "strategic-ecosystem-denominators-v1",
+  "releaseId": "solutions-v3-0-0",
+  "measurementMethod": "post-hoc-raster-derived",
+  "areaUnit": "km2",
+  "featurePresenceValue": 1,
+  "solutionSelectedValues": [
+    1,
+    2
+  ],
+  "checkpointsPercent": [
+    17,
+    30
+  ],
+  "alignedGrid": {
+    "crs": "EPSG:9377",
+    "width": 1353,
+    "height": 1838,
+    "pixelSizeMeters": 1000,
+    "resampling": "nearest",
+    "targetGridSha256": "d558d3f39028e9dc4f83d42fd720f3d45081e3fdcdd2b0d5f72ccb1b6352f23e"
+  },
+  "features": [
+    {
+      "featureId": "paramos",
+      "metricId": "ecosystem_coverage_paramo",
+      "sourcePath": "inputs/features/strategic/paramos.tif",
+      "sourceSha256": "63ce434cdaebc9e00a0f48868d65219e8d022a39e012efa1d55de18863d97074",
+      "alignedSha256": "1bbb83db10cdaa346a68d848ac4cea477f94db3413487bdd6b4d3c9561b9748b",
+      "alignmentPolicySha256": "fa609b70d6f2344e9d745081c3dd0e0455ab6ba366fecc16760fe630c6e40655",
+      "totalAlignedFeatureValue1Cells": 27401,
+      "totalAlignedFeatureValue1AreaKm2": 27401
+    },
+    {
+      "featureId": "wetlands",
+      "metricId": "ecosystem_coverage_wetlands",
+      "sourcePath": "inputs/features/strategic/humedales.tif",
+      "sourceSha256": "f8dc422e7a0cf8e3e5066a61c3593a0e3a699850008f3ccfe97429cfa6af52b5",
+      "alignedSha256": "2969031d83bee27279aa717dcf6c50d5894286eaa1e5ef1702a11d2b3d575831",
+      "alignmentPolicySha256": "fa609b70d6f2344e9d745081c3dd0e0455ab6ba366fecc16760fe630c6e40655",
+      "totalAlignedFeatureValue1Cells": 253986,
+      "totalAlignedFeatureValue1AreaKm2": 253986
+    },
+    {
+      "featureId": "bosque_seco",
+      "metricId": "ecosystem_coverage_dry_forest",
+      "sourcePath": "inputs/features/strategic/bosque_seco.tif",
+      "sourceSha256": "12955e237e1769a7ed02a3dd191b93c4e1559317f5871716cb58eb6b14abfbf6",
+      "alignedSha256": "a9acbc37adb426d7936b6b784c6d1ab57ed75050e08a8523ba197214b05d072e",
+      "alignmentPolicySha256": "832f554fdc3d690dd86a7bd45e6a15144f2acb6e5c6385f0b399b7a77cf8820a",
+      "totalAlignedFeatureValue1Cells": 10135,
+      "totalAlignedFeatureValue1AreaKm2": 10135
+    },
+    {
+      "featureId": "mangroves",
+      "metricId": "mangrove_coverage",
+      "sourcePath": "inputs/features/strategic/mangroves.tif",
+      "sourceSha256": "3991b6a425b608bc112a7769bb28ecff35921b473caf67c0403a1122a1104375",
+      "alignedSha256": "96b71270db924fb614b5afab164e8cdb9c656241de5d25daff70a5147f785e99",
+      "alignmentPolicySha256": "832f554fdc3d690dd86a7bd45e6a15144f2acb6e5c6385f0b399b7a77cf8820a",
+      "totalAlignedFeatureValue1Cells": 2702,
+      "totalAlignedFeatureValue1AreaKm2": 2702
+    }
+  ]
+}
