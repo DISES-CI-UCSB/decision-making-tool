@@ -1,0 +1,202 @@
+{
+  "classification": "fresh-process eight-solution full-pipeline A/B",
+  "declaredNormalization": {
+    "regular": [
+      "generatedAt",
+      "solutionInputSignature.sha256",
+      "metricsProvenance.catalogSignature",
+      "metricsProvenance.generationConfig.weightedBoundaryExecution",
+      "weighted metric values (compared separately with tolerance)"
+    ],
+    "speciesGoals": [
+      "artifactSha256",
+      "generatedAt",
+      "payloadSha256"
+    ]
+  },
+  "execution": {
+    "common": {
+      "boundaryFanout": "grouped",
+      "cachePolicy": "recompute-all",
+      "layerSource": "dense",
+      "speciesBatchSize": 8,
+      "speciesExecution": "solution-microbatch-v2"
+    },
+    "groupedWeighted": {
+      "bindings": {
+        "publish-report.json": {
+          "path": "data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/grouped-weighted-v1/publish-report.json",
+          "sha256": "5f597b2d345734e9118e68a17942e48be3741c098bc7703d04987be5492e60aa"
+        },
+        "stderr-time.log": {
+          "path": "data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/grouped-weighted-v1/stderr-time.log",
+          "sha256": "a45980db4aa3e473d1eaf719a3ae708a06fe5d3bc6c584acdfe5eeeedf5264ba"
+        },
+        "stdout.log": {
+          "path": "data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/grouped-weighted-v1/stdout.log",
+          "sha256": "f7a81f28fc9f87eb4e32c95fd80ed50170b937236f73bc51cf62484d312a9932"
+        }
+      },
+      "phaseSeconds": {
+        "boundaryOutput": 2.3699999999999997,
+        "boundarySetup": 0.01,
+        "groupedAggregation": 43.989999999999995,
+        "layerPreparation": 1.97,
+        "output": 42.580000000000005,
+        "species": 2022.24,
+        "weightedAggregation": 0.85,
+        "weightedLayerPreparation": 11.46
+      },
+      "time": {
+        "maximumResidentSetBytes": 3645800448,
+        "realSeconds": 3115.11,
+        "sysSeconds": 928.32,
+        "userSeconds": 2385.04
+      },
+      "weightedBoundaryFanout": "grouped-weighted-v1"
+    },
+    "reproducibleCommands": {
+      "groupedWeighted": "env PYTHONUNBUFFERED=1 METRICS_SPECIES_EXECUTION=solution-microbatch-v2 METRICS_SPECIES_BATCH_SIZE=8 METRICS_BOUNDARY_FANOUT=grouped METRICS_WEIGHTED_BOUNDARY_FANOUT=grouped-weighted-v1 METRICS_LAYER_SOURCE=dense /usr/bin/time -lp data/metrics/python/.venv/bin/python data/metrics/python/metrics_pipeline/main.py --manifest-url file:///Users/woverbyethompson/Documents/SpatialLab/DISES/branch-3/decision-making-tool/data/metrics/generated/releases/solutions-v0-2-0-20260805/preflight/manifest.json --cache-dir data/metrics/cache/releases/solutions-v0-2-0-20260805 --release-id solutions-v0-2-0-20260805 --solution-catalog data/metrics/generated/releases/solutions-v0-2-0-20260805/solution-catalog.json --species-exception-contract data/metrics/release-specs/solutions-v0-2-0-20260805/species-exception.json --cache-policy recompute-all --solution-id eco17_estr17_esprep17_runap_iheh2022 --solution-id eco17_estr17_esprep30_runap_omec_iheh2030 --solution-id eco17_estr30_esprn_runap_iheh2022 --solution-id eco17_estr30_esprn_runap_omec_iheh2030 --solution-id eco30_estr17_runap_iheh2022 --solution-id eco30_estr17_runap_omec_iheh2030 --solution-id eco30_estr30_esprep17_runap_omec_iheh2022 --solution-id eco30_estr30_esprep30_runap_iheh2030 --output-dir data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/grouped-weighted-v1 --species-goals-output-dir data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/grouped-weighted-v1/species-goals",
+      "scalar": "env PYTHONUNBUFFERED=1 METRICS_SPECIES_EXECUTION=solution-microbatch-v2 METRICS_SPECIES_BATCH_SIZE=8 METRICS_BOUNDARY_FANOUT=grouped METRICS_WEIGHTED_BOUNDARY_FANOUT=scalar METRICS_LAYER_SOURCE=dense /usr/bin/time -lp data/metrics/python/.venv/bin/python data/metrics/python/metrics_pipeline/main.py --manifest-url file:///Users/woverbyethompson/Documents/SpatialLab/DISES/branch-3/decision-making-tool/data/metrics/generated/releases/solutions-v0-2-0-20260805/preflight/manifest.json --cache-dir data/metrics/cache/releases/solutions-v0-2-0-20260805 --release-id solutions-v0-2-0-20260805 --solution-catalog data/metrics/generated/releases/solutions-v0-2-0-20260805/solution-catalog.json --species-exception-contract data/metrics/release-specs/solutions-v0-2-0-20260805/species-exception.json --cache-policy recompute-all --solution-id eco17_estr17_esprep17_runap_iheh2022 --solution-id eco17_estr17_esprep30_runap_omec_iheh2030 --solution-id eco17_estr30_esprn_runap_iheh2022 --solution-id eco17_estr30_esprn_runap_omec_iheh2030 --solution-id eco30_estr17_runap_iheh2022 --solution-id eco30_estr17_runap_omec_iheh2030 --solution-id eco30_estr30_esprep17_runap_omec_iheh2022 --solution-id eco30_estr30_esprep30_runap_iheh2030 --output-dir data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/scalar --species-goals-output-dir data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/scalar/species-goals"
+    },
+    "scalar": {
+      "bindings": {
+        "publish-report.json": {
+          "path": "data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/scalar/publish-report.json",
+          "sha256": "1b7ce793f0ead6ea5733f4861526c4241905af148ddc2c1d9b1360770eeb7510"
+        },
+        "stderr-time.log": {
+          "path": "data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/scalar/stderr-time.log",
+          "sha256": "ddec8e28ce7f70e7ca0e7814f909c9a06021af399c4b82fe9a5fbb12e172316a"
+        },
+        "stdout.log": {
+          "path": "data/metrics/generated/releases/solutions-v3-0-0/weighted-boundary-fanout-integration-v1/scalar/stdout.log",
+          "sha256": "03198829fca20fab6d035ff2dda48db847998bdfa192e07e63d74a0651f1ab36"
+        }
+      },
+      "phaseSeconds": {
+        "boundaryOutput": 506.88,
+        "boundarySetup": 0.01,
+        "groupedAggregation": 44.64,
+        "layerPreparation": 1.4799999999999998,
+        "output": 44.04,
+        "species": 2099.52
+      },
+      "time": {
+        "maximumResidentSetBytes": 3260710912,
+        "realSeconds": 3699.54,
+        "sysSeconds": 1151.01,
+        "userSeconds": 2740.99
+      },
+      "weightedBoundaryFanout": "scalar"
+    }
+  },
+  "format": "weighted-boundary-fanout-integration-ab-v1",
+  "gates": {
+    "boundaryOutputAtLeast1_5xFaster": true,
+    "eightSolutions": true,
+    "fullWallAtLeast8PercentFaster": true,
+    "nationalUnchanged": true,
+    "rssBelow5GB": true,
+    "rssNoMoreThan15PercentAboveScalar": true,
+    "speciesGoalsUnchanged": true,
+    "weightedNumericParity": true,
+    "zeroPipelineFailures": true,
+    "zeroRegularStructuralDrift": true
+  },
+  "parity": {
+    "regular": {
+      "atol": 1e-06,
+      "nationalWeightedMismatchCount": 0,
+      "perSolution": [
+        {
+          "groupedSha256": "f7d3c3772b23377be72517b4a766ad111d9b8f099226a1657ddb27a981420346",
+          "scalarSha256": "09d60d96b96fd18e643b0c95cf160cfded9a83191b1a0907f01f6e438629b19a",
+          "solutionId": "eco17_estr17_esprep17_runap_iheh2022",
+          "structuralEqualAfterDeclaredNormalization": true,
+          "weightedToleranceMismatchCount": 0
+        },
+        {
+          "groupedSha256": "90234e38b7b82192c27b4af111ecd2e78b2026fde62b9dde4e1d99544a116fc7",
+          "scalarSha256": "f07814d0a37128f894f7a64591b21069059d350de4552c9d5a5e4cc838082ea8",
+          "solutionId": "eco17_estr17_esprep30_runap_omec_iheh2030",
+          "structuralEqualAfterDeclaredNormalization": true,
+          "weightedToleranceMismatchCount": 0
+        },
+        {
+          "groupedSha256": "60468512eed465677b975a2e3423394d9979f19b71a9955e37f932a99d72667e",
+          "scalarSha256": "f8323e9384b43ca1c21a002bb639b6830b14f26307e9ef9a41147a91dd9a7888",
+          "solutionId": "eco17_estr30_esprn_runap_iheh2022",
+          "structuralEqualAfterDeclaredNormalization": true,
+          "weightedToleranceMismatchCount": 0
+        },
+        {
+          "groupedSha256": "01b540432afd24c80ab66f4031330575d24e951b98f1e07362cc9851660e4464",
+          "scalarSha256": "4286881bec2b8462ad1012275c1f047d420f2c37e502e68194e8d0c1198cc621",
+          "solutionId": "eco17_estr30_esprn_runap_omec_iheh2030",
+          "structuralEqualAfterDeclaredNormalization": true,
+          "weightedToleranceMismatchCount": 0
+        },
+        {
+          "groupedSha256": "7ead1cd69c07532ab159b713cff837477f1df97cd2231572aad9fa289aed861a",
+          "scalarSha256": "fb8e1fdf0b4333d167a03e699fcaafc11860849e5a7472d30dd56f3bb892d588",
+          "solutionId": "eco30_estr17_runap_iheh2022",
+          "structuralEqualAfterDeclaredNormalization": true,
+          "weightedToleranceMismatchCount": 0
+        },
+        {
+          "groupedSha256": "49ebd81122c59492c43745f2fa33ba86f44792cd0d4505b2d6087c09589299e3",
+          "scalarSha256": "309d298878194384fd34ad45eebdd570d02d971ff61a7742b3a2ddb6d7fb7afa",
+          "solutionId": "eco30_estr17_runap_omec_iheh2030",
+          "structuralEqualAfterDeclaredNormalization": true,
+          "weightedToleranceMismatchCount": 0
+        },
+        {
+          "groupedSha256": "7f360e8793c51d455ea964c6840143150c35b31aae2ff2e1db21bf6d2c653e88",
+          "scalarSha256": "50d0c003b17e69c0db24f8de5bd92746af6fe37730cb596f8ec66fa44c20f6b7",
+          "solutionId": "eco30_estr30_esprep17_runap_omec_iheh2022",
+          "structuralEqualAfterDeclaredNormalization": true,
+          "weightedToleranceMismatchCount": 0
+        },
+        {
+          "groupedSha256": "2800c2aabfeb6651d85f7f149f0efeda8f5d8869cfbe7d65c12a9cc6e8ba9e5f",
+          "scalarSha256": "03b70711556ebd3db67f8bf7475427a3cd02dda643885c636b5aeb66a8b696e2",
+          "solutionId": "eco30_estr30_esprep30_runap_iheh2030",
+          "structuralEqualAfterDeclaredNormalization": true,
+          "weightedToleranceMismatchCount": 0
+        }
+      ],
+      "rtol": 1e-12,
+      "solutionCount": 8,
+      "structuralMismatchCount": 0,
+      "weightedComparisonCount": 116480,
+      "weightedMaxAbsoluteDelta": 3.725290298461914e-09,
+      "weightedMaxRelativeDelta": 4.727282444562506e-16,
+      "weightedNonzeroDeltaCount": 13486,
+      "weightedToleranceMismatchCount": 0
+    },
+    "speciesGoals": {
+      "excludedKeys": [
+        "artifactSha256",
+        "generatedAt",
+        "payloadSha256"
+      ],
+      "fileCount": 99,
+      "mismatchCount": 0,
+      "pathSetsEqual": true
+    }
+  },
+  "passed": true,
+  "performance": {
+    "groupedToScalarRssRatio": 1.1180998703634848,
+    "layerPreparationSeconds": {
+      "grouped": 1.97,
+      "groupedWeightedPreparation": 11.46,
+      "scalar": 1.4799999999999998
+    },
+    "measuredBoundaryOutputSpeedup": 157.416149068323,
+    "measuredFullWallReductionPercent": 15.797369402682493,
+    "measurementNote": "Full wall values are direct /usr/bin/time measurements. Boundary speedup uses measured boundaryOutput plus grouped weightedAggregation; layer preparation is reported separately and symmetrically."
+  },
+  "recommendation": "ENABLE only by explicit grouped-weighted-v1 opt-in; retain scalar default."
+}

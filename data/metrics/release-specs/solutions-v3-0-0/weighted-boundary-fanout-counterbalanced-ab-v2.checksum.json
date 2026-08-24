@@ -1,0 +1,5 @@
+{
+  "format": "weighted-boundary-fanout-counterbalanced-ab-checksum-v2",
+  "path": "data/metrics/release-specs/solutions-v3-0-0/weighted-boundary-fanout-counterbalanced-ab-v2.json",
+  "sha256": "f7f41f111eaba43da3f85b9443baed7e5e1513efee60a3cf6f994d4a63e07cd4"
+}
