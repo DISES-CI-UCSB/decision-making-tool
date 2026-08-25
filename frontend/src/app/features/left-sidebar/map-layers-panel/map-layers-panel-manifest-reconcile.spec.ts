@@ -204,6 +204,37 @@ describe('reconcileMapLayersManifest', () => {
     );
   });
 
+  it('uses Campesina Reserve Zones for the English sidebar label', () => {
+    const campesinaPorts: ManifestReconcilePorts = {
+      ...ports,
+      manifestRowName: (row) =>
+        row.id === 'zonas_reserva_campesina_constituida'
+          ? 'Campesina Reserve Zones'
+          : ports.manifestRowName(row),
+    };
+
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('cultural_and_ethnic_territories', [
+          manifestRow('zonas_reserva_campesina_constituida', 'cultural_and_ethnic_territories', {
+            englishLabel: 'Constituted Peasant Reserve Zones',
+            spanishLabel: 'Zonas de Reserva Campesina Constituida',
+            dataRole: 'reference_layer',
+            displayUrl: '/inputs/reference/zonas_reserva_campesina_constituida/layer.geojson',
+          }),
+        ]),
+      ],
+      groups: [group('group-cultural-ethnic', [])],
+      overlays: [],
+      ports: campesinaPorts,
+    });
+
+    expect(result.groups[0]?.rows[0]).toMatchObject({
+      id: 'layer-zonas_reserva_campesina_constituida',
+      name: 'Campesina Reserve Zones',
+    });
+  });
+
   it('maps management overlays while preserving comparison and fallback rows', () => {
     const overlays = [
       row({ id: BASELINE_SOLUTION_OVERLAY_ID }),

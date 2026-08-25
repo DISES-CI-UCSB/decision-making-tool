@@ -26,7 +26,7 @@ resguardos,Resguardos Indígenas,Indigenous Reserves,Límite político o adminis
 admin_departments,Departamentos,,Límite político o administrativo,TRUE,administrative_boundaries,Límites administrativos,Administrative Boundaries,Administrative Boundaries,TRUE,,
 admin_municipalities,Municipios,,Límite político o administrativo,TRUE,administrative_boundaries,Límites administrativos,Administrative Boundaries,Administrative Boundaries,TRUE,,
 coberturas,Cobertura de la tierra,Land Use,Coberturas,TRUE,socioeconomic,Socioeconómico,Socio-economic,Socio-economic,FALSE,,
-zonas_reserva_campesina_constituida,Zonas de Reserva Campesina Constituida,Constituted Peasant Reserve Zones,Territorios culturales y étnicos,TRUE,cultural_and_ethnic_territories,Territorios culturales y étnicos,Cultural & Ethnic Territories,Cultural & Ethnic Territories,FALSE,,
+zonas_reserva_campesina_constituida,Zonas de Reserva Campesina Constituida,Campesina Reserve Zones,Territorios culturales y étnicos,TRUE,cultural_and_ethnic_territories,Territorios culturales y étnicos,Cultural & Ethnic Territories,Cultural & Ethnic Territories,FALSE,,
 ramsar,Humedales RAMSAR,Ramsar Wetlands,Ecosistemas estratégicos,TRUE,ecosystems,Ecosistemas,Ecosystems,Ecosystems,FALSE,,
 biosphere_reserves,Reservas de biosfera,Biosphere Reserves,Ecosistemas estratégicos,TRUE,ecosystems,Ecosistemas,Ecosystems,Ecosystems,FALSE,,
 reservas_forestales_ley_2_1959,Reservas Forestales de Ley 2da de 1959,Forest Reserves under Law 2 of 1959,Ecosistemas estratégicos,TRUE,ecosystems,Ecosistemas,Ecosystems,Ecosystems,FALSE,,
