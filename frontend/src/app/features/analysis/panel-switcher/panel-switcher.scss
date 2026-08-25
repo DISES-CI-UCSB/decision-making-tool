@@ -744,19 +744,6 @@
   color: #64748b;
 }
 
-.trim-cut {
-  line-height: 1;
-  transform: translateY(-0.04em);
-}
-
-@supports (text-box-trim: trim-both) {
-  .trim-cut {
-    text-box-trim: trim-both;
-    text-box-edge: cap alphabetic;
-    transform: none;
-  }
-}
-
 .v3-unavailable-help {
   position: relative;
   display: inline-flex;

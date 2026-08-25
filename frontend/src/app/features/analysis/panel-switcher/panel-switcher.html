@@ -247,7 +247,7 @@
                                       >
                                         <span
                                           id="right-sidebar-v3-overview-goals-fish-info-indicator"
-                                          class="v3-fish-info-indicator"
+                                          class="v3-fish-info-indicator tooltip-info-icon-glyph"
                                           aria-hidden="true"
                                           >i</span
                                         >
@@ -404,6 +404,59 @@
                                 class="min-w-0 flex-1 font-semibold text-slate-800"
                               >
                                 {{ domain.labelKey | translate }}
+                                @if (domain.methodLabelKey) {
+                                  <span
+                                    [id]="
+                                      'right-sidebar-v3-overview-goals-additional-domain-method-help-' +
+                                      domain.id
+                                    "
+                                    class="v3-methodology-help"
+                                  >
+                                    <button
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-additional-domain-method-trigger-' +
+                                        domain.id
+                                      "
+                                      type="button"
+                                      class="v3-methodology-trigger"
+                                      [attr.aria-label]="
+                                        'analysis.overview.methodologyInfoLabel' | translate
+                                      "
+                                      [attr.aria-describedby]="
+                                        'right-sidebar-v3-overview-goals-additional-domain-method-tooltip-' +
+                                        domain.id
+                                      "
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-additional-domain-method-indicator-' +
+                                          domain.id
+                                        "
+                                        class="v3-methodology-indicator tooltip-info-icon-glyph"
+                                        aria-hidden="true"
+                                        >i</span
+                                      >
+                                    </button>
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-additional-domain-method-tooltip-' +
+                                        domain.id
+                                      "
+                                      role="tooltip"
+                                      class="v3-methodology-tooltip"
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-additional-domain-method-text-' +
+                                          domain.id
+                                        "
+                                        class="v3-methodology-tooltip-text"
+                                      >
+                                        {{ domain.methodLabelKey | translate }}
+                                      </span>
+                                    </span>
+                                  </span>
+                                }
                               </span>
                               <span
                                 [id]="
@@ -448,17 +501,6 @@
                                 </span>
                               </span>
                             </div>
-                            @if (domain.methodLabelKey) {
-                              <p
-                                [id]="
-                                  'right-sidebar-v3-overview-goals-additional-domain-method-' +
-                                  domain.id
-                                "
-                                class="m-0 text-[10px] leading-4 text-slate-600"
-                              >
-                                {{ domain.methodLabelKey | translate }}
-                              </p>
-                            }
                             <div
                               [id]="
                                 'right-sidebar-v3-overview-goals-additional-domain-bar-' + domain.id
@@ -502,6 +544,131 @@
                                 "
                               ></span>
                             </div>
+                            @if (domain.id === 'species' && overviewGoalsTaxa().length > 0) {
+                              <div
+                                id="right-sidebar-v3-overview-goals-additional-taxa"
+                                class="mt-2 ml-3 grid gap-2 border-l-2 border-emerald-100 pl-3"
+                              >
+                                <p
+                                  id="right-sidebar-v3-overview-goals-additional-taxa-label"
+                                  class="mb-0 text-[10px] font-extrabold tracking-[0.08em] text-slate-600 uppercase"
+                                >
+                                  {{ 'analysis.overview.goalsWidget.taxaBreakdown' | translate }}
+                                </p>
+                                @for (taxa of overviewGoalsTaxa(); track taxa.id) {
+                                  <div
+                                    [id]="
+                                      'right-sidebar-v3-overview-goals-additional-taxa-' + taxa.id
+                                    "
+                                    class="grid gap-1"
+                                  >
+                                    <div
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-additional-taxa-header-' +
+                                        taxa.id
+                                      "
+                                      class="flex items-baseline justify-between gap-2 text-[11px] text-slate-700"
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-additional-taxa-label-' +
+                                          taxa.id
+                                        "
+                                      >
+                                        {{ taxa.label }}
+                                      </span>
+                                      <strong
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-additional-taxa-count-' +
+                                          taxa.id
+                                        "
+                                        class="flex items-baseline gap-1 font-extrabold whitespace-nowrap tabular-nums text-slate-900"
+                                      >
+                                        <span
+                                          [id]="
+                                            'right-sidebar-v3-overview-goals-additional-taxa-count-17-' +
+                                            taxa.id
+                                          "
+                                          class="text-green-700"
+                                          >{{ taxa.reached17Count }}</span
+                                        >
+                                        <span
+                                          [id]="
+                                            'right-sidebar-v3-overview-goals-additional-taxa-count-divider-' +
+                                            taxa.id
+                                          "
+                                          aria-hidden="true"
+                                          class="font-semibold text-slate-400"
+                                          >|</span
+                                        >
+                                        <span
+                                          [id]="
+                                            'right-sidebar-v3-overview-goals-additional-taxa-count-30-' +
+                                            taxa.id
+                                          "
+                                          class="text-green-900"
+                                          >{{ taxa.reached30Count }}</span
+                                        >
+                                        <span
+                                          [id]="
+                                            'right-sidebar-v3-overview-goals-additional-taxa-total-' + taxa.id
+                                          "
+                                          class="text-[10px] font-semibold text-slate-500"
+                                        >
+                                          {{
+                                            'analysis.overview.goalsWidget.ofTotal'
+                                              | translate: { total: taxa.totalCount }
+                                          }}
+                                        </span>
+                                      </strong>
+                                    </div>
+                                    <div
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-additional-taxa-bar-' + taxa.id
+                                      "
+                                      role="img"
+                                      class="relative h-1 overflow-hidden rounded-full bg-slate-200"
+                                      [attr.aria-label]="
+                                        'analysis.overview.goalsWidget.rangeCoverageAriaLabel'
+                                          | translate
+                                            : {
+                                                reached17: taxa.reached17Count,
+                                                reached30: taxa.reached30Count,
+                                                total: taxa.totalCount,
+                                              }
+                                      "
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-additional-taxa-fill-17-' +
+                                          taxa.id
+                                        "
+                                        class="absolute inset-y-0 left-0 block rounded-full bg-green-300"
+                                        [style.width.%]="
+                                          getRangeCoverageSharePercent(
+                                            taxa.reached17Count,
+                                            taxa.totalCount
+                                          )
+                                        "
+                                      ></span>
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-additional-taxa-fill-30-' +
+                                          taxa.id
+                                        "
+                                        class="absolute inset-y-0 left-0 block rounded-full bg-green-700"
+                                        [style.width.%]="
+                                          getRangeCoverageSharePercent(
+                                            taxa.reached30Count,
+                                            taxa.totalCount
+                                          )
+                                        "
+                                      ></span>
+                                    </div>
+                                  </div>
+                                }
+                              </div>
+                            }
                             <button
                               [id]="
                                 'right-sidebar-v3-overview-goals-additional-domain-view-' +
@@ -694,7 +861,7 @@
                                           'right-sidebar-v3-overview-gain-methodology-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-methodology-indicator trim-cut"
+                                        class="v3-methodology-indicator tooltip-info-icon-glyph"
                                         aria-hidden="true"
                                         >i</span
                                       >
@@ -760,7 +927,7 @@
                                           'right-sidebar-v3-overview-gain-unavailable-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-unavailable-indicator"
+                                        class="v3-unavailable-indicator tooltip-info-icon-glyph"
                                         aria-hidden="true"
                                         >i</span
                                       >
@@ -940,7 +1107,7 @@
                                           'right-sidebar-v3-overview-ecosystem-services-methodology-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-methodology-indicator trim-cut"
+                                        class="v3-methodology-indicator tooltip-info-icon-glyph"
                                         aria-hidden="true"
                                         >i</span
                                       >
@@ -1007,7 +1174,7 @@
                                           'right-sidebar-v3-overview-ecosystem-services-unavailable-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-unavailable-indicator"
+                                        class="v3-unavailable-indicator tooltip-info-icon-glyph"
                                         aria-hidden="true"
                                         >i</span
                                       >
@@ -1182,7 +1349,7 @@
                                           'right-sidebar-v3-overview-cost-unavailable-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-unavailable-indicator"
+                                        class="v3-unavailable-indicator tooltip-info-icon-glyph"
                                         aria-hidden="true"
                                         >i</span
                                       >
@@ -2725,7 +2892,7 @@
                                 >
                                   <span
                                     id="aoi-row-mpa-unavailable-indicator"
-                                    class="v3-unavailable-indicator"
+                                    class="v3-unavailable-indicator tooltip-info-icon-glyph"
                                     aria-hidden="true"
                                     >i</span
                                   >
@@ -2925,7 +3092,7 @@
                                 >
                                   <span
                                     id="aoi-row-eez-unavailable-indicator"
-                                    class="v3-unavailable-indicator"
+                                    class="v3-unavailable-indicator tooltip-info-icon-glyph"
                                     aria-hidden="true"
                                     >i</span
                                   >

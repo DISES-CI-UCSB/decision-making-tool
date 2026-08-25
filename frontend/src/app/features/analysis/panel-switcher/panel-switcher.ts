@@ -1828,8 +1828,17 @@ export class PanelSwitcherComponent {
 
   private buildOverviewGoalsTaxa(): OverviewGoalsTaxaEntry[] {
     const document = this.solutionGoalsDocument();
-    if (!document || !this.overviewGoalsDomains().some((entry) => entry.id === 'species')) {
+    const speciesDomain = this.overviewGoalsDomains().find((entry) => entry.id === 'species');
+    if (!document || !speciesDomain) {
       return [];
+    }
+
+    if (!speciesDomain.targeted && this.speciesReferenceGroups().length > 0) {
+      return this.speciesReferenceGroups().map((group) => ({
+        ...group,
+        metCount: 0,
+        pctMet: null,
+      }));
     }
 
     return Object.entries(document.rollups.species.byTaxa).map(([id, rollup]) => ({

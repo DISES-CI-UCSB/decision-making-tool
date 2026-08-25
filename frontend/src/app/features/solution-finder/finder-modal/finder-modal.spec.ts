@@ -524,9 +524,6 @@ describe('FinderModalComponent', () => {
     const rationaleToggle = compiled.querySelector(
       '#solution-finder-modal-step1-target-level-rationale-toggle-ecosystems',
     );
-    const rationaleIcon = compiled.querySelector(
-      '#solution-finder-modal-step1-target-level-rationale-icon-ecosystems',
-    );
     const rationaleTooltip = compiled.querySelector(
       '#solution-finder-modal-step1-target-level-rationale-tooltip-ecosystems',
     );
@@ -541,8 +538,8 @@ describe('FinderModalComponent', () => {
     expect(rationaleToggle?.getAttribute('aria-label')).toContain(
       'solutionControls.finder.step1.targetLevelRationaleToggle',
     );
-    expect(rationaleIcon?.classList.contains('finder-info-icon-glyph')).toBe(true);
-    expect(rationaleIcon?.textContent?.trim()).toBe('i');
+    expect(rationaleToggle?.classList.contains('tooltip-info-icon-glyph')).toBe(true);
+    expect(rationaleToggle?.textContent?.trim()).toBe('i');
     expect(rationaleTooltip?.getAttribute('role')).toBe('tooltip');
     expect(rationale?.textContent).toContain('solutionControls.finder.step1.targetLevelRationale');
     expect(aichiSource?.textContent).toContain(
