@@ -5,6 +5,7 @@ import {
   doc,
   onSnapshot,
   setDoc,
+  type Firestore,
   type Unsubscribe,
 } from 'firebase/firestore';
 import {
@@ -20,34 +21,70 @@ export class SavedSolutionScenariosService {
   private readonly appState = inject(AppStateService);
   private readonly firebase = inject(FirebaseClientService);
   private scenariosUnsubscribe: Unsubscribe | null = null;
+  private syncedUserId: string | null = null;
+  private readonly pendingScenarioIds = new Set<string>();
+  private readonly pendingRemovalIds = new Set<string>();
 
   startSyncForUser(uid: string): void {
-    this.stopSync();
+    if (this.syncedUserId === uid && this.scenariosUnsubscribe) {
+      return;
+    }
+
+    this.stopSync(this.syncedUserId !== null && this.syncedUserId !== uid);
+    this.syncedUserId = uid;
     const firestore = this.firebase.firestore;
     if (!firestore) {
       return;
     }
 
+    this.appState.savedSolutionScenarios$().forEach((scenario) => {
+      void this.writeScenario(uid, firestore, scenario);
+    });
+
     this.scenariosUnsubscribe = onSnapshot(
       collection(firestore, 'users', uid, 'savedSolutionScenarios'),
       (snapshot) => {
-        const scenarios = snapshot.docs
+        const remoteScenarios = snapshot.docs
           .map((entry) => entry.data())
           .filter(isSavedSolutionScenario)
           .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
           .slice(0, MAX_SAVED_SOLUTION_SCENARIOS);
-        this.appState.setSavedSolutionScenarios(scenarios);
+        const remoteScenarioIds = new Set(remoteScenarios.map((scenario) => scenario.id));
+        const pendingScenarios = this.appState
+          .savedSolutionScenarios$()
+          .filter((scenario) => this.pendingScenarioIds.has(scenario.id));
+        const scenarios = [
+          ...pendingScenarios,
+          ...remoteScenarios.filter((scenario) => !this.pendingRemovalIds.has(scenario.id)),
+        ];
+
+        this.pendingScenarioIds.forEach((scenarioId) => {
+          if (remoteScenarioIds.has(scenarioId)) {
+            this.pendingScenarioIds.delete(scenarioId);
+          }
+        });
+        this.pendingRemovalIds.forEach((scenarioId) => {
+          if (!remoteScenarioIds.has(scenarioId)) {
+            this.pendingRemovalIds.delete(scenarioId);
+          }
+        });
+        this.appState.setSavedSolutionScenarios(this.uniqueScenariosById(scenarios));
       },
       () => {
-        this.appState.clearSavedSolutionScenarios();
+        // Keep in-session labels visible if Firestore is temporarily unavailable.
       },
     );
   }
 
-  stopSync(): void {
+  stopSync(clearScenarios = true): void {
     this.scenariosUnsubscribe?.();
     this.scenariosUnsubscribe = null;
-    this.appState.clearSavedSolutionScenarios();
+    this.syncedUserId = null;
+    if (clearScenarios) {
+      this.pendingScenarioIds.clear();
+      this.pendingRemovalIds.clear();
+      this.appState.clearSavedSolutionScenarios();
+    }
   }
 
   async saveScenario(input: {
@@ -66,8 +103,7 @@ export class SavedSolutionScenariosService {
       return false;
     }
 
-    await setDoc(doc(firestore, 'users', uid, 'savedSolutionScenarios', scenario.id), scenario);
-    return true;
+    return this.writeScenario(uid, firestore, scenario);
   }
 
   async removeScenario(solutionId: string): Promise<boolean> {
@@ -80,7 +116,38 @@ export class SavedSolutionScenariosService {
     }
 
     const scenarioId = `saved-scenario-${solutionId}`;
-    await deleteDoc(doc(firestore, 'users', uid, 'savedSolutionScenarios', scenarioId));
-    return true;
+    this.pendingRemovalIds.add(scenarioId);
+    try {
+      await deleteDoc(doc(firestore, 'users', uid, 'savedSolutionScenarios', scenarioId));
+      return true;
+    } catch {
+      this.pendingRemovalIds.delete(scenarioId);
+      return false;
+    }
+  }
+
+  private uniqueScenariosById(scenarios: SavedSolutionScenario[]): SavedSolutionScenario[] {
+    const scenarioById = new Map<string, SavedSolutionScenario>();
+    scenarios.forEach((scenario) => {
+      if (!scenarioById.has(scenario.id)) {
+        scenarioById.set(scenario.id, scenario);
+      }
+    });
+    return Array.from(scenarioById.values()).slice(0, MAX_SAVED_SOLUTION_SCENARIOS);
+  }
+
+  private async writeScenario(
+    uid: string,
+    firestore: Firestore,
+    scenario: SavedSolutionScenario,
+  ): Promise<boolean> {
+    this.pendingScenarioIds.add(scenario.id);
+    try {
+      await setDoc(doc(firestore, 'users', uid, 'savedSolutionScenarios', scenario.id), scenario);
+      return true;
+    } catch {
+      this.pendingScenarioIds.delete(scenario.id);
+      return false;
+    }
   }
 }

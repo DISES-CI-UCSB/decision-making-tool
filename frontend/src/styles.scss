@@ -30,6 +30,42 @@
   --radius-chip: 9999px;
 }
 
+/*
+  Optical text alignment utilities:
+  - Use .text-trim-cap only for known single-line UI labels. It trims to the
+    cap-height/baseline pair when supported.
+  - Use .text-clamp-2-safe for user-entered or localized copy. It deliberately
+    does not trim, because a clamped box must retain descender space.
+*/
+.text-trim-cap {
+  display: inline-block;
+  line-height: 1;
+  transform: translateY(-0.04em);
+}
+
+.text-clamp-2-safe {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+@supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
+  .text-trim-cap {
+    text-box-trim: trim-both;
+    text-box-edge: cap alphabetic;
+    transform: none;
+  }
+}
+
+@supports (text-box-trim: trim-both) and (text-box-edge: text text) {
+  .text-clamp-2-safe {
+    text-box-trim: trim-both;
+    text-box-edge: text text;
+  }
+}
+
 html,
 body {
   height: 100%;

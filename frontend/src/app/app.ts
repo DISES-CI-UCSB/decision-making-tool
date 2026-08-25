@@ -124,7 +124,7 @@ export class App implements OnInit {
       this.appState.labelActiveSolution(customLabel);
     }
     this.appState.setRightSidebarMode('overview');
-    void this.solutionLayer.showSolution(solutionId);
+    void this.solutionLayer.showSolution(solutionId, { syncAppState: false });
   }
 
   private buildCandidateComparisonSolution(
