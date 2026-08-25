@@ -47,9 +47,13 @@
                 <div id="map-layers-active-solution-info" class="min-w-0">
                   <h3
                     id="map-layers-active-solution-label"
-                    class="map-layers-text-box-trim-cap text-base font-extrabold leading-5 text-slate-900"
+                    class="text-clamp-2-safe font-extrabold text-slate-900"
+                    [class]="activeSolutionHeadingSize()"
                   >
-                    {{ 'mapLayersPanel.activeSolutionLabel' | translate }}
+                    {{
+                      activeSolutionLabel() ??
+                        ('mapLayersPanel.activeSolutionLabel' | translate)
+                    }}
                   </h3>
                 </div>
 

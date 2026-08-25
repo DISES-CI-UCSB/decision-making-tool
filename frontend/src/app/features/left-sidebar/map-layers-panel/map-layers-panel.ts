@@ -371,6 +371,17 @@ export class MapLayersPanelComponent implements OnDestroy {
   protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
   protected readonly activeSolutionLabelDraft = signal('');
   protected readonly activeSolutionLabelEditorOpen = signal(false);
+  protected readonly activeSolutionHeadingSize = computed(() => {
+    const label = this.activeSolutionLabel()?.trim() ?? '';
+
+    if (label.length > 46) {
+      return 'text-base leading-5';
+    }
+    if (label.length > 28) {
+      return 'text-lg leading-5';
+    }
+    return 'text-xl leading-6';
+  });
   protected readonly activeSolutionIdentity = computed<SolutionIdentitySummary | null>(() => {
     const activeSolution = this.appState.activeSolution$();
     const catalogSolution = this.findActiveCatalogSolution(activeSolution);

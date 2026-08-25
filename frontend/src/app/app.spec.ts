@@ -95,7 +95,7 @@ describe('App', () => {
     expect(appState.activeSolution$()?.id).toBe(solution.id);
     expect(appState.comparisonSolution$()).toBeNull();
     expect(appState.rightSidebarMode$()).toBe('overview');
-    expect(showSolutionSpy).toHaveBeenCalledWith(solution.id);
+    expect(showSolutionSpy).toHaveBeenCalledWith(solution.id, { syncAppState: false });
   });
 
   it('applies a real manifest solution id from the finder', () => {
@@ -119,7 +119,7 @@ describe('App', () => {
     expect(appState.activeSolution$()?.id).toBe(solution.id);
     expect(appState.activeSolution$()?.metadata?.['metadataUrl']).toBe(solution.metadataUrl);
     expect(appState.rightSidebarMode$()).toBe('overview');
-    expect(showSolutionSpy).toHaveBeenCalledWith(solution.id);
+    expect(showSolutionSpy).toHaveBeenCalledWith(solution.id, { syncAppState: false });
   });
 });
 

@@ -577,6 +577,9 @@ export class PanelSwitcherComponent {
 
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
+  protected readonly activeScenarioName = computed(
+    () => this.appState.activeSolutionLabel$()?.trim() || this.activeSolution()?.name,
+  );
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly customAoiGeometry = this.appState.customAOIGeometry$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
@@ -1529,7 +1532,7 @@ export class PanelSwitcherComponent {
       return;
     }
 
-    const baselineName = this.activeSolution()?.name ?? 'baseline';
+    const baselineName = this.activeScenarioName() ?? 'baseline';
     const candidateName = this.comparisonSolution()?.name ?? 'candidate';
     this.downloadMetricsCsv(
       rows,
@@ -3114,7 +3117,7 @@ export class PanelSwitcherComponent {
 
   private buildOverviewMetricsCsvRows(): MetricsCsvRow[] {
     const solutionName =
-      this.activeSolution()?.name ?? this.localizedText('analysis.exports.context.currentScenario');
+      this.activeScenarioName() ?? this.localizedText('analysis.exports.context.currentScenario');
 
     const buildRows = (
       sectionKey: string,
@@ -3175,7 +3178,7 @@ export class PanelSwitcherComponent {
 
   private buildComparisonMetricsCsvRows(): MetricsCsvRow[] {
     const baselineName =
-      this.activeSolution()?.name ?? this.localizedText('analysis.comparison.baselineLabel');
+      this.activeScenarioName() ?? this.localizedText('analysis.comparison.baselineLabel');
     const candidateName =
       this.comparisonSolution()?.name ?? this.localizedText('analysis.comparison.candidateLabel');
     const context = `${baselineName} ${this.localizedText('analysis.exports.context.versus')} ${candidateName}`;

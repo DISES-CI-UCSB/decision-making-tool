@@ -408,7 +408,6 @@ service cloud.firestore {
       match /savedSolutionScenarios/{scenarioId} {
         allow read: if isSelf(uid);
         allow create, update: if isSelf(uid)
-          && isActiveUserData(currentUserData())
           && request.resource.data.keys().hasOnly([
             'id',
             'solutionId',
