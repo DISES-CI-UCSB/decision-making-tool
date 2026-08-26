@@ -586,6 +586,7 @@ export class PanelSwitcherComponent {
 
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
+  protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
   protected readonly activeScenarioName = computed(
     () => this.appState.activeSolutionLabel$()?.trim() || this.activeSolution()?.name,
   );
@@ -1488,15 +1489,9 @@ export class PanelSwitcherComponent {
     return mode === tab;
   }
 
-  /** Custom AOI profiles are solution-independent; fixed AOIs and comparison are not. */
+  /** AOI and comparison metrics depend on an active scenario. */
   protected isSidebarTabDisabled(tab: SidebarTab): boolean {
-    if (tab === 'overview') {
-      return false;
-    }
-    if (tab === 'aoi' && this.customAoiAreaProfileEnabled && this.isCustomAoiSelected()) {
-      return false;
-    }
-    return this.activeSolution() === null;
+    return tab !== 'overview' && this.activeSolution() === null;
   }
 
   protected selectTab(tab: SidebarTab): void {
@@ -1511,6 +1506,23 @@ export class PanelSwitcherComponent {
     }
 
     this.appState.setRightSidebarMode(tab);
+  }
+
+  protected requestCustomAoiDraw(): void {
+    if (!this.activeSolution()) {
+      return;
+    }
+
+    this.appState.setRightSidebarMode('aoi');
+    this.appState.requestCustomAoiDraw();
+  }
+
+  protected requestCustomAoiDrawCancel(): void {
+    this.appState.requestCustomAoiDrawCancel();
+  }
+
+  protected requestCustomAoiDrawClear(): void {
+    this.appState.requestCustomAoiDrawClear();
   }
 
   protected hasOverviewMetricsCsvRows(): boolean {
