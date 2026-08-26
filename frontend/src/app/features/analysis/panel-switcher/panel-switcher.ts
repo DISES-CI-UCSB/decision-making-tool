@@ -1,7 +1,16 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-import { Component, computed, DestroyRef, effect, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  HostListener,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
   resolveLayerLabel,
@@ -580,9 +589,22 @@ export class PanelSwitcherComponent {
   protected readonly activeScenarioName = computed(
     () => this.appState.activeSolutionLabel$()?.trim() || this.activeSolution()?.name,
   );
+  protected readonly comparisonBaselineName = computed(
+    () =>
+      this.appState.activeSolutionLabel$()?.trim() ||
+      this.localizedText('mapLayersPanel.activeSolutionLabel'),
+  );
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly customAoiGeometry = this.appState.customAOIGeometry$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
+  protected readonly comparisonCandidateName = computed(
+    () =>
+      this.appState.comparisonSolutionLabel$()?.trim() ||
+      this.localizedText('analysis.comparison.candidateLabel'),
+  );
+  protected readonly isComparisonCandidateNameEditing = signal(false);
+  protected readonly isComparisonCandidateEditMenuOpen = signal(false);
+  protected readonly comparisonCandidateNameDraft = signal('');
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   protected readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
@@ -2814,9 +2836,78 @@ export class PanelSwitcherComponent {
     }));
   }
 
+  @HostListener('document:keydown.escape')
+  protected closeComparisonCandidateEditMenuOnEscape(): void {
+    this.closeComparisonCandidateEditMenu();
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected closeComparisonCandidateEditMenuOnOutsideClick(event: MouseEvent): void {
+    if (!this.isComparisonCandidateEditMenuOpen()) {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof Node)) {
+      return;
+    }
+
+    const editWrap = document.getElementById('right-sidebar-comparison-candidate-edit-wrap');
+    if (editWrap?.contains(target)) {
+      return;
+    }
+
+    this.closeComparisonCandidateEditMenu();
+  }
+
   protected openComparisonSolutionFinder(): void {
+    this.closeComparisonCandidateEditMenu();
+    this.isComparisonCandidateNameEditing.set(false);
     this.appState.openSolutionFinder('comparison-candidate');
     this.appState.setRightSidebarMode('comparison');
+  }
+
+  protected selectComparisonCandidateFromCard(): void {
+    if (!this.comparisonSolution()) {
+      this.openComparisonSolutionFinder();
+    }
+  }
+
+  protected toggleComparisonCandidateEditMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isComparisonCandidateEditMenuOpen.update((open) => !open);
+  }
+
+  protected closeComparisonCandidateEditMenu(): void {
+    this.isComparisonCandidateEditMenuOpen.set(false);
+  }
+
+  protected chooseComparisonCandidateChange(): void {
+    this.closeComparisonCandidateEditMenu();
+    this.openComparisonSolutionFinder();
+  }
+
+  protected chooseComparisonCandidateCustomName(): void {
+    this.closeComparisonCandidateEditMenu();
+    this.startComparisonCandidateNaming();
+  }
+
+  protected startComparisonCandidateNaming(): void {
+    this.comparisonCandidateNameDraft.set(this.appState.comparisonSolutionLabel$() ?? '');
+    this.isComparisonCandidateNameEditing.set(true);
+  }
+
+  protected setComparisonCandidateNameDraft(value: string): void {
+    this.comparisonCandidateNameDraft.set(value);
+  }
+
+  protected saveComparisonCandidateName(): void {
+    this.appState.labelComparisonSolution(this.comparisonCandidateNameDraft());
+    this.isComparisonCandidateNameEditing.set(false);
+  }
+
+  protected cancelComparisonCandidateNaming(): void {
+    this.isComparisonCandidateNameEditing.set(false);
   }
 
   protected getComparisonActionLabelKey(): string {
@@ -3220,10 +3311,8 @@ export class PanelSwitcherComponent {
   }
 
   private buildComparisonMetricsCsvRows(): MetricsCsvRow[] {
-    const baselineName =
-      this.activeScenarioName() ?? this.localizedText('analysis.comparison.baselineLabel');
-    const candidateName =
-      this.comparisonSolution()?.name ?? this.localizedText('analysis.comparison.candidateLabel');
+    const baselineName = this.comparisonBaselineName();
+    const candidateName = this.comparisonCandidateName();
     const context = `${baselineName} ${this.localizedText('analysis.exports.context.versus')} ${candidateName}`;
     const readyStatus = this.localizedText('analysis.status.ready');
     const unavailableStatus = this.localizedText('analysis.common.valueUnavailable');

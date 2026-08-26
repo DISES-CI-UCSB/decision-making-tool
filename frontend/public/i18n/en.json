@@ -484,6 +484,8 @@
       "noBaselineTitle": "Choose a scenario first",
       "noBaselineDescription": "Load a scenario before opening comparison mode.",
       "selectSolution": "Select scenario",
+      "comparisonNameLabel": "Comparison name",
+      "comparisonNameHint": "Optional for this comparison only. Leave blank to use Scenario B.",
       "visualizationTitle": "Comparison Visualization",
       "visualizationDescription": "Pick how Scenario A and B are visualized on the map.",
       "visualizationAriaLabel": "Comparison visualization mode",
@@ -493,7 +495,13 @@
       "spatialOverlapNote": "These areas describe where candidate conservation areas overlap or differ between Scenario A and Scenario B. They are not additional scenario totals.",
       "actions": {
         "select": "Select",
-        "change": "Change"
+        "change": "Change",
+        "editScenarioB": "Edit Scenario B",
+        "selectScenarioB": "Select Scenario B",
+        "changeScenario": "Change scenario",
+        "setCustomName": "Set custom name",
+        "save": "Save",
+        "cancel": "Cancel"
       },
       "visualizationModes": {
         "threeColorOverlay": {

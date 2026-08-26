@@ -166,6 +166,11 @@ export class AppStateService {
   readonly customAOIGeometry$ = signal<CustomPolygonMetricsGeometry | null>(null);
   readonly visibleLayers$ = signal<LayerConfig[]>([]);
   readonly comparisonSolution$ = signal<Solution | null>(null);
+  /**
+   * An optional, comparison-only label for Scenario B. It is intentionally
+   * separate from saved scenario labels and is cleared when B changes.
+   */
+  readonly comparisonSolutionLabel$ = signal<string | null>(null);
   readonly comparisonVisualizationMode$ = signal<ComparisonVisualizationMode>('threeColorOverlay');
   readonly rightSidebarMode$ = signal<RightSidebarMode>('welcome');
   // Default to OFF: rows without a real Tier 1 (or AOI/comparison) metric
@@ -253,6 +258,7 @@ export class AppStateService {
     this.customAOIGeometry$.set(null);
     this.customAoiDrawStatus$.set('idle');
     this.comparisonSolution$.set(null);
+    this.comparisonSolutionLabel$.set(null);
     this.comparisonVisualizationMode$.set('threeColorOverlay');
     this.rightSidebarMode$.set('welcome');
   }
@@ -311,8 +317,17 @@ export class AppStateService {
     this.rightSidebarMode$.set(mode);
   }
 
-  setComparisonSolution(solution: Solution | null): void {
+  setComparisonSolution(solution: Solution | null, label: string | null = null): void {
     this.comparisonSolution$.set(solution);
+    this.comparisonSolutionLabel$.set(solution ? label?.trim() || null : null);
+  }
+
+  labelComparisonSolution(label: string | null): void {
+    if (!this.comparisonSolution$()) {
+      return;
+    }
+
+    this.comparisonSolutionLabel$.set(label?.trim() || null);
   }
 
   setComparisonVisualizationMode(mode: ComparisonVisualizationMode): void {

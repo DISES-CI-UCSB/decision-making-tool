@@ -611,7 +611,8 @@
                                         >
                                         <span
                                           [id]="
-                                            'right-sidebar-v3-overview-goals-additional-taxa-total-' + taxa.id
+                                            'right-sidebar-v3-overview-goals-additional-taxa-total-' +
+                                            taxa.id
                                           "
                                           class="text-[10px] font-semibold text-slate-500"
                                         >
@@ -624,7 +625,8 @@
                                     </div>
                                     <div
                                       [id]="
-                                        'right-sidebar-v3-overview-goals-additional-taxa-bar-' + taxa.id
+                                        'right-sidebar-v3-overview-goals-additional-taxa-bar-' +
+                                        taxa.id
                                       "
                                       role="img"
                                       class="relative h-1 overflow-hidden rounded-full bg-slate-200"
@@ -3192,9 +3194,6 @@
             <h3 id="right-sidebar-comparison-kicker" class="rs-header-optical-nudge">
               {{ 'analysis.comparison.kicker' | translate }}
             </h3>
-            <p id="right-sidebar-comparison-description" class="c2-description">
-              {{ 'analysis.comparison.description' | translate }}
-            </p>
             <div id="right-sidebar-comparison-area-unit-row" class="rs-area-unit-row">
               <span id="right-sidebar-comparison-area-unit-label" class="rs-area-unit-label">
                 {{ 'analysis.areaUnitToggle.label' | translate }}
@@ -3229,7 +3228,7 @@
                     {{ 'analysis.comparison.baselineLabel' | translate }}
                   </p>
                   <h4 id="right-sidebar-comparison-baseline-name" class="c2-summary-name">
-                    {{ activeScenarioName() ?? baselineSolution.name }}
+                    {{ comparisonBaselineName() }}
                   </h4>
                 </article>
 
@@ -3238,24 +3237,161 @@
                   class="c2-summary-card"
                   [class.c2-summary-card-candidate-selected]="comparisonSolution()"
                   [class.c2-summary-card-candidate-empty]="!comparisonSolution()"
+                  (click)="selectComparisonCandidateFromCard()"
                 >
                   <div id="right-sidebar-comparison-candidate-top" class="c2-summary-top">
                     <p id="right-sidebar-comparison-candidate-label" class="c2-summary-label">
                       {{ 'analysis.comparison.candidateLabel' | translate }}
                     </p>
-                    <button
-                      id="right-sidebar-comparison-candidate-change-btn"
-                      type="button"
-                      class="c2-action-btn"
-                      (click)="openComparisonSolutionFinder()"
-                    >
-                      {{ getComparisonActionLabelKey() | translate }}
-                    </button>
+                    <div id="right-sidebar-comparison-candidate-actions" class="c2-summary-actions">
+                      @if (comparisonSolution()) {
+                        <div
+                          id="right-sidebar-comparison-candidate-edit-wrap"
+                          class="c2-comparison-edit-wrap"
+                        >
+                          <button
+                            id="right-sidebar-comparison-candidate-edit-btn"
+                            type="button"
+                            class="c2-comparison-edit-btn"
+                            [attr.aria-expanded]="isComparisonCandidateEditMenuOpen()"
+                            aria-haspopup="menu"
+                            [attr.aria-label]="
+                              'analysis.comparison.actions.editScenarioB' | translate
+                            "
+                            [attr.title]="'analysis.comparison.actions.editScenarioB' | translate"
+                            (click)="toggleComparisonCandidateEditMenu($event)"
+                          >
+                            <svg
+                              id="right-sidebar-comparison-candidate-edit-icon"
+                              class="c2-comparison-edit-icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                            </svg>
+                          </button>
+                          @if (isComparisonCandidateEditMenuOpen()) {
+                            <div
+                              id="right-sidebar-comparison-candidate-edit-menu"
+                              class="c2-comparison-edit-menu"
+                              role="menu"
+                              [attr.aria-label]="
+                                'analysis.comparison.actions.editScenarioB' | translate
+                              "
+                            >
+                              <button
+                                id="right-sidebar-comparison-candidate-edit-change-btn"
+                                type="button"
+                                class="c2-comparison-edit-menu-item"
+                                role="menuitem"
+                                (click)="chooseComparisonCandidateChange()"
+                              >
+                                {{ 'analysis.comparison.actions.changeScenario' | translate }}
+                              </button>
+                              <button
+                                id="right-sidebar-comparison-candidate-edit-custom-name-btn"
+                                type="button"
+                                class="c2-comparison-edit-menu-item"
+                                role="menuitem"
+                                (click)="chooseComparisonCandidateCustomName()"
+                              >
+                                {{ 'analysis.comparison.actions.setCustomName' | translate }}
+                              </button>
+                            </div>
+                          }
+                        </div>
+                      } @else {
+                        <button
+                          id="right-sidebar-comparison-candidate-select-btn"
+                          type="button"
+                          class="c2-comparison-edit-btn"
+                          [attr.aria-label]="
+                            'analysis.comparison.actions.selectScenarioB' | translate
+                          "
+                          [attr.title]="'analysis.comparison.actions.selectScenarioB' | translate"
+                          (click)="$event.stopPropagation(); openComparisonSolutionFinder()"
+                        >
+                          <svg
+                            id="right-sidebar-comparison-candidate-select-icon"
+                            class="c2-comparison-edit-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                        </button>
+                      }
+                    </div>
                   </div>
-                  @if (comparisonSolution(); as candidateSolution) {
-                    <h4 id="right-sidebar-comparison-candidate-name" class="c2-summary-name">
-                      {{ candidateSolution.name }}
-                    </h4>
+                  @if (comparisonSolution()) {
+                    @if (isComparisonCandidateNameEditing()) {
+                      <div
+                        id="right-sidebar-comparison-candidate-name-form"
+                        class="c2-comparison-name-form"
+                      >
+                        <label
+                          id="right-sidebar-comparison-candidate-name-input-label"
+                          class="c2-comparison-name-label"
+                          for="right-sidebar-comparison-candidate-name-input"
+                        >
+                          {{ 'analysis.comparison.comparisonNameLabel' | translate }}
+                        </label>
+                        <input
+                          id="right-sidebar-comparison-candidate-name-input"
+                          type="text"
+                          class="c2-comparison-name-input"
+                          [value]="comparisonCandidateNameDraft()"
+                          [placeholder]="'analysis.comparison.candidateLabel' | translate"
+                          [attr.aria-describedby]="'right-sidebar-comparison-candidate-name-hint'"
+                          (input)="setComparisonCandidateNameDraft($any($event.target).value)"
+                          (keydown.enter)="saveComparisonCandidateName()"
+                          (keydown.escape)="cancelComparisonCandidateNaming()"
+                        />
+                        <p
+                          id="right-sidebar-comparison-candidate-name-hint"
+                          class="c2-comparison-name-hint"
+                        >
+                          {{ 'analysis.comparison.comparisonNameHint' | translate }}
+                        </p>
+                        <div
+                          id="right-sidebar-comparison-candidate-name-form-actions"
+                          class="c2-comparison-name-form-actions"
+                        >
+                          <button
+                            id="right-sidebar-comparison-candidate-name-save-btn"
+                            type="button"
+                            class="c2-action-btn c2-comparison-name-save-btn"
+                            (click)="saveComparisonCandidateName()"
+                          >
+                            {{ 'analysis.comparison.actions.save' | translate }}
+                          </button>
+                          <button
+                            id="right-sidebar-comparison-candidate-name-cancel-btn"
+                            type="button"
+                            class="c2-action-btn"
+                            (click)="cancelComparisonCandidateNaming()"
+                          >
+                            {{ 'analysis.comparison.actions.cancel' | translate }}
+                          </button>
+                        </div>
+                      </div>
+                    } @else {
+                      <h4 id="right-sidebar-comparison-candidate-name" class="c2-summary-name">
+                        {{ comparisonCandidateName() }}
+                      </h4>
+                    }
                   } @else {
                     <h4
                       id="right-sidebar-comparison-candidate-name-empty"
