@@ -4000,7 +4000,7 @@
                       [id]="'conservation-goals-modal-species-reference-label-' + group.id"
                       class="px-3 py-2 font-semibold"
                     >
-                      {{ group.label }}
+                      {{ localizedTaxonGroupLabel(group.id, group.label) }}
                     </td>
                     <td
                       [id]="'conservation-goals-modal-species-reference-17-' + group.id"
@@ -4148,7 +4148,7 @@
                   </option>
                   @for (group of goalsModalTaxonGroups(); track group) {
                     <option [id]="'conservation-goals-modal-taxa-' + $index" [value]="group">
-                      {{ group }}
+                      {{ localizedTaxonGroupLabel(group) }}
                     </option>
                   }
                 </select>

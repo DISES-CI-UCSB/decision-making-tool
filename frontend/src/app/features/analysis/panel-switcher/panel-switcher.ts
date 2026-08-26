@@ -794,7 +794,12 @@ export class PanelSwitcherComponent {
           .map((row) => row.taxonGroup)
           .filter((group): group is string => Boolean(group)),
       ),
-    ).sort((a, b) => a.localeCompare(b, this.appLocale.locale()));
+    ).sort((a, b) =>
+      this.localizedTaxonGroupLabel(a).localeCompare(
+        this.localizedTaxonGroupLabel(b),
+        this.appLocale.locale(),
+      ),
+    );
   });
   protected readonly overviewSectionExpanded = signal<Record<OverviewMetricSection, boolean>>({
     gains: true,
@@ -1839,6 +1844,7 @@ export class PanelSwitcherComponent {
     if (!speciesDomain.targeted && this.speciesReferenceGroups().length > 0) {
       return this.speciesReferenceGroups().map((group) => ({
         ...group,
+        label: this.localizedTaxonGroupLabel(group.id, group.label),
         metCount: 0,
         pctMet: null,
       }));
@@ -1846,7 +1852,7 @@ export class PanelSwitcherComponent {
 
     return Object.entries(document.rollups.species.byTaxa).map(([id, rollup]) => ({
       id,
-      label: rollup.label,
+      label: this.localizedTaxonGroupLabel(id, rollup.label),
       metCount: rollup.metSpeciesCount,
       totalCount: rollup.totalSpeciesCount,
       pctMet: rollup.pctMet,
@@ -1859,7 +1865,7 @@ export class PanelSwitcherComponent {
   private toGoalsModalRow(feature: GoalFeatureRow): GoalsModalRow {
     const secondaryLabel =
       feature.featureType === 'species'
-        ? [feature.taxonGroup, feature.iucnStatus].filter(Boolean).join(' \u00b7 ') || null
+        ? this.buildSpeciesSecondaryLabel(feature.taxonGroup ?? null, feature.iucnStatus ?? null)
         : null;
     return {
       id: feature.featureId,
@@ -2095,7 +2101,7 @@ export class PanelSwitcherComponent {
     return {
       id: record.id,
       name: record.scientific_name,
-      secondaryLabel: [record.group, record.iucn_status].filter(Boolean).join(' · ') || null,
+      secondaryLabel: this.buildSpeciesSecondaryLabel(record.group, record.iucn_status),
       taxonGroup: record.group,
       iucnStatus: record.iucn_status,
       met: record.configured_target_met,
@@ -3105,6 +3111,34 @@ export class PanelSwitcherComponent {
 
   private getGreenPaletteSlot(): number {
     return this.aoiSpeciesColorSlotByPalette[this.chartPaletteId()]?.['plants'] ?? 0;
+  }
+
+  private static readonly BIODIVERSITY_TAXA_LABEL_KEYS: Record<string, string> = {
+    mammals: 'analysis.aoi.biodiversityTaxa.mammals',
+    birds: 'analysis.aoi.biodiversityTaxa.birds',
+    amphibians: 'analysis.aoi.biodiversityTaxa.amphibians',
+    reptiles: 'analysis.aoi.biodiversityTaxa.reptiles',
+    plants: 'analysis.aoi.biodiversityTaxa.plants',
+  };
+
+  protected localizedTaxonGroupLabel(value: string | null | undefined, fallback?: string): string {
+    if (!value) {
+      return fallback ?? '';
+    }
+
+    const labelKey = PanelSwitcherComponent.BIODIVERSITY_TAXA_LABEL_KEYS[value.toLowerCase()];
+    return labelKey ? this.localizedText(labelKey, fallback ?? value) : (fallback ?? value);
+  }
+
+  private buildSpeciesSecondaryLabel(
+    taxonGroup: string | null,
+    iucnStatus: string | null,
+  ): string | null {
+    const parts = [
+      taxonGroup ? this.localizedTaxonGroupLabel(taxonGroup) : null,
+      iucnStatus,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' \u00b7 ') : null;
   }
 
   private getAoiEcosystemLabel(segmentId: string, fallback: string): string {
