@@ -51,8 +51,7 @@
                     [class]="activeSolutionHeadingSize()"
                   >
                     {{
-                      activeSolutionLabel() ??
-                        ('mapLayersPanel.activeSolutionLabel' | translate)
+                      activeSolutionLabel() ?? ('mapLayersPanel.activeSolutionLabel' | translate)
                     }}
                   </h3>
                 </div>
@@ -637,47 +636,94 @@
                         [id]="'map-layers-selected-layer-row-controls-content-' + selected.id"
                         class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 pb-1.5 pr-3 pt-1"
                       >
-                        <div
-                          [id]="'map-layers-selected-layer-row-opacity-group-' + selected.id"
-                          data-ui="selected-layer-opacity-control"
-                          [attr.data-layer-id]="selected.id"
-                          class="flex min-w-0 items-center gap-2"
-                        >
-                          <label
-                            [id]="'map-layers-selected-layer-row-opacity-label-' + selected.id"
-                            [for]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
-                            class="shrink-0 text-[10px] text-slate-600"
-                          >
-                            {{ 'mapLayersPanel.opacityLabel' | translate }}
-                          </label>
+                        @if (selectedLayerIsAdminBoundary(selected.id)) {
                           <div
-                            [id]="
-                              'map-layers-selected-layer-row-opacity-slider-group-' + selected.id
-                            "
-                            class="flex min-w-0 flex-1 items-center gap-1"
+                            [id]="'map-layers-selected-layer-row-width-group-' + selected.id"
+                            data-ui="selected-layer-width-control"
+                            [attr.data-layer-id]="selected.id"
+                            class="flex min-w-0 items-center gap-2"
                           >
-                            <input
-                              [id]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
-                              type="range"
-                              min="0"
-                              max="100"
-                              class="map-layers-opacity-slider min-w-0 flex-1"
-                              [style.--map-layers-slider-progress]="
-                                selectedLayerOpacity(selected.id) + '%'
-                              "
-                              [value]="selectedLayerOpacity(selected.id)"
-                              (input)="
-                                updateSelectedLayerOpacity(selected.id, $any($event.target).value)
-                              "
-                            />
-                            <span
-                              [id]="'map-layers-selected-layer-row-opacity-value-' + selected.id"
-                              class="w-7 shrink-0 text-left text-[10px] font-semibold text-slate-600"
+                            <label
+                              [id]="'map-layers-selected-layer-row-width-label-' + selected.id"
+                              [for]="'map-layers-selected-layer-row-width-slider-' + selected.id"
+                              class="shrink-0 text-[10px] text-slate-600"
                             >
-                              {{ selectedLayerOpacity(selected.id) }}%
-                            </span>
+                              {{ 'mapLayersPanel.appearanceBorderWidthLabel' | translate }}
+                            </label>
+                            <div
+                              [id]="
+                                'map-layers-selected-layer-row-width-slider-group-' + selected.id
+                              "
+                              class="flex min-w-0 flex-1 items-center gap-1"
+                            >
+                              <input
+                                [id]="'map-layers-selected-layer-row-width-slider-' + selected.id"
+                                type="range"
+                                min="0"
+                                max="6"
+                                class="map-layers-opacity-slider min-w-0 flex-1"
+                                [style.--map-layers-slider-progress]="
+                                  (selectedLayerBorderWidth(selected.id) / 6) * 100 + '%'
+                                "
+                                [value]="selectedLayerBorderWidth(selected.id)"
+                                (input)="
+                                  updateSelectedLayerBorderWidth(
+                                    selected.id,
+                                    $any($event.target).value
+                                  )
+                                "
+                              />
+                              <span
+                                [id]="'map-layers-selected-layer-row-width-value-' + selected.id"
+                                class="w-8 shrink-0 text-left text-[10px] font-semibold text-slate-600"
+                              >
+                                {{ selectedLayerBorderWidth(selected.id) }} px
+                              </span>
+                            </div>
                           </div>
-                        </div>
+                        } @else {
+                          <div
+                            [id]="'map-layers-selected-layer-row-opacity-group-' + selected.id"
+                            data-ui="selected-layer-opacity-control"
+                            [attr.data-layer-id]="selected.id"
+                            class="flex min-w-0 items-center gap-2"
+                          >
+                            <label
+                              [id]="'map-layers-selected-layer-row-opacity-label-' + selected.id"
+                              [for]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
+                              class="shrink-0 text-[10px] text-slate-600"
+                            >
+                              {{ 'mapLayersPanel.opacityLabel' | translate }}
+                            </label>
+                            <div
+                              [id]="
+                                'map-layers-selected-layer-row-opacity-slider-group-' + selected.id
+                              "
+                              class="flex min-w-0 flex-1 items-center gap-1"
+                            >
+                              <input
+                                [id]="'map-layers-selected-layer-row-opacity-slider-' + selected.id"
+                                type="range"
+                                min="0"
+                                max="100"
+                                class="map-layers-opacity-slider min-w-0 flex-1"
+                                [style.--map-layers-slider-progress]="
+                                  selectedLayerOpacity(selected.id) + '%'
+                                "
+                                [value]="selectedLayerOpacity(selected.id)"
+                                (input)="
+                                  updateSelectedLayerOpacity(selected.id, $any($event.target).value)
+                                "
+                              />
+                              <span
+                                [id]="'map-layers-selected-layer-row-opacity-value-' + selected.id"
+                                class="w-7 shrink-0 text-left text-[10px] font-semibold text-slate-600"
+                              >
+                                {{ selectedLayerOpacity(selected.id) }}%
+                              </span>
+                            </div>
+                          </div>
+                        }
                         @if (selectedLayerHasSolutionCoverageControl(selected.id)) {
                           <button
                             [id]="
@@ -899,70 +945,6 @@
                 }
               </article>
             }
-          }
-        </div>
-      </section>
-
-      <section
-        id="map-layers-area-focus-section"
-        class="rounded-md border border-sky-100 bg-sky-50 px-3 py-3 shadow-sm shadow-sky-900/5"
-        [attr.aria-label]="'mapLayersPanel.areaFocusTitle' | translate"
-      >
-        <div id="map-layers-area-focus-row" class="flex items-center justify-between gap-3">
-          <div id="map-layers-area-focus-copy" class="min-w-0">
-            <p id="map-layers-area-focus-title" class="text-xs font-bold text-slate-800">
-              {{ 'mapLayersPanel.areaFocusTitle' | translate }}
-            </p>
-            <p id="map-layers-area-focus-description" class="mt-1 text-xs leading-4 text-slate-700">
-              @if (customAoiDrawStatus() === 'drawing') {
-                {{ 'mapLayersPanel.areaFocusDrawingDescription' | translate }}
-              } @else if (selectedAoi()?.type === 'custom') {
-                {{ 'mapLayersPanel.areaFocusSelectedDescription' | translate }}
-              } @else if (customAoiDrawStatus() === 'invalid') {
-                {{ 'mapLayersPanel.areaFocusInvalidDescription' | translate }}
-              } @else {
-                {{ 'mapLayersPanel.areaFocusDescription' | translate }}
-              }
-            </p>
-            @if (customAoiDrawStatus() === 'idle' && selectedAoi()?.type !== 'custom') {
-              <p
-                id="map-layers-area-focus-layer-hint"
-                class="mt-1 text-xs leading-4 text-slate-700"
-              >
-                {{ 'mapLayersPanel.areaFocusLayerHint' | translate }}
-              </p>
-            }
-          </div>
-          @if (customAoiDrawStatus() === 'drawing') {
-            <button
-              id="map-layers-area-focus-cancel-button"
-              type="button"
-              class="inline-flex h-8 shrink-0 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-              [attr.aria-label]="'mapLayersPanel.areaFocusCancelAriaLabel' | translate"
-              (click)="requestCustomAoiDrawCancel()"
-            >
-              {{ 'mapLayersPanel.areaFocusCancelButton' | translate }}
-            </button>
-          } @else if (selectedAoi()?.type === 'custom') {
-            <button
-              id="map-layers-area-focus-clear-button"
-              type="button"
-              class="inline-flex h-8 shrink-0 items-center rounded-md border border-sky-200 bg-white px-2.5 text-[11px] font-semibold text-sky-700 transition hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
-              [attr.aria-label]="'mapLayersPanel.areaFocusClearAriaLabel' | translate"
-              (click)="requestCustomAoiDrawClear()"
-            >
-              {{ 'mapLayersPanel.areaFocusClearButton' | translate }}
-            </button>
-          } @else {
-            <button
-              id="map-layers-area-focus-draw-button"
-              type="button"
-              class="inline-flex h-8 shrink-0 items-center rounded-md bg-sky-600 px-2.5 text-[11px] font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
-              [attr.aria-label]="'mapLayersPanel.areaFocusDrawAriaLabel' | translate"
-              (click)="requestCustomAoiDraw()"
-            >
-              {{ 'mapLayersPanel.areaFocusDrawButton' | translate }}
-            </button>
           }
         </div>
       </section>
@@ -2991,36 +2973,38 @@
                   </button>
                 }
               </div>
-              <div
-                [id]="'map-layers-selected-layer-appearance-border-width-' + selected.id"
-                class="mt-2 flex items-center gap-2"
-              >
-                <label
-                  [id]="'map-layers-selected-layer-appearance-border-width-label-' + selected.id"
-                  [for]="'map-layers-selected-layer-appearance-border-width-input-' + selected.id"
-                  class="text-[10px] font-medium text-slate-500"
+              @if (!selectedLayerIsAdminBoundary(selected.id)) {
+                <div
+                  [id]="'map-layers-selected-layer-appearance-border-width-' + selected.id"
+                  class="mt-2 flex items-center gap-2"
                 >
-                  {{ 'mapLayersPanel.appearanceBorderWidthLabel' | translate }}
-                </label>
-                <input
-                  [id]="'map-layers-selected-layer-appearance-border-width-input-' + selected.id"
-                  type="range"
-                  min="0"
-                  max="6"
-                  class="map-layers-opacity-slider min-w-0 flex-1"
-                  [style.--map-layers-slider-progress]="
-                    (selectedLayerBorderWidth(selected.id) / 6) * 100 + '%'
-                  "
-                  [value]="selectedLayerBorderWidth(selected.id)"
-                  (input)="updateSelectedLayerBorderWidth(selected.id, $any($event.target).value)"
-                />
-                <span
-                  [id]="'map-layers-selected-layer-appearance-border-width-value-' + selected.id"
-                  class="w-8 text-right text-[10px] font-semibold text-slate-500"
-                >
-                  {{ selectedLayerBorderWidth(selected.id) }} px
-                </span>
-              </div>
+                  <label
+                    [id]="'map-layers-selected-layer-appearance-border-width-label-' + selected.id"
+                    [for]="'map-layers-selected-layer-appearance-border-width-input-' + selected.id"
+                    class="text-[10px] font-medium text-slate-500"
+                  >
+                    {{ 'mapLayersPanel.appearanceBorderWidthLabel' | translate }}
+                  </label>
+                  <input
+                    [id]="'map-layers-selected-layer-appearance-border-width-input-' + selected.id"
+                    type="range"
+                    min="0"
+                    max="6"
+                    class="map-layers-opacity-slider min-w-0 flex-1"
+                    [style.--map-layers-slider-progress]="
+                      (selectedLayerBorderWidth(selected.id) / 6) * 100 + '%'
+                    "
+                    [value]="selectedLayerBorderWidth(selected.id)"
+                    (input)="updateSelectedLayerBorderWidth(selected.id, $any($event.target).value)"
+                  />
+                  <span
+                    [id]="'map-layers-selected-layer-appearance-border-width-value-' + selected.id"
+                    class="w-8 text-right text-[10px] font-semibold text-slate-500"
+                  >
+                    {{ selectedLayerBorderWidth(selected.id) }} px
+                  </span>
+                </div>
+              }
             </section>
           }
         </aside>

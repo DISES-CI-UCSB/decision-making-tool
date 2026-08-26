@@ -121,6 +121,36 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
     expect(adminBoundaryVisibilitySync).toHaveBeenCalledWith('admin_departments', true);
   });
 
+  it('replaces boundary opacity with a working outline-width slider', async () => {
+    const fixture = TestBed.createComponent(MapLayersPanelComponent);
+    fixture.detectChanges();
+    await waitForPostPaintTask();
+    vi.clearAllMocks();
+
+    const widthSlider = fixture.nativeElement.querySelector(
+      '#map-layers-selected-layer-row-width-slider-boundary-admin_country_outline',
+    ) as HTMLInputElement;
+
+    expect(widthSlider).not.toBeNull();
+    expect(widthSlider.value).toBe('1.6');
+    expect(
+      fixture.nativeElement.querySelector(
+        '#map-layers-selected-layer-row-opacity-slider-boundary-admin_country_outline',
+      ),
+    ).toBeNull();
+
+    widthSlider.value = '4';
+    widthSlider.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await waitForPostPaintTask();
+
+    expect(adminBoundaryStyleSync).toHaveBeenCalledWith('admin_country_outline', {
+      color: '#111827',
+      style: 'solid',
+      width: 4,
+    });
+  });
+
   it.each([
     [
       'en',

@@ -161,6 +161,65 @@
       </button>
     </section>
 
+    @if (activeSolution()) {
+      <section
+        id="map-view-custom-aoi-draw-control"
+        [attr.aria-label]="'mapView.customAoiDrawControls' | translate"
+      >
+        <button
+          id="map-view-custom-aoi-draw-button"
+          type="button"
+          class="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white/95 text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          [class.bg-sky-600]="isCustomAoiDrawActive()"
+          [class.text-white]="isCustomAoiDrawActive()"
+          [class.map-view-custom-aoi-draw-button-active]="isCustomAoiDrawActive()"
+          [attr.aria-label]="
+            (isCustomAoiDrawActive() ? 'mapView.customAoiDrawCancel' : 'mapView.customAoiDrawStart')
+              | translate
+          "
+          [attr.title]="
+            (isCustomAoiDrawActive() ? 'mapView.customAoiDrawCancel' : 'mapView.customAoiDrawStart')
+              | translate
+          "
+          [attr.aria-pressed]="isCustomAoiDrawActive()"
+          (click)="toggleCustomAoiDraw()"
+        >
+          <svg
+            id="map-view-custom-aoi-draw-icon"
+            class="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              id="map-view-custom-aoi-draw-icon-pen"
+              d="M4 20H8L19 9L15 5L4 16V20Z"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              id="map-view-custom-aoi-draw-icon-pen-seam"
+              d="M13.5 6.5L17.5 10.5"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span id="map-view-custom-aoi-draw-button-label" class="sr-only">
+            {{
+              (isCustomAoiDrawActive()
+                ? 'mapView.customAoiDrawCancel'
+                : 'mapView.customAoiDrawStart'
+              ) | translate
+            }}
+          </span>
+        </button>
+      </section>
+    }
+
     <section id="map-view-export-control" [attr.aria-label]="'mapView.exportControls' | translate">
       <button
         id="map-view-export-png-button"
