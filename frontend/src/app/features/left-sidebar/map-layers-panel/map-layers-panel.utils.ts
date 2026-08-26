@@ -9,8 +9,11 @@ export type PlanningDomain = 'land' | 'marine';
 export type LayerCatalogScope = PlanningDomain | 'both';
 export type LayerPlanningDomain = PlanningDomain | 'shared' | 'context';
 
-const MARINE_LAYER_ROW_IDS = new Set(['layer-hhm', 'layer-marine_ecosystems']);
-const SHARED_LAYER_ROW_IDS = new Set(['layer-mangroves']);
+const MARINE_LAYER_ROW_IDS = new Set([
+  'layer-hhm',
+  'layer-marine_ecosystems',
+  'layer-mangroves',
+]);
 
 interface SelectableRowDto {
   id: string;
@@ -333,9 +336,6 @@ export function scenarioLayerStatus(
 export function layerPlanningDomain(rowId: string, groupId: string): LayerPlanningDomain {
   if (groupId === 'group-admin-boundaries') {
     return 'context';
-  }
-  if (SHARED_LAYER_ROW_IDS.has(rowId)) {
-    return 'shared';
   }
   return MARINE_LAYER_ROW_IDS.has(rowId) ? 'marine' : 'land';
 }
