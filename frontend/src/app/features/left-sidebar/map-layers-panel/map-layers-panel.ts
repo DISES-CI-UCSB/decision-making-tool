@@ -2324,6 +2324,10 @@ export class MapLayersPanelComponent implements OnDestroy {
     return !!row && (row.mapSync?.type === 'admin-boundary' || this.isVectorPolygonStyleRow(row));
   }
 
+  protected selectedLayerIsAdminBoundary(rowId: string): boolean {
+    return this.findLayerControlRowById(rowId)?.mapSync?.type === 'admin-boundary';
+  }
+
   protected selectedLayerHasColorOnlyControl(rowId: string): boolean {
     return (
       this.selectedLayerHasColorControl(rowId) &&
