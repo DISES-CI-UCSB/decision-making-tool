@@ -573,12 +573,13 @@
         "runap": "RUNAP",
         "custom": "Custom AOI"
       },
-      "emptyTitle": "No area of interest selected",
-      "emptyDescription": "Select an AOI to populate this panel with local metrics and context.",
       "selection": {
-        "title": "Click on or draw a custom polygon",
-        "description": "Draw an area, or click a map polygon to see local results.",
-        "layerHint": "First add a layer from Administrative Boundaries or Conservation Areas",
+        "title": "Click a known AOI on the map or draw a custom polygon",
+        "layerHintPrefix": "To click on a known AOI, first add a layer from the ",
+        "layerHintBoundariesLabel": "Administrative Boundaries",
+        "layerHintMiddle": " section on the left by clicking ",
+        "layerHintDisplayLabel": "Display",
+        "layerHintSuffix": ".",
         "drawingDescription": "Draw a polygon on the map. Double-click to finish.",
         "selectedDescription": "Custom area selected. Results are focused on that area.",
         "invalidDescription": "Draw a valid polygon, or click a map polygon to select an area.",

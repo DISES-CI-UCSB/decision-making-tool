@@ -279,6 +279,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   protected isExportInProgress = false;
   protected readonly isCustomAoiDrawActive = signal(false);
   protected readonly hasCustomAoiDrawing = signal(false);
+  protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly isSolutionLoading = computed(() => this.solutionLayer.isLoading$());
   protected readonly activeBasemap = this.basemapService.basemap;
@@ -337,6 +338,13 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         return;
       }
       untracked(() => this.startCustomAoiDraw());
+    });
+
+    effect(() => {
+      if (this.activeSolution()) {
+        return;
+      }
+      untracked(() => this.cancelCustomAoiDraw());
     });
 
     effect(() => {
@@ -432,8 +440,23 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     void this.downloadCurrentMapViewAsPng();
   }
 
+  protected toggleCustomAoiDraw(): void {
+    if (!this.activeSolution()) {
+      return;
+    }
+
+    this.appState.setRightSidebarMode('aoi');
+
+    if (this.isCustomAoiDrawActive()) {
+      this.appState.requestCustomAoiDrawCancel();
+      return;
+    }
+
+    this.appState.requestCustomAoiDraw();
+  }
+
   protected startCustomAoiDraw(): void {
-    if (!this.customAoiSketchViewModel || !this.customAoiGraphicsLayer) {
+    if (!this.activeSolution() || !this.customAoiSketchViewModel || !this.customAoiGraphicsLayer) {
       return;
     }
 

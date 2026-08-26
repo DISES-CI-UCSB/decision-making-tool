@@ -15,6 +15,16 @@
   pointer-events: none;
 }
 
+#map-view-custom-aoi-draw-button.map-view-custom-aoi-draw-button-active {
+  border-color: #0284c7;
+  background-color: #0284c7;
+  color: #fff;
+}
+
+#map-view-custom-aoi-draw-button.map-view-custom-aoi-draw-button-active:hover {
+  background-color: #0369a1;
+}
+
 .map-view-layer-loading-progress {
   width: 45%;
   animation: map-view-layer-loading-progress 1.1s ease-in-out infinite;

@@ -32,6 +32,126 @@
   </nav>
 
   <div id="right-sidebar-panel-switcher-content-shell" class="min-h-0 flex-1">
+    <ng-template #aoiSelectionControl>
+      <section
+        id="aoi-dashboard-selection-control"
+        class="w-full rounded-lg border border-sky-100 bg-sky-50 p-3 shadow-sm shadow-sky-900/5"
+        [attr.aria-label]="'analysis.aoi.selection.title' | translate"
+      >
+        <div
+          id="aoi-dashboard-selection-control-row"
+          class="flex items-center justify-between gap-3"
+        >
+          <div id="aoi-dashboard-selection-control-copy" class="min-w-0">
+            <p id="aoi-dashboard-selection-control-title" class="text-xs font-bold text-slate-800">
+              {{ 'analysis.aoi.selection.title' | translate }}
+            </p>
+            @if (customAoiDrawStatus() === 'drawing') {
+              <p
+                id="aoi-dashboard-selection-control-description"
+                class="mt-1 text-xs leading-4 text-slate-700"
+              >
+                {{ 'analysis.aoi.selection.drawingDescription' | translate }}
+              </p>
+            } @else if (selectedAoi()?.type === 'custom') {
+              <p
+                id="aoi-dashboard-selection-control-description"
+                class="mt-1 text-xs leading-4 text-slate-700"
+              >
+                {{ 'analysis.aoi.selection.selectedDescription' | translate }}
+              </p>
+            } @else if (customAoiDrawStatus() === 'invalid') {
+              <p
+                id="aoi-dashboard-selection-control-description"
+                class="mt-1 text-xs leading-4 text-slate-700"
+              >
+                {{ 'analysis.aoi.selection.invalidDescription' | translate }}
+              </p>
+            }
+            @if (customAoiDrawStatus() === 'idle' && selectedAoi()?.type !== 'custom') {
+              <p
+                id="aoi-dashboard-selection-control-layer-hint"
+                class="mt-1 text-xs leading-4 text-slate-700"
+              >
+                {{ 'analysis.aoi.selection.layerHintPrefix' | translate
+                }}<em
+                  id="aoi-dashboard-selection-control-layer-hint-boundaries-label"
+                  class="font-semibold italic text-slate-700"
+                  >{{ 'analysis.aoi.selection.layerHintBoundariesLabel' | translate }}</em
+                >{{ 'analysis.aoi.selection.layerHintMiddle' | translate
+                }}<strong
+                  id="aoi-dashboard-selection-control-layer-hint-display-label"
+                  class="font-medium text-slate-700"
+                  >{{ 'analysis.aoi.selection.layerHintDisplayLabel' | translate }}</strong
+                >{{ 'analysis.aoi.selection.layerHintSuffix' | translate }}
+              </p>
+            }
+          </div>
+          @if (customAoiDrawStatus() === 'drawing') {
+            <button
+              id="aoi-dashboard-selection-control-cancel-button"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+              [attr.aria-label]="'analysis.aoi.selection.cancelAriaLabel' | translate"
+              (click)="requestCustomAoiDrawCancel()"
+            >
+              {{ 'analysis.aoi.selection.cancelButton' | translate }}
+            </button>
+          } @else if (selectedAoi()?.type === 'custom') {
+            <button
+              id="aoi-dashboard-selection-control-clear-button"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center rounded-md border border-sky-200 bg-white px-2.5 text-[11px] font-semibold text-sky-700 transition hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              [attr.aria-label]="'analysis.aoi.selection.clearAriaLabel' | translate"
+              (click)="requestCustomAoiDrawClear()"
+            >
+              {{ 'analysis.aoi.selection.clearButton' | translate }}
+            </button>
+          } @else {
+            <button
+              id="aoi-dashboard-selection-control-draw-button"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-sky-600 px-2.5 text-[11px] font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:cursor-not-allowed disabled:bg-slate-300"
+              [disabled]="activeSolution() === null"
+              [attr.aria-label]="'analysis.aoi.selection.drawAriaLabel' | translate"
+              (click)="requestCustomAoiDraw()"
+            >
+              <svg
+                id="aoi-dashboard-selection-control-draw-button-icon"
+                class="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path
+                  id="aoi-dashboard-selection-control-draw-button-icon-pen"
+                  d="M4 20H8L19 9L15 5L4 16V20Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  id="aoi-dashboard-selection-control-draw-button-icon-pen-seam"
+                  d="M13.5 6.5L17.5 10.5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <span
+                id="aoi-dashboard-selection-control-draw-button-label"
+                class="inline-block [text-box:trim-both_cap_alphabetic]"
+              >
+                {{ 'analysis.aoi.selection.drawButton' | translate }}
+              </span>
+            </button>
+          }
+        </div>
+      </section>
+    </ng-template>
+
     @switch (rightSidebarMode()) {
       @case ('welcome') {
         <section
@@ -1342,6 +1462,9 @@
               <p id="aoi-dashboard-scope-explanation" class="aoi-scope-explanation">
                 {{ 'analysis.aoi.scopeExplanation' | translate }}
               </p>
+              @if (selectedAoi()?.type === 'custom') {
+                <ng-container [ngTemplateOutlet]="aoiSelectionControl"></ng-container>
+              }
 
               @if (aoiAlignedMetricEntries().length > 0) {
                 <section
@@ -2996,19 +3119,9 @@
         } @else {
           <section
             id="aoi-dashboard-empty-state"
-            class="panel-enter flex h-full min-h-0 flex-col items-center justify-center gap-3 p-5"
+            class="panel-enter flex h-full min-h-0 items-start p-5"
           >
-            <div
-              id="aoi-dashboard-empty-card"
-              class="w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5"
-            >
-              <h4 id="aoi-dashboard-empty-title" class="text-sm font-semibold text-slate-900">
-                {{ 'analysis.aoi.emptyTitle' | translate }}
-              </h4>
-              <p id="aoi-dashboard-empty-description" class="mt-2 text-sm leading-6 text-slate-600">
-                {{ 'analysis.aoi.emptyDescription' | translate }}
-              </p>
-            </div>
+            <ng-container [ngTemplateOutlet]="aoiSelectionControl"></ng-container>
           </section>
         }
       }

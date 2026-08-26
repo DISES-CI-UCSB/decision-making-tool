@@ -367,8 +367,6 @@ export class MapLayersPanelComponent implements OnDestroy {
   ];
   protected readonly activeSolutionLabel = this.appState.activeSolutionLabel$;
   protected readonly userIsSignedIn = this.appState.userIsSignedIn$;
-  protected readonly selectedAoi = this.appState.selectedAOI$;
-  protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
   protected readonly activeSolutionLabelDraft = signal('');
   protected readonly activeSolutionLabelEditorOpen = signal(false);
   protected readonly activeSolutionHeadingSize = computed(() => {
@@ -737,18 +735,6 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   protected requestSolutionFinder(): void {
     this.solutionFinderRequested.emit();
-  }
-
-  protected requestCustomAoiDraw(): void {
-    this.appState.requestCustomAoiDraw();
-  }
-
-  protected requestCustomAoiDrawCancel(): void {
-    this.appState.requestCustomAoiDrawCancel();
-  }
-
-  protected requestCustomAoiDrawClear(): void {
-    this.appState.requestCustomAoiDrawClear();
   }
 
   protected openActiveSolutionLabelEditor(): void {
@@ -3413,7 +3399,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private shouldIncludeRowInMasterLegend(row: LayerControlRow): boolean {
-    return row.selected && !this.isSolutionLayerRow(row) && shouldIncludeInMasterLegend(row.mapSync);
+    return (
+      row.selected && !this.isSolutionLayerRow(row) && shouldIncludeInMasterLegend(row.mapSync)
+    );
   }
 
   private isComparisonSelectionActive(): boolean {
