@@ -125,23 +125,11 @@
   line-height: 1;
 }
 
-.finder-info-icon-glyph {
-  display: inline-block;
-  line-height: 1;
-  transform: translateY(-1px);
-}
-
 @supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
   .finder-fixed-toggle-label {
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
     line-height: 1;
-    transform: none;
-  }
-
-  .finder-info-icon-glyph {
-    text-box-trim: trim-both;
-    text-box-edge: cap alphabetic;
     transform: none;
   }
 

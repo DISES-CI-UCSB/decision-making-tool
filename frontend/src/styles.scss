@@ -287,3 +287,12 @@ body {
   width: 100%;
   gap: 0;
 }
+
+/* A lowercase “i” sits visually low when both edges trim tightly to the cap
+   height and alphabetic baseline. Keeping the block-end text edge moves its
+   visible glyph upward into the optical center of circular tooltip controls. */
+@supports (text-box: trim-both cap text) {
+  .tooltip-info-icon-glyph {
+    text-box: trim-both cap text;
+  }
+}

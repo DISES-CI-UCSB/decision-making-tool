@@ -1213,7 +1213,7 @@
                                 <button
                                   [id]="'map-layers-boundary-info-button-' + row.id"
                                   type="button"
-                                  class="map-layers-layer-info-button inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                  class="map-layers-layer-info-button"
                                   [attr.aria-label]="
                                     'mapLayersPanel.boundaryInfoAriaLabel'
                                       | translate: { name: row.name }
@@ -1227,7 +1227,7 @@
                                 >
                                   <span
                                     [id]="'map-layers-boundary-info-icon-' + row.id"
-                                    class="map-layers-info-icon-glyph"
+                                    class="map-layers-info-icon-glyph tooltip-info-icon-glyph"
                                     aria-hidden="true"
                                     >i</span
                                   >
@@ -1615,7 +1615,7 @@
                                       'map-layers-layer-row-info-button-' + group.id + '-' + row.id
                                     "
                                     type="button"
-                                    class="map-layers-layer-info-button inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                    class="map-layers-layer-info-button"
                                     [attr.aria-label]="'Layer information: ' + row.name"
                                     [attr.aria-expanded]="
                                       isEcosystemClassificationRow(row.id)
@@ -1641,7 +1641,7 @@
                                       [id]="
                                         'map-layers-layer-row-info-icon-' + group.id + '-' + row.id
                                       "
-                                      class="map-layers-info-icon-glyph"
+                                      class="map-layers-info-icon-glyph tooltip-info-icon-glyph"
                                       aria-hidden="true"
                                       >i</span
                                     >
@@ -2224,7 +2224,7 @@
                                       'map-layers-layer-row-info-button-' + group.id + '-' + row.id
                                     "
                                     type="button"
-                                    class="map-layers-layer-info-button inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                    class="map-layers-layer-info-button"
                                     [attr.aria-label]="'Layer information: ' + row.name"
                                     [attr.aria-expanded]="isLayerInfoPopoverOpen(group.id, row.id)"
                                     [attr.aria-controls]="
@@ -2237,7 +2237,7 @@
                                       [id]="
                                         'map-layers-layer-row-info-icon-' + group.id + '-' + row.id
                                       "
-                                      class="map-layers-info-icon-glyph"
+                                      class="map-layers-info-icon-glyph tooltip-info-icon-glyph"
                                       aria-hidden="true"
                                       >i</span
                                     >

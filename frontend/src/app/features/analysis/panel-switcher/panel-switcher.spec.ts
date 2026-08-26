@@ -1990,6 +1990,17 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-count-30-species')
         ?.textContent,
     ).toContain('1');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-Mammals'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-count-17-Mammals')
+        ?.textContent,
+    ).toContain('1');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-count-30-Mammals')
+        ?.textContent,
+    ).toContain('1');
     expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
   });
 
@@ -2055,7 +2066,7 @@ describe('PanelSwitcherComponent', () => {
     ).toContain('2');
     expect(
       compiled.querySelector(
-        '#right-sidebar-v3-overview-goals-additional-domain-method-strategic-ecosystems',
+        '#right-sidebar-v3-overview-goals-additional-domain-method-tooltip-strategic-ecosystems',
       )?.textContent,
     ).toContain('strategicRasterDerivedMethod');
 
@@ -2698,6 +2709,17 @@ describe('PanelSwitcherComponent', () => {
         component.additionalOutcomeGoalsDomains().find((domain) => domain.id === 'species')
           ?.totalCount,
       ).toBe(8132);
+      expect(
+        compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-birds'),
+      ).not.toBeNull();
+      expect(
+        compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-count-17-birds')
+          ?.textContent,
+      ).toContain('1440');
+      expect(
+        compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-count-30-birds')
+          ?.textContent,
+      ).toContain('313');
 
       (
         compiled.querySelector(

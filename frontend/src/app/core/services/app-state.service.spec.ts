@@ -336,4 +336,32 @@ describe('AppStateService', () => {
     expect(service.rightSidebarMode$()).toBe('overview');
     expect(service.isComparing()).toBe(true);
   });
+
+  it('keeps the Scenario B label comparison-only and resets it when B changes', () => {
+    const firstComparisonSolution: Solution = {
+      id: 'solution-2',
+      name: 'First comparison solution',
+      matchPercentage: 68,
+      geometryUrl: '/geometry/solution-2.json',
+      metrics: [],
+    };
+    const secondComparisonSolution: Solution = {
+      id: 'solution-3',
+      name: 'Second comparison solution',
+      matchPercentage: 72,
+      geometryUrl: '/geometry/solution-3.json',
+      metrics: [],
+    };
+
+    service.setComparisonSolution(firstComparisonSolution);
+    service.labelComparisonSolution('Expanded RUNAP');
+
+    expect(service.comparisonSolutionLabel$()).toBe('Expanded RUNAP');
+    expect(service.savedSolutionScenarios$()).toEqual([]);
+
+    service.setComparisonSolution(secondComparisonSolution);
+
+    expect(service.comparisonSolutionLabel$()).toBeNull();
+    expect(service.savedSolutionScenarios$()).toEqual([]);
+  });
 });

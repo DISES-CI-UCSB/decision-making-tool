@@ -903,6 +903,8 @@
       "noBaselineTitle": "Primero elige un escenario",
       "noBaselineDescription": "Carga un escenario antes de abrir el modo de comparación.",
       "selectSolution": "Seleccionar escenario",
+      "comparisonNameLabel": "Nombre de comparación",
+      "comparisonNameHint": "Opcional solo para esta comparación. Déjalo en blanco para usar Escenario B.",
       "visualizationTitle": "Visualización de comparación",
       "visualizationDescription": "Elige cómo se visualizan el Escenario A y B en el mapa.",
       "visualizationAriaLabel": "Modo de visualización de comparación",
@@ -912,7 +914,13 @@
       "spatialOverlapNote": "Estas áreas describen dónde el área nueva seleccionada se superpone o difiere entre el Escenario A y el Escenario B. No son totales adicionales de los escenarios.",
       "actions": {
         "select": "Seleccionar",
-        "change": "Cambiar"
+        "change": "Cambiar",
+        "editScenarioB": "Editar Escenario B",
+        "selectScenarioB": "Seleccionar Escenario B",
+        "changeScenario": "Cambiar escenario",
+        "setCustomName": "Establecer nombre personalizado",
+        "save": "Guardar",
+        "cancel": "Cancelar"
       },
       "visualizationModes": {
         "threeColorOverlay": {

@@ -51,12 +51,12 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   );
   readonly baselineName = computed(
     () =>
-      this.activeScenarioName() ??
-      this.localizedText('mapLegend.solutionAFallback', 'Scenario A'),
+      this.appState.activeSolutionLabel$()?.trim() ||
+      this.localizedText('mapLayersPanel.activeSolutionLabel', 'Active Scenario'),
   );
   readonly candidateName = computed(
     () =>
-      this.appState.comparisonSolution$()?.name ??
+      this.appState.comparisonSolutionLabel$()?.trim() ||
       this.localizedText('mapLegend.solutionBFallback', 'Scenario B'),
   );
   readonly solutionColor = this.solutionLayer.solutionColor$;

@@ -744,19 +744,6 @@
   color: #64748b;
 }
 
-.trim-cut {
-  line-height: 1;
-  transform: translateY(-0.04em);
-}
-
-@supports (text-box-trim: trim-both) {
-  .trim-cut {
-    text-box-trim: trim-both;
-    text-box-edge: cap alphabetic;
-    transform: none;
-  }
-}
-
 .v3-unavailable-help {
   position: relative;
   display: inline-flex;
@@ -1119,6 +1106,7 @@
 }
 
 .c2-summary-card {
+  position: relative;
   width: 100%;
   min-width: 0;
   border-radius: 6px;
@@ -1145,6 +1133,24 @@
 #right-sidebar-comparison-candidate-card.c2-summary-card-candidate-empty {
   border-color: #475569;
   background: #f1f5f9;
+  cursor: pointer;
+}
+
+#right-sidebar-comparison-candidate-card {
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+#right-sidebar-comparison-candidate-card.c2-summary-card-candidate-empty:hover,
+#right-sidebar-comparison-candidate-card.c2-summary-card-candidate-empty:focus-within {
+  background: #e7edf4;
+  box-shadow: inset 0 0 0 1px #475569;
+}
+
+#right-sidebar-comparison-candidate-card.c2-summary-card-candidate-selected:hover,
+#right-sidebar-comparison-candidate-card.c2-summary-card-candidate-selected:focus-within {
+  box-shadow: inset 0 0 0 1px var(--comparison-candidate-color, #7c3aed);
 }
 
 .c2-summary-label {
@@ -1176,6 +1182,98 @@
   gap: 8px;
 }
 
+.c2-summary-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+#right-sidebar-comparison-candidate-card .c2-summary-actions {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+}
+
+.c2-comparison-edit-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.c2-comparison-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid #94a3b8;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.c2-comparison-edit-btn:hover,
+.c2-comparison-edit-btn[aria-expanded='true'] {
+  border-color: #64748b;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.c2-comparison-edit-btn:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 1px;
+}
+
+.c2-comparison-edit-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.c2-comparison-edit-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 4px 0;
+  box-shadow:
+    0 4px 12px rgb(15 23 42 / 12%),
+    0 1px 2px rgb(15 23 42 / 6%);
+}
+
+.c2-comparison-edit-menu-item {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  padding: 6px 10px;
+  color: #0f172a;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.c2-comparison-edit-menu-item:hover,
+.c2-comparison-edit-menu-item:focus-visible {
+  background: #f1f5f9;
+  outline: none;
+}
+
 .c2-action-btn {
   display: inline-flex;
   align-items: center;
@@ -1199,18 +1297,59 @@
   background: #f1f5f9;
 }
 
-/* Stronger contrast for comparison candidate action control. */
-#right-sidebar-comparison-candidate-change-btn {
-  border-color: #94a3b8;
-  min-width: 56px;
-  max-width: 100%;
-  padding: 3px 8px;
-  font-size: 10px;
-  line-height: 1.1;
-  flex: 0 0 auto;
+.c2-comparison-name-form {
+  margin-top: 8px;
 }
 
-#right-sidebar-comparison-candidate-change-btn:hover {
+.c2-comparison-name-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.c2-comparison-name-input {
+  width: 100%;
+  margin-top: 4px;
+  border: 1px solid #94a3b8;
+  border-radius: 5px;
+  background: #fff;
+  padding: 5px 7px;
+  color: #0f172a;
+  font: inherit;
+  font-size: 12px;
+}
+
+.c2-comparison-name-input:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 1px;
+}
+
+.c2-comparison-name-hint {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.c2-comparison-name-form-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.c2-comparison-name-save-btn {
+  border-color: #7c3aed;
+  background: #7c3aed;
+  color: #fff;
+}
+
+.c2-comparison-name-save-btn:hover {
+  border-color: #6d28d9;
+  background: #6d28d9;
+}
+
+#right-sidebar-comparison-candidate-select-btn:hover {
   border-color: #64748b;
 }
 

@@ -19,14 +19,12 @@ type TooltipAlignment = 'start' | 'center' | 'end';
       <button
         [id]="idBase() + '-help-trigger'"
         type="button"
-        class="inline-flex h-4 w-4 shrink-0 cursor-help items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold normal-case text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        class="tooltip-info-icon-glyph inline-flex h-4 w-4 shrink-0 cursor-help items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold normal-case text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
         [attr.aria-label]="questionKey() | translate"
         [attr.aria-describedby]="idBase() + '-help-tooltip'"
         (click)="togglePinned($event)"
         (keydown.escape)="dismiss($event)"
-      >
-        <span [id]="idBase() + '-help-icon'" aria-hidden="true">i</span>
-      </button>
+      >i</button>
       <span
         [id]="idBase() + '-help-tooltip'"
         role="tooltip"
