@@ -25,7 +25,7 @@ def _pct_of_selected(raster: SolutionRaster, layer_mask: np.ndarray) -> float | 
     return overlap_km2(raster.selected_mask, layer_mask, raster.pixel_area_km2_per_row) / sel * 100.0
 
 
-# --- #9 — Affected Agricultural Area (km²) ---
+# --- #9 — Conservation Area on Agricultural Land (km²) ---
 
 def agricultural_area_km2(raster: SolutionRaster, layer_mask: np.ndarray) -> float:
     """km² of selected area classified as Territorios Agrícolas (class 2)."""

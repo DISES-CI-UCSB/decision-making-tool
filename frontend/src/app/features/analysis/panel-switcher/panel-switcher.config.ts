@@ -20,17 +20,6 @@ export interface OverviewMetricBlueprint {
   conditional?: boolean;
 }
 
-export interface AoiAlignedMetricBlueprint {
-  id: string;
-  metricIds: string[];
-  labelKey: string;
-  customAoiLabelKey?: string;
-  descriptionKey: string;
-  iconClass?: string;
-  dummyValue: string;
-  dummyUnitKey?: string;
-}
-
 export interface ComparisonMetricBlueprint {
   id: string;
   section: ComparisonSectionId;
@@ -89,6 +78,7 @@ export const CUSTOM_AOI_SPECIES_METRIC_IDS: CustomPolygonMetricId[] = [
   'species_richness_reptiles',
   'species_richness_plants',
   'threatened_species_count',
+  'threatened_species_secured',
   'species_pct_of_national',
 ];
 
@@ -416,99 +406,6 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     dummyValue: '8,500 km²',
     dummyAreaKm2: 8_500,
     dummyUnitKey: 'analysis.overview.metricUnits.fifteenPercentOverlap',
-  },
-];
-export const AOI_ALIGNED_METRIC_BLUEPRINTS: AoiAlignedMetricBlueprint[] = [
-  {
-    id: 'aoi-summary-priority-area',
-    metricIds: ['priority_area_in_region'],
-    labelKey: 'analysis.overview.metrics.priorityAreaTotal',
-    customAoiLabelKey: 'analysis.aoi.alignedMetrics.priorityAreaDrawn',
-    descriptionKey: 'analysis.aoi.alignedMetrics.priorityAreaSelectedDesc',
-    iconClass: 'fas fa-square-check',
-    dummyValue: '230 km²',
-    dummyUnitKey: 'analysis.overview.metricUnits.selected',
-  },
-  {
-    id: 'aoi-summary-threatened-species',
-    metricIds: ['threatened_species_secured', 'threatened_species_count'],
-    labelKey: 'analysis.overview.metrics.threatenedSpeciesSecured',
-    descriptionKey: 'analysis.overview.metrics.threatenedSpeciesSecuredDesc',
-    iconClass: 'fas fa-triangle-exclamation',
-    dummyValue: '5',
-    dummyUnitKey: 'analysis.aoi.stats.iucnLabel',
-  },
-  {
-    id: 'aoi-summary-paramo',
-    metricIds: ['ecosystem_coverage_paramo'],
-    labelKey: 'analysis.overview.metrics.paramoCoverage',
-    descriptionKey: 'analysis.overview.metrics.paramoCoverageDesc',
-    iconClass: 'fas fa-mountain',
-    dummyValue: '34 km²',
-    dummyUnitKey: 'analysis.overview.metricUnits.paramo',
-  },
-  {
-    id: 'aoi-summary-dry-forest',
-    metricIds: ['ecosystem_coverage_dry_forest'],
-    labelKey: 'analysis.overview.metrics.dryForestCoverage',
-    descriptionKey: 'analysis.overview.metrics.dryForestCoverageDesc',
-    iconClass: 'fas fa-tree',
-    dummyValue: '18 km²',
-    dummyUnitKey: 'analysis.overview.metricUnits.dryForest',
-  },
-  {
-    id: 'aoi-summary-wetlands',
-    metricIds: ['ecosystem_coverage_wetlands'],
-    labelKey: 'analysis.overview.metrics.wetlandsCoverage',
-    descriptionKey: 'analysis.overview.metrics.wetlandsCoverageDesc',
-    iconClass: 'fas fa-water',
-    dummyValue: '42 km²',
-    dummyUnitKey: 'analysis.overview.metricUnits.wetlands',
-  },
-  {
-    id: 'aoi-summary-carbon',
-    metricIds: ['carbon_storage_biomass'],
-    labelKey: 'analysis.overview.metrics.carbonStorageCapacity',
-    descriptionKey: 'analysis.overview.metrics.carbonStorageCapacityDesc',
-    iconClass: 'fas fa-leaf',
-    dummyValue: '52M',
-    dummyUnitKey: 'analysis.overview.metricUnits.megagrams',
-  },
-  {
-    id: 'aoi-summary-water',
-    metricIds: ['water_regulation_area'],
-    labelKey: 'analysis.overview.metrics.waterRegulationServices',
-    descriptionKey: 'analysis.overview.metrics.waterRegulationServicesDesc',
-    iconClass: 'fas fa-droplet',
-    dummyValue: '78',
-    dummyUnitKey: 'analysis.aoi.stats.waterRegulationDesc',
-  },
-  {
-    id: 'aoi-summary-agriculture',
-    metricIds: ['agricultural_area'],
-    labelKey: 'analysis.overview.metrics.affectedAgriculturalArea',
-    descriptionKey: 'analysis.overview.metrics.affectedAgriculturalAreaDesc',
-    iconClass: 'fas fa-wheat-awn',
-    dummyValue: '125 km²',
-    dummyUnitKey: 'analysis.overview.metricUnits.areaAffected',
-  },
-  {
-    id: 'aoi-summary-indigenous-reservations',
-    metricIds: ['indigenous_reservations_area'],
-    labelKey: 'analysis.overview.metrics.indigenousReservationsArea',
-    descriptionKey: 'analysis.overview.metrics.indigenousReservationsAreaDesc',
-    iconClass: 'fas fa-people-group',
-    dummyValue: '41 km²',
-    dummyUnitKey: 'analysis.overview.metricUnits.resguardos',
-  },
-  {
-    id: 'aoi-summary-community-councils',
-    metricIds: ['community_councils_area'],
-    labelKey: 'analysis.overview.metrics.communityCouncilsArea',
-    descriptionKey: 'analysis.overview.metrics.communityCouncilsAreaDesc',
-    iconClass: 'fas fa-handshake',
-    dummyValue: '27 km²',
-    dummyUnitKey: 'analysis.overview.metricUnits.communities',
   },
 ];
 export const COMPARISON_SECTION_META: Record<ComparisonSectionId, ComparisonSectionMeta> = {

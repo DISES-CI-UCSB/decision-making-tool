@@ -441,9 +441,8 @@ describe('PanelSwitcherComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(
-      compiled.querySelector(
-        '#right-sidebar-v3-overview-gain-value-metric-18-priority-area-total',
-      )?.textContent,
+      compiled.querySelector('#right-sidebar-v3-overview-gain-value-metric-18-priority-area-total')
+        ?.textContent,
     ).toContain('293.4K km² (25.7%)');
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-17-national-contribution'),
@@ -534,31 +533,10 @@ describe('PanelSwitcherComponent', () => {
     });
     expect(compiled.querySelector('#aoi-custom-metrics-status')).toBeNull();
     expect(compiled.querySelector('#aoi-custom-metrics-summary-grid')).toBeNull();
-    expect(compiled.querySelector('#aoi-dashboard-sirap-whole-feature-context')).toBeNull();
-    expect(compiled.querySelector('#aoi-dashboard-scope-explanation')?.textContent).toContain(
-      'analysis.aoi.scopeExplanation',
-    );
-    expect(compiled.querySelector('#aoi-overview-aligned-title')?.textContent).toContain(
-      'analysis.aoi.alignedMetrics.title',
-    );
-    expect(
-      compiled.querySelector('#aoi-overview-aligned-value-aoi-summary-priority-area')?.textContent,
-    ).toContain('2,5 km² (25%)');
-    expect(
-      compiled.querySelector('#aoi-overview-aligned-name-aoi-summary-priority-area')?.textContent,
-    ).toContain('analysis.aoi.alignedMetrics.priorityAreaDrawn');
-    expect(
-      compiled.querySelector('#aoi-overview-aligned-row-aoi-summary-national-contribution'),
-    ).toBeNull();
-    expect(
-      compiled.querySelector('#aoi-overview-aligned-value-aoi-summary-carbon')?.textContent,
-    ).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-overview-aligned-metrics')).toBeNull();
     expect(compiled.querySelector('#aoi-strategic-value-paramos')?.textContent).toContain('20%');
     expect(compiled.querySelector('#aoi-strategic-description')?.textContent).toContain(
       'analysis.aoi.strategic.customDescription',
-    );
-    expect(compiled.querySelector('#aoi-local-drilldown-title')?.textContent).toContain(
-      'analysis.aoi.drillDown.title',
     );
     const biodiversityLoadingStatus = compiled.querySelector(
       '#aoi-biodiversity-species-loading-status',
@@ -717,6 +695,7 @@ describe('PanelSwitcherComponent', () => {
       'species_richness_reptiles',
       'species_richness_plants',
       'threatened_species_count',
+      'threatened_species_secured',
       'species_pct_of_national',
     ]);
 
@@ -965,7 +944,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-row-seagrass-unit')?.textContent.trim()).toBe('--');
   });
 
-  it('renders separate ecosystems, strategic ecosystems, and carbon sections', async () => {
+  it('renders separate ecosystems, strategic ecosystems, and ecosystem services sections', async () => {
     const solution = buildTestSolution();
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
       of(
@@ -974,6 +953,9 @@ describe('PanelSwitcherComponent', () => {
           buildMetric('ecosystem_coverage_paramo', 2, 'km²', 'number'),
           buildMetric('ecosystem_coverage_wetlands', 15, 'km²', 'number'),
           buildMetric('carbon_storage_biomass', 40, 'Mg', 'number'),
+          buildMetric('water_regulation_area', 78, 'km²', 'number'),
+          buildMetric('threatened_species_secured', 90, 'count', 'number'),
+          buildMetric('agricultural_area', 125, 'km²', 'number'),
         ]),
       ),
     );
@@ -995,9 +977,17 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-section-ecosystems')).not.toBeNull();
     expect(compiled.querySelector('#aoi-section-strategic')).not.toBeNull();
     expect(compiled.querySelector('#aoi-section-carbon')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-label-carbon')?.textContent).toContain(
+      'analysis.aoi.sections.ecosystemServices',
+    );
     expect(compiled.querySelector('#aoi-strategic-value-paramos')?.textContent).toContain('20%');
     expect(compiled.querySelector('#aoi-strategic-value-wetlands')?.textContent).toContain('100%');
     expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-stat-water-regulation')?.textContent).toContain('78 km²');
+    expect(compiled.querySelector('#aoi-stat-threatened-secured')?.textContent).toContain('90');
+    expect(
+      compiled.querySelector('#aoi-stat-agricultural-conservation-area')?.textContent,
+    ).toContain('125 km²');
   });
 
   it('renders real MEC rows for a fixed AOI with candidate-share preview values', async () => {
@@ -1558,14 +1548,6 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-dashboard-scope-strip')).toBeNull();
     expect(compiled.querySelector('#aoi-dashboard-scope-polygon-btn')).toBeNull();
     expect(compiled.querySelector('#aoi-dashboard-scope-whole-btn')).toBeNull();
-    const wholeFeatureContext = compiled.querySelector(
-      '#aoi-dashboard-sirap-whole-feature-context',
-    );
-    expect(wholeFeatureContext?.textContent).toContain('analysis.aoi.sirapWholeFeatureContext');
-    expect(wholeFeatureContext?.getAttribute('role')).toBe('note');
-    expect(wholeFeatureContext?.getAttribute('aria-label')).toBe(
-      'analysis.aoi.sirapWholeFeatureContext',
-    );
     const csvMetadata = (
       fixture.componentInstance as unknown as {
         buildAoiCsvMetadata(): { exportDetails: string[][] };

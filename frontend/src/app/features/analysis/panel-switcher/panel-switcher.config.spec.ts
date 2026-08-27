@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AOI_ALIGNED_METRIC_BLUEPRINTS,
   COMPARISON_METRIC_BLUEPRINTS,
   COMPARISON_SECTION_META,
   COMPARISON_SECTION_ORDER,
@@ -23,18 +22,6 @@ describe('panel switcher metric configuration', () => {
       'metric-05-carbon-storage-capacity',
       'metric-06-water-regulation-services',
       'metric-09-affected-agricultural-area',
-    ]);
-    expectBlueprintIds(AOI_ALIGNED_METRIC_BLUEPRINTS, [
-      'aoi-summary-priority-area',
-      'aoi-summary-threatened-species',
-      'aoi-summary-paramo',
-      'aoi-summary-dry-forest',
-      'aoi-summary-wetlands',
-      'aoi-summary-carbon',
-      'aoi-summary-water',
-      'aoi-summary-agriculture',
-      'aoi-summary-indigenous-reservations',
-      'aoi-summary-community-councils',
     ]);
     expectBlueprintIds(COMPARISON_METRIC_BLUEPRINTS, [
       'comp-priority-area',

@@ -107,7 +107,6 @@ import {
   buildMetricSections,
 } from '../utils/metric-display-builders.utils';
 import {
-  AOI_ALIGNED_METRIC_BLUEPRINTS,
   COMPARISON_METRIC_BLUEPRINTS,
   COMPARISON_SECTION_META,
   COMPARISON_SECTION_ORDER,
@@ -117,7 +116,6 @@ import {
   OVERVIEW_METRIC_BLUEPRINTS,
   OVERVIEW_SECTION_LOOKUP,
   OVERVIEW_SECTION_ORDER,
-  type AoiAlignedMetricBlueprint,
   type ComparisonDeltaTone,
   type ComparisonMetricBlueprint,
   type ComparisonSectionId,
@@ -271,19 +269,6 @@ interface GoalsModalSummary {
   pctMet: number | null;
   reached17Count: number;
   reached30Count: number;
-}
-
-interface AoiAlignedMetricDisplayEntry {
-  id: string;
-  metricId: string;
-  labelKey: string;
-  descriptionKey: string;
-  iconClass?: string;
-  value: string;
-  fullValue: string | null;
-  unit: string;
-  /** Localized caveat when the metric is `partial`; empty when the value is complete. */
-  partialNote: string;
 }
 
 interface ComparisonMetricDisplayEntry {
@@ -844,9 +829,6 @@ export class PanelSwitcherComponent {
   });
   protected readonly aoiMetricsById = computed<Map<string, MetricValue>>(
     () => new Map(this.aoiMetrics().map((metric) => [metric.metricId, metric] as const)),
-  );
-  protected readonly aoiAlignedMetricEntries = computed<AoiAlignedMetricDisplayEntry[]>(() =>
-    this.buildAoiAlignedMetricDisplayEntries(),
   );
   protected readonly isSirapAoiSelected = computed(() => this.selectedAoi()?.type === 'sirap');
   protected readonly isCustomAoiSelected = computed(
@@ -3345,22 +3327,7 @@ export class PanelSwitcherComponent {
       this.buildMetricValueCsvRow(metric, context, section),
     );
 
-    if (realRows.length > 0) {
-      return realRows;
-    }
-
-    return this.aoiAlignedMetricEntries().map((entry) =>
-      this.buildMetricsCsvRow({
-        context,
-        section: this.localizedText('analysis.aoi.alignedMetrics.title'),
-        metricId: entry.metricId,
-        metric: this.localizedText(entry.labelKey),
-        description: this.localizedText(entry.descriptionKey),
-        value: entry.fullValue && entry.fullValue !== entry.value ? entry.fullValue : entry.value,
-        unit: entry.unit,
-        status: this.localizedText('analysis.status.ready'),
-      }),
-    );
+    return realRows;
   }
 
   private buildComparisonMetricsCsvRows(): MetricsCsvRow[] {
@@ -4215,10 +4182,7 @@ export class PanelSwitcherComponent {
             sourceLabelKey: metric.sourceLabelKey,
             sourceUrlKey: metric.sourceUrlKey,
             iconClass: metric.iconClass,
-            value: this.formatAreaWithContextShare(
-              priorityAreaKm2,
-              COLOMBIA_REFERENCE_AREA_KM2,
-            ),
+            value: this.formatAreaWithContextShare(priorityAreaKm2, COLOMBIA_REFERENCE_AREA_KM2),
             fullValue: this.formatAreaWithContextShare(
               priorityAreaKm2,
               COLOMBIA_REFERENCE_AREA_KM2,
@@ -4317,68 +4281,6 @@ export class PanelSwitcherComponent {
         metrics,
       };
     });
-  }
-
-  private buildAoiAlignedMetricDisplayEntries(): AoiAlignedMetricDisplayEntry[] {
-    const metricsById = this.aoiMetricsById();
-    const shouldFillDummy = this.fillDummyAoiMetrics();
-
-    return AOI_ALIGNED_METRIC_BLUEPRINTS.flatMap<AoiAlignedMetricDisplayEntry>((blueprint) => {
-      const realMetric = blueprint.metricIds
-        .map((metricId) => metricsById.get(metricId))
-        .find((metric): metric is MetricValue => isDisplayableMetricValue(metric));
-
-      if (realMetric) {
-        const areaKm2 = displayableMetricValue(realMetric);
-        const isPriorityArea = blueprint.id === 'aoi-summary-priority-area' && areaKm2 !== null;
-        const compactValue = isPriorityArea
-          ? this.formatAreaWithContextShare(areaKm2, this.resolveSelectedAoiAreaKm2())
-          : this.formatMetricForPanel(realMetric);
-        const fullValue = isPriorityArea
-          ? this.formatAreaWithContextShare(areaKm2, this.resolveSelectedAoiAreaKm2(), 'full')
-          : this.formatMetricForPanel(realMetric, 'full');
-
-        return [
-          {
-            id: blueprint.id,
-            metricId: realMetric.metricId,
-            labelKey: this.getAoiAlignedMetricLabelKey(blueprint),
-            descriptionKey: blueprint.descriptionKey,
-            iconClass: blueprint.iconClass,
-            value: compactValue,
-            fullValue,
-            unit: '',
-            partialNote: this.metricPartialNote(realMetric),
-          },
-        ];
-      }
-
-      if (shouldFillDummy) {
-        return [
-          {
-            id: blueprint.id,
-            metricId: blueprint.metricIds[0] ?? blueprint.id,
-            labelKey: this.getAoiAlignedMetricLabelKey(blueprint),
-            descriptionKey: blueprint.descriptionKey,
-            iconClass: blueprint.iconClass,
-            value: blueprint.dummyValue,
-            fullValue: null,
-            unit: this.localizedText(blueprint.dummyUnitKey ?? ''),
-            partialNote: '',
-          },
-        ];
-      }
-
-      return [];
-    });
-  }
-
-  private getAoiAlignedMetricLabelKey(blueprint: AoiAlignedMetricBlueprint): string {
-    if (this.isCustomAoiSelected() && blueprint.customAoiLabelKey) {
-      return blueprint.customAoiLabelKey;
-    }
-
-    return blueprint.labelKey;
   }
 
   private buildMetricComparisons(
