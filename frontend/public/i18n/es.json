@@ -421,8 +421,8 @@
         "ecosystemCoverageDesc": "Ecosistemas clave dentro de áreas de conservación existentes y candidatas",
         "nationalContribution": "Porcentaje de Colombia seleccionado",
         "nationalContributionDesc": "Porcentaje de Colombia dentro de áreas de conservación existentes y candidatas",
-        "priorityAreaTotal": "Área prioritaria seleccionada",
-        "priorityAreaTotalDesc": "Área total dentro de áreas de conservación existentes y candidatas",
+        "priorityAreaTotal": "Área candidata seleccionada",
+        "priorityAreaTotalDesc": "Área de conservación candidata y su porcentaje de Colombia",
         "paramoCoverage": "Cobertura de páramo",
         "paramoCoverageDesc": "Páramo de alta montaña dentro de áreas de conservación existentes y candidatas",
         "dryForestCoverage": "Cobertura de bosque seco",
@@ -480,7 +480,8 @@
       "alignedMetrics": {
         "title": "Métricas de resumen en este AOI",
         "description": "Las mismas familias de métricas principales del Resumen, enfocadas en el área seleccionada.",
-        "priorityAreaDrawn": "Área prioritaria dibujada"
+        "priorityAreaDrawn": "Área de conservación candidata (dibujada)",
+        "priorityAreaSelectedDesc": "Área de conservación candidata y su porcentaje de esta área de interés"
       },
       "drillDown": {
         "title": "Métricas locales de detalle",

@@ -95,6 +95,7 @@ import {
   isMetricCompatibleAoiSource,
   resolveCachedAoiMetrics,
 } from '../utils/aoi-cached-metrics.utils';
+import { COLOMBIA_REFERENCE_AREA_KM2 } from '@features/map/utils/solution-raster.utils';
 import {
   classifyCustomAoiBiodiversityEstimate,
   getCustomAoiSpeciesLoadingKey as resolveCustomAoiSpeciesLoadingKey,
@@ -1137,10 +1138,6 @@ export class PanelSwitcherComponent {
   protected readonly aoiHeroPriorityBarColor = computed(() =>
     this.getPaletteColorBySlot(this.getGreenPaletteSlot()),
   );
-  protected readonly aoiHeroAddedContributionColor = computed(() => this.getPaletteColorBySlot(0));
-  protected readonly aoiHeroExistingContributionColor = computed(() =>
-    this.withAlpha(this.aoiHeroAddedContributionColor(), 0.35),
-  );
 
   protected readonly comparisonSectionExpanded = signal<Record<ComparisonSectionId, boolean>>({
     general: true,
@@ -1688,13 +1685,6 @@ export class PanelSwitcherComponent {
   }
 
   protected getOverviewMetricValue(metricId: string, fallbackWhenMissing = '--'): string {
-    if (metricId === 'national_contribution') {
-      const liveValue = this.formatLiveNationalContribution();
-      if (liveValue) {
-        return liveValue;
-      }
-    }
-
     const metric = this.findOverviewMetric(metricId);
     if (isDisplayableMetricValue(metric)) {
       return this.formatOverviewMetricForPanel(metric);
@@ -1704,12 +1694,6 @@ export class PanelSwitcherComponent {
   }
 
   protected getOverviewMetricFullValue(metricId: string): string | null {
-    if (metricId === 'national_contribution') {
-      const compactValue = this.formatLiveNationalContribution('compact');
-      const fullValue = this.formatLiveNationalContribution('full');
-      return compactValue && fullValue && fullValue !== compactValue ? fullValue : null;
-    }
-
     const metric = this.findOverviewMetric(metricId);
     if (!isDisplayableMetricValue(metric)) {
       return null;
@@ -2807,10 +2791,6 @@ export class PanelSwitcherComponent {
     return this.getAoiMetricValue(metricId, fallbackWhenMissing);
   }
 
-  protected aoiBarWidth(dummyPercent: number): number {
-    return this.fillDummyAoiMetrics() ? dummyPercent : 0;
-  }
-
   protected aoiSpeciesBarWidth(count: number | null): number {
     if (count === null) {
       return 0;
@@ -2959,6 +2939,24 @@ export class PanelSwitcherComponent {
     mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
   ): string {
     return formatAreaMetricValue(valueKm2, this.metricFormatOptions(mode));
+  }
+
+  private formatAreaWithContextShare(
+    areaKm2: number,
+    contextAreaKm2: number | null,
+    mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
+  ): string {
+    const area = this.formatAreaValue(areaKm2, mode);
+    if (contextAreaKm2 === null || contextAreaKm2 <= 0) {
+      return area;
+    }
+
+    const percent = Math.max(0, Math.min(100, (areaKm2 / contextAreaKm2) * 100));
+    const maxFractionDigits = mode === 'full' ? 2 : 1;
+    return `${area} (${this.appendUnit(
+      this.formatNumber(percent, mode, 0, maxFractionDigits),
+      '%',
+    )})`;
   }
 
   private areaUnitLabel(unit: AreaDisplayUnit): string {
@@ -4161,13 +4159,11 @@ export class PanelSwitcherComponent {
         const realValueAvailable =
           isDisplayableMetricValue(realMetric) ||
           Boolean(realMetric && readSpeciesReferenceSummary(realMetric));
-        const liveNationalContribution =
-          metric.realMetricId === 'national_contribution'
-            ? this.formatLiveNationalContribution()
+        const priorityAreaKm2 =
+          metric.realMetricId === 'priority_area_in_region'
+            ? displayableMetricValue(realMetric)
             : null;
-
-        if (liveNationalContribution) {
-          const fullValue = this.formatLiveNationalContribution('full');
+        if (priorityAreaKm2 !== null) {
           return {
             id: metric.id,
             labelKey: metric.labelKey,
@@ -4176,10 +4172,17 @@ export class PanelSwitcherComponent {
             sourceLabelKey: metric.sourceLabelKey,
             sourceUrlKey: metric.sourceUrlKey,
             iconClass: metric.iconClass,
-            value: liveNationalContribution,
-            fullValue,
+            value: this.formatAreaWithContextShare(
+              priorityAreaKm2,
+              COLOMBIA_REFERENCE_AREA_KM2,
+            ),
+            fullValue: this.formatAreaWithContextShare(
+              priorityAreaKm2,
+              COLOMBIA_REFERENCE_AREA_KM2,
+              'full',
+            ),
             unit: '',
-            partialNote: '',
+            partialNote: this.metricPartialNote(realMetric),
             conditional: Boolean(metric.conditional),
             unavailable: false,
           };
@@ -4250,18 +4253,6 @@ export class PanelSwitcherComponent {
     return resolveOverviewMetric(metricsById, metricId, planningDomain) ?? null;
   }
 
-  private formatLiveNationalContribution(
-    mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
-  ): string | null {
-    const liveMetrics = this.solutionLayer.liveSolutionMetrics$();
-    const percent = liveMetrics?.nationalContributionPct;
-    if (liveMetrics?.status !== 'ready' || percent === null || percent === undefined) {
-      return null;
-    }
-
-    return `${this.formatNumber(percent, mode, 0, mode === 'full' ? 2 : 1)}%`;
-  }
-
   private buildComparisonSections(): ComparisonMetricSection[] {
     const metricsById = new Map(
       this.comparisonMetrics().map((metric) => [metric.metricId, metric] as const),
@@ -4295,8 +4286,14 @@ export class PanelSwitcherComponent {
         .find((metric): metric is MetricValue => isDisplayableMetricValue(metric));
 
       if (realMetric) {
-        const fullValue = this.formatMetricForPanel(realMetric, 'full');
-        const compactValue = this.formatMetricForPanel(realMetric);
+        const areaKm2 = displayableMetricValue(realMetric);
+        const isPriorityArea = blueprint.id === 'aoi-summary-priority-area' && areaKm2 !== null;
+        const compactValue = isPriorityArea
+          ? this.formatAreaWithContextShare(areaKm2, this.resolveSelectedAoiAreaKm2())
+          : this.formatMetricForPanel(realMetric);
+        const fullValue = isPriorityArea
+          ? this.formatAreaWithContextShare(areaKm2, this.resolveSelectedAoiAreaKm2(), 'full')
+          : this.formatMetricForPanel(realMetric, 'full');
 
         return [
           {

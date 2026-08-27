@@ -17,7 +17,6 @@ describe('panel switcher metric configuration', () => {
       'metric-01-conservation-goals-met',
       'metric-02-species-groups-protected',
       'metric-03-threatened-species-secured',
-      'metric-17-national-contribution',
       'metric-18-priority-area-total',
       'metric-59-indigenous-reservations',
       'metric-60-community-councils',
@@ -28,7 +27,6 @@ describe('panel switcher metric configuration', () => {
     ]);
     expectBlueprintIds(AOI_ALIGNED_METRIC_BLUEPRINTS, [
       'aoi-summary-priority-area',
-      'aoi-summary-national-contribution',
       'aoi-summary-threatened-species',
       'aoi-summary-paramo',
       'aoi-summary-dry-forest',

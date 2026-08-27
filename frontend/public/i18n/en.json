@@ -421,8 +421,8 @@
         "ecosystemCoverageDesc": "Key ecosystems within existing and candidate conservation areas",
         "nationalContribution": "Share of Colombia selected",
         "nationalContributionDesc": "Share of Colombia within existing and candidate conservation areas",
-        "priorityAreaTotal": "Candidate Conservation Area (Selected)",
-        "priorityAreaTotalDesc": "Total area within existing and candidate conservation areas",
+        "priorityAreaTotal": "Selected Candidate Area",
+        "priorityAreaTotalDesc": "Candidate conservation area and its share of Colombia",
         "paramoCoverage": "Páramo Coverage",
         "paramoCoverageDesc": "High-altitude páramo within existing and candidate conservation areas",
         "dryForestCoverage": "Dry Forest Coverage",
@@ -565,7 +565,8 @@
       "alignedMetrics": {
         "title": "Summary Metrics in This AOI",
         "description": "The same headline metric families from Overview, scoped to the selected area.",
-        "priorityAreaDrawn": "Candidate Conservation Area (Drawn)"
+        "priorityAreaDrawn": "Candidate Conservation Area (Drawn)",
+        "priorityAreaSelectedDesc": "Candidate conservation area and its share of this area of interest"
       },
       "drillDown": {
         "title": "Local Drill-Down Metrics",

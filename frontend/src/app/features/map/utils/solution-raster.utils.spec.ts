@@ -3,6 +3,7 @@ import {
   buildOverlapRasterData,
   calculateLiveComparisonMetrics,
   calculateLiveSolutionMetrics,
+  COLOMBIA_REFERENCE_AREA_KM2,
   getPixelAreaKm2PerRow,
 } from './solution-raster.utils';
 
@@ -80,7 +81,7 @@ describe('solution raster utilities', () => {
     expect(Array.from(buildOverlapRasterData(baseline, candidate))).toEqual([1, 0]);
   });
 
-  it('converts projected pixel dimensions in meters to square kilometers', () => {
+  it('converts projected pixel dimensions and country contribution to square kilometers', () => {
     const loaded = createLoadedSolution([1, 0, 2, 0], {
       width: 2,
       height: 2,
@@ -93,7 +94,7 @@ describe('solution raster utilities', () => {
       expect.objectContaining({
         selectedAreaKm2: 2,
         validAreaKm2: 4,
-        nationalContributionPct: 50,
+        nationalContributionPct: (2 / COLOMBIA_REFERENCE_AREA_KM2) * 100,
       }),
     );
   });

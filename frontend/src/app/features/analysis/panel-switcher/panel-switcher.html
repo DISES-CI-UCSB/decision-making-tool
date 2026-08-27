@@ -1784,40 +1784,6 @@
                           {{ 'analysis.aoi.hero.ofMunicipality' | translate }}
                         </div>
                       </div>
-                      <div id="aoi-hero-national" class="aoi-hero-card aoi-hero-card-national">
-                        <div class="aoi-hero-kicker">
-                          {{ 'analysis.aoi.hero.nationalContributionLabel' | translate }}
-                        </div>
-                        <div
-                          class="aoi-hero-value aoi-hero-value-blue"
-                          [attr.data-full-value]="getAoiMetricFullValue('national_contribution')"
-                          [attr.tabindex]="
-                            getAoiMetricFullValue('national_contribution') ? 0 : null
-                          "
-                        >
-                          {{ getAoiMetricValue('national_contribution', '1.9%') }}
-                        </div>
-                        <div class="aoi-hero-bar">
-                          <span
-                            id="aoi-hero-fill-existing"
-                            class="aoi-hero-fill-blue-lt"
-                            [style.width.%]="aoiBarWidth(0.9)"
-                            [style.background-color]="aoiHeroExistingContributionColor()"
-                          ></span>
-                          <span
-                            id="aoi-hero-fill-added"
-                            class="aoi-hero-fill-blue"
-                            [style.width.%]="aoiBarWidth(1)"
-                            [style.background-color]="aoiHeroAddedContributionColor()"
-                          ></span>
-                        </div>
-                        <div class="aoi-hero-sub">
-                          {{
-                            'analysis.aoi.hero.existingAdds'
-                              | translate: { existing: aoiVal('0.9%'), added: aoiVal('1.0%') }
-                          }}
-                        </div>
-                      </div>
                     </div>
 
                     <div id="aoi-protect-stats" class="aoi-stat-grid">

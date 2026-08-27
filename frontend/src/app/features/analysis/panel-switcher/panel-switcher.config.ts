@@ -59,7 +59,6 @@ export type CustomAoiMetricDefinition = Pick<
 
 export const CUSTOM_AOI_FAST_METRIC_IDS: CustomPolygonMetricId[] = [
   'priority_area_in_region',
-  'national_contribution',
   'ecosystem_coverage',
   'carbon_storage_biomass',
   'water_regulation_area',
@@ -348,16 +347,6 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     dummyUnitKey: 'analysis.overview.metricUnits.eightyEightPercentSecured',
   },
   {
-    id: 'metric-17-national-contribution',
-    section: 'gains',
-    labelKey: 'analysis.overview.metrics.nationalContribution',
-    descriptionKey: 'analysis.overview.metrics.nationalContributionDesc',
-    iconClass: 'fas fa-flag',
-    realMetricId: 'national_contribution',
-    dummyValue: '17%',
-    dummyUnitKey: 'analysis.overview.metricUnits.ofColombia',
-  },
-  {
     id: 'metric-18-priority-area-total',
     section: 'gains',
     labelKey: 'analysis.overview.metrics.priorityAreaTotal',
@@ -446,19 +435,10 @@ export const AOI_ALIGNED_METRIC_BLUEPRINTS: AoiAlignedMetricBlueprint[] = [
     metricIds: ['priority_area_in_region'],
     labelKey: 'analysis.overview.metrics.priorityAreaTotal',
     customAoiLabelKey: 'analysis.aoi.alignedMetrics.priorityAreaDrawn',
-    descriptionKey: 'analysis.overview.metrics.priorityAreaTotalDesc',
+    descriptionKey: 'analysis.aoi.alignedMetrics.priorityAreaSelectedDesc',
     iconClass: 'fas fa-square-check',
     dummyValue: '230 km²',
     dummyUnitKey: 'analysis.overview.metricUnits.selected',
-  },
-  {
-    id: 'aoi-summary-national-contribution',
-    metricIds: ['national_contribution'],
-    labelKey: 'analysis.overview.metrics.nationalContribution',
-    descriptionKey: 'analysis.overview.metrics.nationalContributionDesc',
-    iconClass: 'fas fa-flag',
-    dummyValue: '1.9%',
-    dummyUnitKey: 'analysis.overview.metricUnits.ofColombia',
   },
   {
     id: 'aoi-summary-threatened-species',
