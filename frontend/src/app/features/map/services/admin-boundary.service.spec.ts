@@ -133,7 +133,7 @@ describe('AdminBoundaryService', () => {
         symbol: expect.objectContaining({
           outline: expect.objectContaining({
             color: [107, 114, 128, 235],
-            style: 'dot',
+            style: 'solid',
             width: 1.25,
           }),
         }),

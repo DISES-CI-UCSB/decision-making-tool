@@ -405,7 +405,7 @@ export const LEGEND_BOUNDARY_STYLES: Record<
 > = {
   siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
   siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
-  siraps_territorial_updated: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
+  siraps_territorial_updated: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
   siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#475569' },
   admin_country_outline: { lineStyle: 'solid', lineWidth: 1.6, color: '#111827' },
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },

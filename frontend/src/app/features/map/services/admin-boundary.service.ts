@@ -98,7 +98,7 @@ const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, Boundar
   siraps_territorial_updated: {
     color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
     width: 1.25,
-    style: 'dot',
+    style: 'solid',
   },
   siraps_thematic: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
   admin_country_outline: {

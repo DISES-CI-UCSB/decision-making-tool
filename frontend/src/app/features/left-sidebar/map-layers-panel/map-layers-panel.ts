@@ -4285,8 +4285,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       borderStyle:
         boundaryLayerKey === 'siraps'
           ? 'dashed'
-          : boundaryLayerKey === 'siraps_thematic' ||
-              boundaryLayerKey === 'siraps_territorial_updated'
+          : boundaryLayerKey === 'siraps_thematic'
             ? 'dotted'
             : 'solid',
       borderWidth:
