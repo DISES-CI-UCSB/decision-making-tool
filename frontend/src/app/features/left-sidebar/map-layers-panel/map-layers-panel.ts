@@ -1633,6 +1633,23 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.scheduleOpacitySync(`${taxonId}:${speciesId}`);
   }
 
+  protected updateSpeciesColor(taxonId: string, speciesId: string, color: string): void {
+    this.taxa.update((taxa) =>
+      taxa.map((taxon) => {
+        if (taxon.id !== taxonId) {
+          return taxon;
+        }
+        return {
+          ...taxon,
+          species: taxon.species.map((species) =>
+            species.id === speciesId ? { ...species, color } : species,
+          ),
+        };
+      }),
+    );
+    this.scheduleColorSync(`${taxonId}:${speciesId}`);
+  }
+
   protected filteredSpecies(taxon: TaxonRow): SpeciesRow[] {
     const query = taxon.searchQuery.trim().toLowerCase();
     const candidates = taxon.species.filter((species) => {
@@ -2370,6 +2387,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (groupId) {
       this.updateLayerColor(groupId, rowId, color);
       return;
+    }
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      this.updateSpeciesColor(speciesMatch.taxonId, rowId, color);
     }
   }
 
@@ -3967,7 +3989,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       color: existingSpecies?.color ?? rendering?.selectedColor ?? '#475569',
       canReorder: true,
       hasStyleControls: true,
-      hasColorControl: false,
+      hasColorControl: true,
       mapUnavailable: !isRenderable,
       mapSync:
         isRenderable && rendering
