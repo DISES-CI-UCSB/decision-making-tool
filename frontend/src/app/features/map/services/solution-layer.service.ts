@@ -5,6 +5,7 @@ import MediaLayer from '@arcgis/core/layers/MediaLayer';
 import ImageElement from '@arcgis/core/layers/support/ImageElement';
 import ExtentAndRotationGeoreference from '@arcgis/core/layers/support/ExtentAndRotationGeoreference';
 import LocalMediaElementSource from '@arcgis/core/layers/support/LocalMediaElementSource';
+import PixelBlock from '@arcgis/core/layers/support/PixelBlock';
 import ClassBreaksRenderer from '@arcgis/core/renderers/ClassBreaksRenderer';
 import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 
@@ -19,6 +20,7 @@ import {
   buildOverlapRasterData,
   calculateLiveComparisonMetrics,
   calculateLiveSolutionMetrics,
+  NEW_COVERAGE_VALUE,
   type LiveComparisonMetrics,
   type LiveSolutionMetrics,
 } from '../utils/solution-raster.utils';
@@ -56,7 +58,7 @@ export class SolutionLayerService {
   private currentLayer: SolutionDisplayLayer | null = null;
   private baselineComparisonLayer: SolutionDisplayLayer | null = null;
   private candidateComparisonLayer: SolutionDisplayLayer | null = null;
-  private overlapComparisonLayer: InstanceType<typeof MediaLayer> | null = null;
+  private overlapComparisonLayer: InstanceType<typeof ImageryTileLayer> | null = null;
   private baselineComparisonLoaded: LoadedSolution | null = null;
   private candidateComparisonLoaded: LoadedSolution | null = null;
   private comparisonMode = false;
@@ -236,6 +238,9 @@ export class SolutionLayerService {
       this.comparisonMode = true;
       this.map.addMany([this.baselineComparisonLayer, this.candidateComparisonLayer]);
       this.loadedSolution$.set(baselineLoaded);
+      if (this.comparisonVisualizationMode === 'threeColorOverlay') {
+        this.ensureOverlapLayer();
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.loadError$.set(msg);
@@ -486,23 +491,14 @@ export class SolutionLayerService {
       return;
     }
     this.overlapColor$.set(normalized);
-    if (
-      !this.overlapComparisonLayer ||
-      !this.baselineComparisonLoaded ||
-      !this.candidateComparisonLoaded
-    ) {
+    if (!this.overlapComparisonLayer || !this.baselineComparisonLoaded) {
       return;
     }
 
-    const overlapRasterData = buildOverlapRasterData(
+    this.overlapComparisonLayer.renderer = this.createSolutionRenderer(
       this.baselineComparisonLoaded,
-      this.candidateComparisonLoaded,
-    );
-    this.replaceLayerSourceWithRaster(
-      this.overlapComparisonLayer,
-      this.baselineComparisonLoaded,
-      overlapRasterData,
       normalized,
+      { collapseExistingProtectedCoverage: true },
     );
   }
 
@@ -689,26 +685,30 @@ export class SolutionLayerService {
     newCoverageColorHex: string,
     renderOptions: SolutionRenderOptions = {},
   ): InstanceType<typeof ClassBreaksRenderer> {
+    const classColors = this.getSolutionClassColors(
+      loaded,
+      newCoverageColorHex,
+      renderOptions,
+    ).sort((a, b) => a.value - b.value);
+
     return new ClassBreaksRenderer({
       field: 'Value',
       defaultSymbol: new SimpleFillSymbol({
         color: [0, 0, 0, 0],
         outline: null,
       }),
-      classBreakInfos: this.getSolutionClassColors(loaded, newCoverageColorHex, renderOptions).map(
-        (entry) => {
-          const [r, g, b] = hexToRgb(entry.color) ?? [22, 163, 74];
-          return {
-            minValue: entry.value - 0.5,
-            maxValue: entry.value + 0.5,
-            label: entry.label ?? undefined,
-            symbol: new SimpleFillSymbol({
-              color: [r, g, b, 1],
-              outline: null,
-            }),
-          };
-        },
-      ),
+      classBreakInfos: classColors.map((entry) => {
+        const [r, g, b] = hexToRgb(entry.color) ?? [22, 163, 74];
+        return {
+          minValue: entry.value - 0.5,
+          maxValue: entry.value + 0.5,
+          label: entry.label ?? undefined,
+          symbol: new SimpleFillSymbol({
+            color: [r, g, b, 1],
+            outline: null,
+          }),
+        };
+      }),
     });
   }
 
@@ -741,35 +741,6 @@ export class SolutionLayerService {
     layer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
   }
 
-  private replaceLayerSourceWithRaster(
-    layer: InstanceType<typeof MediaLayer>,
-    loaded: LoadedSolution,
-    rasterData: LoadedSolution['rasterData'],
-    colorHex: string,
-  ): void {
-    const canvas = this.rasterToCanvasWithColor(rasterData, loaded.rasterMeta, colorHex);
-    const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
-    const nextImageElement = new ImageElement({
-      image: canvas,
-      georeference: new ExtentAndRotationGeoreference({
-        extent: new Extent({
-          xmin,
-          ymin,
-          xmax,
-          ymax,
-          spatialReference: spatialReferenceForRaster(loaded.rasterMeta),
-        }),
-      }),
-    });
-    const source = layer.source;
-    if (source instanceof LocalMediaElementSource) {
-      source.elements.removeAll();
-      source.elements.add(nextImageElement);
-      return;
-    }
-    layer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
-  }
-
   private ensureOverlapLayer(): void {
     if (!this.map || !this.baselineComparisonLoaded || !this.candidateComparisonLoaded) {
       return;
@@ -779,30 +750,21 @@ export class SolutionLayerService {
       this.baselineComparisonLoaded,
       this.candidateComparisonLoaded,
     );
+    if (!overlapRasterData) {
+      return;
+    }
 
     if (!this.overlapComparisonLayer) {
-      this.overlapComparisonLayer = new MediaLayer({
-        id: OVERLAP_LAYER_ID,
-        source: new LocalMediaElementSource({
-          elements: [
-            this.createImageElementWithRaster(this.baselineComparisonLoaded, overlapRasterData),
-          ],
-        }),
-        opacity: this.overlapComparisonOpacity,
-        title: 'Overlap',
-      });
-      this.map.add(this.overlapComparisonLayer);
-    } else {
-      this.replaceLayerSourceWithRaster(
-        this.overlapComparisonLayer,
+      this.overlapComparisonLayer = this.createOverlapImageryTileLayer(
         this.baselineComparisonLoaded,
         overlapRasterData,
-        this.overlapColor$(),
       );
+      this.map.add(this.overlapComparisonLayer);
     }
 
     this.overlapComparisonLayer.opacity = this.overlapComparisonOpacity;
-    this.overlapComparisonLayer.visible = this.overlapComparisonVisible;
+    this.overlapComparisonLayer.visible =
+      this.overlapComparisonVisible && this.comparisonVisualizationMode === 'threeColorOverlay';
     if ('reorder' in this.map && typeof this.map.reorder === 'function') {
       const topIndex =
         'layers' in this.map && this.map.layers && 'length' in this.map.layers
@@ -823,19 +785,17 @@ export class SolutionLayerService {
     }
   }
 
-  private createImageElementWithRaster(
+  private createOverlapImageryTileLayer(
     loaded: LoadedSolution,
     rasterData: LoadedSolution['rasterData'],
-  ): ImageElement {
-    const canvas = this.rasterToCanvasWithColor(
-      rasterData,
-      loaded.rasterMeta,
-      this.overlapColor$(),
-    );
+  ): InstanceType<typeof ImageryTileLayer> {
     const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
-    return new ImageElement({
-      image: canvas,
-      georeference: new ExtentAndRotationGeoreference({
+    const pixels = Uint8Array.from(rasterData);
+    const mask = Uint8Array.from(rasterData, (value) => (value === NEW_COVERAGE_VALUE ? 1 : 0));
+
+    return new ImageryTileLayer({
+      id: OVERLAP_LAYER_ID,
+      source: {
         extent: new Extent({
           xmin,
           ymin,
@@ -843,7 +803,21 @@ export class SolutionLayerService {
           ymax,
           spatialReference: spatialReferenceForRaster(loaded.rasterMeta),
         }),
+        pixelBlock: new PixelBlock({
+          width: loaded.rasterMeta.width,
+          height: loaded.rasterMeta.height,
+          pixelType: 'u8',
+          pixels: [pixels],
+          mask,
+        }),
+      },
+      interpolation: 'nearest',
+      renderer: this.createSolutionRenderer(loaded, this.overlapColor$(), {
+        collapseExistingProtectedCoverage: true,
       }),
+      opacity: this.overlapComparisonOpacity,
+      title: 'Overlap',
+      visible: this.overlapComparisonVisible,
     });
   }
 

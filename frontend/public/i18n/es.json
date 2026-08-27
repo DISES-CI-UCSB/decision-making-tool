@@ -431,8 +431,8 @@
         "ecosystemCoverageDesc": "Ecosistemas clave dentro de áreas de conservación existentes y candidatas",
         "nationalContribution": "Porcentaje de Colombia seleccionado",
         "nationalContributionDesc": "Porcentaje de Colombia dentro de áreas de conservación existentes y candidatas",
-        "priorityAreaTotal": "Área prioritaria seleccionada",
-        "priorityAreaTotalDesc": "Área total dentro de áreas de conservación existentes y candidatas",
+        "priorityAreaTotal": "Área candidata seleccionada",
+        "priorityAreaTotalDesc": "Área de conservación candidata y su porcentaje de Colombia",
         "paramoCoverage": "Cobertura de páramo",
         "paramoCoverageDesc": "Páramo de alta montaña dentro de áreas de conservación existentes y candidatas",
         "dryForestCoverage": "Cobertura de bosque seco",
@@ -456,9 +456,7 @@
         "waterRegulationServicesSourceLabel": "Fuente: capa de recarga IDEAM ENA 2018",
         "waterRegulationServicesSourceUrl": "https://bart.ideam.gov.co/cneideam/Capasgeo/#:~:text=Zonas%5FPotenciales%5Fde%5FRecarga%5Fde%5FAgua%5FSubterraneas%5FEna2018",
         "affectedAgriculturalArea": "Área agrícola afectada",
-        "affectedAgriculturalAreaDesc": "Tierra agrícola dentro de áreas de conservación existentes y candidatas",
-        "agriculturalOpportunityCost": "Costo de oportunidad agrícola",
-        "agriculturalOpportunityCostDesc": "Producción sacrificada"
+        "affectedAgriculturalAreaDesc": "Tierra agrícola dentro de áreas de conservación existentes y candidatas"
       },
       "metricUnits": {
         "ofFeatures": "de los elementos",
@@ -478,7 +476,6 @@
         "tco2e": "tCO₂e",
         "cubicMeterIndex": "índice m³",
         "fifteenPercentOverlap": "15% de superposición",
-        "usd": "USD",
         "areaAffected": "Área afectada"
       }
     },
@@ -490,7 +487,8 @@
       "alignedMetrics": {
         "title": "Métricas de resumen en este AOI",
         "description": "Las mismas familias de métricas principales del Resumen, enfocadas en el área seleccionada.",
-        "priorityAreaDrawn": "Área prioritaria dibujada"
+        "priorityAreaDrawn": "Área de conservación candidata (dibujada)",
+        "priorityAreaSelectedDesc": "Área de conservación candidata y su porcentaje de esta área de interés"
       },
       "drillDown": {
         "title": "Métricas locales de detalle",
@@ -533,7 +531,7 @@
         "ecosystems": "Ecosistemas",
         "strategicEcosystems": "Ecosistemas estratégicos",
         "carbon": "Carbono",
-        "land": "Uso del suelo y socioeconómico",
+        "land": "Uso del suelo",
         "cultural": "Territorios culturales e indígenas",
         "marine": "Marino"
       },
@@ -821,9 +819,12 @@
         }
       },
       "landUseLabels": {
-        "forest": "Bosque natural",
+        "forest": "Bosques y áreas seminaturales",
         "agriculture": "Agricultura",
-        "other": "Otros"
+        "other": "Otros",
+        "scenarioAreaWithinAoi": "% del área del escenario dentro del AOI",
+        "withinAoi": "% dentro del AOI",
+        "withinAoiUnavailable": "La composición del uso del suelo en todo el AOI aún no está disponible."
       },
       "unitTooltips": {
         "carbonMassArea": "Estos valores son sumas ponderadas expresadas en Mg·km² (valores nativos del ráster multiplicados por el área del píxel). No se convierten a Mg totales porque no se han verificado los metadatos de unidades del ráster de origen.",
@@ -848,8 +849,6 @@
         "waterRegulation": "Capacidad de regulación hídrica",
         "waterRegulationDesc": "Provisión de servicios hidrológicos para comunidades aguas abajo",
         "waterIndex": "Índice 78 / 100",
-        "agOpportunityCost": "Costo de oportunidad agrícola",
-        "agOpportunityCostDesc": "Valor económico de la producción agrícola sacrificada",
         "indigenousReservations": "Resguardos indígenas",
         "indigenousReservationsDesc": "Área dentro de las zonas candidatas del AOI",
         "communityCounsils": "Consejos comunitarios",
@@ -891,8 +890,6 @@
         "ecosystemMiddle": " y ofrece ",
         "ecosystemWaterRegulationValue": "servicios de regulación hídrica parcialmente representados",
         "ecosystemSuffix": " para la cuenca del río Cauca. Los ecosistemas representan la mayor parte de la cobertura ecosistémica.",
-        "landPrefix": "60% del área candidata de este AOI es bosque natural. El costo de oportunidad agrícola es ",
-        "landSuffix": ".",
         "culturalSuffix": " del área candidata de este AOI se superpone con territorios indígenas. Puede requerirse consulta previa bajo el Convenio 169 de la OIT.",
         "contextAfterName": " aporta ",
         "contextAfterContribution": " a la meta de conservación 30x30 de Colombia. Con ",
@@ -978,8 +975,6 @@
         "waterRegulationDesc": "Apoyo de servicios hidrológicos para comunidades aguas abajo.",
         "implementationCost": "Costo de implementación",
         "implementationCostDesc": "Rango estimado de costos de implementación.",
-        "agriculturalOpportunityCost": "Costo de oportunidad agrícola",
-        "agriculturalOpportunityCostDesc": "Compensación agrícola estimada en zonas afectadas.",
         "protectedOverlap": "Superposición con parques nacionales",
         "protectedOverlapDesc": "Superposición del Escenario B con áreas protegidas formales existentes.",
         "indigenousOverlap": "Superposición con territorios indígenas",

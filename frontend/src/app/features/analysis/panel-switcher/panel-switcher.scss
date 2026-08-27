@@ -1890,7 +1890,6 @@
 /* Hero cards (headline stats) */
 .aoi-hero-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
@@ -1903,11 +1902,6 @@
 .aoi-hero-card-priority {
   background: #ecfdf5;
   border-color: #a7f3d0;
-}
-
-.aoi-hero-card-national {
-  background: #eff6ff;
-  border-color: #bfdbfe;
 }
 
 .aoi-hero-kicker {
@@ -1936,10 +1930,6 @@
   color: #059669;
 }
 
-.aoi-hero-value-blue {
-  color: #2563eb;
-}
-
 .aoi-hero-bar {
   margin-bottom: 6px;
   display: flex;
@@ -1956,16 +1946,6 @@
 .aoi-hero-fill-green {
   height: 100%;
   background: #10b981;
-}
-
-.aoi-hero-fill-blue-lt {
-  height: 100%;
-  background: #93c5fd;
-}
-
-.aoi-hero-fill-blue {
-  height: 100%;
-  background: #2563eb;
 }
 
 .aoi-hero-sub {
@@ -2120,10 +2100,36 @@
 }
 
 /* Bar chart */
+.aoi-landuse-chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aoi-landuse-chart-section + .aoi-landuse-chart-section {
+  margin-top: 16px;
+}
+
+.aoi-landuse-chart-title {
+  margin: 0;
+  color: var(--color-subtext);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .aoi-bar-chart {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.aoi-landuse-chart-empty {
+  border: 1px dashed var(--color-border);
+  border-radius: 4px;
+  padding: 10px;
+  color: var(--color-subtext);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .aoi-bar-row {
