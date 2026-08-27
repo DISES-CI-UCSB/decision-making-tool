@@ -1,17 +1,121 @@
 <header
   id="foundation-header-container"
-  class="relative z-70 isolate flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur"
+  class="relative z-70 isolate flex items-center justify-between gap-2 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur sm:gap-3"
 >
-  <h1 id="foundation-header-title" class="text-base font-semibold tracking-tight text-slate-900">
-    {{ 'header.appTitle' | translate }}
-  </h1>
+  <section id="foundation-header-branding" class="flex min-w-0 flex-1 items-center gap-4">
+    <h1
+      id="foundation-header-title"
+      class="min-w-0 max-w-27 shrink-0 truncate text-sm font-semibold tracking-tight text-slate-900 sm:max-w-none sm:text-base"
+    >
+      <a
+        id="foundation-header-home-link"
+        routerLink="/"
+        class="block truncate rounded-sm outline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+      >
+        {{ 'header.appTitle' | translate }}
+      </a>
+    </h1>
 
-  <section id="foundation-header-controls" class="relative flex items-center gap-3 text-sm">
+    <section
+      id="foundation-header-primary-partners"
+      [attr.aria-label]="'header.primaryPartnersLabel' | translate"
+      class="hidden min-w-0 flex-1 items-center gap-3"
+    >
+      @for (logo of primaryPartnerLogos; track logo.id) {
+        <div
+          id="foundation-header-primary-partner-{{ logo.id }}"
+          class="flex h-11 shrink-0 items-center justify-center"
+          [title]="logo.name"
+        >
+          <img
+            id="foundation-header-primary-partner-logo-{{ logo.id }}"
+            [src]="logo.headerSrc ?? logo.src"
+            [alt]="logo.name"
+            class="h-full w-auto max-w-none object-contain"
+          />
+        </div>
+      }
+    </section>
+
+    <section
+      id="foundation-header-primary-partners-carousel"
+      [attr.aria-label]="'header.primaryPartnersLabel' | translate"
+      class="hidden min-w-0 flex-1 items-center gap-1"
+    >
+      <button
+        id="foundation-header-primary-partners-carousel-previous"
+        type="button"
+        [attr.aria-label]="'header.primaryPartnersPrevious' | translate"
+        [attr.aria-controls]="'foundation-header-primary-partners-carousel-viewport'"
+        [disabled]="!partnerCarouselCanMovePrevious()"
+        class="inline-flex h-8 w-6 cursor-pointer items-center justify-center rounded text-lg leading-none text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-1"
+        (click)="scrollPrimaryPartnerLogos('previous')"
+      >
+        <span id="foundation-header-primary-partners-carousel-previous-icon" aria-hidden="true"
+          >‹</span
+        >
+      </button>
+
+      <div
+        id="foundation-header-primary-partners-carousel-viewport"
+        #primaryPartnerCarouselViewport
+        class="min-w-0 flex-1 overflow-x-auto scroll-smooth"
+        (scroll)="updatePrimaryPartnerCarouselControls()"
+      >
+        <section
+          id="foundation-header-primary-partners-carousel-track"
+          class="flex min-w-max items-center gap-3 pr-2"
+        >
+          @for (logo of primaryPartnerLogos; track logo.id) {
+            <div
+              id="foundation-header-primary-partner-carousel-{{ logo.id }}"
+              class="flex h-11 shrink-0 items-center justify-center"
+              [title]="logo.name"
+            >
+              <img
+                id="foundation-header-primary-partner-carousel-logo-{{ logo.id }}"
+                [src]="logo.headerSrc ?? logo.src"
+                [alt]="logo.name"
+                class="h-full w-auto max-w-none object-contain"
+                (load)="updatePrimaryPartnerCarouselControls()"
+              />
+            </div>
+          }
+        </section>
+      </div>
+
+      <button
+        id="foundation-header-primary-partners-carousel-next"
+        type="button"
+        [attr.aria-label]="'header.primaryPartnersNext' | translate"
+        [attr.aria-controls]="'foundation-header-primary-partners-carousel-viewport'"
+        [disabled]="!partnerCarouselCanMoveNext()"
+        class="inline-flex h-8 w-6 cursor-pointer items-center justify-center rounded text-lg leading-none text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-1"
+        (click)="scrollPrimaryPartnerLogos('next')"
+      >
+        <span id="foundation-header-primary-partners-carousel-next-icon" aria-hidden="true">›</span>
+      </button>
+    </section>
+  </section>
+
+  <section
+    id="foundation-header-controls"
+    class="relative flex shrink-0 items-center gap-2 text-sm sm:gap-3"
+  >
     <app-dev-tools-panel
       id="foundation-header-dev-tools-panel"
+      class="hidden sm:block"
       [coordinateToolEnabled]="coordinateToolEnabled"
       (coordinateToolEnabledChange)="coordinateToolEnabledChange.emit($event)"
     ></app-dev-tools-panel>
+
+    <a
+      id="foundation-header-about-link"
+      routerLink="/about"
+      class="inline-flex min-h-10 items-center rounded-md px-1 py-1 text-sm font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+    >
+      {{ 'header.about' | translate }}
+    </a>
 
     <nav
       id="foundation-header-language-toggle-nav"

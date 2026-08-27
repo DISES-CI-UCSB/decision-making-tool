@@ -1,3 +1,27 @@
 :host {
   display: block;
 }
+
+#foundation-header-primary-partners-carousel {
+  @media (min-width: 1024px) {
+    display: flex;
+  }
+
+  @media (min-width: 1430px) {
+    display: none;
+  }
+}
+
+#foundation-header-primary-partners {
+  @media (min-width: 1430px) {
+    display: flex;
+  }
+}
+
+#foundation-header-primary-partners-carousel-viewport {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

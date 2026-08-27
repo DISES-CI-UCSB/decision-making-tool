@@ -21,6 +21,10 @@
   },
   "header": {
     "appTitle": "Herramienta de Toma de Decisiones",
+    "about": "Acerca de",
+    "primaryPartnersLabel": "Organizaciones aliadas principales",
+    "primaryPartnersPrevious": "Mostrar organizaciones aliadas anteriores",
+    "primaryPartnersNext": "Mostrar las siguientes organizaciones aliadas",
     "languageSwitcherLabel": "Selector de idioma",
     "languageToggleLabel": "Cambiar a {{lang}}",
     "languageEnglish": "inglés",
@@ -30,6 +34,16 @@
     "loginRegister": "Iniciar sesión / Registrarse",
     "tierChip": "Nivel {{tier}}",
     "pendingAccess": "Sesión iniciada · Acceso pendiente"
+  },
+  "about": {
+    "kicker": "Sobre la colaboración",
+    "title": "Organizaciones que apoyan la planificación de la conservación en Colombia",
+    "description": "Esta herramienta de apoyo a la toma de decisiones es posible gracias a la experiencia, los datos y la colaboración de las organizaciones que se muestran a continuación.",
+    "backToMap": "Volver al mapa",
+    "primaryPartnersTitle": "Organizaciones aliadas principales",
+    "primaryPartnersDescription": "Estas doce organizaciones se destacan en el encabezado de la herramienta.",
+    "secondaryPartnersTitle": "Organizaciones aliadas adicionales",
+    "secondaryPartnersDescription": "Las siguientes organizaciones también contribuyen a la colaboración más amplia de planificación para la conservación."
   },
   "common": {
     "close": "Cerrar"

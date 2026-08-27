@@ -21,6 +21,10 @@
   },
   "header": {
     "appTitle": "Decision Making Tool",
+    "about": "About",
+    "primaryPartnersLabel": "Primary partner organizations",
+    "primaryPartnersPrevious": "Show previous partner organizations",
+    "primaryPartnersNext": "Show next partner organizations",
     "languageSwitcherLabel": "Language switcher",
     "languageToggleLabel": "Switch to {{lang}}",
     "languageEnglish": "English",
@@ -30,6 +34,16 @@
     "loginRegister": "Login / Register",
     "tierChip": "Tier {{tier}}",
     "pendingAccess": "Signed in · Access pending"
+  },
+  "about": {
+    "kicker": "About the collaboration",
+    "title": "Organizations supporting conservation planning in Colombia",
+    "description": "This decision-support tool is made possible through the expertise, data, and collaboration of the organizations shown below.",
+    "backToMap": "Return to map",
+    "primaryPartnersTitle": "Primary partner organizations",
+    "primaryPartnersDescription": "These twelve organizations are featured in the tool header.",
+    "secondaryPartnersTitle": "Additional partner organizations",
+    "secondaryPartnersDescription": "The following organizations also contribute to the broader conservation planning collaboration."
   },
   "common": {
     "close": "Close"

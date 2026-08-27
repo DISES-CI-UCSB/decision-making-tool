@@ -4,7 +4,7 @@ import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { TranslateService } from '@ngx-translate/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { AppShellComponent } from '@core/layout/app-shell/app-shell';
 import { HeaderComponent } from '@core/layout/header/header';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
@@ -42,6 +42,7 @@ export class App implements OnInit {
   private readonly appState = inject(AppStateService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly solutionLayer = inject(SolutionLayerService);
+  private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
   private readonly debugMarker = 'UCS-39-map-debug-v1';
   protected perspectiveModalOpen = false;
@@ -49,6 +50,10 @@ export class App implements OnInit {
   protected coordinateToolEnabled = false;
   protected readonly solutionFinderModalOpen = this.appState.solutionFinderModalOpen$;
   protected readonly solutionFinderContext = this.appState.solutionFinderContext$;
+
+  protected get isAboutPage(): boolean {
+    return this.router.url.startsWith('/about');
+  }
 
   ngOnInit(): void {
     const runtimePort = window.location.port || '(default)';

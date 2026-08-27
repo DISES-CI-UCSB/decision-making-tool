@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { provideRouter } from '@angular/router';
 import { UserTier } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { AuthService } from '@core/services/auth.service';
@@ -23,6 +24,7 @@ describe('HeaderComponent auth state', () => {
       imports: [HeaderComponent],
       providers: [
         { provide: AuthService, useValue: authService },
+        provideRouter([]),
         provideTranslateService({
           lang: 'en',
           fallbackLang: 'en',
@@ -49,6 +51,48 @@ describe('HeaderComponent auth state', () => {
     const header = fixture.nativeElement as HTMLElement;
     expect(header.querySelector('#foundation-header-auth-toggle-button')).not.toBeNull();
     expect(header.querySelector('#foundation-header-logout-button')).toBeNull();
+  });
+
+  it('scrolls partner logos with the compact-header carousel controls', () => {
+    const fixture = TestBed.createComponent(HeaderComponent);
+    fixture.detectChanges();
+
+    const header = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      updatePrimaryPartnerCarouselControls(): void;
+    };
+    const carouselViewport = header.querySelector(
+      '#foundation-header-primary-partners-carousel-viewport',
+    ) as HTMLDivElement;
+    const previousButton = header.querySelector(
+      '#foundation-header-primary-partners-carousel-previous',
+    ) as HTMLButtonElement;
+    const nextButton = header.querySelector(
+      '#foundation-header-primary-partners-carousel-next',
+    ) as HTMLButtonElement;
+    const scrollBy = vi.fn();
+    Object.defineProperties(carouselViewport, {
+      clientWidth: { configurable: true, value: 300 },
+      scrollLeft: { configurable: true, writable: true, value: 0 },
+      scrollWidth: { configurable: true, value: 600 },
+    });
+    Object.defineProperty(carouselViewport, 'scrollBy', { configurable: true, value: scrollBy });
+
+    component.updatePrimaryPartnerCarouselControls();
+    fixture.detectChanges();
+    expect(previousButton.disabled).toBe(true);
+    expect(nextButton.disabled).toBe(false);
+
+    nextButton.click();
+
+    expect(scrollBy).toHaveBeenCalledWith({ left: 240, behavior: 'smooth' });
+
+    carouselViewport.scrollLeft = 300;
+    component.updatePrimaryPartnerCarouselControls();
+    fixture.detectChanges();
+
+    expect(previousButton.disabled).toBe(false);
+    expect(nextButton.disabled).toBe(true);
   });
 
   it('shows pending status and logout without approved access controls', () => {
