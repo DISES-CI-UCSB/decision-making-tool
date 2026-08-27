@@ -417,17 +417,6 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     dummyAreaKm2: 8_500,
     dummyUnitKey: 'analysis.overview.metricUnits.fifteenPercentOverlap',
   },
-  {
-    id: 'metric-08-agricultural-opportunity-cost',
-    section: 'costs',
-    labelKey: 'analysis.overview.metrics.agriculturalOpportunityCost',
-    descriptionKey: 'analysis.overview.metrics.agriculturalOpportunityCostDesc',
-    iconClass: 'fas fa-coins',
-    realMetricId: 'm-cost',
-    dummyValue: '$350M',
-    dummyUnitKey: 'analysis.overview.metricUnits.usd',
-    conditional: true,
-  },
 ];
 export const AOI_ALIGNED_METRIC_BLUEPRINTS: AoiAlignedMetricBlueprint[] = [
   {

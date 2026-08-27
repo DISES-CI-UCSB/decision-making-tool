@@ -23,7 +23,6 @@ describe('panel switcher metric configuration', () => {
       'metric-05-carbon-storage-capacity',
       'metric-06-water-regulation-services',
       'metric-09-affected-agricultural-area',
-      'metric-08-agricultural-opportunity-cost',
     ]);
     expectBlueprintIds(AOI_ALIGNED_METRIC_BLUEPRINTS, [
       'aoi-summary-priority-area',

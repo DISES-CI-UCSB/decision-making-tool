@@ -2718,46 +2718,6 @@
                       }
                     </div>
 
-                    <div id="aoi-socio-metrics" class="aoi-metric-table">
-                      <div id="aoi-row-ag-cost" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-coins" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.agOpportunityCost' | translate }}
-                            <span class="v3-tag-conditional">{{
-                              'analysis.overview.conditional' | translate
-                            }}</span>
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.agOpportunityCostDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            class="aoi-m-val"
-                            [attr.data-full-value]="getAoiMetricFullValue('agricultural_area')"
-                            [attr.tabindex]="getAoiMetricFullValue('agricultural_area') ? 0 : null"
-                          >
-                            {{ getAoiMetricValue('agricultural_area', '$125M') }}
-                          </div>
-                          @if (getAoiMetricStatus('agricultural_area'); as metricStatus) {
-                            <div id="aoi-row-ag-cost-unit" class="aoi-m-unit">
-                              {{ metricStatus }}
-                            </div>
-                          }
-                        </div>
-                      </div>
-                    </div>
-
-                    @if (fillDummyAoiMetrics()) {
-                      <div id="aoi-land-narrative" class="aoi-narrative">
-                        {{ 'analysis.aoi.narratives.landPrefix' | translate }}
-                        <strong>$125M USD</strong
-                        >{{ 'analysis.aoi.narratives.landSuffix' | translate }}
-                      </div>
-                    }
                   </div>
                 </div>
               </section>
