@@ -604,7 +604,7 @@
         "ecosystems": "Ecosystems",
         "strategicEcosystems": "Strategic ecosystems",
         "carbon": "Carbon",
-        "land": "Land Use & Socio-Economic",
+        "land": "Land Use",
         "cultural": "Cultural & Indigenous Territories",
         "marine": "Marine"
       },
@@ -892,9 +892,12 @@
         }
       },
       "landUseLabels": {
-        "forest": "Natural Forest",
+        "forest": "Forests & Seminatural Areas",
         "agriculture": "Agriculture",
-        "other": "Other"
+        "other": "Other",
+        "scenarioAreaWithinAoi": "% of Scenario Area within AOI",
+        "withinAoi": "% within AOI",
+        "withinAoiUnavailable": "Land-use composition across the full AOI is not available yet."
       },
       "unitTooltips": {
         "carbonMassArea": "These values are weighted sums reported in Mg·km² (native raster values multiplied by pixel area). They are not converted to total Mg because the source raster unit metadata has not been verified.",

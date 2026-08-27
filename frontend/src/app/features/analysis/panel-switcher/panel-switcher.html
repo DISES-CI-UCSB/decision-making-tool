@@ -2679,7 +2679,11 @@
                   [attr.aria-hidden]="!isAoiSectionExpanded('land')"
                 >
                   <div id="aoi-body-land-inner" class="collapse-motion-inner aoi-section-body">
-                    <div id="aoi-landuse-chart" class="aoi-bar-chart">
+                    <section id="aoi-landuse-scenario-chart-section" class="aoi-landuse-chart-section">
+                      <h3 id="aoi-landuse-scenario-chart-title" class="aoi-landuse-chart-title">
+                        {{ 'analysis.aoi.landUseLabels.scenarioAreaWithinAoi' | translate }}
+                      </h3>
+                      <div id="aoi-landuse-scenario-chart" class="aoi-bar-chart">
                       @for (bar of aoiLandUseBars(); track bar.id) {
                         <div [id]="'aoi-bar-' + bar.id" class="aoi-bar-row">
                           <span [id]="'aoi-bar-label-' + bar.id" class="aoi-bar-label">
@@ -2716,8 +2720,21 @@
                           </span>
                         </div>
                       }
-                    </div>
+                      </div>
+                    </section>
 
+                    <section id="aoi-landuse-aoi-chart-section" class="aoi-landuse-chart-section">
+                      <h3 id="aoi-landuse-aoi-chart-title" class="aoi-landuse-chart-title">
+                        {{ 'analysis.aoi.landUseLabels.withinAoi' | translate }}
+                      </h3>
+                      <div
+                        id="aoi-landuse-aoi-chart"
+                        class="aoi-bar-chart aoi-landuse-chart-empty"
+                        role="status"
+                      >
+                        {{ 'analysis.aoi.landUseLabels.withinAoiUnavailable' | translate }}
+                      </div>
+                    </section>
                   </div>
                 </div>
               </section>
