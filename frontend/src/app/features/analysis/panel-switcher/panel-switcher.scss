@@ -1739,8 +1739,8 @@
 }
 
 .aoi-region-kicker {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-subtext);
@@ -1752,12 +1752,6 @@
   font-weight: 700;
   line-height: 23px;
   color: #0f172a;
-}
-
-.aoi-region-meta {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--color-subtext);
 }
 
 /* Scrollable body */
@@ -1794,31 +1788,19 @@
   background: #cbd5e1;
 }
 
-.aoi-scope-explanation {
-  margin: 0;
-  border-left: 3px solid #38bdf8;
-  background: #f0f9ff;
-  padding: 9px 12px;
-  font-size: 12px;
-  line-height: 18px;
-  color: #475569;
-}
-
 .aoi-aligned-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.aoi-aligned-header,
-.aoi-drilldown-intro {
+.aoi-aligned-header {
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
-.aoi-aligned-title,
-.aoi-drilldown-title {
+.aoi-aligned-title {
   margin: 0;
   font-size: 11px;
   font-weight: 700;
@@ -1828,17 +1810,11 @@
   color: #0f172a;
 }
 
-.aoi-aligned-description,
-.aoi-drilldown-description {
+.aoi-aligned-description {
   margin: 0;
   font-size: 12px;
   line-height: 18px;
   color: #64748b;
-}
-
-.aoi-drilldown-intro {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 12px;
 }
 
 /* Section headers (collapsible) */
