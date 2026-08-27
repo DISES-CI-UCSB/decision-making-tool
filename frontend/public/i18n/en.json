@@ -267,10 +267,6 @@
         "ecosystems": "Ecosystems",
         "species": "Species",
         "taxaBreakdown": "Included species groups",
-        "fish": "Fish",
-        "notApplicable": "Excluded",
-        "fishInfoAriaLabel": "Why fish species are not included",
-        "freshwaterClarification": "Fish species are excluded because the available freshwater fish data is too coarse for this prioritization. Freshwater ecosystems are partially represented through wetlands, while water regulation services are represented separately in overview metrics #6 and #44.",
         "viewBreakdown": "View feature breakdown",
         "noTargetsSet": "No conservation domain was explicitly targeted in this scenario.",
         "additionalOutcomesHeading": "Additional outcomes",
@@ -1156,7 +1152,7 @@
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
         "speciesRichnessLabel": "Species range",
         "speciesRichnessHelp": "The tool will identify candidate areas that ensure that the selected proportion of the range of all known species of animal is contained within existing and candidate conservation areas. If you select “national responsibility” this will conserve different range proportions for each species, so that species that are rare, endemic, or threatened will have a greater proportion of their range conserved.",
-        "speciesRichnessTechnicalHelp": "Prioritizes individual Humboldt BioModelos species layers for mammals, birds, amphibians, reptiles, and plants, covering many of the 8,751 species represented in Humboldt biomodels. Freshwater fish are not considered because the available fish species data is too coarse for this prioritization.",
+        "speciesRichnessTechnicalHelp": "Prioritizes individual Humboldt BioModelos species layers for mammals, birds, amphibians, reptiles, and plants, covering many of the 8,751 species represented in Humboldt biomodels.",
         "speciesRichnessTechnicalHelpToggle": "Technical details about species range data sources",
         "speciesRichnessBioModelosSourceLabel": "Humboldt BioModelos metadata",
         "speciesRichnessBioModelosSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b",
@@ -1448,8 +1444,7 @@
       "birds": "Birds",
       "amphibians": "Amphibians",
       "reptiles": "Reptiles",
-      "plants": "Plants",
-      "fish": "Fish"
+      "plants": "Plants"
     },
     "sourceLabels": {
       "selectedSolution": "Selected Scenario",
@@ -1465,10 +1460,8 @@
     "taxonMatchPlural": "taxon matches",
     "noMatchesLabel": "0 matches",
     "taxaHeading": "Included taxa",
-    "speciesNote": "Species layers include Humboldt BioModelos for mammals, birds, amphibians, reptiles, and plants. Fish species are shown as excluded because the available freshwater fish data is too coarse for prioritization.",
-    "solutionNote": "Distributions shown are the non-fish Humboldt BioModelos species included in this scenario's calculation. Drill down to individual species ranges when the scenario includes species-level rasters.",
-    "fishExcludedBadge": "Excluded",
-    "fishExcludedNote": "Freshwater fish data too coarse",
+    "speciesNote": "Species layers include Humboldt BioModelos for mammals, birds, amphibians, reptiles, and plants.",
+    "solutionNote": "Distributions shown are the Humboldt BioModelos species included in this scenario's calculation. Drill down to individual species ranges when the scenario includes species-level rasters.",
     "individualSpecies": "Individual species ranges",
     "speciesRichness": "Species richness",
     "categoryLabel": "Category {{value}}"

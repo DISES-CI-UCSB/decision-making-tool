@@ -1803,7 +1803,6 @@
                           <article
                             [id]="'map-layers-taxon-row-' + taxon.id"
                             class="border-b border-slate-100 bg-white last:border-b-0"
-                            [class.bg-slate-50]="taxon.disabled"
                           >
                             <div
                               [id]="'map-layers-taxon-row-header-' + taxon.id"
@@ -1819,9 +1818,7 @@
                                   [id]="'map-layers-taxon-name-button-' + taxon.id"
                                   type="button"
                                   class="block w-full min-w-0 truncate text-left text-[13px] font-semibold text-slate-800"
-                                  [class.text-slate-500]="taxon.disabled"
                                   [title]="taxon.name"
-                                  [disabled]="taxon.disabled"
                                   (click)="toggleTaxonExpanded(taxon.id)"
                                 >
                                   {{ taxon.name }}
@@ -1855,29 +1852,13 @@
                                   </span>
                                 }
                               </div>
-                              @if (taxon.disabled) {
-                                <span
-                                  [id]="'map-layers-taxon-excluded-note-' + taxon.id"
-                                  class="min-w-0 flex-1 truncate text-[10px] font-medium text-slate-500"
-                                >
-                                  {{ 'mapLayersPanel.fishExcludedNote' | translate }}
-                                </span>
-                              }
                               <span
                                 [id]="'map-layers-taxon-count-' + taxon.id"
                                 class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
-                                [class.rounded-full]="taxon.disabled"
-                                [class.border]="taxon.disabled"
-                                [class.border-amber-200]="taxon.disabled"
-                                [class.bg-amber-50]="taxon.disabled"
-                                [class.px-1.5]="taxon.disabled"
-                                [class.py-0.5]="taxon.disabled"
-                                [class.text-amber-700]="taxon.disabled"
                               >
                                 {{ taxon.countLabel }}
                               </span>
-                              @if (!taxon.disabled) {
-                                <button
+                              <button
                                   [id]="'map-layers-taxon-expand-button-' + taxon.id"
                                   type="button"
                                   class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
@@ -1906,11 +1887,9 @@
                                     <path d="M3 4.5L6 7.5L9 4.5" />
                                   </svg>
                                 </button>
-                              }
                             </div>
 
-                            @if (!taxon.disabled) {
-                              <div
+                            <div
                                 [id]="'map-layers-taxon-body-' + taxon.id"
                                 class="map-layers-collapsible"
                                 [class.map-layers-collapsible-collapsed]="
@@ -2180,7 +2159,6 @@
                                   }
                                 </div>
                               </div>
-                            }
                           </article>
                         }
                       </div>

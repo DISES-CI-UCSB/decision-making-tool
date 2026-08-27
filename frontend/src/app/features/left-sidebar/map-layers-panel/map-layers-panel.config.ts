@@ -187,18 +187,16 @@ export const SPECIES_CLASS_TO_TAXON: Record<string, { taxonId: string; taxonLabe
   Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
-  Actinopteri: { taxonId: 'fish', taxonLabel: 'Fish' },
 };
+export const EXCLUDED_SPECIES_CLASSES = new Set(['Actinopteri']);
+export const EXCLUDED_SPECIES_TAXON_IDS = new Set(['taxon-fish', 'taxon-actinopteri']);
 export const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
   ['taxon-mammals', 0],
   ['taxon-birds', 1],
   ['taxon-amphibians', 2],
   ['taxon-reptiles', 3],
   ['taxon-plants', 4],
-  ['taxon-fish', 5],
 ]);
-export const EXCLUDED_SPECIES_TAXON_IDS = new Set(['taxon-fish']);
-export const FISH_TAXON_ROW_ID = 'taxon-fish';
 
 export const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: RUNAP_OVERLAY_LAYER_ID,

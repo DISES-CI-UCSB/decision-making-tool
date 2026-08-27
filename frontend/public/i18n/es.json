@@ -267,10 +267,6 @@
         "ecosystems": "Ecosistemas",
         "species": "Especies",
         "taxaBreakdown": "Grupos de especies incluidos",
-        "fish": "Peces",
-        "notApplicable": "Excluido",
-        "fishInfoAriaLabel": "Por qué no se incluyen las especies de peces",
-        "freshwaterClarification": "Las especies de peces se excluyen porque los datos disponibles de peces de agua dulce son demasiado generales para esta priorización. Los ecosistemas de agua dulce se representan parcialmente mediante humedales, mientras que los servicios de regulación hídrica se representan por separado en las métricas #6 y #44 del resumen.",
         "viewBreakdown": "Ver desglose de elementos",
         "noTargetsSet": "Ningún ámbito de conservación fue seleccionado explícitamente como meta en este escenario.",
         "additionalOutcomesHeading": "Resultados adicionales",
@@ -1155,7 +1151,7 @@
         "ecosystemsDataSourceLabel": "Vista del mapa MEC",
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
         "speciesRichnessLabel": "Modelos de especies",
-        "speciesRichnessHelp": "Prioriza capas individuales de especies de Humboldt BioModelos para mamíferos, aves, anfibios, reptiles y plantas, cubriendo muchas de las 8.751 especies representadas en biomodelos del Instituto Humboldt. Los peces de agua dulce no se consideran porque los datos disponibles de especies de peces son demasiado generales para esta priorización.",
+        "speciesRichnessHelp": "Prioriza capas individuales de especies de Humboldt BioModelos para mamíferos, aves, anfibios, reptiles y plantas, cubriendo muchas de las 8.751 especies representadas en biomodelos del Instituto Humboldt.",
         "speciesRichnessBioModelosSourceLabel": "Metadatos Humboldt BioModelos",
         "speciesRichnessBioModelosSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b",
         "requiredBadge": "Obligatorio",
@@ -1445,8 +1441,7 @@
       "birds": "Aves",
       "amphibians": "Anfibios",
       "reptiles": "Reptiles",
-      "plants": "Plantas",
-      "fish": "Peces"
+      "plants": "Plantas"
     },
     "sourceLabels": {
       "selectedSolution": "Escenario seleccionado",
@@ -1462,10 +1457,8 @@
     "taxonMatchPlural": "taxones coincidentes",
     "noMatchesLabel": "0 coincidencias",
     "taxaHeading": "Taxones incluidos",
-    "speciesNote": "Las capas de especies incluyen Humboldt BioModelos para mamíferos, aves, anfibios, reptiles y plantas. Los peces se muestran como excluidos porque los datos disponibles de peces de agua dulce son demasiado generales para la priorización.",
-    "solutionNote": "Las distribuciones mostradas son las especies no peces de Humboldt BioModelos incluidas en el cálculo de este escenario. Explora hasta las especies individuales cuando el escenario incluya rásteres a nivel de especie.",
-    "fishExcludedBadge": "Excluido",
-    "fishExcludedNote": "Datos de peces de agua dulce demasiado generales",
+    "speciesNote": "Las capas de especies incluyen Humboldt BioModelos para mamíferos, aves, anfibios, reptiles y plantas.",
+    "solutionNote": "Las distribuciones mostradas son las especies de Humboldt BioModelos incluidas en el cálculo de este escenario. Explora hasta las especies individuales cuando el escenario incluya rásteres a nivel de especie.",
     "individualSpecies": "Especies individuales",
     "speciesRichness": "Riqueza de especies",
     "categoryLabel": "Categoría {{value}}"
