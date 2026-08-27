@@ -267,7 +267,7 @@
         "ecosystems": "Ecosystems",
         "species": "Species",
         "taxaBreakdown": "Included species groups",
-        "viewBreakdown": "View feature breakdown",
+        "viewBreakdown": "View breakdown",
         "noTargetsSet": "No conservation domain was explicitly targeted in this scenario.",
         "additionalOutcomesHeading": "Additional outcomes",
         "additionalOutcomesDescription": "Measured coverage in domains that were not targeted by this scenario. The percentages are illustrative range-coverage checkpoints, not configured targets.",
