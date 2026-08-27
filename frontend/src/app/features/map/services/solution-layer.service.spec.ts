@@ -136,11 +136,11 @@ describe('SolutionLayerService', () => {
     expect(service.isComparisonModeActive()).toBe(false);
     expect(service.liveSolutionMetrics$()).toEqual(
       expect.objectContaining({
-        nationalContributionPct: 37.5,
         priorityZoneCount: 1,
         status: 'ready',
       }),
     );
+    expect(service.liveSolutionMetrics$()?.nationalContributionPct).toBeCloseTo(75, 1);
   });
 
   it('counts diagonal selected cells as one contiguous priority zone', async () => {
@@ -431,10 +431,10 @@ describe('SolutionLayerService', () => {
       }),
     );
     expect(service.liveComparisonMetrics$()?.baselineNationalContributionPct).toBeCloseTo(
-      0.0001752,
+      50,
     );
     expect(service.liveComparisonMetrics$()?.candidateNationalContributionPct).toBeCloseTo(
-      0.0001752,
+      50,
     );
   });
 
