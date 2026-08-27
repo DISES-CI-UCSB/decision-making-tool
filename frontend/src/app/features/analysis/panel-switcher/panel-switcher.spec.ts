@@ -415,7 +415,7 @@ describe('PanelSwitcherComponent', () => {
     expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
   });
 
-  it('disables AOI and comparison tabs when no solution is active', () => {
+  it('disables AOI and comparison tabs until a scenario is active', () => {
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
     fixture.detectChanges();
 

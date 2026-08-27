@@ -109,6 +109,7 @@ export class App implements OnInit {
     if (this.solutionFinderContext() === 'comparison-candidate') {
       this.appState.setComparisonSolution(
         this.buildCandidateComparisonSolution(selectedSolution, match),
+        match.customLabel ?? null,
       );
       this.appState.setRightSidebarMode('comparison');
     } else {

@@ -279,6 +279,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
   protected isExportInProgress = false;
   protected readonly isCustomAoiDrawActive = signal(false);
   protected readonly hasCustomAoiDrawing = signal(false);
+  protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly isSolutionLoading = computed(() => this.solutionLayer.isLoading$());
   protected readonly activeBasemap = this.basemapService.basemap;
@@ -337,6 +338,13 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         return;
       }
       untracked(() => this.startCustomAoiDraw());
+    });
+
+    effect(() => {
+      if (this.activeSolution()) {
+        return;
+      }
+      untracked(() => this.cancelCustomAoiDraw());
     });
 
     effect(() => {
@@ -432,8 +440,23 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     void this.downloadCurrentMapViewAsPng();
   }
 
+  protected toggleCustomAoiDraw(): void {
+    if (!this.activeSolution()) {
+      return;
+    }
+
+    this.appState.setRightSidebarMode('aoi');
+
+    if (this.isCustomAoiDrawActive()) {
+      this.appState.requestCustomAoiDrawCancel();
+      return;
+    }
+
+    this.appState.requestCustomAoiDraw();
+  }
+
   protected startCustomAoiDraw(): void {
-    if (!this.customAoiSketchViewModel || !this.customAoiGraphicsLayer) {
+    if (!this.activeSolution() || !this.customAoiSketchViewModel || !this.customAoiGraphicsLayer) {
       return;
     }
 
@@ -935,14 +958,15 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       width: input.borderStyle === 'none' ? 0 : input.borderWidth,
     };
 
-    if (input.fillStyle === 'dots') {
-      const patternSize = this.toArcGisDotFillPatternSize(input.fillDensity);
+    if (input.fillStyle !== 'solid') {
+      const patternSize = this.toArcGisFillPatternSize(input.fillDensity);
 
       return {
         type: 'simple',
         symbol: {
           type: 'picture-fill',
-          url: this.buildArcGisDotFillPatternUrl({
+          url: this.buildArcGisFillPatternUrl({
+            fillStyle: input.fillStyle,
             r,
             g,
             b,
@@ -979,37 +1003,75 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     return 'solid';
   }
 
-  private toArcGisDotFillPatternSize(fillDensity: number): number {
+  private toArcGisFillPatternSize(fillDensity: number): number {
     const clampedDensity = Math.max(1, Math.min(5, Math.round(fillDensity)));
     return 18 - clampedDensity * 2;
   }
 
-  private buildArcGisDotFillPatternUrl(input: {
+  private buildArcGisFillPatternUrl(input: {
+    fillStyle: Exclude<VectorOverlayFillStyle, 'solid'>;
     r: number;
     g: number;
     b: number;
     alpha: number;
     patternSize: number;
   }): string {
+    const opacity = input.alpha.toFixed(2);
+    if (input.fillStyle === 'dots') {
+      return `data:image/svg+xml,${encodeURIComponent(this.buildArcGisDotFillPatternSvg(input, opacity))}`;
+    }
+
+    const fillStyle = input.fillStyle === 'hatch' ? 'hatch' : 'mesh';
+    const svg = this.buildArcGisLineFillPatternSvg({ ...input, fillStyle }, opacity);
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  }
+
+  private buildArcGisDotFillPatternSvg(
+    input: {
+      r: number;
+      g: number;
+      b: number;
+      patternSize: number;
+    },
+    opacity: string,
+  ): string {
     const dotRadius = 1.25;
     const firstDot = 2;
     const secondDot = input.patternSize / 2 + 2;
-    const opacity = input.alpha.toFixed(2);
-    const svg = `
+    return `
       <svg xmlns="http://www.w3.org/2000/svg" width="${input.patternSize}" height="${input.patternSize}" viewBox="0 0 ${input.patternSize} ${input.patternSize}">
         <circle cx="${firstDot}" cy="${firstDot}" r="${dotRadius}" fill="rgb(${input.r}, ${input.g}, ${input.b})" fill-opacity="${opacity}"/>
         <circle cx="${secondDot}" cy="${secondDot}" r="${dotRadius}" fill="rgb(${input.r}, ${input.g}, ${input.b})" fill-opacity="${opacity}"/>
       </svg>
     `;
+  }
 
-    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  private buildArcGisLineFillPatternSvg(
+    input: {
+      fillStyle: 'hatch' | 'mesh';
+      r: number;
+      g: number;
+      b: number;
+      patternSize: number;
+    },
+    opacity: string,
+  ): string {
+    const line = `stroke="rgb(${input.r}, ${input.g}, ${input.b})" stroke-opacity="${opacity}" stroke-width="${input.fillStyle === 'hatch' ? 2 : 1.5}"`;
+    const hatchLine = `<line x1="0" y1="0" x2="${input.patternSize}" y2="${input.patternSize}" ${line}/>`;
+    const meshLine = `<line x1="0" y1="${input.patternSize}" x2="${input.patternSize}" y2="0" ${line}/>`;
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${input.patternSize}" height="${input.patternSize}" viewBox="0 0 ${input.patternSize} ${input.patternSize}">
+        ${hatchLine}
+        ${input.fillStyle === 'mesh' ? meshLine : ''}
+      </svg>
+    `;
   }
 
   private toArcGisVectorFillAlpha(fillStyle: VectorOverlayFillStyle, fillDensity: number): number {
     if (fillStyle === 'solid') {
       return OPAQUE_SYMBOL_ALPHA;
     }
-    // SimpleFillSymbol pattern spacing is fixed; vary alpha so density still affects map output.
+    // Pattern opacity reinforces the density change from the SVG tile spacing.
     const clampedDensity = Math.max(1, Math.min(5, Math.round(fillDensity)));
     return 0.35 + clampedDensity * 0.13;
   }

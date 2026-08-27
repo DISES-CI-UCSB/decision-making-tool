@@ -1,7 +1,16 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-import { Component, computed, DestroyRef, effect, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  HostListener,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
   resolveLayerLabel,
@@ -577,12 +586,26 @@ export class PanelSwitcherComponent {
 
   protected readonly rightSidebarMode = this.appState.rightSidebarMode$;
   protected readonly activeSolution = this.appState.activeSolution$;
+  protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
   protected readonly activeScenarioName = computed(
     () => this.appState.activeSolutionLabel$()?.trim() || this.activeSolution()?.name,
+  );
+  protected readonly comparisonBaselineName = computed(
+    () =>
+      this.appState.activeSolutionLabel$()?.trim() ||
+      this.localizedText('mapLayersPanel.activeSolutionLabel'),
   );
   protected readonly selectedAoi = this.appState.selectedAOI$;
   protected readonly customAoiGeometry = this.appState.customAOIGeometry$;
   protected readonly comparisonSolution = this.appState.comparisonSolution$;
+  protected readonly comparisonCandidateName = computed(
+    () =>
+      this.appState.comparisonSolutionLabel$()?.trim() ||
+      this.localizedText('analysis.comparison.candidateLabel'),
+  );
+  protected readonly isComparisonCandidateNameEditing = signal(false);
+  protected readonly isComparisonCandidateEditMenuOpen = signal(false);
+  protected readonly comparisonCandidateNameDraft = signal('');
   protected readonly comparisonVisualizationMode = this.appState.comparisonVisualizationMode$;
   protected readonly fillDummyOverviewMetrics = this.appState.fillDummyOverviewMetrics$;
   protected readonly fillDummyComparisonMetrics = this.appState.fillDummyComparisonMetrics$;
@@ -794,7 +817,12 @@ export class PanelSwitcherComponent {
           .map((row) => row.taxonGroup)
           .filter((group): group is string => Boolean(group)),
       ),
-    ).sort((a, b) => a.localeCompare(b, this.appLocale.locale()));
+    ).sort((a, b) =>
+      this.localizedTaxonGroupLabel(a).localeCompare(
+        this.localizedTaxonGroupLabel(b),
+        this.appLocale.locale(),
+      ),
+    );
   });
   protected readonly overviewSectionExpanded = signal<Record<OverviewMetricSection, boolean>>({
     gains: true,
@@ -1461,15 +1489,9 @@ export class PanelSwitcherComponent {
     return mode === tab;
   }
 
-  /** Custom AOI profiles are solution-independent; fixed AOIs and comparison are not. */
+  /** AOI and comparison metrics depend on an active scenario. */
   protected isSidebarTabDisabled(tab: SidebarTab): boolean {
-    if (tab === 'overview') {
-      return false;
-    }
-    if (tab === 'aoi' && this.customAoiAreaProfileEnabled && this.isCustomAoiSelected()) {
-      return false;
-    }
-    return this.activeSolution() === null;
+    return tab !== 'overview' && this.activeSolution() === null;
   }
 
   protected selectTab(tab: SidebarTab): void {
@@ -1484,6 +1506,23 @@ export class PanelSwitcherComponent {
     }
 
     this.appState.setRightSidebarMode(tab);
+  }
+
+  protected requestCustomAoiDraw(): void {
+    if (!this.activeSolution()) {
+      return;
+    }
+
+    this.appState.setRightSidebarMode('aoi');
+    this.appState.requestCustomAoiDraw();
+  }
+
+  protected requestCustomAoiDrawCancel(): void {
+    this.appState.requestCustomAoiDrawCancel();
+  }
+
+  protected requestCustomAoiDrawClear(): void {
+    this.appState.requestCustomAoiDrawClear();
   }
 
   protected hasOverviewMetricsCsvRows(): boolean {
@@ -1839,6 +1878,7 @@ export class PanelSwitcherComponent {
     if (!speciesDomain.targeted && this.speciesReferenceGroups().length > 0) {
       return this.speciesReferenceGroups().map((group) => ({
         ...group,
+        label: this.localizedTaxonGroupLabel(group.id, group.label),
         metCount: 0,
         pctMet: null,
       }));
@@ -1846,7 +1886,7 @@ export class PanelSwitcherComponent {
 
     return Object.entries(document.rollups.species.byTaxa).map(([id, rollup]) => ({
       id,
-      label: rollup.label,
+      label: this.localizedTaxonGroupLabel(id, rollup.label),
       metCount: rollup.metSpeciesCount,
       totalCount: rollup.totalSpeciesCount,
       pctMet: rollup.pctMet,
@@ -1859,7 +1899,7 @@ export class PanelSwitcherComponent {
   private toGoalsModalRow(feature: GoalFeatureRow): GoalsModalRow {
     const secondaryLabel =
       feature.featureType === 'species'
-        ? [feature.taxonGroup, feature.iucnStatus].filter(Boolean).join(' \u00b7 ') || null
+        ? this.buildSpeciesSecondaryLabel(feature.taxonGroup ?? null, feature.iucnStatus ?? null)
         : null;
     return {
       id: feature.featureId,
@@ -2095,7 +2135,7 @@ export class PanelSwitcherComponent {
     return {
       id: record.id,
       name: record.scientific_name,
-      secondaryLabel: [record.group, record.iucn_status].filter(Boolean).join(' · ') || null,
+      secondaryLabel: this.buildSpeciesSecondaryLabel(record.group, record.iucn_status),
       taxonGroup: record.group,
       iucnStatus: record.iucn_status,
       met: record.configured_target_met,
@@ -2808,9 +2848,78 @@ export class PanelSwitcherComponent {
     }));
   }
 
+  @HostListener('document:keydown.escape')
+  protected closeComparisonCandidateEditMenuOnEscape(): void {
+    this.closeComparisonCandidateEditMenu();
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected closeComparisonCandidateEditMenuOnOutsideClick(event: MouseEvent): void {
+    if (!this.isComparisonCandidateEditMenuOpen()) {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof Node)) {
+      return;
+    }
+
+    const editWrap = document.getElementById('right-sidebar-comparison-candidate-edit-wrap');
+    if (editWrap?.contains(target)) {
+      return;
+    }
+
+    this.closeComparisonCandidateEditMenu();
+  }
+
   protected openComparisonSolutionFinder(): void {
+    this.closeComparisonCandidateEditMenu();
+    this.isComparisonCandidateNameEditing.set(false);
     this.appState.openSolutionFinder('comparison-candidate');
     this.appState.setRightSidebarMode('comparison');
+  }
+
+  protected selectComparisonCandidateFromCard(): void {
+    if (!this.comparisonSolution()) {
+      this.openComparisonSolutionFinder();
+    }
+  }
+
+  protected toggleComparisonCandidateEditMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isComparisonCandidateEditMenuOpen.update((open) => !open);
+  }
+
+  protected closeComparisonCandidateEditMenu(): void {
+    this.isComparisonCandidateEditMenuOpen.set(false);
+  }
+
+  protected chooseComparisonCandidateChange(): void {
+    this.closeComparisonCandidateEditMenu();
+    this.openComparisonSolutionFinder();
+  }
+
+  protected chooseComparisonCandidateCustomName(): void {
+    this.closeComparisonCandidateEditMenu();
+    this.startComparisonCandidateNaming();
+  }
+
+  protected startComparisonCandidateNaming(): void {
+    this.comparisonCandidateNameDraft.set(this.appState.comparisonSolutionLabel$() ?? '');
+    this.isComparisonCandidateNameEditing.set(true);
+  }
+
+  protected setComparisonCandidateNameDraft(value: string): void {
+    this.comparisonCandidateNameDraft.set(value);
+  }
+
+  protected saveComparisonCandidateName(): void {
+    this.appState.labelComparisonSolution(this.comparisonCandidateNameDraft());
+    this.isComparisonCandidateNameEditing.set(false);
+  }
+
+  protected cancelComparisonCandidateNaming(): void {
+    this.isComparisonCandidateNameEditing.set(false);
   }
 
   protected getComparisonActionLabelKey(): string {
@@ -3107,6 +3216,34 @@ export class PanelSwitcherComponent {
     return this.aoiSpeciesColorSlotByPalette[this.chartPaletteId()]?.['plants'] ?? 0;
   }
 
+  private static readonly BIODIVERSITY_TAXA_LABEL_KEYS: Record<string, string> = {
+    mammals: 'analysis.aoi.biodiversityTaxa.mammals',
+    birds: 'analysis.aoi.biodiversityTaxa.birds',
+    amphibians: 'analysis.aoi.biodiversityTaxa.amphibians',
+    reptiles: 'analysis.aoi.biodiversityTaxa.reptiles',
+    plants: 'analysis.aoi.biodiversityTaxa.plants',
+  };
+
+  protected localizedTaxonGroupLabel(value: string | null | undefined, fallback?: string): string {
+    if (!value) {
+      return fallback ?? '';
+    }
+
+    const labelKey = PanelSwitcherComponent.BIODIVERSITY_TAXA_LABEL_KEYS[value.toLowerCase()];
+    return labelKey ? this.localizedText(labelKey, fallback ?? value) : (fallback ?? value);
+  }
+
+  private buildSpeciesSecondaryLabel(
+    taxonGroup: string | null,
+    iucnStatus: string | null,
+  ): string | null {
+    const parts = [
+      taxonGroup ? this.localizedTaxonGroupLabel(taxonGroup) : null,
+      iucnStatus,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' \u00b7 ') : null;
+  }
+
   private getAoiEcosystemLabel(segmentId: string, fallback: string): string {
     const keyById: Record<string, string> = {
       ecosystems: 'analysis.aoi.ecosystemLegend.ecosystems',
@@ -3186,10 +3323,8 @@ export class PanelSwitcherComponent {
   }
 
   private buildComparisonMetricsCsvRows(): MetricsCsvRow[] {
-    const baselineName =
-      this.activeScenarioName() ?? this.localizedText('analysis.comparison.baselineLabel');
-    const candidateName =
-      this.comparisonSolution()?.name ?? this.localizedText('analysis.comparison.candidateLabel');
+    const baselineName = this.comparisonBaselineName();
+    const candidateName = this.comparisonCandidateName();
     const context = `${baselineName} ${this.localizedText('analysis.exports.context.versus')} ${candidateName}`;
     const readyStatus = this.localizedText('analysis.status.ready');
     const unavailableStatus = this.localizedText('analysis.common.valueUnavailable');

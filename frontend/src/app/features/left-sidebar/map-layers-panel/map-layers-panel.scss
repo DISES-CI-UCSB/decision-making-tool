@@ -455,6 +455,8 @@
 
 .map-layers-opacity-slider {
   --map-layers-slider-progress: 50%;
+  --map-layers-slider-thumb-diameter: 0.875rem;
+  --map-layers-slider-fill-nudge: 0.25rem;
   appearance: none;
   height: 1rem;
   background: transparent;
@@ -463,20 +465,34 @@
 .map-layers-opacity-slider::-webkit-slider-runnable-track {
   height: 0.25rem;
   border-radius: 9999px;
-  background: linear-gradient(
-    to right,
-    rgb(71 85 105) 0%,
-    rgb(71 85 105) var(--map-layers-slider-progress),
-    rgb(203 213 225) var(--map-layers-slider-progress),
-    rgb(203 213 225) 100%
-  );
+  /*
+   * The thumb center travels from half a thumb width inside the left edge to
+   * half a thumb width inside the right edge. Draw the fill in that same
+   * travel area so its endpoint sits beneath the thumb instead of trailing it.
+   */
+  background:
+    linear-gradient(rgb(71 85 105), rgb(71 85 105)) left center /
+      calc(var(--map-layers-slider-thumb-diameter) / 2) 100% no-repeat,
+    linear-gradient(
+        to right,
+        rgb(71 85 105) 0%,
+        rgb(71 85 105) calc(
+          var(--map-layers-slider-progress) + var(--map-layers-slider-fill-nudge)
+        ),
+        transparent calc(
+          var(--map-layers-slider-progress) + var(--map-layers-slider-fill-nudge)
+        ),
+        transparent 100%
+      )
+      center / calc(100% - var(--map-layers-slider-thumb-diameter)) 100% no-repeat,
+    rgb(203 213 225);
 }
 
 .map-layers-opacity-slider::-webkit-slider-thumb {
   appearance: none;
   margin-top: -0.3125rem;
-  height: 0.875rem;
-  width: 0.875rem;
+  height: var(--map-layers-slider-thumb-diameter);
+  width: var(--map-layers-slider-thumb-diameter);
   border-radius: 9999px;
   border: 1px solid rgb(148 163 184);
   background: rgb(255 255 255);

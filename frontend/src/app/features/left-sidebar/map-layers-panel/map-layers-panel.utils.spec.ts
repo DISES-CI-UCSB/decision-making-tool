@@ -210,13 +210,13 @@ describe('planning-domain layer filtering', () => {
       'marine',
     );
     expect(layerPlanningDomain('layer-hhm', 'group-socio-economic')).toBe('marine');
-    expect(layerPlanningDomain('layer-mangroves', 'group-ecosystems')).toBe('shared');
+    expect(layerPlanningDomain('layer-mangroves', 'group-ecosystems')).toBe('marine');
     expect(layerPlanningDomain('layer-species_richness', 'group-species-biodiversity')).toBe(
       'land',
     );
   });
 
-  it('filters terrestrial, marine, and combined catalog scopes while retaining shared context', () => {
+  it('filters terrestrial, marine, and combined catalog scopes while retaining contextual boundaries', () => {
     expect(
       isLayerAvailableForScope('layer-admin-departments', 'group-admin-boundaries', 'marine'),
     ).toBe(true);
@@ -227,6 +227,7 @@ describe('planning-domain layer filtering', () => {
       isLayerAvailableForScope('layer-species_richness', 'group-species-biodiversity', 'marine'),
     ).toBe(false);
     expect(isLayerAvailableForScope('layer-mangroves', 'group-ecosystems', 'marine')).toBe(true);
+    expect(isLayerAvailableForScope('layer-mangroves', 'group-ecosystems', 'land')).toBe(false);
     expect(
       isLayerAvailableForScope('layer-marine_ecosystems', 'group-marine-ecosystems', 'land'),
     ).toBe(false);
@@ -236,6 +237,7 @@ describe('planning-domain layer filtering', () => {
     expect(
       isLayerAvailableForScope('layer-marine_ecosystems', 'group-marine-ecosystems', 'both'),
     ).toBe(true);
+    expect(isLayerAvailableForScope('layer-mangroves', 'group-ecosystems', 'both')).toBe(true);
   });
 });
 
