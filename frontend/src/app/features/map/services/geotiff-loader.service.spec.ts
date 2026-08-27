@@ -1,6 +1,24 @@
-import { getRasterCrs } from './geotiff-loader.service';
+import { getRasterCrs, getSolutionRasterDataUrl } from './geotiff-loader.service';
 
 describe('GeoTIFF loader projection metadata', () => {
+  it('uses the display COG as raster data when ArcGIS renders that COG', () => {
+    expect(
+      getSolutionRasterDataUrl({
+        displayUrl: 'https://example.com/raw.epsg4326.tif',
+        displayCogUrl: 'https://example.com/display.epsg9377.cog.tif',
+      }),
+    ).toBe('https://example.com/display.epsg9377.cog.tif');
+  });
+
+  it('falls back to the source raster when no display COG is published', () => {
+    expect(
+      getSolutionRasterDataUrl({
+        displayUrl: 'https://example.com/raw.tif',
+        displayCogUrl: null,
+      }),
+    ).toBe('https://example.com/raw.tif');
+  });
+
   it('reads the projected EPSG code from the GeoTIFF image API', () => {
     const image = {
       getGeoKeys: () => ({

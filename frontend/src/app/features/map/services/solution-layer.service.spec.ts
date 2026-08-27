@@ -271,7 +271,7 @@ describe('SolutionLayerService', () => {
     ]);
   });
 
-  it('loads two solutions for comparison and exposes both layers', async () => {
+  it('creates the overlap immediately for an initial three-color comparison', async () => {
     const baselineLoaded = createLoadedSolution('baseline');
     const candidateLoaded = createLoadedSolution('candidate');
     loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
@@ -290,12 +290,85 @@ describe('SolutionLayerService', () => {
     await service.showComparison('baseline', 'candidate');
 
     expect(mapMock.addMany).toHaveBeenCalledWith([baselineLayer, candidateLayer]);
+    expect(mapMock.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'solution-raster-layer-overlap',
+        visible: true,
+      }),
+    );
     expect(appStateMock.loadSolution).not.toHaveBeenCalled();
     expect(service.isComparisonModeActive()).toBe(true);
     expect(service.getComparisonLayers()).toEqual({
       baselineLayer,
       candidateLayer,
     });
+  });
+
+  it('renders overlap pixels through an imagery tile layer on the display COG grid', async () => {
+    const projectedRasterMeta: LoadedSolution['rasterMeta'] = {
+      ...createLoadedSolution('baseline').rasterMeta,
+      bbox: [4_310_000, 1_047_000, 5_702_000, 2_965_000],
+      resolution: [1000, -1000],
+      crs: 'EPSG:9377',
+    };
+    const baselineLoaded = {
+      ...createLoadedSolution('baseline', {
+        displayCogUrl: 'https://example.com/baseline.epsg9377.cog.tif',
+      }),
+      rasterMeta: projectedRasterMeta,
+    };
+    const candidateLoaded = {
+      ...createLoadedSolution('candidate', {
+        displayCogUrl: 'https://example.com/candidate.epsg9377.cog.tif',
+      }),
+      rasterMeta: projectedRasterMeta,
+    };
+    loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
+      solutionId === 'baseline' ? baselineLoaded : candidateLoaded,
+    );
+
+    await service.showComparison('baseline', 'candidate');
+
+    const overlapLayer = mapMock.add.mock.calls[0]?.[0] as {
+      type: string;
+      interpolation: string;
+      load(): Promise<unknown>;
+      symbolizer: {
+        symbolize(input: { pixelBlock: unknown }): {
+          getAsRGBA(): Uint8ClampedArray;
+        };
+      };
+      source: {
+        extent: {
+          xmin: number;
+          ymin: number;
+          xmax: number;
+          ymax: number;
+          spatialReference: { wkid: number };
+        };
+        pixelBlock: {
+          width: number;
+          height: number;
+          pixels: Uint8Array[];
+          mask: Uint8Array;
+        };
+      };
+    };
+    const { extent, pixelBlock } = overlapLayer.source;
+    expect(overlapLayer.type).toBe('imagery-tile');
+    expect(overlapLayer.interpolation).toBe('nearest');
+    expect([extent.xmin, extent.ymin, extent.xmax, extent.ymax]).toEqual(projectedRasterMeta.bbox);
+    expect(extent.spatialReference.wkid).toBe(9377);
+    expect(pixelBlock.width).toBe(projectedRasterMeta.width);
+    expect(pixelBlock.height).toBe(projectedRasterMeta.height);
+    expect(Array.from(pixelBlock.pixels[0] ?? [])).toEqual([1, 1, 1, 0]);
+    expect(Array.from(pixelBlock.mask)).toEqual([1, 1, 1, 0]);
+
+    await overlapLayer.load();
+    const renderedPixels = overlapLayer.symbolizer.symbolize({ pixelBlock }).getAsRGBA();
+    expect(Array.from(renderedPixels)).toEqual([
+      236, 72, 153, 255, 236, 72, 153, 255, 236, 72, 153, 255, 0, 0, 0, 0,
+    ]);
   });
 
   it('calculates live comparison metrics from selected solution cells', async () => {
@@ -394,6 +467,7 @@ describe('SolutionLayerService', () => {
         status: 'unavailable',
       }),
     );
+    expect(mapMock.add).not.toHaveBeenCalled();
   });
 
   it('reorders arbitrary map layers from bottom to top so the first id ends up above the rest', () => {
@@ -482,6 +556,34 @@ describe('SolutionLayerService', () => {
     expect(candidateLayer.visible).toBe(true);
     expect(baselineLayer.opacity).toBe(0.35);
     expect(candidateLayer.opacity).toBe(0.9);
+  });
+
+  it('updates overlap controls without rebuilding its in-memory imagery source', async () => {
+    const baselineLoaded = createLoadedSolution('baseline');
+    const candidateLoaded = createLoadedSolution('candidate');
+    loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
+      solutionId === 'baseline' ? baselineLoaded : candidateLoaded,
+    );
+
+    await service.showComparison('baseline', 'candidate');
+
+    const overlapLayer = mapMock.add.mock.calls[0]?.[0] as {
+      source: unknown;
+      renderer: unknown;
+      opacity: number;
+      visible: boolean;
+    };
+    const initialSource = overlapLayer.source;
+    const initialRenderer = overlapLayer.renderer;
+
+    service.setOverlapColor('#f97316');
+    service.setOverlapOpacity(0.45);
+    service.setOverlapVisibility(false);
+
+    expect(overlapLayer.source).toBe(initialSource);
+    expect(overlapLayer.renderer).not.toBe(initialRenderer);
+    expect(overlapLayer.opacity).toBe(0.45);
+    expect(overlapLayer.visible).toBe(false);
   });
 
   it('restores overlap visibility after switching from swipe back to overlay mode', () => {

@@ -59,8 +59,16 @@ export function isPreExistingSolutionCell(value: number, noDataValue: number | n
 export function buildOverlapRasterData(
   baseline: LoadedSolution,
   candidate: LoadedSolution,
-): Float64Array {
-  const length = Math.min(baseline.rasterData.length, candidate.rasterData.length);
+): Float64Array | null {
+  if (!hasSameRasterGrid(baseline, candidate)) {
+    return null;
+  }
+
+  const length = baseline.rasterMeta.width * baseline.rasterMeta.height;
+  if (baseline.rasterData.length !== length || candidate.rasterData.length !== length) {
+    return null;
+  }
+
   const overlapRaster = new Float64Array(length);
 
   for (let index = 0; index < length; index++) {
@@ -165,7 +173,10 @@ export function calculateLiveComparisonMetrics(
   }
 
   const expectedLength = baseline.rasterMeta.width * baseline.rasterMeta.height;
-  if (baseline.rasterData.length < expectedLength || candidate.rasterData.length < expectedLength) {
+  if (
+    baseline.rasterData.length !== expectedLength ||
+    candidate.rasterData.length !== expectedLength
+  ) {
     return unavailableComparisonMetrics(
       'Comparison rasters do not contain the expected number of cells.',
     );
