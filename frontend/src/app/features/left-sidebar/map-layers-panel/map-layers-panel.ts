@@ -1888,12 +1888,22 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected resetDefaults(): void {
+    // Map layers are stateful outside this component. Clear the current rows
+    // before replacing them so no selected layer is left rendered without a
+    // corresponding sidebar row.
+    this.clearCurrentRowsFromMap();
     this.overlaysCollapsed.set(false);
     this.layerSearchQuery.set('');
     this.layerCatalogScope.set(this.activeSolutionDomain() ?? 'land');
+    this.savedSingleSolutionColor = null;
+    this.savedBaselineColor = null;
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
+    const manifestGroups = this.manifestSidebarLayerGroups();
+    if (manifestGroups.length > 0) {
+      this.reconcileManifestRows(manifestGroups);
+    }
     this.loadSpeciesManifestRows(this.speciesCollectionManifestUrl());
     this.selectedLayerOrder.set(
       this.normalizeSelectedLayerOrder(
@@ -2995,6 +3005,21 @@ export class MapLayersPanelComponent implements OnDestroy {
       ...this.groups().flatMap((group) => group.rows),
       ...this.taxa().flatMap((taxon) => taxon.species),
     ]);
+  }
+
+  private clearCurrentRowsFromMap(): void {
+    const currentRows = [
+      ...this.overlays(),
+      ...this.groups().flatMap((group) => group.rows),
+      ...this.taxa().flatMap((taxon) => taxon.species),
+    ];
+    this.mapSync.syncRows(
+      currentRows.map((row) => ({
+        ...row,
+        selected: false,
+        visible: false,
+      })),
+    );
   }
 
   private syncOverlayById(rowId: string): void {

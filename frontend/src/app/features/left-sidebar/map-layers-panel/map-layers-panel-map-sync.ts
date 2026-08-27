@@ -119,7 +119,8 @@ export class MapLayersPanelMapSync {
     private readonly scheduleTask: (callback: () => void) => ReturnType<typeof setTimeout> = (
       callback,
     ) => setTimeout(callback, 0),
-    private readonly cancelTask: (taskId: ReturnType<typeof setTimeout>) => void = clearTimeout,
+    private readonly cancelTask: (taskId: ReturnType<typeof setTimeout>) => void = (taskId) =>
+      clearTimeout(taskId),
   ) {}
 
   syncRow(row: MapSyncRow): void {
