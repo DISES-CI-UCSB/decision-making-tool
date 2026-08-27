@@ -178,7 +178,7 @@ export function sidebarCategoryBindingForManifest(
 export const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<
   Record<string, { en: string; es: string }>
 > = {
-  socioeconomic: { en: 'Costs', es: 'Costos' },
+  socioeconomic: { en: 'Human Activity and Land Use', es: 'Actividad humana y uso del suelo' },
 };
 /** Manifest layers available elsewhere in the app but intentionally omitted from the left sidebar. */
 export const LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS = new Set(['net_benefit']);

@@ -1424,7 +1424,7 @@
       "ecosystems": "Ecosystems",
       "marineEcosystems": "Marine Ecosystems",
       "culturalEthnicTerritories": "Cultural & Ethnic Territories",
-      "costs": "Costs"
+      "costs": "Human Activity and Land Use"
     },
     "layerNames": {
       "marineHumanModification": "Marine human modification (HHM)",
