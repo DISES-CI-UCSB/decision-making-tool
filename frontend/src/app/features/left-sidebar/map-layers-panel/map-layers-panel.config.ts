@@ -180,6 +180,8 @@ export const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<
 > = {
   socioeconomic: { en: 'Costs', es: 'Costos' },
 };
+/** Manifest layers available elsewhere in the app but intentionally omitted from the left sidebar. */
+export const LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS = new Set(['net_benefit']);
 export const SPECIES_CLASS_TO_TAXON: Record<string, { taxonId: string; taxonLabel: string }> = {
   Mammalia: { taxonId: 'mammals', taxonLabel: 'Mammals' },
   Aves: { taxonId: 'birds', taxonLabel: 'Birds' },
@@ -389,6 +391,7 @@ export const KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID: Record<
 > = {
   species_richness: SPECIES_RICHNESS_RENDER_RANGE,
   human_footprint_2022: HUMAN_FOOTPRINT_RENDER_RANGE,
+  human_footprint_2030: HUMAN_FOOTPRINT_RENDER_RANGE,
 };
 
 // Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.

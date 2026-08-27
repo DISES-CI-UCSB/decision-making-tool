@@ -17,6 +17,7 @@ import {
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
   MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC,
   MANIFEST_OVERLAY_ROW_BY_LAYER_ID,
+  LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS,
   MARINE_ECOSYSTEMS_GROUP_ID,
   MARINE_ECOSYSTEMS_LAYER_ID,
   MARINE_HHM_LAYER_ID,
@@ -172,13 +173,16 @@ function manifestRowsForGroup(
   groupId: string,
   rows: readonly ManifestSidebarLayerRow[],
 ): ManifestSidebarLayerRow[] {
+  const visibleRows = rows.filter(
+    (row) => !LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS.has(row.id),
+  );
   if (groupId === MARINE_ECOSYSTEMS_GROUP_ID) {
-    return rows.filter((row) => `layer-${row.id}` === MARINE_ECOSYSTEMS_LAYER_ID);
+    return visibleRows.filter((row) => `layer-${row.id}` === MARINE_ECOSYSTEMS_LAYER_ID);
   }
   if (groupId === 'group-ecosystems') {
-    return rows.filter((row) => `layer-${row.id}` !== MARINE_ECOSYSTEMS_LAYER_ID);
+    return visibleRows.filter((row) => `layer-${row.id}` !== MARINE_ECOSYSTEMS_LAYER_ID);
   }
-  return [...rows];
+  return visibleRows;
 }
 
 function preserveSyntheticRows(
