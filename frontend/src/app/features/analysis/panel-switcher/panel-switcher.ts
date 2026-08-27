@@ -1508,6 +1508,49 @@ export class PanelSwitcherComponent {
     this.appState.setRightSidebarMode(tab);
   }
 
+  protected showGoalsTooltip(event: Event, domainId: string): void {
+    const trigger = event.currentTarget as HTMLElement;
+    const tooltip = document.getElementById(
+      `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`,
+    );
+
+    if (!tooltip || typeof tooltip.showPopover !== 'function') {
+      return;
+    }
+
+    if (!tooltip.matches(':popover-open')) {
+      tooltip.showPopover();
+    }
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const viewportPadding = 16;
+    const triggerCenter = triggerRect.left + triggerRect.width / 2;
+    const left = Math.min(
+      window.innerWidth - tooltipRect.width - viewportPadding,
+      Math.max(viewportPadding, triggerCenter - tooltipRect.width / 2),
+    );
+    const belowTop = triggerRect.bottom + 8;
+    const opensAbove = belowTop + tooltipRect.height > window.innerHeight - viewportPadding;
+    const top = opensAbove ? triggerRect.top - tooltipRect.height - 8 : belowTop;
+    const arrowLeft = Math.min(tooltipRect.width - 12, Math.max(12, triggerCenter - left));
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${Math.max(viewportPadding, top)}px`;
+    tooltip.style.setProperty('--v3-tooltip-arrow-left', `${arrowLeft}px`);
+    tooltip.classList.toggle('v3-methodology-tooltip-above', opensAbove);
+  }
+
+  protected hideGoalsTooltip(domainId: string): void {
+    const tooltip = document.getElementById(
+      `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`,
+    );
+
+    if (tooltip?.matches(':popover-open')) {
+      tooltip.hidePopover();
+    }
+  }
+
   protected requestCustomAoiDraw(): void {
     if (!this.activeSolution()) {
       return;

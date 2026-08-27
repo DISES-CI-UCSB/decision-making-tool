@@ -262,6 +262,56 @@
                                 class="font-semibold"
                               >
                                 {{ domain.labelKey | translate }}
+                                <span
+                                  [id]="'right-sidebar-v3-overview-goals-domain-help-' + domain.id"
+                                  class="v3-methodology-help"
+                                  (mouseenter)="showGoalsTooltip($event, domain.id)"
+                                  (mouseleave)="hideGoalsTooltip(domain.id)"
+                                  (focusin)="showGoalsTooltip($event, domain.id)"
+                                  (focusout)="hideGoalsTooltip(domain.id)"
+                                >
+                                  <button
+                                    [id]="
+                                      'right-sidebar-v3-overview-goals-domain-help-trigger-' + domain.id
+                                    "
+                                    type="button"
+                                    class="v3-methodology-trigger"
+                                    [attr.aria-label]="
+                                      'analysis.overview.methodologyInfoLabel' | translate
+                                    "
+                                    [attr.aria-describedby]="
+                                      'right-sidebar-v3-overview-goals-domain-help-tooltip-' + domain.id
+                                    "
+                                  >
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-domain-help-indicator-' + domain.id
+                                      "
+                                      class="v3-methodology-indicator tooltip-info-icon-glyph"
+                                      aria-hidden="true"
+                                      >i</span
+                                    >
+                                  </button>
+                                  <span
+                                    [id]="
+                                      'right-sidebar-v3-overview-goals-domain-help-tooltip-' +
+                                      domain.id
+                                    "
+                                    role="tooltip"
+                                    popover="manual"
+                                    class="v3-methodology-tooltip v3-methodology-tooltip-overlay"
+                                  >
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-domain-help-text-' +
+                                        domain.id
+                                      "
+                                      class="v3-methodology-tooltip-text"
+                                    >
+                                      {{ getGoalsModalDescriptionKey(domain) | translate }}
+                                    </span>
+                                  </span>
+                                </span>
                               </span>
                               <span
                                 [id]="'right-sidebar-v3-overview-goals-domain-target-' + domain.id"

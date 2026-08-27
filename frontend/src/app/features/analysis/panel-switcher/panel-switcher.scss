@@ -837,7 +837,7 @@
 
 .v3-methodology-help:hover,
 .v3-methodology-help:focus-within {
-  z-index: 1200;
+  z-index: 10002;
 }
 
 .v3-methodology-trigger {
@@ -859,7 +859,7 @@
   position: absolute;
   top: calc(100% + 8px);
   left: 50%;
-  z-index: 1250;
+  z-index: 10001;
   width: max-content;
   max-width: 280px;
   border-radius: 6px;
@@ -897,6 +897,32 @@
   opacity: 1;
   transform: translate(-72%, 0);
   visibility: visible;
+}
+
+.v3-methodology-tooltip-overlay {
+  position: fixed;
+  inset: auto;
+  max-width: min(280px, calc(100vw - 32px));
+  margin: 0;
+  opacity: 1;
+  pointer-events: none;
+  transform: none;
+  visibility: visible;
+}
+
+.v3-methodology-tooltip-overlay::before {
+  left: var(--v3-tooltip-arrow-left, 50%);
+}
+
+.v3-methodology-tooltip-overlay.v3-methodology-tooltip-above::before {
+  top: auto;
+  bottom: -6px;
+  transform: translateX(-50%) rotate(225deg);
+}
+
+.v3-methodology-help:hover .v3-methodology-tooltip-overlay,
+.v3-methodology-help:focus-within .v3-methodology-tooltip-overlay {
+  transform: none;
 }
 
 .v3-methodology-tooltip-text {
