@@ -3,82 +3,283 @@
   [coordinateToolEnabled]="coordinateToolEnabled"
   (coordinateToolEnabledChange)="onCoordinateToolEnabledChange($event)"
 ></app-header>
-<app-shell id="foundation-app-shell">
-  <section id="foundation-left-sidebar-slot" slot-left class="h-full min-h-0 bg-white">
-    <app-sidebar-container
-      id="solution-controls-left-sidebar-container"
-      (solutionFinderRequested)="openSolutionFinderModal()"
-    ></app-sidebar-container>
-  </section>
 
-  <section id="foundation-center-slot" slot-center class="h-full min-h-0 bg-white p-0">
-    <h1 id="map-panel-title" class="sr-only">{{ 'app.mapTitle' | translate }}</h1>
-    <div id="foundation-map-panel-shell" class="relative h-full overflow-hidden bg-white">
-      <app-map-view
-        id="foundation-map-view-component"
-        class="block h-full w-full min-w-0"
-        [coordinateToolEnabled]="coordinateToolEnabled"
-      ></app-map-view>
-    </div>
-  </section>
+@if (!isAboutPage) {
+  <app-shell id="foundation-app-shell">
+    <section id="foundation-left-sidebar-slot" slot-left class="h-full min-h-0 bg-white">
+      <app-sidebar-container
+        id="solution-controls-left-sidebar-container"
+        (solutionFinderRequested)="openSolutionFinderModal()"
+      ></app-sidebar-container>
+    </section>
 
-  <section
-    id="foundation-right-sidebar-slot"
-    slot-right
-    class="h-full min-h-0 bg-white text-sm text-slate-800"
-  >
-    <app-panel-switcher
-      id="foundation-right-sidebar-panel-switcher"
-      class="block h-full min-h-0"
-    ></app-panel-switcher>
-  </section>
-</app-shell>
+    <section id="foundation-center-slot" slot-center class="h-full min-h-0 bg-white p-0">
+      <h1 id="map-panel-title" class="sr-only">{{ 'app.mapTitle' | translate }}</h1>
+      <div id="foundation-map-panel-shell" class="relative h-full overflow-hidden bg-white">
+        <app-map-view
+          id="foundation-map-view-component"
+          class="block h-full w-full min-w-0"
+          [coordinateToolEnabled]="coordinateToolEnabled"
+        ></app-map-view>
+      </div>
+    </section>
 
-<app-modal-shell
-  id="landing-welcome-modal-shell"
-  rootId="landing-welcome-modal-shell-root"
-  mode="standard"
-  [isOpen]="landingWelcomeModalOpen"
-  [closeOnBackdrop]="true"
-  [closeOnEscape]="true"
-  [showCloseButton]="true"
-  headerAlign="start"
-  initialFocus="panel"
-  ariaLabelKey="landingWelcome.title"
-  (requestClose)="closeLandingWelcomeModal()"
->
-  <section id="landing-welcome-modal-header-copy" modal-shell-header-content class="space-y-1 pt-1">
-    <p
-      id="landing-welcome-modal-kicker"
-      class="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700"
+    <section
+      id="foundation-right-sidebar-slot"
+      slot-right
+      class="h-full min-h-0 bg-white text-sm text-slate-800"
     >
-      {{ 'landingWelcome.kicker' | translate }}
-    </p>
-    <h2 id="landing-welcome-modal-title" class="text-xl font-semibold text-slate-950">
-      {{ 'landingWelcome.title' | translate }}
-    </h2>
+      <app-panel-switcher
+        id="foundation-right-sidebar-panel-switcher"
+        class="block h-full min-h-0"
+      ></app-panel-switcher>
+    </section>
+  </app-shell>
+
+  <app-modal-shell
+    id="landing-welcome-modal-shell"
+    rootId="landing-welcome-modal-shell-root"
+    mode="standard"
+    [isOpen]="landingWelcomeModalOpen"
+    [closeOnBackdrop]="true"
+    [closeOnEscape]="true"
+    [showCloseButton]="true"
+    headerAlign="start"
+    initialFocus="panel"
+    ariaLabelKey="landingWelcome.title"
+    (requestClose)="closeLandingWelcomeModal()"
+  >
+    <section
+      id="landing-welcome-modal-header-copy"
+      modal-shell-header-content
+      class="space-y-1 pt-1"
+    >
+      <p
+        id="landing-welcome-modal-kicker"
+        class="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700"
+      >
+        {{ 'landingWelcome.kicker' | translate }}
+      </p>
+      <h2 id="landing-welcome-modal-title" class="text-xl font-semibold text-slate-950">
+        {{ 'landingWelcome.title' | translate }}
+      </h2>
+      <nav
+        id="landing-welcome-modal-language-toggle-nav"
+        aria-label="Language switcher"
+        class="inline-flex items-center pt-2 text-sm"
+      >
+        @if (activeLanguage === 'es') {
+          <button
+            id="landing-welcome-modal-language-toggle-link-en"
+            type="button"
+            class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            (click)="setLanguage('en')"
+          >
+            EN
+          </button>
+          <span
+            id="landing-welcome-modal-language-toggle-divider-es"
+            class="px-1.5 text-slate-400"
+            aria-hidden="true"
+            >|</span
+          >
+          <span
+            id="landing-welcome-modal-language-toggle-current-es"
+            aria-current="page"
+            class="font-semibold text-slate-900"
+          >
+            ES
+          </span>
+        } @else {
+          <span
+            id="landing-welcome-modal-language-toggle-current-en"
+            aria-current="page"
+            class="font-semibold text-slate-900"
+          >
+            EN
+          </span>
+          <span
+            id="landing-welcome-modal-language-toggle-divider-en"
+            class="px-1.5 text-slate-400"
+            aria-hidden="true"
+            >|</span
+          >
+          <button
+            id="landing-welcome-modal-language-toggle-link-es"
+            type="button"
+            class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            (click)="setLanguage('es')"
+          >
+            ES
+          </button>
+        }
+      </nav>
+    </section>
+
+    <section id="landing-welcome-modal-content" class="space-y-5">
+      <div id="landing-welcome-modal-introduction" class="space-y-3">
+        <p id="landing-welcome-modal-description" class="text-sm leading-6 text-slate-700">
+          {{ 'landingWelcome.description' | translate }}
+        </p>
+      </div>
+
+      <section
+        id="landing-welcome-modal-quick-start-card"
+        class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+      >
+        <h3
+          id="landing-welcome-modal-quick-start-title"
+          class="text-sm font-semibold text-slate-900"
+        >
+          {{ 'landingWelcome.quickStartTitle' | translate }}
+        </h3>
+        <ol id="landing-welcome-modal-quick-start-list" class="mt-3 space-y-3">
+          <li id="landing-welcome-modal-quick-start-step-select" class="flex gap-3">
+            <span
+              id="landing-welcome-modal-quick-start-step-select-marker"
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-700 pt-px text-xs font-semibold leading-none text-white"
+              aria-hidden="true"
+            >
+              1
+            </span>
+            <span
+              id="landing-welcome-modal-quick-start-step-select-copy"
+              class="text-sm leading-6 text-slate-700"
+            >
+              {{ 'landingWelcome.steps.selectSolution' | translate }}
+            </span>
+          </li>
+          <li id="landing-welcome-modal-quick-start-step-explore" class="flex gap-3">
+            <span
+              id="landing-welcome-modal-quick-start-step-explore-marker"
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
+              aria-hidden="true"
+            >
+              2
+            </span>
+            <span
+              id="landing-welcome-modal-quick-start-step-explore-copy"
+              class="text-sm leading-6 text-slate-700"
+            >
+              {{ 'landingWelcome.steps.exploreMap' | translate }}
+            </span>
+          </li>
+          <li id="landing-welcome-modal-quick-start-step-review" class="flex gap-3">
+            <span
+              id="landing-welcome-modal-quick-start-step-review-marker"
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
+              aria-hidden="true"
+            >
+              3
+            </span>
+            <span
+              id="landing-welcome-modal-quick-start-step-review-copy"
+              class="text-sm leading-6 text-slate-700"
+            >
+              {{ 'landingWelcome.steps.reviewAnalysis' | translate }}
+            </span>
+          </li>
+          <li id="landing-welcome-modal-quick-start-step-download" class="flex gap-3">
+            <span
+              id="landing-welcome-modal-quick-start-step-download-marker"
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
+              aria-hidden="true"
+            >
+              4
+            </span>
+            <span
+              id="landing-welcome-modal-quick-start-step-download-copy"
+              class="text-sm leading-6 text-slate-700"
+            >
+              {{ 'landingWelcome.steps.downloadOutputs' | translate }}
+            </span>
+          </li>
+        </ol>
+      </section>
+
+      <p id="landing-welcome-modal-decision-support-note" class="text-sm leading-6 text-slate-700">
+        {{ 'landingWelcome.decisionSupportNote' | translate }}
+      </p>
+
+      <div
+        id="landing-welcome-modal-actions"
+        class="flex flex-col gap-3 sm:flex-row sm:justify-end"
+      >
+        <button
+          id="landing-welcome-modal-select-solution-button"
+          type="button"
+          class="inline-flex items-center justify-center rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+          (click)="startFromLandingWelcome()"
+        >
+          {{ 'landingWelcome.actions.selectSolution' | translate }}
+        </button>
+      </div>
+    </section>
+  </app-modal-shell>
+
+  <app-modal-shell
+    id="solution-finder-modal-shell"
+    rootId="solution-finder-modal-shell-root"
+    mode="wide"
+    [isOpen]="solutionFinderModalOpen()"
+    [closeOnBackdrop]="true"
+    [closeOnEscape]="true"
+    [showCloseButton]="true"
+    headerAlign="start"
+    (requestClose)="closeSolutionFinderModal()"
+  >
+    <section
+      id="solution-finder-modal-shell-header-copy"
+      modal-shell-header-content
+      class="space-y-1 pt-1"
+    >
+      <p
+        id="solution-finder-modal-shell-workflow-kicker"
+        class="text-xl font-semibold uppercase tracking-[0.08em] text-sky-700"
+      >
+        {{
+          (solutionFinderContext() === 'comparison-candidate'
+            ? 'solutionControls.finder.comparison.kicker'
+            : 'solutionControls.finder.kicker'
+          ) | translate
+        }}
+      </p>
+      <p id="solution-finder-modal-shell-workflow-description" class="text-sm text-black">
+        {{
+          (solutionFinderContext() === 'comparison-candidate'
+            ? 'solutionControls.finder.comparison.description'
+            : 'solutionControls.finder.description'
+          ) | translate
+        }}
+      </p>
+    </section>
     <nav
-      id="landing-welcome-modal-language-toggle-nav"
-      aria-label="Language switcher"
-      class="inline-flex items-center pt-2 text-sm"
+      id="solution-finder-modal-language-picker-nav"
+      modal-shell-header-actions
+      [attr.aria-label]="'header.languageSwitcherLabel' | translate"
+      class="inline-flex items-center text-sm"
     >
       @if (activeLanguage === 'es') {
         <button
-          id="landing-welcome-modal-language-toggle-link-en"
+          id="solution-finder-modal-language-picker-link-en"
           type="button"
-          class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          class="inline-flex min-h-10 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          [attr.aria-label]="
+            'header.languageToggleLabel'
+              | translate: { lang: ('header.languageEnglish' | translate) }
+          "
           (click)="setLanguage('en')"
         >
           EN
         </button>
         <span
-          id="landing-welcome-modal-language-toggle-divider-es"
+          id="solution-finder-modal-language-picker-divider-es"
           class="px-1.5 text-slate-400"
           aria-hidden="true"
           >|</span
         >
         <span
-          id="landing-welcome-modal-language-toggle-current-es"
+          id="solution-finder-modal-language-picker-current-es"
           aria-current="page"
           class="font-semibold text-slate-900"
         >
@@ -86,256 +287,70 @@
         </span>
       } @else {
         <span
-          id="landing-welcome-modal-language-toggle-current-en"
+          id="solution-finder-modal-language-picker-current-en"
           aria-current="page"
           class="font-semibold text-slate-900"
         >
           EN
         </span>
         <span
-          id="landing-welcome-modal-language-toggle-divider-en"
+          id="solution-finder-modal-language-picker-divider-en"
           class="px-1.5 text-slate-400"
           aria-hidden="true"
           >|</span
         >
         <button
-          id="landing-welcome-modal-language-toggle-link-es"
+          id="solution-finder-modal-language-picker-link-es"
           type="button"
-          class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          class="inline-flex min-h-10 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          [attr.aria-label]="
+            'header.languageToggleLabel'
+              | translate: { lang: ('header.languageSpanish' | translate) }
+          "
           (click)="setLanguage('es')"
         >
           ES
         </button>
       }
     </nav>
-  </section>
-
-  <section id="landing-welcome-modal-content" class="space-y-5">
-    <div id="landing-welcome-modal-introduction" class="space-y-3">
-      <p id="landing-welcome-modal-description" class="text-sm leading-6 text-slate-700">
-        {{ 'landingWelcome.description' | translate }}
-      </p>
-    </div>
-
-    <section
-      id="landing-welcome-modal-quick-start-card"
-      class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-    >
-      <h3 id="landing-welcome-modal-quick-start-title" class="text-sm font-semibold text-slate-900">
-        {{ 'landingWelcome.quickStartTitle' | translate }}
-      </h3>
-      <ol id="landing-welcome-modal-quick-start-list" class="mt-3 space-y-3">
-        <li id="landing-welcome-modal-quick-start-step-select" class="flex gap-3">
-          <span
-            id="landing-welcome-modal-quick-start-step-select-marker"
-            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-700 pt-px text-xs font-semibold leading-none text-white"
-            aria-hidden="true"
-          >
-            1
-          </span>
-          <span
-            id="landing-welcome-modal-quick-start-step-select-copy"
-            class="text-sm leading-6 text-slate-700"
-          >
-            {{ 'landingWelcome.steps.selectSolution' | translate }}
-          </span>
-        </li>
-        <li id="landing-welcome-modal-quick-start-step-explore" class="flex gap-3">
-          <span
-            id="landing-welcome-modal-quick-start-step-explore-marker"
-            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
-            aria-hidden="true"
-          >
-            2
-          </span>
-          <span
-            id="landing-welcome-modal-quick-start-step-explore-copy"
-            class="text-sm leading-6 text-slate-700"
-          >
-            {{ 'landingWelcome.steps.exploreMap' | translate }}
-          </span>
-        </li>
-        <li id="landing-welcome-modal-quick-start-step-review" class="flex gap-3">
-          <span
-            id="landing-welcome-modal-quick-start-step-review-marker"
-            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
-            aria-hidden="true"
-          >
-            3
-          </span>
-          <span
-            id="landing-welcome-modal-quick-start-step-review-copy"
-            class="text-sm leading-6 text-slate-700"
-          >
-            {{ 'landingWelcome.steps.reviewAnalysis' | translate }}
-          </span>
-        </li>
-        <li id="landing-welcome-modal-quick-start-step-download" class="flex gap-3">
-          <span
-            id="landing-welcome-modal-quick-start-step-download-marker"
-            class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
-            aria-hidden="true"
-          >
-            4
-          </span>
-          <span
-            id="landing-welcome-modal-quick-start-step-download-copy"
-            class="text-sm leading-6 text-slate-700"
-          >
-            {{ 'landingWelcome.steps.downloadOutputs' | translate }}
-          </span>
-        </li>
-      </ol>
+    <section id="solution-finder-modal-content-shell" class="h-full">
+      <app-finder-modal
+        id="solution-finder-modal-workflow-component"
+        [mode]="solutionFinderContext()"
+        (closeRequested)="closeSolutionFinderModal()"
+        (solutionApplied)="onSolutionApplied($event)"
+      ></app-finder-modal>
     </section>
+  </app-modal-shell>
 
-    <p id="landing-welcome-modal-decision-support-note" class="text-sm leading-6 text-slate-700">
-      {{ 'landingWelcome.decisionSupportNote' | translate }}
-    </p>
-
-    <div id="landing-welcome-modal-actions" class="flex flex-col gap-3 sm:flex-row sm:justify-end">
-      <button
-        id="landing-welcome-modal-select-solution-button"
-        type="button"
-        class="inline-flex items-center justify-center rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
-        (click)="startFromLandingWelcome()"
-      >
-        {{ 'landingWelcome.actions.selectSolution' | translate }}
-      </button>
-    </div>
-  </section>
-</app-modal-shell>
-
-<app-modal-shell
-  id="solution-finder-modal-shell"
-  rootId="solution-finder-modal-shell-root"
-  mode="wide"
-  [isOpen]="solutionFinderModalOpen()"
-  [closeOnBackdrop]="true"
-  [closeOnEscape]="true"
-  [showCloseButton]="true"
-  headerAlign="start"
-  (requestClose)="closeSolutionFinderModal()"
->
-  <section
-    id="solution-finder-modal-shell-header-copy"
-    modal-shell-header-content
-    class="space-y-1 pt-1"
+  <app-modal-shell
+    id="perspective-modal-shell"
+    rootId="perspective-modal-shell-root"
+    mode="standard"
+    titleKey="solutionControls.modal.perspectiveTitle"
+    [isOpen]="perspectiveModalOpen"
+    [closeOnBackdrop]="true"
+    [closeOnEscape]="true"
+    [showCloseButton]="true"
+    (requestClose)="closePerspectiveModal()"
   >
-    <p
-      id="solution-finder-modal-shell-workflow-kicker"
-      class="text-xl font-semibold uppercase tracking-[0.08em] text-sky-700"
-    >
-      {{
-        (solutionFinderContext() === 'comparison-candidate'
-          ? 'solutionControls.finder.comparison.kicker'
-          : 'solutionControls.finder.kicker'
-        ) | translate
-      }}
-    </p>
-    <p id="solution-finder-modal-shell-workflow-description" class="text-sm text-black">
-      {{
-        (solutionFinderContext() === 'comparison-candidate'
-          ? 'solutionControls.finder.comparison.description'
-          : 'solutionControls.finder.description'
-        ) | translate
-      }}
-    </p>
-  </section>
-  <nav
-    id="solution-finder-modal-language-picker-nav"
-    modal-shell-header-actions
-    [attr.aria-label]="'header.languageSwitcherLabel' | translate"
-    class="inline-flex items-center text-sm"
-  >
-    @if (activeLanguage === 'es') {
+    <section id="perspective-modal-demo-content" class="space-y-3">
+      <h2 id="perspective-modal-demo-heading" class="text-base font-semibold text-ink-900">
+        {{ 'solutionControls.modal.perspectiveHeading' | translate }}
+      </h2>
+      <p id="perspective-modal-demo-description" class="text-sm text-ink-900">
+        {{ 'solutionControls.modal.perspectiveDescription' | translate }}
+      </p>
       <button
-        id="solution-finder-modal-language-picker-link-en"
+        id="perspective-modal-demo-close-button"
         type="button"
-        class="inline-flex min-h-10 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-        [attr.aria-label]="
-          'header.languageToggleLabel' | translate: { lang: ('header.languageEnglish' | translate) }
-        "
-        (click)="setLanguage('en')"
+        class="rounded-md border border-earth-300 bg-white px-3 py-2 text-sm transition hover:bg-earth-100"
+        (click)="closePerspectiveModal()"
       >
-        EN
+        {{ 'common.close' | translate }}
       </button>
-      <span
-        id="solution-finder-modal-language-picker-divider-es"
-        class="px-1.5 text-slate-400"
-        aria-hidden="true"
-        >|</span
-      >
-      <span
-        id="solution-finder-modal-language-picker-current-es"
-        aria-current="page"
-        class="font-semibold text-slate-900"
-      >
-        ES
-      </span>
-    } @else {
-      <span
-        id="solution-finder-modal-language-picker-current-en"
-        aria-current="page"
-        class="font-semibold text-slate-900"
-      >
-        EN
-      </span>
-      <span
-        id="solution-finder-modal-language-picker-divider-en"
-        class="px-1.5 text-slate-400"
-        aria-hidden="true"
-        >|</span
-      >
-      <button
-        id="solution-finder-modal-language-picker-link-es"
-        type="button"
-        class="inline-flex min-h-10 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-        [attr.aria-label]="
-          'header.languageToggleLabel' | translate: { lang: ('header.languageSpanish' | translate) }
-        "
-        (click)="setLanguage('es')"
-      >
-        ES
-      </button>
-    }
-  </nav>
-  <section id="solution-finder-modal-content-shell" class="h-full">
-    <app-finder-modal
-      id="solution-finder-modal-workflow-component"
-      [mode]="solutionFinderContext()"
-      (closeRequested)="closeSolutionFinderModal()"
-      (solutionApplied)="onSolutionApplied($event)"
-    ></app-finder-modal>
-  </section>
-</app-modal-shell>
-
-<app-modal-shell
-  id="perspective-modal-shell"
-  rootId="perspective-modal-shell-root"
-  mode="standard"
-  titleKey="solutionControls.modal.perspectiveTitle"
-  [isOpen]="perspectiveModalOpen"
-  [closeOnBackdrop]="true"
-  [closeOnEscape]="true"
-  [showCloseButton]="true"
-  (requestClose)="closePerspectiveModal()"
->
-  <section id="perspective-modal-demo-content" class="space-y-3">
-    <h2 id="perspective-modal-demo-heading" class="text-base font-semibold text-ink-900">
-      {{ 'solutionControls.modal.perspectiveHeading' | translate }}
-    </h2>
-    <p id="perspective-modal-demo-description" class="text-sm text-ink-900">
-      {{ 'solutionControls.modal.perspectiveDescription' | translate }}
-    </p>
-    <button
-      id="perspective-modal-demo-close-button"
-      type="button"
-      class="rounded-md border border-earth-300 bg-white px-3 py-2 text-sm transition hover:bg-earth-100"
-      (click)="closePerspectiveModal()"
-    >
-      {{ 'common.close' | translate }}
-    </button>
-  </section>
-</app-modal-shell>
+    </section>
+  </app-modal-shell>
+}
 
 <router-outlet id="app-router-outlet"></router-outlet>
