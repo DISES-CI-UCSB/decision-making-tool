@@ -197,7 +197,10 @@ export function normalizeLayerIdAliases(id: string | null | undefined): string[]
 
   const singular = normalized === 'omecs' ? 'omec' : normalized;
   const plural = normalized === 'omec' ? 'omecs' : normalized;
-  return Array.from(new Set([normalized, singular, plural, trimmed].filter(Boolean)));
+  const costAliases = normalized === 'hf_2030' ? ['human_footprint_2030'] : [];
+  return Array.from(
+    new Set([normalized, singular, plural, trimmed, ...costAliases].filter(Boolean)),
+  );
 }
 
 export function buildConsideredLayerIdSet(ids: (string | null | undefined)[]): Set<string> {
@@ -232,8 +235,10 @@ const SCENARIO_CONSIDERABLE_LAYER_IDS = buildConsideredLayerIdSet([
   'hhm',
   'human_footprint',
   'human_footprint_2022',
+  'human_footprint_2030',
   'layer-human_footprint',
   'layer-human_footprint_2022',
+  'layer-human_footprint_2030',
   'layer-soc-human-footprint',
   'soc-human-footprint',
   'layer-species',
@@ -260,6 +265,7 @@ const AGGREGATE_SCENARIO_TARGET_IDS = new Set([
   'hhm',
   'human_footprint',
   'human_footprint_2022',
+  'human_footprint_2030',
   'species',
 ]);
 

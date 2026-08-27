@@ -92,7 +92,7 @@
         "startColor": "#fee2e2",
         "endColor": "#991b1b"
       },
-      "layerIds": ["net_benefit"]
+      "layerIds": ["net_benefit", "human_footprint_2030"]
     },
     {
       "id": "conflict_and_security",
@@ -115,17 +115,6 @@
         "endColor": "#4d7c0f"
       },
       "layerIds": ["land_cover"]
-    },
-    {
-      "id": "prospective_models",
-      "spanishLabel": "Modelos prospectivos",
-      "englishLabel": "Prospective Models",
-      "styleDefaults": {
-        "selectedColor": "#155e75",
-        "startColor": "#cffafe",
-        "endColor": "#155e75"
-      },
-      "layerIds": ["human_footprint_2030"]
     },
     {
       "id": "solutions",
@@ -393,7 +382,7 @@
       "description": "Projected human pressure layer used as prospective solution context.",
       "tooltip": "Shows projected human footprint intensity for future solution review.",
       "dataRole": "cost_layer",
-      "category": "prospective_models",
+      "category": "socioeconomic",
       "roleInMetricCalculation": "data_used_for_live_metric_calculation",
       "displayUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/costs/human_footprint_2030.tif",
       "metadataUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/metadata/human_footprint_2030.metadata.json",
