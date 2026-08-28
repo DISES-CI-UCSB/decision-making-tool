@@ -257,6 +257,9 @@
         "displayUrl": {
           "$ref": "#/$defs/nullableString"
         },
+        "displayCogUrl": {
+          "$ref": "#/$defs/nullableString"
+        },
         "displayCollectionUrl": {
           "$ref": "#/$defs/nullableString"
         },

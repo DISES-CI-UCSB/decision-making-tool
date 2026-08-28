@@ -1,4 +1,11 @@
-import { buildManifestGeoJsonRenderer, isGeoJsonDisplayUrl } from './manifest-raster-layer.service';
+import {
+  buildManifestCogRenderer,
+  buildManifestCogGradientRenderer,
+  buildManifestGeoJsonRenderer,
+  isCogDisplayUrl,
+  isCogRasterRenderingSupported,
+  isGeoJsonDisplayUrl,
+} from './manifest-raster-layer.service';
 
 describe('manifest GeoJSON rendering', () => {
   it('recognizes deterministic GeoJSON display URLs with optional query strings', () => {
@@ -8,6 +15,119 @@ describe('manifest GeoJSON rendering', () => {
       ),
     ).toBe(true);
     expect(isGeoJsonDisplayUrl('https://example.com/inputs/features/ramsar.tif')).toBe(false);
+  });
+
+  it('recognizes Cloud-Optimized GeoTIFF URLs with optional query strings', () => {
+    expect(
+      isCogDisplayUrl(
+        'https://example.com/experiments/Alouatta_palliata.epsg9377.cog.tif?version=1',
+      ),
+    ).toBe(true);
+    expect(isCogDisplayUrl('https://example.com/inputs/species/Alouatta_palliata.tif')).toBe(false);
+  });
+
+  it('uses a transparent default and renders only selected COG mask pixels', () => {
+    const renderer = buildManifestCogRenderer({
+      displayUrl: 'https://example.com/alouatta.epsg9377.cog.tif',
+      visible: true,
+      opacity: 0.8,
+      color: '#475569',
+      rendering: {
+        valueType: 'binary',
+        renderMode: 'mask',
+        noDataValue: 255,
+        selectedValue: 1,
+        selectedColor: '#bf18ab',
+      },
+    });
+
+    expect(renderer.field).toBe('Value');
+    expect(renderer.defaultSymbol?.color).toMatchObject({ r: 0, g: 0, b: 0, a: 0 });
+    expect(renderer.classBreakInfos).toHaveLength(1);
+    expect(renderer.classBreakInfos[0]).toMatchObject({ minValue: 0.5, maxValue: 1.5 });
+    expect(renderer.classBreakInfos[0].symbol?.color).toMatchObject({
+      r: 191,
+      g: 24,
+      b: 171,
+      a: 1,
+    });
+  });
+
+  it('treats a null selectedValue as the display COG presence value', () => {
+    const renderer = buildManifestCogRenderer({
+      displayUrl: 'https://example.com/alouatta.epsg9377.cog.tif',
+      visible: true,
+      opacity: 1,
+      color: '#475569',
+      rendering: {
+        valueType: 'binary',
+        renderMode: 'mask',
+        selectedValue: null,
+        selectedColor: '#bf18ab',
+      },
+    });
+
+    expect(renderer.classBreakInfos).toHaveLength(1);
+    expect(renderer.classBreakInfos[0]).toMatchObject({ minValue: 0.5, maxValue: 1.5 });
+  });
+
+  it('builds a fixed-range algorithmic stretch renderer for a gradient COG', () => {
+    const renderer = buildManifestCogGradientRenderer({
+      displayUrl: 'https://example.com/richness.epsg9377.cog.tif',
+      visible: true,
+      opacity: 1,
+      color: '#854d0e',
+      rendering: {
+        valueType: 'continuous',
+        renderMode: 'gradient',
+        minValue: 815,
+        maxValue: 3562,
+        startColor: '#fef3c7',
+        endColor: '#854d0e',
+      },
+    });
+    const colorRamp = renderer.colorRamp as unknown as {
+      type: string;
+      algorithm: string;
+      fromColor: { r: number; g: number; b: number; a: number };
+      toColor: { r: number; g: number; b: number; a: number };
+    };
+
+    expect(renderer.type).toBe('raster-stretch');
+    expect(renderer.stretchType).toBe('min-max');
+    expect(renderer.dynamicRangeAdjustment).toBe(false);
+    expect(renderer.customStatistics).toEqual([{ min: 815, max: 3562, avg: 2188.5, stddev: 0 }]);
+    expect(colorRamp).toMatchObject({
+      type: 'algorithmic',
+      algorithm: 'hsv',
+      fromColor: { r: 254, g: 243, b: 199, a: 1 },
+      toColor: { r: 133, g: 77, b: 14, a: 1 },
+    });
+  });
+
+  it('routes mask and valid fixed-range gradient COGs through ImageryTileLayer', () => {
+    expect(
+      isCogRasterRenderingSupported('https://example.com/mask.epsg9377.cog.tif', {
+        valueType: 'binary',
+        renderMode: 'mask',
+      }),
+    ).toBe(true);
+    expect(
+      isCogRasterRenderingSupported('https://example.com/richness.epsg9377.cog.tif', {
+        valueType: 'continuous',
+        renderMode: 'gradient',
+        minValue: 1,
+        maxValue: 142,
+      }),
+    ).toBe(true);
+    expect(
+      isCogRasterRenderingSupported('https://example.com/richness.epsg9377.cog.tif', {
+        valueType: 'continuous',
+        renderMode: 'gradient',
+        minValue: 142,
+        maxValue: 1,
+      }),
+    ).toBe(false);
   });
 
   it('builds a generic polygon renderer from sidebar appearance state', () => {

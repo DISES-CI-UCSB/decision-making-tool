@@ -41,6 +41,7 @@ export function parseArgs(rawArgs) {
     confirmReleaseId: null,
     expectedLiveSha256: null,
     confirmCreateFirstPointer: false,
+    displayOnly: false,
     dryRun: false,
     help: false,
   };
@@ -104,6 +105,10 @@ export function parseArgs(rawArgs) {
     }
     if (value === '--dry-run') {
       args.dryRun = true;
+      continue;
+    }
+    if (value === '--display-only') {
+      args.displayOnly = true;
     }
   }
 
@@ -402,6 +407,24 @@ export async function publishManifestRevision({
   return { currentRemoteManifest, immutablePathname, promotedManifest };
 }
 
+export function assertDisplayOnlyRelease(previousManifest, nextManifest) {
+  if (!previousManifest) {
+    throw new Error('--display-only requires an existing live manifest');
+  }
+  const project = (manifest) =>
+    manifest.solutions.map(({ id, displayUrl, metadataUrl, rasterFile, blobPath, rasterSha256 }) => ({
+      id,
+      displayUrl,
+      metadataUrl,
+      rasterFile,
+      blobPath,
+      rasterSha256,
+    }));
+  if (JSON.stringify(project(previousManifest)) !== JSON.stringify(project(nextManifest))) {
+    throw new Error('--display-only cannot alter solution identities, sources, or metrics');
+  }
+}
+
 export async function main(rawArgs = process.argv.slice(2)) {
   await loadLocalEnv(path.resolve(__dirname, '..'));
   const args = parseArgs(rawArgs);
@@ -421,11 +444,13 @@ export async function main(rawArgs = process.argv.slice(2)) {
   }
   const catalog = await readSolutionCatalog(args.catalogPath);
   await validateManifest(manifest, args.sourcePath, { catalog });
-  const artifactVerifications = await readArtifactVerifications(
-    args.artifactInventoryPaths,
-    catalog,
-  );
-  validateManifestArtifactCompleteness(manifest, artifactVerifications);
+  if (!args.displayOnly) {
+    const artifactVerifications = await readArtifactVerifications(
+      args.artifactInventoryPaths,
+      catalog,
+    );
+    validateManifestArtifactCompleteness(manifest, artifactVerifications);
+  }
   if (args.confirmReleaseId !== manifest.releaseId && !args.dryRun) {
     throw new Error(
       `publishing release "${manifest.releaseId}" requires --confirm-release ${manifest.releaseId}`,
@@ -442,6 +467,13 @@ export async function main(rawArgs = process.argv.slice(2)) {
   const token = process.env[BLOB_TOKEN_ENV_VAR];
   if (!token) {
     throw new Error(`${BLOB_TOKEN_ENV_VAR} is required`);
+  }
+  if (args.displayOnly) {
+    const currentLiveManifest = await readLiveManifestIdentity(token, args.targetPathname);
+    assertDisplayOnlyRelease(
+      currentLiveManifest ? JSON.parse(currentLiveManifest.contents) : null,
+      manifest,
+    );
   }
 
   const result = await publishManifestRevision({
