@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import {
   provideTranslateLoader,
   provideTranslateService,
@@ -20,6 +21,7 @@ describe('App', () => {
           fallbackLang: 'en',
           loader: provideTranslateLoader(TranslateNoOpLoader),
         }),
+        provideRouter([]),
       ],
     }).compileComponents();
   });
