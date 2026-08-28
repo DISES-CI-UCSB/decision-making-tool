@@ -142,6 +142,142 @@ describe('reconcileMapLayersManifest', () => {
     });
   });
 
+  it('uses aligned COG display copies for every Batch 1 strategic ecosystem mask', () => {
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('ecosystems', [
+          manifestRow('paramos', 'ecosystems', {
+            displayUrl: 'https://example.com/inputs/features/strategic/paramos.tif',
+            displayCogUrl: 'https://example.com/releases/view-layers/paramos.epsg9377.cog.tif',
+          }),
+          manifestRow('wetlands', 'ecosystems', {
+            displayUrl: 'https://example.com/inputs/features/strategic/humedales.tif',
+            displayCogUrl: 'https://example.com/releases/view-layers/humedales.epsg9377.cog.tif',
+          }),
+          manifestRow('bosque_seco', 'ecosystems', {
+            displayUrl: 'https://example.com/inputs/features/strategic/bosque_seco.tif',
+            displayCogUrl: 'https://example.com/releases/view-layers/bosque_seco.epsg9377.cog.tif',
+          }),
+          manifestRow('mangroves', 'ecosystems', {
+            displayUrl: 'https://example.com/inputs/features/strategic/mangroves.tif',
+            displayCogUrl: 'https://example.com/releases/view-layers/mangroves.epsg9377.cog.tif',
+          }),
+        ]),
+      ],
+      groups: [group('group-ecosystems', [])],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups[0].rows.map((row) => row.mapSync)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          layerId: 'layer-paramos',
+          displayUrl: expect.stringMatching(/view-layers\/paramos\.epsg9377\.cog\.tif$/),
+        }),
+        expect.objectContaining({
+          layerId: 'layer-wetlands',
+          displayUrl: expect.stringMatching(/view-layers\/humedales\.epsg9377\.cog\.tif$/),
+        }),
+        expect.objectContaining({
+          layerId: 'layer-bosque_seco',
+          displayUrl: expect.stringMatching(/view-layers\/bosque_seco\.epsg9377\.cog\.tif$/),
+        }),
+        expect.objectContaining({
+          layerId: 'layer-mangroves',
+          displayUrl: expect.stringMatching(/view-layers\/mangroves\.epsg9377\.cog\.tif$/),
+        }),
+      ]),
+    );
+  });
+
+  it('uses aligned COG display copies for both Batch 2 inclusion-area masks', () => {
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('cultural_and_ethnic_territories', [
+          manifestRow('comunidades', 'cultural_and_ethnic_territories', {
+            displayUrl: 'https://example.com/inputs/includes/comunidades.tif',
+            displayCogUrl: 'https://example.com/releases/view-layers/comunidades.epsg9377.cog.tif',
+            rendering: { ...gradientRendering, renderMode: 'mask', valueType: 'binary' },
+          }),
+          manifestRow('resguardos', 'cultural_and_ethnic_territories', {
+            displayUrl: 'https://example.com/inputs/includes/resguardos.tif',
+            displayCogUrl: 'https://example.com/releases/view-layers/resguardos.epsg9377.cog.tif',
+            rendering: { ...gradientRendering, renderMode: 'mask', valueType: 'binary' },
+          }),
+        ]),
+      ],
+      groups: [group('group-cultural-ethnic', [])],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups[0].rows.map((row) => row.mapSync)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          layerId: 'layer-comunidades',
+          displayUrl: expect.stringMatching(/view-layers\/comunidades\.epsg9377\.cog\.tif$/),
+        }),
+        expect.objectContaining({
+          layerId: 'layer-resguardos',
+          displayUrl: expect.stringMatching(/view-layers\/resguardos\.epsg9377\.cog\.tif$/),
+        }),
+      ]),
+    );
+  });
+
+  it('routes Batch 4 richness parent and taxon rows to aligned gradient COGs', () => {
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('species_and_biodiversity', [
+          manifestRow('species_richness', 'species_and_biodiversity', {
+            displayUrl: 'https://example.com/inputs/features/species_richness/riqueza_especies.tif',
+            displayCogUrl:
+              'https://example.com/releases/view-layers/riqueza_especies.epsg9377.cog.tif',
+            rendering: {
+              ...gradientRendering,
+              minValue: 815,
+              maxValue: 3562,
+              startColor: '#fef3c7',
+              endColor: '#854d0e',
+            },
+          }),
+          ...['mammals', 'birds', 'amphibians', 'reptiles', 'plants'].map((taxonId) =>
+            manifestRow(`species_richness_${taxonId}`, 'species_and_biodiversity', {
+              displayUrl: `https://example.com/inputs/features/species_richness/riqueza_especies_${taxonId}.tif`,
+              displayCogUrl: `https://example.com/releases/view-layers/riqueza_especies_${taxonId}.epsg9377.cog.tif`,
+            }),
+          ),
+        ]),
+      ],
+      groups: [group('group-species-biodiversity', [])],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups[0].rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'layer-species_richness',
+          mapSync: expect.objectContaining({
+            displayUrl: expect.stringMatching(/view-layers\/riqueza_especies\.epsg9377\.cog\.tif$/),
+          }),
+        }),
+        ...['mammals', 'birds', 'amphibians', 'reptiles', 'plants'].map((taxonId) =>
+          expect.objectContaining({
+            id: `layer-species_richness_${taxonId}`,
+            mapSync: expect.objectContaining({
+              displayUrl: expect.stringMatching(
+                new RegExp(`view-layers/riqueza_especies_${taxonId}\\.epsg9377\\.cog\\.tif$`),
+              ),
+              rendering: expect.objectContaining({ renderMode: 'gradient' }),
+            }),
+          }),
+        ),
+      ]),
+    );
+  });
+
   it('binds display-only GeoJSON references to existing sidebar categories', () => {
     const result = reconcileMapLayersManifest({
       manifestGroups: [
