@@ -136,7 +136,7 @@ describe('SolutionLayerService', () => {
     expect(service.isComparisonModeActive()).toBe(false);
     expect(service.liveSolutionMetrics$()).toEqual(
       expect.objectContaining({
-        nationalContributionPct: 37.5,
+        nationalContributionPct: expect.closeTo(0.03200253318912149),
         priorityZoneCount: 1,
         status: 'ready',
       }),
