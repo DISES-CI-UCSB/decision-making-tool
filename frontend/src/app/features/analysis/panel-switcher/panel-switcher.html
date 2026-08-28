@@ -262,6 +262,56 @@
                                 class="font-semibold"
                               >
                                 {{ domain.labelKey | translate }}
+                                <span
+                                  [id]="'right-sidebar-v3-overview-goals-domain-help-' + domain.id"
+                                  class="v3-methodology-help"
+                                  (mouseenter)="showGoalsTooltip($event, domain.id)"
+                                  (mouseleave)="hideGoalsTooltip(domain.id)"
+                                  (focusin)="showGoalsTooltip($event, domain.id)"
+                                  (focusout)="hideGoalsTooltip(domain.id)"
+                                >
+                                  <button
+                                    [id]="
+                                      'right-sidebar-v3-overview-goals-domain-help-trigger-' + domain.id
+                                    "
+                                    type="button"
+                                    class="v3-methodology-trigger"
+                                    [attr.aria-label]="
+                                      'analysis.overview.methodologyInfoLabel' | translate
+                                    "
+                                    [attr.aria-describedby]="
+                                      'right-sidebar-v3-overview-goals-domain-help-tooltip-' + domain.id
+                                    "
+                                  >
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-domain-help-indicator-' + domain.id
+                                      "
+                                      class="v3-methodology-indicator tooltip-info-icon-glyph"
+                                      aria-hidden="true"
+                                      >i</span
+                                    >
+                                  </button>
+                                  <span
+                                    [id]="
+                                      'right-sidebar-v3-overview-goals-domain-help-tooltip-' +
+                                      domain.id
+                                    "
+                                    role="tooltip"
+                                    popover="manual"
+                                    class="v3-methodology-tooltip v3-methodology-tooltip-overlay"
+                                  >
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-domain-help-text-' +
+                                        domain.id
+                                      "
+                                      class="v3-methodology-tooltip-text"
+                                    >
+                                      {{ getGoalsModalDescriptionKey(domain) | translate }}
+                                    </span>
+                                  </span>
+                                </span>
                               </span>
                               <span
                                 [id]="'right-sidebar-v3-overview-goals-domain-target-' + domain.id"
@@ -340,57 +390,6 @@
                                     </div>
                                   </div>
                                 }
-                                <div
-                                  id="right-sidebar-v3-overview-goals-taxa-fish"
-                                  class="flex items-baseline justify-between gap-2 text-[11px] text-slate-700"
-                                >
-                                  <span
-                                    id="right-sidebar-v3-overview-goals-taxa-fish-label"
-                                    class="inline-flex items-center gap-1.5"
-                                  >
-                                    <span id="right-sidebar-v3-overview-goals-taxa-fish-label-text">
-                                      {{ 'analysis.overview.goalsWidget.fish' | translate }}
-                                    </span>
-                                    <span
-                                      id="right-sidebar-v3-overview-goals-fish-info-help"
-                                      class="v3-fish-info-help"
-                                    >
-                                      <button
-                                        id="right-sidebar-v3-overview-goals-fish-info-trigger"
-                                        type="button"
-                                        class="v3-fish-info-trigger"
-                                        [attr.aria-label]="
-                                          'analysis.overview.goalsWidget.fishInfoAriaLabel'
-                                            | translate
-                                        "
-                                        aria-describedby="right-sidebar-v3-overview-goals-fish-info-tooltip"
-                                      >
-                                        <span
-                                          id="right-sidebar-v3-overview-goals-fish-info-indicator"
-                                          class="v3-fish-info-indicator tooltip-info-icon-glyph"
-                                          aria-hidden="true"
-                                          >i</span
-                                        >
-                                      </button>
-                                      <span
-                                        id="right-sidebar-v3-overview-goals-fish-info-tooltip"
-                                        role="tooltip"
-                                        class="v3-fish-info-tooltip"
-                                      >
-                                        {{
-                                          'analysis.overview.goalsWidget.freshwaterClarification'
-                                            | translate
-                                        }}
-                                      </span>
-                                    </span>
-                                  </span>
-                                  <strong
-                                    id="right-sidebar-v3-overview-goals-taxa-fish-value"
-                                    class="font-extrabold whitespace-nowrap text-slate-700"
-                                  >
-                                    {{ 'analysis.overview.goalsWidget.notApplicable' | translate }}
-                                  </strong>
-                                </div>
                               </div>
                             }
                             <button
@@ -1784,40 +1783,6 @@
                           {{ 'analysis.aoi.hero.ofMunicipality' | translate }}
                         </div>
                       </div>
-                      <div id="aoi-hero-national" class="aoi-hero-card aoi-hero-card-national">
-                        <div class="aoi-hero-kicker">
-                          {{ 'analysis.aoi.hero.nationalContributionLabel' | translate }}
-                        </div>
-                        <div
-                          class="aoi-hero-value aoi-hero-value-blue"
-                          [attr.data-full-value]="getAoiMetricFullValue('national_contribution')"
-                          [attr.tabindex]="
-                            getAoiMetricFullValue('national_contribution') ? 0 : null
-                          "
-                        >
-                          {{ getAoiMetricValue('national_contribution', '1.9%') }}
-                        </div>
-                        <div class="aoi-hero-bar">
-                          <span
-                            id="aoi-hero-fill-existing"
-                            class="aoi-hero-fill-blue-lt"
-                            [style.width.%]="aoiBarWidth(0.9)"
-                            [style.background-color]="aoiHeroExistingContributionColor()"
-                          ></span>
-                          <span
-                            id="aoi-hero-fill-added"
-                            class="aoi-hero-fill-blue"
-                            [style.width.%]="aoiBarWidth(1)"
-                            [style.background-color]="aoiHeroAddedContributionColor()"
-                          ></span>
-                        </div>
-                        <div class="aoi-hero-sub">
-                          {{
-                            'analysis.aoi.hero.existingAdds'
-                              | translate: { existing: aoiVal('0.9%'), added: aoiVal('1.0%') }
-                          }}
-                        </div>
-                      </div>
                     </div>
 
                     <div id="aoi-protect-stats" class="aoi-stat-grid">
@@ -2713,7 +2678,11 @@
                   [attr.aria-hidden]="!isAoiSectionExpanded('land')"
                 >
                   <div id="aoi-body-land-inner" class="collapse-motion-inner aoi-section-body">
-                    <div id="aoi-landuse-chart" class="aoi-bar-chart">
+                    <section id="aoi-landuse-scenario-chart-section" class="aoi-landuse-chart-section">
+                      <h3 id="aoi-landuse-scenario-chart-title" class="aoi-landuse-chart-title">
+                        {{ 'analysis.aoi.landUseLabels.scenarioAreaWithinAoi' | translate }}
+                      </h3>
+                      <div id="aoi-landuse-scenario-chart" class="aoi-bar-chart">
                       @for (bar of aoiLandUseBars(); track bar.id) {
                         <div [id]="'aoi-bar-' + bar.id" class="aoi-bar-row">
                           <span [id]="'aoi-bar-label-' + bar.id" class="aoi-bar-label">
@@ -2750,48 +2719,21 @@
                           </span>
                         </div>
                       }
-                    </div>
-
-                    <div id="aoi-socio-metrics" class="aoi-metric-table">
-                      <div id="aoi-row-ag-cost" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-coins" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.agOpportunityCost' | translate }}
-                            <span class="v3-tag-conditional">{{
-                              'analysis.overview.conditional' | translate
-                            }}</span>
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.agOpportunityCostDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            class="aoi-m-val"
-                            [attr.data-full-value]="getAoiMetricFullValue('agricultural_area')"
-                            [attr.tabindex]="getAoiMetricFullValue('agricultural_area') ? 0 : null"
-                          >
-                            {{ getAoiMetricValue('agricultural_area', '$125M') }}
-                          </div>
-                          @if (getAoiMetricStatus('agricultural_area'); as metricStatus) {
-                            <div id="aoi-row-ag-cost-unit" class="aoi-m-unit">
-                              {{ metricStatus }}
-                            </div>
-                          }
-                        </div>
                       </div>
-                    </div>
+                    </section>
 
-                    @if (fillDummyAoiMetrics()) {
-                      <div id="aoi-land-narrative" class="aoi-narrative">
-                        {{ 'analysis.aoi.narratives.landPrefix' | translate }}
-                        <strong>$125M USD</strong
-                        >{{ 'analysis.aoi.narratives.landSuffix' | translate }}
+                    <section id="aoi-landuse-aoi-chart-section" class="aoi-landuse-chart-section">
+                      <h3 id="aoi-landuse-aoi-chart-title" class="aoi-landuse-chart-title">
+                        {{ 'analysis.aoi.landUseLabels.withinAoi' | translate }}
+                      </h3>
+                      <div
+                        id="aoi-landuse-aoi-chart"
+                        class="aoi-bar-chart aoi-landuse-chart-empty"
+                        role="status"
+                      >
+                        {{ 'analysis.aoi.landUseLabels.withinAoiUnavailable' | translate }}
                       </div>
-                    }
+                    </section>
                   </div>
                 </div>
               </section>

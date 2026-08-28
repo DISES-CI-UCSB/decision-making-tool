@@ -112,9 +112,9 @@ import {
   DEFAULT_SOLUTION_LAYER_OPACITY_PERCENT,
   DEFAULT_SPECIES_MANIFEST_URL,
   enabledSirapBoundaryLayerKeys,
+  EXCLUDED_SPECIES_CLASSES,
   EXCLUDED_SPECIES_TAXON_IDS,
   EXISTING_PROTECTED_COLOR,
-  FISH_TAXON_ROW_ID,
   KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID,
   LEGEND_BOUNDARY_STYLES,
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
@@ -987,8 +987,18 @@ export class MapLayersPanelComponent implements OnDestroy {
         takeUntilDestroyed(this.destroyRef),
         switchMap((manifest) =>
           this.loadSpeciesTaxonomyLookup().pipe(
-            map((taxonomyLookup) => this.withSpeciesTaxonomy(manifest, taxonomyLookup)),
-            catchError(() => of(manifest)),
+            map(({ taxonomyByScientificName, excludedScientificNames }) =>
+              this.withSpeciesTaxonomy(
+                manifest,
+                taxonomyByScientificName,
+                excludedScientificNames,
+              ),
+            ),
+            catchError(() =>
+              of(
+                this.withSpeciesTaxonomy(manifest, new Map(), new Set()),
+              ),
+            ),
           ),
         ),
         catchError(() => of<RuntimeSpeciesManifest>({ layers: [] })),
@@ -1004,25 +1014,32 @@ export class MapLayersPanelComponent implements OnDestroy {
   private loadSpeciesTaxonomyLookup() {
     const lookupUrl = resolveSpeciesTaxonomyLookupUrl(this.rawManifest());
     return this.http.get(lookupUrl, { responseType: 'text' }).pipe(
-      map((csvText) => this.parseSpeciesTaxonomyLookup(csvText)),
-      catchError(() => of(new Map<string, { taxonId: string; taxonLabel: string }>())),
+      map((csvText) => this.parseSpeciesTaxonomyCsv(csvText)),
+      catchError(() =>
+        of({
+          taxonomyByScientificName: new Map<string, { taxonId: string; taxonLabel: string }>(),
+          excludedScientificNames: new Set<string>(),
+        }),
+      ),
     );
   }
 
   private withSpeciesTaxonomy(
     manifest: RuntimeSpeciesManifest,
-    taxonomyLookup: Map<string, { taxonId: string; taxonLabel: string }>,
+    taxonomyByScientificName: Map<string, { taxonId: string; taxonLabel: string }>,
+    excludedScientificNames: Set<string>,
   ): RuntimeSpeciesManifest {
-    if (taxonomyLookup.size === 0) {
-      return manifest;
-    }
-    return {
-      ...manifest,
-      layers: manifest.layers.map((layer) => {
+    const layers = manifest.layers
+      .filter(
+        (layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames),
+      )
+      .map((layer) => {
         if (layer.taxonId?.trim() && layer.taxonLabel?.trim()) {
           return layer;
         }
-        const taxonomy = taxonomyLookup.get(this.normalizeSpeciesLookupKey(layer.scientificName));
+        const taxonomy = taxonomyByScientificName.get(
+          this.normalizeSpeciesLookupKey(layer.scientificName),
+        );
         if (!taxonomy) {
           return layer;
         }
@@ -1031,8 +1048,26 @@ export class MapLayersPanelComponent implements OnDestroy {
           taxonId: taxonomy.taxonId,
           taxonLabel: taxonomy.taxonLabel,
         };
-      }),
+      })
+      .filter(
+        (layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames),
+      );
+
+    return {
+      ...manifest,
+      layers,
     };
+  }
+
+  private isExcludedSpeciesManifestLayer(
+    layer: RuntimeSpeciesManifestLayer,
+    excludedScientificNames: Set<string>,
+  ): boolean {
+    if (EXCLUDED_SPECIES_TAXON_IDS.has(this.speciesTaxonRowId(layer))) {
+      return true;
+    }
+    const lookupKey = this.normalizeSpeciesLookupKey(layer.scientificName);
+    return lookupKey ? excludedScientificNames.has(lookupKey) : false;
   }
 
   private reconcileManifestRows(manifestGroups: ManifestSidebarLayerGroup[]): void {
@@ -1627,6 +1662,23 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.scheduleOpacitySync(`${taxonId}:${speciesId}`);
   }
 
+  protected updateSpeciesColor(taxonId: string, speciesId: string, color: string): void {
+    this.taxa.update((taxa) =>
+      taxa.map((taxon) => {
+        if (taxon.id !== taxonId) {
+          return taxon;
+        }
+        return {
+          ...taxon,
+          species: taxon.species.map((species) =>
+            species.id === speciesId ? { ...species, color } : species,
+          ),
+        };
+      }),
+    );
+    this.scheduleColorSync(`${taxonId}:${speciesId}`);
+  }
+
   protected filteredSpecies(taxon: TaxonRow): SpeciesRow[] {
     const query = taxon.searchQuery.trim().toLowerCase();
     const candidates = taxon.species.filter((species) => {
@@ -1830,12 +1882,22 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected resetDefaults(): void {
+    // Map layers are stateful outside this component. Clear the current rows
+    // before replacing them so no selected layer is left rendered without a
+    // corresponding sidebar row.
+    this.clearCurrentRowsFromMap();
     this.overlaysCollapsed.set(false);
     this.layerSearchQuery.set('');
     this.layerCatalogScope.set(this.activeSolutionDomain() ?? 'land');
+    this.savedSingleSolutionColor = null;
+    this.savedBaselineColor = null;
     this.overlays.set(this.createDefaultOverlays());
     this.taxa.set(this.createDefaultTaxa());
     this.groups.set(this.createDefaultGroups());
+    const manifestGroups = this.manifestSidebarLayerGroups();
+    if (manifestGroups.length > 0) {
+      this.reconcileManifestRows(manifestGroups);
+    }
     this.loadSpeciesManifestRows(this.speciesCollectionManifestUrl());
     this.selectedLayerOrder.set(
       this.normalizeSelectedLayerOrder(
@@ -2364,6 +2426,11 @@ export class MapLayersPanelComponent implements OnDestroy {
     if (groupId) {
       this.updateLayerColor(groupId, rowId, color);
       return;
+    }
+
+    const speciesMatch = this.findSpeciesById(rowId);
+    if (speciesMatch) {
+      this.updateSpeciesColor(speciesMatch.taxonId, rowId, color);
     }
   }
 
@@ -2932,6 +2999,21 @@ export class MapLayersPanelComponent implements OnDestroy {
       ...this.groups().flatMap((group) => group.rows),
       ...this.taxa().flatMap((taxon) => taxon.species),
     ]);
+  }
+
+  private clearCurrentRowsFromMap(): void {
+    const currentRows = [
+      ...this.overlays(),
+      ...this.groups().flatMap((group) => group.rows),
+      ...this.taxa().flatMap((taxon) => taxon.species),
+    ];
+    this.mapSync.syncRows(
+      currentRows.map((row) => ({
+        ...row,
+        selected: false,
+        visible: false,
+      })),
+    );
   }
 
   private syncOverlayById(rowId: string): void {
@@ -3826,20 +3908,20 @@ export class MapLayersPanelComponent implements OnDestroy {
           { common: 'Lobster Claw', latin: 'Heliconia rostrata' },
         ]),
       },
-      this.excludedSpeciesTaxonRow(undefined),
     ];
   }
 
   private reconcileTaxaWithSpeciesManifest(manifestLayers: RuntimeSpeciesManifestLayer[]): void {
+    const includedManifestLayers = manifestLayers.filter(
+      (layer) => !EXCLUDED_SPECIES_TAXON_IDS.has(this.speciesTaxonRowId(layer)),
+    );
     const existingTaxaById = new Map(this.taxa().map((taxon) => [taxon.id, taxon]));
-    const manifestLayersByTaxonId = this.groupSpeciesManifestLayersByTaxon(manifestLayers);
+    const manifestLayersByTaxonId = this.groupSpeciesManifestLayersByTaxon(includedManifestLayers);
     const taxa = Array.from(manifestLayersByTaxonId.entries())
-      .filter(([taxonId]) => !EXCLUDED_SPECIES_TAXON_IDS.has(taxonId))
       .map(([taxonId, layers]) =>
         this.speciesManifestTaxonRow(taxonId, layers, existingTaxaById.get(taxonId)),
       )
       .sort((left, right) => this.compareSpeciesTaxa(left, right));
-    taxa.push(this.excludedSpeciesTaxonRow(existingTaxaById.get(FISH_TAXON_ROW_ID)));
     const speciesLayerCount = taxa.reduce((total, taxon) => total + taxon.speciesCount, 0);
 
     this.taxa.set(taxa);
@@ -3902,28 +3984,6 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
-  private excludedSpeciesTaxonRow(existingTaxon: TaxonRow | undefined): TaxonRow {
-    return {
-      id: FISH_TAXON_ROW_ID,
-      name: this.localizedTextOrFallback('mapLayersPanel.taxaNames.fish', 'Fish'),
-      countLabel: this.localizedTextOrFallback('mapLayersPanel.fishExcludedBadge', 'Excluded'),
-      speciesCount: 0,
-      selected: false,
-      visible: false,
-      expanded: false,
-      opacity: existingTaxon?.opacity ?? DEFAULT_DATA_LAYER_OPACITY,
-      color: existingTaxon?.color ?? '#64748b',
-      canReorder: false,
-      hasStyleControls: false,
-      hasColorControl: false,
-      disabled: true,
-      mapUnavailable: true,
-      searchQuery: '',
-      showAll: false,
-      species: [],
-    };
-  }
-
   private compareSpeciesTaxa(left: TaxonRow, right: TaxonRow): number {
     const leftOrder = SPECIES_TAXON_SORT_ORDER.get(left.id) ?? Number.MAX_SAFE_INTEGER;
     const rightOrder = SPECIES_TAXON_SORT_ORDER.get(right.id) ?? Number.MAX_SAFE_INTEGER;
@@ -3963,7 +4023,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       color: existingSpecies?.color ?? rendering?.selectedColor ?? '#475569',
       canReorder: true,
       hasStyleControls: true,
-      hasColorControl: false,
+      hasColorControl: true,
       mapUnavailable: !isRenderable,
       mapSync:
         isRenderable && rendering
@@ -3995,34 +4055,49 @@ export class MapLayersPanelComponent implements OnDestroy {
     return row.id === SPECIES_COLLECTION_ROW_ID;
   }
 
-  private parseSpeciesTaxonomyLookup(
-    csvText: string,
-  ): Map<string, { taxonId: string; taxonLabel: string }> {
+  private parseSpeciesTaxonomyCsv(csvText: string): {
+    taxonomyByScientificName: Map<string, { taxonId: string; taxonLabel: string }>;
+    excludedScientificNames: Set<string>;
+  } {
     const rows = csvText.split(/\r?\n/).filter((row) => row.trim().length > 0);
     if (rows.length === 0) {
-      return new Map();
+      return {
+        taxonomyByScientificName: new Map(),
+        excludedScientificNames: new Set(),
+      };
     }
 
     const header = this.parseCsvRow(rows[0]);
     const scientificNameIndex = header.indexOf('scientific_name');
     const classIndex = header.indexOf('class');
     if (scientificNameIndex < 0 || classIndex < 0) {
-      return new Map();
+      return {
+        taxonomyByScientificName: new Map(),
+        excludedScientificNames: new Set(),
+      };
     }
 
-    const taxonomyLookup = new Map<string, { taxonId: string; taxonLabel: string }>();
+    const taxonomyByScientificName = new Map<string, { taxonId: string; taxonLabel: string }>();
+    const excludedScientificNames = new Set<string>();
     for (const row of rows.slice(1)) {
       const cells = this.parseCsvRow(row);
       const scientificName = cells[scientificNameIndex] ?? '';
-      const speciesClass = cells[classIndex] ?? '';
-      const taxonomy = SPECIES_CLASS_TO_TAXON[speciesClass.trim()];
+      const speciesClass = cells[classIndex]?.trim() ?? '';
       const lookupKey = this.normalizeSpeciesLookupKey(scientificName);
-      if (!lookupKey || !taxonomy) {
+      if (!lookupKey) {
         continue;
       }
-      taxonomyLookup.set(lookupKey, taxonomy);
+      if (EXCLUDED_SPECIES_CLASSES.has(speciesClass)) {
+        excludedScientificNames.add(lookupKey);
+        continue;
+      }
+      const taxonomy = SPECIES_CLASS_TO_TAXON[speciesClass];
+      if (!taxonomy) {
+        continue;
+      }
+      taxonomyByScientificName.set(lookupKey, taxonomy);
     }
-    return taxonomyLookup;
+    return { taxonomyByScientificName, excludedScientificNames };
   }
 
   private parseCsvRow(row: string): string[] {
@@ -4281,8 +4356,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       borderStyle:
         boundaryLayerKey === 'siraps'
           ? 'dashed'
-          : boundaryLayerKey === 'siraps_thematic' ||
-              boundaryLayerKey === 'siraps_territorial_updated'
+          : boundaryLayerKey === 'siraps_thematic'
             ? 'dotted'
             : 'solid',
       borderWidth:
@@ -4495,7 +4569,6 @@ export class MapLayersPanelComponent implements OnDestroy {
       'taxon-amphibians': 'mapLayersPanel.taxaNames.amphibians',
       'taxon-reptiles': 'mapLayersPanel.taxaNames.reptiles',
       'taxon-plants': 'mapLayersPanel.taxaNames.plants',
-      'taxon-fish': 'mapLayersPanel.taxaNames.fish',
     };
     const key = taxonNameKeys[taxonId];
     return key ? this.localizedText(key) : undefined;

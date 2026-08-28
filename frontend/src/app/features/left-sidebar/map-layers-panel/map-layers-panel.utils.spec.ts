@@ -119,6 +119,7 @@ describe('scenario status aliases', () => {
       'INCL_RUNAP',
       'INCL_OMEC',
       'COST_HHM',
+      'COST_HF_2030',
       'layer-human-footprint',
     ]);
 
@@ -128,6 +129,9 @@ describe('scenario status aliases', () => {
     expect(scenarioLayerStatus('overlay-omec', 'omecs', consideredIds, true)).toBe('considered');
     expect(scenarioLayerStatus('layer-hhm', undefined, consideredIds, true)).toBe('considered');
     expect(scenarioLayerStatus('layer-human_footprint', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-human_footprint_2030', undefined, consideredIds, true)).toBe(
       'considered',
     );
   });

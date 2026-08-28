@@ -9,12 +9,20 @@ import {
 } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
-import type { CatalogSolution, RuntimeLayerManifest, Solution } from '@core/models';
+import type {
+  CatalogSolution,
+  ManifestSidebarLayerGroup,
+  RuntimeLayerManifest,
+  Solution,
+} from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
-import { ManifestRasterLayerService } from '@features/map/services/manifest-raster-layer.service';
+import {
+  ManifestRasterLayerService,
+  OMEC_OVERLAY_LAYER_ID,
+} from '@features/map/services/manifest-raster-layer.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { MapLayersPanelComponent } from './map-layers-panel';
 
@@ -25,6 +33,7 @@ const describeInBrowser = navigator.userAgent.includes('jsdom') ? describe.skip 
 describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
   const adminBoundaryStyleSync = vi.fn();
   const adminBoundaryVisibilitySync = vi.fn();
+  const manifestRasterSync = vi.fn();
   const catalogSolutionLookup = vi.fn<() => CatalogSolution | null>(() => null);
   const solutionLayerReorder = vi.fn(() => blockMainThread(BLOCKING_REORDER_MS));
 
@@ -44,6 +53,7 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
           useValue: {
             stylePreviewManifest$: signal<RuntimeLayerManifest | null>(null),
             getManifest: () => of(null),
+            getSpeciesManifest: () => of({ layers: [] }),
             preloadSpeciesManifest: vi.fn(),
           },
         },
@@ -60,7 +70,7 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
           provide: ManifestRasterLayerService,
           useValue: {
             renderedLayerRevision$: signal(0),
-            syncLayer: vi.fn(),
+            syncLayer: manifestRasterSync,
           },
         },
         {
@@ -119,6 +129,57 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
     await waitForPostPaintTask();
     expect(solutionLayerReorder).toHaveBeenCalled();
     expect(adminBoundaryVisibilitySync).toHaveBeenCalledWith('admin_departments', true);
+  });
+
+  it('removes displayed layers from the map when resetting defaults', async () => {
+    const fixture = TestBed.createComponent(MapLayersPanelComponent);
+    fixture.detectChanges();
+    await waitForPostPaintTask();
+    vi.clearAllMocks();
+
+    const displayButton = fixture.nativeElement.querySelector(
+      '#map-layers-boundary-selected-button-boundary-admin_departments',
+    ) as HTMLButtonElement;
+    displayButton.click();
+    fixture.detectChanges();
+    await waitForPostPaintTask();
+
+    const resetButton = fixture.nativeElement.querySelector(
+      '#map-layers-reset-defaults-button',
+    ) as HTMLButtonElement;
+    resetButton.click();
+    fixture.detectChanges();
+
+    expect(adminBoundaryVisibilitySync).toHaveBeenCalledWith('admin_departments', false);
+    expect(
+      fixture.nativeElement.querySelector(
+        '#map-layers-selected-layer-row-boundary-admin_departments',
+      ),
+    ).toBeNull();
+  });
+
+  it('restores loaded manifest metadata when resetting defaults', () => {
+    const fixture = TestBed.createComponent(MapLayersPanelComponent);
+    const component = fixture.componentInstance as unknown as {
+      manifestSidebarLayerGroups: { set: (groups: ManifestSidebarLayerGroup[]) => void };
+      reconcileManifestRows: (groups: ManifestSidebarLayerGroup[]) => void;
+      resetDefaults: () => void;
+      overlays: () => {
+        id: string;
+        mapUnavailable?: boolean;
+        mapSync?: { type: string; layerId?: string };
+      }[];
+    };
+    const manifestGroups = [omecManifestGroup()];
+    component.manifestSidebarLayerGroups.set(manifestGroups);
+    component.reconcileManifestRows(manifestGroups);
+
+    component.resetDefaults();
+
+    expect(component.overlays().find((row) => row.id === OMEC_OVERLAY_LAYER_ID)).toMatchObject({
+      mapUnavailable: false,
+      mapSync: { type: 'manifest-raster', layerId: OMEC_OVERLAY_LAYER_ID },
+    });
   });
 
   it('replaces boundary opacity with a working outline-width slider', async () => {
@@ -345,5 +406,35 @@ function catalogSolution(domain: 'land' | 'marine'): CatalogSolution {
     nSelected: 1,
     totalCost: 1,
     pctTargetsMet: 100,
+  };
+}
+
+function omecManifestGroup(): ManifestSidebarLayerGroup {
+  return {
+    sidebarCategoryId: 'management_figures',
+    title: 'Management figures',
+    spanishLabel: 'Figuras de manejo',
+    englishLabel: 'Management figures',
+    rows: [
+      {
+        id: 'omecs',
+        name: 'OMECs',
+        spanishLabel: 'OMECs',
+        englishLabel: 'OMECs',
+        description: '',
+        tooltip: null,
+        sidebarCategoryId: 'management_figures',
+        sidebarSubcategoryId: null,
+        dataRole: 'include_layer',
+        roleInMetricCalculation: 'none',
+        displayUrl: '/omecs.tif',
+        displayCollectionUrl: null,
+        speciesManifestUrl: null,
+        metadataUrl: null,
+        rendering: { valueType: 'binary', renderMode: 'mask', selectedColor: '#c026d3' },
+        hasDisplayAsset: true,
+        isSpeciesCollection: false,
+      },
+    ],
   };
 }

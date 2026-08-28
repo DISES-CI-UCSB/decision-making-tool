@@ -415,6 +415,41 @@ describe('PanelSwitcherComponent', () => {
     expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
   });
 
+  it('combines selected priority area with its share of Colombia in overview', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of({
+        solutionId: solution.id,
+        generatedAt: '2026-08-26T00:00:00.000Z',
+        geographies: {
+          national: {
+            colombia: {
+              name: 'Colombia',
+              metrics: [buildMetric('priority_area_in_region', 293_400, 'km²', 'number')],
+            },
+          },
+        },
+      }),
+    );
+    appLocale.setLocale('en');
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-metric-18-priority-area-total',
+      )?.textContent,
+    ).toContain('293.4K km² (25.7%)');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-17-national-contribution'),
+    ).toBeNull();
+  });
+
   it('disables AOI and comparison tabs until a scenario is active', () => {
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
     fixture.detectChanges();
@@ -508,10 +543,13 @@ describe('PanelSwitcherComponent', () => {
     );
     expect(
       compiled.querySelector('#aoi-overview-aligned-value-aoi-summary-priority-area')?.textContent,
-    ).toContain('2,5 km²');
+    ).toContain('2,5 km² (25%)');
     expect(
       compiled.querySelector('#aoi-overview-aligned-name-aoi-summary-priority-area')?.textContent,
     ).toContain('analysis.aoi.alignedMetrics.priorityAreaDrawn');
+    expect(
+      compiled.querySelector('#aoi-overview-aligned-row-aoi-summary-national-contribution'),
+    ).toBeNull();
     expect(
       compiled.querySelector('#aoi-overview-aligned-value-aoi-summary-carbon')?.textContent,
     ).toContain('40 Mg');
@@ -539,7 +577,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-biodiversity-species-progressbar')).toBeNull();
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('25%');
-    expect(compiled.querySelector('#aoi-hero-national')?.textContent).toContain('1,3%');
+    expect(compiled.querySelector('#aoi-hero-national')).toBeNull();
     expect(compiled.querySelector('#aoi-species-value-mammals')).toBeNull();
     expect(compiled.querySelector('#aoi-stat-threatened')).toBeNull();
     expect(compiled.querySelector('#aoi-stat-endemic')).toBeNull();
@@ -555,7 +593,7 @@ describe('PanelSwitcherComponent', () => {
 
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('250 ha');
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('25%');
-    expect(compiled.querySelector('#aoi-hero-national')?.textContent).toContain('1,3%');
+    expect(compiled.querySelector('#aoi-hero-national')).toBeNull();
     expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
 
     speciesMetrics$.complete();

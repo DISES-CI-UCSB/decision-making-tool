@@ -177,8 +177,10 @@ export function sidebarCategoryBindingForManifest(
 export const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<
   Record<string, { en: string; es: string }>
 > = {
-  socioeconomic: { en: 'Costs', es: 'Costos' },
+  socioeconomic: { en: 'Human Activity and Land Use', es: 'Actividad humana y uso del suelo' },
 };
+/** Manifest layers available elsewhere in the app but intentionally omitted from the left sidebar. */
+export const LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS = new Set(['net_benefit']);
 export const SPECIES_CLASS_TO_TAXON: Record<string, { taxonId: string; taxonLabel: string }> = {
   Mammalia: { taxonId: 'mammals', taxonLabel: 'Mammals' },
   Aves: { taxonId: 'birds', taxonLabel: 'Birds' },
@@ -186,18 +188,16 @@ export const SPECIES_CLASS_TO_TAXON: Record<string, { taxonId: string; taxonLabe
   Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
-  Actinopteri: { taxonId: 'fish', taxonLabel: 'Fish' },
 };
+export const EXCLUDED_SPECIES_CLASSES = new Set(['Actinopteri']);
+export const EXCLUDED_SPECIES_TAXON_IDS = new Set(['taxon-fish', 'taxon-actinopteri']);
 export const SPECIES_TAXON_SORT_ORDER = new Map<string, number>([
   ['taxon-mammals', 0],
   ['taxon-birds', 1],
   ['taxon-amphibians', 2],
   ['taxon-reptiles', 3],
   ['taxon-plants', 4],
-  ['taxon-fish', 5],
 ]);
-export const EXCLUDED_SPECIES_TAXON_IDS = new Set(['taxon-fish']);
-export const FISH_TAXON_ROW_ID = 'taxon-fish';
 
 export const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap: RUNAP_OVERLAY_LAYER_ID,
@@ -314,6 +314,7 @@ export const KNOWN_CONTINUOUS_RENDER_RANGES_BY_LAYER_ID: Record<
 > = {
   species_richness: SPECIES_RICHNESS_RENDER_RANGE,
   human_footprint_2022: HUMAN_FOOTPRINT_RENDER_RANGE,
+  human_footprint_2030: HUMAN_FOOTPRINT_RENDER_RANGE,
 };
 
 // Canonical color defaults live in solution-layer.service.ts; re-aliased here for readability.
@@ -328,7 +329,7 @@ export const LEGEND_BOUNDARY_STYLES: Record<
 > = {
   siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
   siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
-  siraps_territorial_updated: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
+  siraps_territorial_updated: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
   siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#475569' },
   admin_country_outline: { lineStyle: 'solid', lineWidth: 1.6, color: '#111827' },
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },

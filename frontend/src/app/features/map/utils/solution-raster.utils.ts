@@ -59,8 +59,16 @@ export function isPreExistingSolutionCell(value: number, noDataValue: number | n
 export function buildOverlapRasterData(
   baseline: LoadedSolution,
   candidate: LoadedSolution,
-): Float64Array {
-  const length = Math.min(baseline.rasterData.length, candidate.rasterData.length);
+): Float64Array | null {
+  if (!hasSameRasterGrid(baseline, candidate)) {
+    return null;
+  }
+
+  const length = baseline.rasterMeta.width * baseline.rasterMeta.height;
+  if (baseline.rasterData.length !== length || candidate.rasterData.length !== length) {
+    return null;
+  }
+
   const overlapRaster = new Float64Array(length);
 
   for (let index = 0; index < length; index++) {
@@ -127,8 +135,6 @@ export function calculateLiveSolutionMetrics(loaded: LoadedSolution): LiveSoluti
 
   let selectedAreaKm2 = 0;
   let validAreaKm2 = 0;
-  let selectedCellCount = 0;
-  let validCellCount = 0;
   const width = loaded.rasterMeta.width;
 
   for (let index = 0; index < expectedLength; index++) {
@@ -137,21 +143,14 @@ export function calculateLiveSolutionMetrics(loaded: LoadedSolution): LiveSoluti
 
     if (isValidSolutionCell(value, loaded.rasterMeta.noDataValue)) {
       validAreaKm2 += cellAreaKm2;
-      validCellCount++;
     }
     if (isSelectedSolutionCell(value, loaded.rasterMeta.noDataValue)) {
       selectedAreaKm2 += cellAreaKm2;
-      selectedCellCount++;
     }
   }
 
-  const countryValidCellCount = loaded.rasterMeta.countryValidCells;
   const nationalContributionPct =
-    countryValidCellCount > validCellCount && countryValidCellCount > 0
-      ? (selectedCellCount / countryValidCellCount) * 100
-      : validAreaKm2 > 0
-        ? (selectedAreaKm2 / validAreaKm2) * 100
-        : null;
+    selectedAreaKm2 >= 0 ? (selectedAreaKm2 / COLOMBIA_REFERENCE_AREA_KM2) * 100 : null;
 
   return {
     selectedAreaKm2,
@@ -174,7 +173,10 @@ export function calculateLiveComparisonMetrics(
   }
 
   const expectedLength = baseline.rasterMeta.width * baseline.rasterMeta.height;
-  if (baseline.rasterData.length < expectedLength || candidate.rasterData.length < expectedLength) {
+  if (
+    baseline.rasterData.length !== expectedLength ||
+    candidate.rasterData.length !== expectedLength
+  ) {
     return unavailableComparisonMetrics(
       'Comparison rasters do not contain the expected number of cells.',
     );

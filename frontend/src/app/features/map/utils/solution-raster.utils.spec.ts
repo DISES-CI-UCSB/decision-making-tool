@@ -3,6 +3,7 @@ import {
   buildOverlapRasterData,
   calculateLiveComparisonMetrics,
   calculateLiveSolutionMetrics,
+  COLOMBIA_REFERENCE_AREA_KM2,
   getPixelAreaKm2PerRow,
 } from './solution-raster.utils';
 
@@ -70,17 +71,46 @@ describe('solution raster utilities', () => {
     const baseline = createLoadedSolution([1, 2, 1, 0, 255, Number.NaN]);
     const candidate = createLoadedSolution([2, 1, 0, 1, 1, 1]);
 
-    expect(Array.from(buildOverlapRasterData(baseline, candidate))).toEqual([1, 1, 0, 0, 0, 0]);
+    const overlap = buildOverlapRasterData(baseline, candidate);
+
+    expect(overlap).not.toBeNull();
+    expect(Array.from(overlap ?? [])).toEqual([1, 1, 0, 0, 0, 0]);
   });
 
-  it('limits overlap output to the shorter raster', () => {
+  it('rejects overlap creation when rasters do not share a grid', () => {
     const baseline = createLoadedSolution([1, 1, 1]);
     const candidate = createLoadedSolution([1, 0]);
 
-    expect(Array.from(buildOverlapRasterData(baseline, candidate))).toEqual([1, 0]);
+    expect(buildOverlapRasterData(baseline, candidate)).toBeNull();
   });
 
-  it('converts projected pixel dimensions in meters to square kilometers', () => {
+  it('rejects overlap creation when same-sized rasters have different extents', () => {
+    const baseline = createLoadedSolution([1, 1]);
+    const candidate = createLoadedSolution([1, 1], {
+      bbox: [1000, -1000, 3000, 0],
+    });
+
+    expect(buildOverlapRasterData(baseline, candidate)).toBeNull();
+  });
+
+  it('rejects surplus raster data for overlap and comparison metrics', () => {
+    const baseline = createLoadedSolution([1, 0, 2, 0], { width: 2, height: 2 });
+    const candidate = createLoadedSolution([1, 0, 2, 0, 1], {
+      width: 2,
+      height: 2,
+      bbox: baseline.rasterMeta.bbox,
+    });
+
+    expect(buildOverlapRasterData(baseline, candidate)).toBeNull();
+    expect(calculateLiveComparisonMetrics(baseline, candidate)).toEqual(
+      expect.objectContaining({
+        status: 'unavailable',
+        notes: 'Comparison rasters do not contain the expected number of cells.',
+      }),
+    );
+  });
+
+  it('converts projected pixel dimensions and country contribution to square kilometers', () => {
     const loaded = createLoadedSolution([1, 0, 2, 0], {
       width: 2,
       height: 2,
@@ -93,7 +123,7 @@ describe('solution raster utilities', () => {
       expect.objectContaining({
         selectedAreaKm2: 2,
         validAreaKm2: 4,
-        nationalContributionPct: 50,
+        nationalContributionPct: (2 / COLOMBIA_REFERENCE_AREA_KM2) * 100,
       }),
     );
   });

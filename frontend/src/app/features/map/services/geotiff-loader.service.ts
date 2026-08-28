@@ -17,6 +17,12 @@ interface GeoTiffImageWithGeoKeys {
   getGeoKeys(): Partial<Record<string, unknown>> | null;
 }
 
+export function getSolutionRasterDataUrl(
+  solution: Pick<CatalogSolution, 'displayCogUrl' | 'displayUrl'>,
+): string {
+  return solution.displayCogUrl?.trim() || solution.displayUrl;
+}
+
 export function getRasterCrs(image: GeoTiffImageWithGeoKeys): string {
   const geoKeys = image.getGeoKeys() ?? {};
   const epsg =
@@ -45,7 +51,9 @@ export class GeoTiffLoaderService {
     }
 
     const t0 = performance.now();
-    const url = this.catalog.getTifUrl(solution);
+    // Compute against the same projected grid that ArcGIS displays. Older source TIFFs can be
+    // EPSG:4326 while their display COGs are nearest-neighbor warped onto an EPSG:9377 grid.
+    const url = getSolutionRasterDataUrl(solution);
 
     try {
       const response = await fetch(url);

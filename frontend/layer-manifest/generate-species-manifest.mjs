@@ -42,8 +42,8 @@ const CLASS_TO_TAXON = {
   Squamata: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Crocodylia: { taxonId: 'reptiles', taxonLabel: 'Reptiles' },
   Magnoliopsida: { taxonId: 'plants', taxonLabel: 'Plants' },
-  Actinopteri: { taxonId: 'fish', taxonLabel: 'Fish' },
 };
+const EXCLUDED_SPECIES_CLASSES = new Set(['Actinopteri']);
 
 const BLOB_TOKEN_ENV_VAR = 'BLOB_READ_WRITE_TOKEN';
 const DEFAULT_SPECIES_MANIFEST_BLOB_PATHNAME = 'manifests/species.manifest.json';
@@ -405,7 +405,7 @@ function normalizeSpeciesLookupKey(value) {
 
 function resolveTaxonFromCsvClass(csvClass) {
   const normalizedClass = (csvClass || '').trim();
-  if (!normalizedClass) {
+  if (!normalizedClass || EXCLUDED_SPECIES_CLASSES.has(normalizedClass)) {
     return null;
   }
   const mapped = CLASS_TO_TAXON[normalizedClass];
@@ -449,19 +449,30 @@ async function loadSpeciesTaxonomyLookup(csvPath, csvUrl) {
   }
 
   const lookup = new Map();
+  const excludedScientificNames = new Set();
   for (const row of rows.slice(1)) {
     const cells = row.map((field) => field.trim());
     const scientificName = cells[scientificNameIndex] || '';
-    const taxon = resolveTaxonFromCsvClass(cells[classIndex] || '');
+    const speciesClass = cells[classIndex] || '';
     const key = normalizeSpeciesLookupKey(scientificName);
-    if (!key || !taxon) {
+    if (!key) {
+      continue;
+    }
+    if (EXCLUDED_SPECIES_CLASSES.has(speciesClass.trim())) {
+      excludedScientificNames.add(key);
+      continue;
+    }
+    const taxon = resolveTaxonFromCsvClass(speciesClass);
+    if (!taxon) {
       continue;
     }
     lookup.set(key, taxon);
   }
 
-  console.log(`[generate:species-manifest] taxonomy lookup prepared with ${lookup.size} species`);
-  return lookup;
+  console.log(
+    `[generate:species-manifest] taxonomy lookup prepared with ${lookup.size} species (${excludedScientificNames.size} excluded)`,
+  );
+  return { lookup, excludedScientificNames };
 }
 
 function inferTaxonFromPathname(pathname) {
@@ -580,9 +591,19 @@ async function inspectSpeciesRasterWithRetry(url, sampleGridSize, maxAttempts, p
 async function buildSpeciesLayer(blob, sampleGridSize, retryAttempts, pacing) {
   const scientificName = normalizeScientificName(blob.pathname);
   const taxonomyKey = normalizeSpeciesLookupKey(scientificName);
+  if (pacing.excludedScientificNames?.has(taxonomyKey)) {
+    return null;
+  }
   const csvTaxon = pacing.speciesTaxonomyLookup.get(taxonomyKey);
   const inferredTaxon = inferTaxonFromPathname(blob.pathname);
   const taxon = csvTaxon ?? inferredTaxon;
+  if (
+    taxon?.taxonId === 'fish' ||
+    taxon?.taxonId === 'actinopteri' ||
+    taxon?.taxonLabel === 'Actinopteri'
+  ) {
+    return null;
+  }
   const taxonSource = csvTaxon
     ? 'csv'
     : inferredTaxon.taxonId || inferredTaxon.taxonLabel
@@ -615,13 +636,15 @@ async function processWithConcurrency(
   sampleGridSize,
   concurrency,
   retryAttempts,
-  speciesTaxonomyLookup,
+  speciesTaxonomy,
   pacing,
 ) {
+  const { lookup: speciesTaxonomyLookup, excludedScientificNames } = speciesTaxonomy;
   const results = new Array(blobs.length);
   let cursor = 0;
   let completed = 0;
   let failures = 0;
+  let skippedExcluded = 0;
   let csvTaxonCount = 0;
   let pathnameTaxonCount = 0;
   let missingTaxonCount = 0;
@@ -639,7 +662,12 @@ async function processWithConcurrency(
         const builtLayer = await buildSpeciesLayer(blob, sampleGridSize, retryAttempts, {
           ...pacing,
           speciesTaxonomyLookup,
+          excludedScientificNames,
         });
+        if (!builtLayer) {
+          skippedExcluded += 1;
+          continue;
+        }
         results[index] = builtLayer.layer;
         if (builtLayer.taxonSource === 'csv') {
           csvTaxonCount += 1;
@@ -672,6 +700,7 @@ async function processWithConcurrency(
   return {
     layers: results.filter((entry) => entry !== undefined),
     failures,
+    skippedExcluded,
     csvTaxonCount,
     pathnameTaxonCount,
     missingTaxonCount,
@@ -725,7 +754,7 @@ async function main() {
     `[generate:species-manifest] discovered ${blobs.length} species raster(s); processing ${targetBlobs.length}`,
   );
 
-  const { layers, failures, csvTaxonCount, pathnameTaxonCount, missingTaxonCount } =
+  const { layers, failures, skippedExcluded, csvTaxonCount, pathnameTaxonCount, missingTaxonCount } =
     await processWithConcurrency(
       targetBlobs,
       sampleGridSize,
@@ -738,6 +767,11 @@ async function main() {
         retryJitterMs,
       },
     );
+  if (skippedExcluded > 0) {
+    console.log(
+      `[generate:species-manifest] skipped ${skippedExcluded} excluded species layer(s)`,
+    );
+  }
   const manifest = {
     version: DEFAULT_VERSION,
     generatedAt: new Date().toISOString(),

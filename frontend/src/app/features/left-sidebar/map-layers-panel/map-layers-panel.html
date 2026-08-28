@@ -1803,7 +1803,6 @@
                           <article
                             [id]="'map-layers-taxon-row-' + taxon.id"
                             class="border-b border-slate-100 bg-white last:border-b-0"
-                            [class.bg-slate-50]="taxon.disabled"
                           >
                             <div
                               [id]="'map-layers-taxon-row-header-' + taxon.id"
@@ -1819,9 +1818,7 @@
                                   [id]="'map-layers-taxon-name-button-' + taxon.id"
                                   type="button"
                                   class="block w-full min-w-0 truncate text-left text-[13px] font-semibold text-slate-800"
-                                  [class.text-slate-500]="taxon.disabled"
                                   [title]="taxon.name"
-                                  [disabled]="taxon.disabled"
                                   (click)="toggleTaxonExpanded(taxon.id)"
                                 >
                                   {{ taxon.name }}
@@ -1855,29 +1852,13 @@
                                   </span>
                                 }
                               </div>
-                              @if (taxon.disabled) {
-                                <span
-                                  [id]="'map-layers-taxon-excluded-note-' + taxon.id"
-                                  class="min-w-0 flex-1 truncate text-[10px] font-medium text-slate-500"
-                                >
-                                  {{ 'mapLayersPanel.fishExcludedNote' | translate }}
-                                </span>
-                              }
                               <span
                                 [id]="'map-layers-taxon-count-' + taxon.id"
                                 class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-600"
-                                [class.rounded-full]="taxon.disabled"
-                                [class.border]="taxon.disabled"
-                                [class.border-amber-200]="taxon.disabled"
-                                [class.bg-amber-50]="taxon.disabled"
-                                [class.px-1.5]="taxon.disabled"
-                                [class.py-0.5]="taxon.disabled"
-                                [class.text-amber-700]="taxon.disabled"
                               >
                                 {{ taxon.countLabel }}
                               </span>
-                              @if (!taxon.disabled) {
-                                <button
+                              <button
                                   [id]="'map-layers-taxon-expand-button-' + taxon.id"
                                   type="button"
                                   class="map-layers-chevron-button inline-flex h-7 w-7 shrink-0 items-center justify-center transition"
@@ -1906,11 +1887,9 @@
                                     <path d="M3 4.5L6 7.5L9 4.5" />
                                   </svg>
                                 </button>
-                              }
                             </div>
 
-                            @if (!taxon.disabled) {
-                              <div
+                            <div
                                 [id]="'map-layers-taxon-body-' + taxon.id"
                                 class="map-layers-collapsible"
                                 [class.map-layers-collapsible-collapsed]="
@@ -2021,12 +2000,6 @@
                                             >
                                               {{ species.common }}
                                             </p>
-                                            <p
-                                              [id]="'map-layers-species-latin-' + species.id"
-                                              class="truncate text-[10px] italic text-slate-600"
-                                            >
-                                              {{ species.latin }}
-                                            </p>
                                           </button>
                                           <button
                                             [id]="
@@ -2114,6 +2087,52 @@
                                                   {{ species.opacity }}%
                                                 </span>
                                               </div>
+                                              <div
+                                                [id]="'map-layers-species-color-group-' + species.id"
+                                                class="flex shrink-0 items-center gap-1.5"
+                                              >
+                                                <span
+                                                  [id]="'map-layers-species-color-label-' + species.id"
+                                                  class="text-[10px] text-slate-600"
+                                                >
+                                                  {{ 'mapLayersPanel.colorLabel' | translate }}
+                                                </span>
+                                                <button
+                                                  #speciesColorPicker="ngxColorPicker"
+                                                  [id]="'map-layers-species-color-button-' + species.id"
+                                                  type="button"
+                                                  class="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded border border-slate-200 p-0 transition hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                                                  [colorPicker]="species.color"
+                                                  cpOutputFormat="hex"
+                                                  cpAlphaChannel="disabled"
+                                                  cpPosition="auto"
+                                                  cpDialogDisplay="popup"
+                                                  [cpUseRootViewContainer]="true"
+                                                  [cpEyeDropper]="true"
+                                                  [cpSaveClickOutside]="true"
+                                                  [cpPresetColors]="colorPresetHexValues"
+                                                  cpPresetLabel=""
+                                                  (colorPickerOpen)="
+                                                    onColorPickerOpen(speciesColorPicker)
+                                                  "
+                                                  (colorPickerChange)="
+                                                    updateSpeciesColor(taxon.id, species.id, $event)
+                                                  "
+                                                  [attr.aria-label]="
+                                                    'mapLayersPanel.chooseColorFor'
+                                                      | translate: { name: species.common }
+                                                  "
+                                                >
+                                                  <span
+                                                    [id]="
+                                                      'map-layers-species-color-swatch-' + species.id
+                                                    "
+                                                    class="h-4 w-4 rounded-sm"
+                                                    [style.backgroundColor]="species.color"
+                                                    aria-hidden="true"
+                                                  ></span>
+                                                </button>
+                                              </div>
                                             </div>
                                           </div>
                                         </div>
@@ -2140,7 +2159,6 @@
                                   }
                                 </div>
                               </div>
-                            }
                           </article>
                         }
                       </div>

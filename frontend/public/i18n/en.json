@@ -267,11 +267,7 @@
         "ecosystems": "Ecosystems",
         "species": "Species",
         "taxaBreakdown": "Included species groups",
-        "fish": "Fish",
-        "notApplicable": "Excluded",
-        "fishInfoAriaLabel": "Why fish species are not included",
-        "freshwaterClarification": "Fish species are excluded because the available freshwater fish data is too coarse for this prioritization. Freshwater ecosystems are partially represented through wetlands, while water regulation services are represented separately in overview metrics #6 and #44.",
-        "viewBreakdown": "View feature breakdown",
+        "viewBreakdown": "View breakdown",
         "noTargetsSet": "No conservation domain was explicitly targeted in this scenario.",
         "additionalOutcomesHeading": "Additional outcomes",
         "additionalOutcomesDescription": "Measured coverage in domains that were not targeted by this scenario. The percentages are illustrative range-coverage checkpoints, not configured targets.",
@@ -435,8 +431,8 @@
         "ecosystemCoverageDesc": "Key ecosystems within existing and candidate conservation areas",
         "nationalContribution": "Share of Colombia selected",
         "nationalContributionDesc": "Share of Colombia within existing and candidate conservation areas",
-        "priorityAreaTotal": "Candidate Conservation Area (Selected)",
-        "priorityAreaTotalDesc": "Total area within existing and candidate conservation areas",
+        "priorityAreaTotal": "Selected Candidate Area",
+        "priorityAreaTotalDesc": "Candidate conservation area and its share of Colombia",
         "paramoCoverage": "Páramo Coverage",
         "paramoCoverageDesc": "High-altitude páramo within existing and candidate conservation areas",
         "dryForestCoverage": "Dry Forest Coverage",
@@ -460,9 +456,7 @@
         "waterRegulationServicesSourceLabel": "Source: IDEAM ENA 2018 recharge layer",
         "waterRegulationServicesSourceUrl": "https://bart.ideam.gov.co/cneideam/Capasgeo/#:~:text=Zonas%5FPotenciales%5Fde%5FRecarga%5Fde%5FAgua%5FSubterraneas%5FEna2018",
         "affectedAgriculturalArea": "Affected Agricultural Area",
-        "affectedAgriculturalAreaDesc": "Agricultural land within existing and candidate conservation areas",
-        "agriculturalOpportunityCost": "Agricultural Opportunity Cost",
-        "agriculturalOpportunityCostDesc": "Production foregone"
+        "affectedAgriculturalAreaDesc": "Agricultural land within existing and candidate conservation areas"
       },
       "metricUnits": {
         "ofFeatures": "of features",
@@ -482,7 +476,6 @@
         "tco2e": "tCO₂e",
         "cubicMeterIndex": "m³ index",
         "fifteenPercentOverlap": "15% overlap",
-        "usd": "USD",
         "areaAffected": "Area affected"
       }
     },
@@ -563,8 +556,6 @@
         "waterRegulationDesc": "Hydrological service support for downstream communities.",
         "implementationCost": "Implementation Cost",
         "implementationCostDesc": "Estimated implementation cost envelope.",
-        "agriculturalOpportunityCost": "Agricultural Opportunity Cost",
-        "agriculturalOpportunityCostDesc": "Estimated agricultural cost in affected zones.",
         "protectedOverlap": "Overlap with National Parks",
         "protectedOverlapDesc": "Scenario B overlap with existing formal protected areas.",
         "indigenousOverlap": "Overlap with Indigenous Territories",
@@ -579,7 +570,8 @@
       "alignedMetrics": {
         "title": "Summary Metrics in This AOI",
         "description": "The same headline metric families from Overview, scoped to the selected area.",
-        "priorityAreaDrawn": "Candidate Conservation Area (Drawn)"
+        "priorityAreaDrawn": "Candidate Conservation Area (Drawn)",
+        "priorityAreaSelectedDesc": "Candidate conservation area and its share of this area of interest"
       },
       "drillDown": {
         "title": "Local Drill-Down Metrics",
@@ -622,7 +614,7 @@
         "ecosystems": "Ecosystems",
         "strategicEcosystems": "Strategic ecosystems",
         "carbon": "Carbon",
-        "land": "Land Use & Socio-Economic",
+        "land": "Land Use",
         "cultural": "Cultural & Indigenous Territories",
         "marine": "Marine"
       },
@@ -910,9 +902,12 @@
         }
       },
       "landUseLabels": {
-        "forest": "Natural Forest",
+        "forest": "Forests & Seminatural Areas",
         "agriculture": "Agriculture",
-        "other": "Other"
+        "other": "Other",
+        "scenarioAreaWithinAoi": "% of Scenario Area within AOI",
+        "withinAoi": "% within AOI",
+        "withinAoiUnavailable": "Land-use composition across the full AOI is not available yet."
       },
       "unitTooltips": {
         "carbonMassArea": "These values are weighted sums reported in Mg·km² (native raster values multiplied by pixel area). They are not converted to total Mg because the source raster unit metadata has not been verified.",
@@ -937,8 +932,6 @@
         "waterRegulation": "Water Regulation Capacity",
         "waterRegulationDesc": "Hydrological service provision for downstream communities",
         "waterIndex": "Index 78 / 100",
-        "agOpportunityCost": "Ag. Opportunity Cost",
-        "agOpportunityCostDesc": "Economic value of agricultural production foregone",
         "indigenousReservations": "Indigenous Reservations",
         "indigenousReservationsDesc": "Area within AOI candidate zones",
         "communityCounsils": "Community Councils",
@@ -980,8 +973,6 @@
         "ecosystemMiddle": " and provides ",
         "ecosystemWaterRegulationValue": "partially represented water regulation services",
         "ecosystemSuffix": " for the Cauca River basin. Ecosystems account for the largest share of ecosystem coverage.",
-        "landPrefix": "60% of this AOI's candidate area is natural forest. Agricultural opportunity cost is ",
-        "landSuffix": ".",
         "culturalSuffix": " of this AOI's candidate area overlaps indigenous territories. Prior consultation may be required under ILO Convention 169.",
         "contextAfterName": " contributes ",
         "contextAfterContribution": " toward Colombia's 30x30 conservation target. With ",
@@ -1156,7 +1147,7 @@
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
         "speciesRichnessLabel": "Species range",
         "speciesRichnessHelp": "The tool will identify candidate areas that ensure that the selected proportion of the range of all known species of animal is contained within existing and candidate conservation areas. If you select “national responsibility” this will conserve different range proportions for each species, so that species that are rare, endemic, or threatened will have a greater proportion of their range conserved.",
-        "speciesRichnessTechnicalHelp": "Prioritizes individual Humboldt BioModelos species layers for mammals, birds, amphibians, reptiles, and plants, covering many of the 8,751 species represented in Humboldt biomodels. Freshwater fish are not considered because the available fish species data is too coarse for this prioritization.",
+        "speciesRichnessTechnicalHelp": "Prioritizes individual Humboldt BioModelos species layers for mammals, birds, amphibians, reptiles, and plants, covering many of the 8,751 species represented in Humboldt biomodels.",
         "speciesRichnessTechnicalHelpToggle": "Technical details about species range data sources",
         "speciesRichnessBioModelosSourceLabel": "Humboldt BioModelos metadata",
         "speciesRichnessBioModelosSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/0a1a6bdf-3231-4a77-8031-0dc3fa40f21b",
@@ -1428,7 +1419,7 @@
       "ecosystems": "Ecosystems",
       "marineEcosystems": "Marine Ecosystems",
       "culturalEthnicTerritories": "Cultural & Ethnic Territories",
-      "costs": "Costs"
+      "costs": "Human Activity and Land Use"
     },
     "layerNames": {
       "marineHumanModification": "Marine human modification (HHM)",
@@ -1448,8 +1439,7 @@
       "birds": "Birds",
       "amphibians": "Amphibians",
       "reptiles": "Reptiles",
-      "plants": "Plants",
-      "fish": "Fish"
+      "plants": "Plants"
     },
     "sourceLabels": {
       "selectedSolution": "Selected Scenario",
@@ -1465,10 +1455,8 @@
     "taxonMatchPlural": "taxon matches",
     "noMatchesLabel": "0 matches",
     "taxaHeading": "Included taxa",
-    "speciesNote": "Species layers include Humboldt BioModelos for mammals, birds, amphibians, reptiles, and plants. Fish species are shown as excluded because the available freshwater fish data is too coarse for prioritization.",
-    "solutionNote": "Distributions shown are the non-fish Humboldt BioModelos species included in this scenario's calculation. Drill down to individual species ranges when the scenario includes species-level rasters.",
-    "fishExcludedBadge": "Excluded",
-    "fishExcludedNote": "Freshwater fish data too coarse",
+    "speciesNote": "Species layers include Humboldt BioModelos for mammals, birds, amphibians, reptiles, and plants.",
+    "solutionNote": "Distributions shown are the Humboldt BioModelos species included in this scenario's calculation. Drill down to individual species ranges when the scenario includes species-level rasters.",
     "individualSpecies": "Individual species ranges",
     "speciesRichness": "Species richness",
     "categoryLabel": "Category {{value}}"

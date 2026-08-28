@@ -524,6 +524,23 @@ describe('reconcileMapLayersManifest', () => {
     });
   });
 
+  it('omits Net Benefit from the Costs sidebar group', () => {
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('socioeconomic', [
+          manifestRow('human_footprint_2022', 'socioeconomic'),
+          manifestRow('net_benefit', 'socioeconomic'),
+        ]),
+      ],
+      groups: [group('group-socio-economic', [])],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups[0]).toMatchObject({ countLabel: '1 layers' });
+    expect(result.groups[0]?.rows.map(({ id }) => id)).toEqual(['layer-human_footprint_2022']);
+  });
+
   it('places the classified marine ecosystem layer in its own collection', () => {
     const result = reconcileMapLayersManifest({
       manifestGroups: [
