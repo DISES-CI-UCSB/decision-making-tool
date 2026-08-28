@@ -1,4 +1,4 @@
-import type { AoiType, RuntimeLayerManifestRenderingConfig } from '@core/models';
+import type { AoiType } from '@core/models';
 import { FEATURE_FLAGS } from '@feature-flags';
 import type { AdminBoundaryLayerKey } from '@features/map/services/admin-boundary.service';
 import {
@@ -18,12 +18,11 @@ import {
 export type SelectedLayerFillStyle = 'solid' | 'hatch' | 'mesh' | 'dots';
 export type SelectedLayerBorderStyle = 'none' | 'solid' | 'dashed' | 'dotted';
 
+/** Manifest layer identity used to associate a species taxon with its richness row. */
 export interface SpeciesRichnessTaxonLayerDefinition {
   rowId: string;
   taxonId: string;
   englishLabel: string;
-  displayUrl: string;
-  rendering: RuntimeLayerManifestRenderingConfig;
 }
 
 export interface SidebarManifestCategoryBinding {
@@ -289,86 +288,11 @@ const SPECIES_RICHNESS_RENDER_RANGE = {
   maxValue: 3562,
 } as const;
 export const SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS: SpeciesRichnessTaxonLayerDefinition[] = [
-  {
-    rowId: 'layer-species_richness_mammals',
-    taxonId: 'mammals',
-    englishLabel: 'Mammals',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_mammals.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 142,
-      startColor: '#f3e8ff',
-      endColor: '#7e22ce',
-    },
-  },
-  {
-    rowId: 'layer-species_richness_birds',
-    taxonId: 'birds',
-    englishLabel: 'Birds',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_birds.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 823,
-      startColor: '#dbeafe',
-      endColor: '#1d4ed8',
-    },
-  },
-  {
-    rowId: 'layer-species_richness_amphibians',
-    taxonId: 'amphibians',
-    englishLabel: 'Amphibians',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_amphibians.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 56,
-      startColor: '#dcfce7',
-      endColor: '#15803d',
-    },
-  },
-  {
-    rowId: 'layer-species_richness_reptiles',
-    taxonId: 'reptiles',
-    englishLabel: 'Reptiles',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_reptiles.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 68,
-      startColor: '#ffedd5',
-      endColor: '#c2410c',
-    },
-  },
-  {
-    rowId: 'layer-species_richness_plants',
-    taxonId: 'plants',
-    englishLabel: 'Plants',
-    displayUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species_richness/riqueza_especies_plants.tif',
-    rendering: {
-      valueType: 'continuous',
-      renderMode: 'gradient',
-      noDataValue: 65535,
-      minValue: 1,
-      maxValue: 2884,
-      startColor: '#ccfbf1',
-      endColor: '#0f766e',
-    },
-  },
+  { rowId: 'layer-species_richness_mammals', taxonId: 'mammals', englishLabel: 'Mammals' },
+  { rowId: 'layer-species_richness_birds', taxonId: 'birds', englishLabel: 'Birds' },
+  { rowId: 'layer-species_richness_amphibians', taxonId: 'amphibians', englishLabel: 'Amphibians' },
+  { rowId: 'layer-species_richness_reptiles', taxonId: 'reptiles', englishLabel: 'Reptiles' },
+  { rowId: 'layer-species_richness_plants', taxonId: 'plants', englishLabel: 'Plants' },
 ];
 export const SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID = new Map(
   SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS.map((definition) => [
@@ -376,7 +300,6 @@ export const SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID = new Map(
     definition.rowId,
   ]),
 );
-
 const HUMAN_FOOTPRINT_RENDER_RANGE = {
   minValue: 0,
   maxValue: 100,

@@ -22,6 +22,29 @@ not a blob row
     ]);
   });
 
+  it('parses the current Unicode table with Uploaded At and formatted sizes', () => {
+    const output = `
+Vercel CLI 50.1.0
+Fetching blobs
+│ Uploaded At               │ Size    │ Pathname                         │ URL                                      │
+│ 2026-08-27T18:42:12.123Z │ 1.24 MB │ inputs/features/species/Ape.tif │ https://blob.example/inputs/Ape.tif     │
+│ 2026-08-27T18:42:13.123Z │ 987 B   │ inputs/features/species/Bee.tif │ https://blob.example/inputs/Bee.tif     │
+`;
+
+    assert.deepStrictEqual(parseBlobListOutput(output), [
+      {
+        bytes: 1_240_000,
+        pathname: 'inputs/features/species/Ape.tif',
+        url: 'https://blob.example/inputs/Ape.tif',
+      },
+      {
+        bytes: 987,
+        pathname: 'inputs/features/species/Bee.tif',
+        url: 'https://blob.example/inputs/Bee.tif',
+      },
+    ]);
+  });
+
   it('extracts upload URLs and pagination cursors', () => {
     const output = 'Uploaded https://blob.example/file.json\nUse --cursor next-page';
     assert.strictEqual(extractBlobCliUrl(output), 'https://blob.example/file.json');

@@ -5,7 +5,11 @@ import MediaLayer from '@arcgis/core/layers/MediaLayer';
 import ImageElement from '@arcgis/core/layers/support/ImageElement';
 import ExtentAndRotationGeoreference from '@arcgis/core/layers/support/ExtentAndRotationGeoreference';
 import LocalMediaElementSource from '@arcgis/core/layers/support/LocalMediaElementSource';
+import ClassBreaksRenderer from '@arcgis/core/renderers/ClassBreaksRenderer';
+import RasterStretchRenderer from '@arcgis/core/renderers/RasterStretchRenderer';
+import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 import type ArcGISMap from '@arcgis/core/Map';
+import type ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
 import type { RuntimeLayerManifestRenderingConfig } from '@core/models/layer-manifest.model';
 
 /**
@@ -79,6 +83,24 @@ export function isGeoJsonDisplayUrl(displayUrl: string): boolean {
   return /\.geojson(?:$|[?#])/i.test(displayUrl);
 }
 
+export function isCogDisplayUrl(displayUrl: string): boolean {
+  return /\.cog\.tiff?(?:$|[?#])/i.test(displayUrl);
+}
+
+export function isCogRasterRenderingSupported(
+  displayUrl: string,
+  rendering: RuntimeLayerManifestRenderingConfig,
+): boolean {
+  return (
+    isCogDisplayUrl(displayUrl) &&
+    (rendering.renderMode === 'mask' ||
+      (rendering.renderMode === 'gradient' &&
+        typeof rendering.minValue === 'number' &&
+        typeof rendering.maxValue === 'number' &&
+        rendering.maxValue > rendering.minValue))
+  );
+}
+
 export function buildManifestGeoJsonRenderer(state: {
   color: string;
   borderColor?: string;
@@ -100,6 +122,65 @@ export function buildManifestGeoJsonRenderer(state: {
   };
 }
 
+/**
+ * Mirrors the solution-raster renderer, which is the only raster renderer this
+ * app has confirmed working against ImageryTileLayer. The transparent
+ * `defaultSymbol` is what keeps everything outside the mask unpainted; the
+ * display COG additionally stores non-presence cells as NaN NoData, so the
+ * background stays clear even if ArcGIS falls back to its own default renderer.
+ */
+export function buildManifestCogRenderer(state: ManifestRasterLayerState): ClassBreaksRenderer {
+  const rendering = state.rendering;
+  const maskColor = hexToRgb(rendering.selectedColor ?? '') ??
+    hexToRgb(state.color) ?? [22, 163, 74];
+  // Display COGs collapse every presence cell onto a single value, so a null
+  // `selectedValue` ("any non-zero cell counts") also resolves to 1.
+  const selectedValue = rendering.selectedValue ?? 1;
+
+  return new ClassBreaksRenderer({
+    field: 'Value',
+    defaultSymbol: new SimpleFillSymbol({ color: [0, 0, 0, 0], outline: null }),
+    classBreakInfos: [
+      {
+        minValue: selectedValue - 0.5,
+        maxValue: selectedValue + 0.5,
+        symbol: new SimpleFillSymbol({ color: [...maskColor, 1], outline: null }),
+      },
+    ],
+  });
+}
+
+export function buildManifestCogGradientRenderer(
+  state: ManifestRasterLayerState,
+): RasterStretchRenderer {
+  const { rendering } = state;
+  const min = rendering.minValue;
+  const max = rendering.maxValue;
+  if (typeof min !== 'number' || typeof max !== 'number' || max <= min) {
+    throw new Error('COG gradient rendering requires a valid configured min/max range');
+  }
+
+  return new RasterStretchRenderer({
+    stretchType: 'min-max',
+    dynamicRangeAdjustment: false,
+    customStatistics: [{ min, max, avg: (min + max) / 2, stddev: 0 }],
+    colorRamp: {
+      type: 'algorithmic',
+      algorithm: 'hsv',
+      fromColor: rendering.startColor ?? '#fef3c7',
+      toColor: rendering.endColor ?? state.color,
+    },
+  });
+}
+
+function buildManifestCogRasterRenderer(
+  state: ManifestRasterLayerState,
+): ClassBreaksRenderer | RasterStretchRenderer {
+  return state.rendering.renderMode === 'gradient'
+    ? buildManifestCogGradientRenderer(state)
+    : buildManifestCogRenderer(state);
+}
+
 function hexToRgb(hexColor: string): [number, number, number] | null {
   const normalized = hexColor.trim().toLowerCase();
   if (!/^#([0-9a-f]{6})$/.test(normalized)) {
@@ -114,7 +195,9 @@ export class ManifestRasterLayerService {
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private readonly layersById = new Map<
     string,
-    InstanceType<typeof MediaLayer> | InstanceType<typeof GeoJSONLayer>
+    | InstanceType<typeof MediaLayer>
+    | InstanceType<typeof GeoJSONLayer>
+    | InstanceType<typeof ImageryTileLayer>
   >();
   private readonly rasterByUrl = new Map<string, Promise<LoadedManifestRaster>>();
   private readonly latestStateByLayerId = new Map<string, ManifestRasterLayerState>();
@@ -205,7 +288,10 @@ export class ManifestRasterLayerService {
       this.syncGeoJsonLayer(layerId, state);
       return;
     }
-
+    if (isCogRasterRenderingSupported(state.displayUrl, state.rendering)) {
+      await this.syncCogLayer(layerId, state);
+      return;
+    }
     this.setLayerLoading(layerId, true);
     try {
       const raster = await this.loadRaster(state.displayUrl);
@@ -243,6 +329,45 @@ export class ManifestRasterLayerService {
         opacity: latestState.opacity,
         title: layerId,
       });
+      this.map.add(layer);
+      this.layersById.set(layerId, layer);
+      this.bumpRenderedLayerRevision();
+    } finally {
+      this.setLayerLoading(layerId, false);
+    }
+  }
+
+  private async syncCogLayer(layerId: string, state: ManifestRasterLayerState): Promise<void> {
+    if (!this.map) {
+      return;
+    }
+    const { default: ImageryTileLayer } = await import('@arcgis/core/layers/ImageryTileLayer');
+    const existingLayer = this.layersById.get(layerId);
+    if (existingLayer instanceof ImageryTileLayer && existingLayer.url === state.displayUrl) {
+      existingLayer.visible = state.visible;
+      existingLayer.opacity = state.opacity;
+      existingLayer.renderer = buildManifestCogRasterRenderer(state);
+      this.bumpRenderedLayerRevision();
+      return;
+    }
+    if (existingLayer) {
+      this.map.remove(existingLayer);
+      this.layersById.delete(layerId);
+    }
+
+    this.setLayerLoading(layerId, true);
+    try {
+      const layer = new ImageryTileLayer({
+        id: layerId,
+        title: layerId,
+        url: state.displayUrl,
+        // Keeps the 1 km cells crisp instead of blurring them together.
+        interpolation: 'nearest',
+        renderer: buildManifestCogRasterRenderer(state),
+        visible: state.visible,
+        opacity: state.opacity,
+      });
+      await layer.load();
       this.map.add(layer);
       this.layersById.set(layerId, layer);
       this.bumpRenderedLayerRevision();

@@ -229,6 +229,12 @@ function getDisplayUrls(layer) {
   );
 }
 
+function getDisplayCogUrl(layer) {
+  return typeof layer.displayCogUrl === 'string' && layer.displayCogUrl.trim().length > 0
+    ? layer.displayCogUrl
+    : null;
+}
+
 async function assertReachable(url, label) {
   let response = await fetch(url, { method: 'HEAD', redirect: 'follow' });
 
@@ -394,6 +400,9 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
     if ('displayUrl' in layer) {
       assertUrlOrNull(layer.displayUrl, `layers[${index}].displayUrl`);
     }
+    if ('displayCogUrl' in layer) {
+      assertUrlOrNull(layer.displayCogUrl, `layers[${index}].displayCogUrl`);
+    }
     if ('displayCollectionUrl' in layer) {
       assertUrlOrNull(layer.displayCollectionUrl, `layers[${index}].displayCollectionUrl`);
     }
@@ -525,6 +534,10 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
     }
 
     if (options.checkRemoteDisplayUrls) {
+      const displayCogUrl = getDisplayCogUrl(layer);
+      if (displayCogUrl && shouldCheckReachability(displayCogUrl)) {
+        remoteDisplayUrls.push({ url: displayCogUrl, label: `layers[${index}].displayCogUrl` });
+      }
       for (const url of getDisplayUrls(layer)) {
         if (shouldCheckReachability(url)) {
           remoteDisplayUrls.push({ url, label: `layers[${index}] display URL` });

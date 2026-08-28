@@ -23,7 +23,6 @@ import {
   OVERLAP_SOLUTION_OVERLAY_ID,
   SIDEBAR_MANIFEST_CATEGORY_BINDINGS,
   SPECIES_RICHNESS_LAYER_IDS,
-  SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS,
   SPECIES_RICHNESS_TOTAL_ROW_ID,
   STRATEGIC_ECOSYSTEM_GROUP_ROW_ID,
   STRATEGIC_ECOSYSTEM_ROW_IDS,
@@ -77,7 +76,8 @@ export interface ManifestReconcilePorts {
   normalizeManifestRendering(row: ManifestSidebarLayerRow): RuntimeLayerManifestRenderingConfig;
   layerCountLabel(count: number): string;
   individualSpeciesName(): string;
-  speciesRichnessTaxonName(definition: SpeciesRichnessTaxonLayerDefinition): string;
+  /** Deprecated fallback hook retained for tests while release manifests provide all rows. */
+  speciesRichnessTaxonName?(definition: SpeciesRichnessTaxonLayerDefinition): string;
   strategicEcosystemGroupName(): string;
   ecosystemGroupNote(): string;
   managementFiguresTitle(): string;
@@ -149,7 +149,7 @@ function reconcileGenericGroups(
     );
     const rows =
       group.id === 'group-species-biodiversity'
-        ? groupSpeciesRichnessRows(manifestRows, group.rows, ports)
+        ? groupSpeciesRichnessRows(manifestRows, group.rows)
         : group.id === 'group-ecosystems'
           ? groupStrategicEcosystemRows(manifestRows, group.rows, ports)
           : preserveSyntheticRows(group.id, manifestRows, group.rows);
@@ -223,6 +223,7 @@ function buildManifestRow(
     };
   }
 
+  const displayUrl = manifestRow.displayCogUrl ?? manifestRow.displayUrl;
   const isLiveRenderable = isManifestRowLiveRenderable(manifestRow);
   const rendering = ports.normalizeManifestRendering(manifestRow);
   const existingSelected = existingRow?.selected ?? false;
@@ -247,11 +248,11 @@ function buildManifestRow(
     mapUnavailable: !isLiveRenderable,
     metadataUrl: manifestRow.metadataUrl,
     mapSync:
-      isLiveRenderable && manifestRow.displayUrl
+      isLiveRenderable && displayUrl
         ? {
             type: 'manifest-raster',
             layerId,
-            displayUrl: manifestRow.displayUrl,
+            displayUrl,
             rendering,
           }
         : undefined,
@@ -261,7 +262,6 @@ function buildManifestRow(
 function groupSpeciesRichnessRows(
   rows: LayerControlRow[],
   existingRows: readonly LayerControlRow[],
-  ports: ManifestReconcilePorts,
 ): LayerControlRow[] {
   const totalRichnessRow = rows
     .filter((row) => SPECIES_RICHNESS_LAYER_IDS.has(row.id))
@@ -271,11 +271,10 @@ function groupSpeciesRichnessRows(
   }
 
   const rowsById = new Map(rows.map((row) => [row.id, row]));
-  const taxonRows = SPECIES_RICHNESS_TAXON_LAYER_DEFINITIONS.map(
-    (definition) =>
-      rowsById.get(definition.rowId) ??
-      buildSpeciesRichnessTaxonRow(definition, existingRows, ports),
-  );
+  const taxonRows = [...SPECIES_RICHNESS_LAYER_IDS]
+    .filter((rowId) => rowId !== SPECIES_RICHNESS_TOTAL_ROW_ID)
+    .map((rowId) => rowsById.get(rowId))
+    .filter((row): row is LayerControlRow => row !== undefined);
   if (taxonRows.length === 0) {
     return rows;
   }
@@ -290,34 +289,6 @@ function groupSpeciesRichnessRows(
     },
     taxonRows,
   );
-}
-
-function buildSpeciesRichnessTaxonRow(
-  definition: SpeciesRichnessTaxonLayerDefinition,
-  existingRows: readonly LayerControlRow[],
-  ports: ManifestReconcilePorts,
-): LayerControlRow {
-  const existingRow = existingRows.find((row) => row.id === definition.rowId);
-  const selected = existingRow?.selected ?? false;
-  return {
-    id: definition.rowId,
-    name: ports.speciesRichnessTaxonName(definition),
-    selected,
-    visible: selected ? true : (existingRow?.visible ?? false),
-    expanded: existingRow?.expanded ?? false,
-    opacity: existingRow?.opacity ?? DEFAULT_DATA_LAYER_OPACITY,
-    color: existingRow?.color ?? colorFromManifestRendering(definition.rendering) ?? '#854d0e',
-    canReorder: true,
-    hasStyleControls: true,
-    hasColorControl: true,
-    mapUnavailable: false,
-    mapSync: {
-      type: 'manifest-raster',
-      layerId: definition.rowId,
-      displayUrl: definition.displayUrl,
-      rendering: definition.rendering,
-    },
-  };
 }
 
 function groupStrategicEcosystemRows(
@@ -410,11 +381,12 @@ function applyManifestToManagementOverlay(
   existingOverlay: LayerControlRow,
   manifestRow: ManifestSidebarLayerRow,
 ): LayerControlRow {
+  const displayUrl = manifestRow.displayCogUrl ?? manifestRow.displayUrl;
   const isRenderable =
     isManifestRenderingSupported(manifestRow.rendering) &&
-    typeof manifestRow.displayUrl === 'string' &&
-    manifestRow.displayUrl.length > 0;
-  if (!isRenderable || !manifestRow.displayUrl) {
+    typeof displayUrl === 'string' &&
+    displayUrl.length > 0;
+  if (!isRenderable || !displayUrl) {
     return {
       ...existingOverlay,
       name: manifestRow.name,
@@ -450,7 +422,7 @@ function applyManifestToManagementOverlay(
     mapSync: {
       type: 'manifest-raster',
       layerId: existingOverlay.id,
-      displayUrl: manifestRow.displayUrl,
+      displayUrl,
       rendering,
     },
   };
@@ -529,12 +501,13 @@ function manifestRowFallbackColor(sidebarGroupId: string, index: number): string
 }
 
 function isManifestRowLiveRenderable(row: ManifestSidebarLayerRow): boolean {
+  const displayUrl = row.displayCogUrl ?? row.displayUrl;
   return (
     !row.isSpeciesCollection &&
     BINDING_BY_MANIFEST_ID.get(row.sidebarCategoryId)?.supportsLiveRendering === true &&
     isManifestRenderingSupported(row.rendering) &&
-    typeof row.displayUrl === 'string' &&
-    row.displayUrl.length > 0
+    typeof displayUrl === 'string' &&
+    displayUrl.length > 0
   );
 }
 

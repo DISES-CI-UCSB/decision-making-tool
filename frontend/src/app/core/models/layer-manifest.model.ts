@@ -128,6 +128,8 @@ export interface RuntimeLayerManifestLayer {
   selectableInFinder?: boolean;
   visibleInMapLayers?: boolean;
   displayUrl?: string | null;
+  /** Display-only COG. `displayUrl` remains the source/metrics URL. */
+  displayCogUrl?: string | null;
   displayCollectionUrl?: string | null;
   speciesManifestUrl?: string | null;
   metadataUrl: string | null;
@@ -264,6 +266,7 @@ export interface ManifestSidebarLayerRow {
   dataRole: RuntimeLayerManifestDataRole;
   roleInMetricCalculation: RuntimeLayerManifestMetricRole;
   displayUrl: string | null;
+  displayCogUrl?: string | null;
   displayCollectionUrl: string | null;
   speciesManifestUrl: string | null;
   metadataUrl: string | null;
@@ -279,6 +282,8 @@ export interface RuntimeSpeciesManifestLayer {
   commonName: string;
   scientificName: string;
   displayUrl: string | null;
+  /** Display-only COG. Source-only records intentionally remain map-unavailable. */
+  displayCogUrl?: string | null;
   rendering: RuntimeLayerManifestRenderingConfig | null;
 }
 
@@ -340,11 +345,12 @@ export function mapManifestLayerToSidebarRow(
     dataRole: layer.dataRole,
     roleInMetricCalculation: layer.roleInMetricCalculation,
     displayUrl: layer.displayUrl ?? null,
+    displayCogUrl: layer.displayCogUrl ?? null,
     displayCollectionUrl: layer.displayCollectionUrl ?? null,
     speciesManifestUrl: layer.speciesManifestUrl ?? null,
     metadataUrl: layer.metadataUrl ?? null,
     rendering: layer.rendering,
-    hasDisplayAsset: Boolean(layer.displayUrl ?? layer.displayCollectionUrl),
+    hasDisplayAsset: Boolean(layer.displayCogUrl ?? layer.displayUrl ?? layer.displayCollectionUrl),
     isSpeciesCollection: layer.dataRole === 'manifest_for_species_layers',
   };
 }

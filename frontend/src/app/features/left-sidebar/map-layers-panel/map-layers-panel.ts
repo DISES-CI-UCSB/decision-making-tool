@@ -126,7 +126,6 @@ import {
   sidebarCategoryBindingForGroup,
   SPECIES_CLASS_TO_TAXON,
   SPECIES_COLLECTION_ROW_ID,
-  SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID,
   SPECIES_TAXON_SORT_ORDER,
   SPECIES_VISIBLE_LIMIT,
   STRATEGIC_ECOSYSTEM_GROUP_ROW_ID,
@@ -853,9 +852,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   protected taxonScenarioLayerStatus(taxon: TaxonRow): ScenarioLayerStatus | null {
-    const richnessLayerId = SPECIES_RICHNESS_LAYER_ID_BY_TAXON_ROW_ID.get(taxon.id);
-    if (richnessLayerId) {
-      return this.scenarioLayerStatus({ ...taxon, id: richnessLayerId });
+    const taxonId = taxon.id.replace(/^taxon-/, '');
+    if (['mammals', 'birds', 'amphibians', 'reptiles', 'plants'].includes(taxonId)) {
+      return this.scenarioLayerStatus({ ...taxon, id: `layer-species_richness_${taxonId}` });
     }
 
     return null;
@@ -1051,11 +1050,6 @@ export class MapLayersPanelComponent implements OnDestroy {
           this.localizedTextOrFallback(
             'mapLayersPanel.individualSpecies',
             'Individual species ranges',
-          ),
-        speciesRichnessTaxonName: (definition) =>
-          this.localizedTextOrFallback(
-            `mapLayersPanel.taxaNames.${definition.taxonId}`,
-            definition.englishLabel,
           ),
         strategicEcosystemGroupName: () => this.ecosystemsCopy().strategicGroupName,
         ecosystemGroupNote: () => this.ecosystemsCopy().groupNote,
@@ -3947,7 +3941,9 @@ export class MapLayersPanelComponent implements OnDestroy {
     const rowId = `species-${layer.id}`;
     const existingSpecies = existingSpeciesRows?.find((species) => species.id === rowId);
     const rendering = layer.rendering;
-    const displayUrl = layer.displayUrl?.trim() ?? '';
+    // Species source rasters remain available for metrics/provenance only. A
+    // source-only record must not accidentally use the MediaLayer path.
+    const displayUrl = layer.displayCogUrl?.trim() ?? '';
     const isRenderable =
       !!rendering && isManifestRenderingSupported(rendering) && displayUrl.length > 0;
     const commonName = layer.commonName?.trim() || layer.scientificName;
