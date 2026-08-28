@@ -3,7 +3,6 @@ import {
   buildOverlapRasterData,
   calculateLiveComparisonMetrics,
   calculateLiveSolutionMetrics,
-  COLOMBIA_REFERENCE_AREA_KM2,
   getPixelAreaKm2PerRow,
 } from './solution-raster.utils';
 
@@ -123,7 +122,7 @@ describe('solution raster utilities', () => {
       expect.objectContaining({
         selectedAreaKm2: 2,
         validAreaKm2: 4,
-        nationalContributionPct: (2 / COLOMBIA_REFERENCE_AREA_KM2) * 100,
+        nationalContributionPct: 50,
       }),
     );
   });
@@ -139,8 +138,20 @@ describe('solution raster utilities', () => {
         uniqueToCandidateKm2: 1,
         baselinePreExistingAreaKm2: 1,
         candidatePreExistingAreaKm2: 1,
+        baselineNationalContributionPct: 50,
+        candidateNationalContributionPct: 50,
         status: 'ready',
       }),
     );
+  });
+
+  it('uses each solution valid footprint for comparison percentages', () => {
+    const baseline = createLoadedSolution([1, 0, 255, 255]);
+    const candidate = createLoadedSolution([1, 0, 0, 255]);
+
+    const metrics = calculateLiveComparisonMetrics(baseline, candidate);
+
+    expect(metrics.baselineNationalContributionPct).toBeCloseTo(50);
+    expect(metrics.candidateNationalContributionPct).toBeCloseTo(100 / 3);
   });
 });

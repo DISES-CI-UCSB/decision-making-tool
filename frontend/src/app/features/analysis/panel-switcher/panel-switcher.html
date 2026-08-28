@@ -272,7 +272,8 @@
                                 >
                                   <button
                                     [id]="
-                                      'right-sidebar-v3-overview-goals-domain-help-trigger-' + domain.id
+                                      'right-sidebar-v3-overview-goals-domain-help-trigger-' +
+                                      domain.id
                                     "
                                     type="button"
                                     class="v3-methodology-trigger"
@@ -280,12 +281,14 @@
                                       'analysis.overview.methodologyInfoLabel' | translate
                                     "
                                     [attr.aria-describedby]="
-                                      'right-sidebar-v3-overview-goals-domain-help-tooltip-' + domain.id
+                                      'right-sidebar-v3-overview-goals-domain-help-tooltip-' +
+                                      domain.id
                                     "
                                   >
                                     <span
                                       [id]="
-                                        'right-sidebar-v3-overview-goals-domain-help-indicator-' + domain.id
+                                        'right-sidebar-v3-overview-goals-domain-help-indicator-' +
+                                        domain.id
                                       "
                                       class="v3-methodology-indicator tooltip-info-icon-glyph"
                                       aria-hidden="true"
@@ -1588,16 +1591,6 @@
                 <h3 id="aoi-dashboard-region-name" class="aoi-region-name rs-header-optical-nudge">
                   {{ aoi.name }}
                 </h3>
-                @if (isSirapAoiSelected()) {
-                  <p
-                    id="aoi-dashboard-sirap-whole-feature-context"
-                    class="aoi-region-meta"
-                    role="note"
-                    [attr.aria-label]="'analysis.aoi.sirapWholeFeatureContext' | translate"
-                  >
-                    {{ 'analysis.aoi.sirapWholeFeatureContext' | translate }}
-                  </p>
-                }
               </div>
               <div id="aoi-dashboard-area-unit-row" class="rs-area-unit-row">
                 <span id="aoi-dashboard-area-unit-label" class="rs-area-unit-label">
@@ -1627,87 +1620,8 @@
 
             <!-- ═══ SCROLLABLE BODY ═══ -->
             <div id="aoi-dashboard-body" class="aoi-panel-body">
-              <p id="aoi-dashboard-scope-explanation" class="aoi-scope-explanation">
-                {{ 'analysis.aoi.scopeExplanation' | translate }}
-              </p>
               @if (selectedAoi()?.type === 'custom') {
                 <ng-container [ngTemplateOutlet]="aoiSelectionControl"></ng-container>
-              }
-
-              @if (aoiAlignedMetricEntries().length > 0) {
-                <section
-                  id="aoi-overview-aligned-metrics"
-                  class="aoi-aligned-section"
-                  aria-labelledby="aoi-overview-aligned-title"
-                >
-                  <header id="aoi-overview-aligned-header" class="aoi-aligned-header">
-                    <h4 id="aoi-overview-aligned-title" class="aoi-aligned-title">
-                      {{ 'analysis.aoi.alignedMetrics.title' | translate }}
-                    </h4>
-                    <p id="aoi-overview-aligned-description" class="aoi-aligned-description">
-                      {{ 'analysis.aoi.alignedMetrics.description' | translate }}
-                    </p>
-                  </header>
-                  <div id="aoi-overview-aligned-table" class="aoi-metric-table">
-                    @for (entry of aoiAlignedMetricEntries(); track entry.id) {
-                      <div
-                        [id]="'aoi-overview-aligned-row-' + entry.id"
-                        class="aoi-metric-row"
-                        [class.flex-wrap]="!!entry.partialNote"
-                      >
-                        <div
-                          [id]="'aoi-overview-aligned-icon-shell-' + entry.id"
-                          class="aoi-m-icon"
-                        >
-                          @if (entry.iconClass) {
-                            <i
-                              [id]="'aoi-overview-aligned-icon-' + entry.id"
-                              [class]="entry.iconClass"
-                              aria-hidden="true"
-                            ></i>
-                          }
-                        </div>
-                        <div [id]="'aoi-overview-aligned-body-' + entry.id" class="aoi-m-body">
-                          <div [id]="'aoi-overview-aligned-name-' + entry.id" class="aoi-m-name">
-                            {{ entry.labelKey | translate }}
-                          </div>
-                          <div [id]="'aoi-overview-aligned-desc-' + entry.id" class="aoi-m-desc">
-                            {{ entry.descriptionKey | translate }}
-                          </div>
-                        </div>
-                        <div [id]="'aoi-overview-aligned-value-shell-' + entry.id">
-                          <div
-                            [id]="'aoi-overview-aligned-value-' + entry.id"
-                            class="aoi-m-val"
-                            [attr.data-full-value]="
-                              entry.fullValue && entry.fullValue !== entry.value
-                                ? entry.fullValue
-                                : null
-                            "
-                            [attr.tabindex]="
-                              entry.fullValue && entry.fullValue !== entry.value ? 0 : null
-                            "
-                          >
-                            {{ entry.value }}
-                          </div>
-                          @if (entry.unit) {
-                            <div [id]="'aoi-overview-aligned-unit-' + entry.id" class="aoi-m-unit">
-                              {{ entry.unit }}
-                            </div>
-                          }
-                        </div>
-                        @if (entry.partialNote) {
-                          <p
-                            [id]="'aoi-overview-aligned-partial-note-' + entry.id"
-                            class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
-                          >
-                            {{ entry.partialNote }}
-                          </p>
-                        }
-                      </div>
-                    }
-                  </div>
-                </section>
               }
 
               <!-- ─── SECTION A: Selected Area Snapshot ─── -->
@@ -1827,19 +1741,6 @@
                     </div>
                   </div>
                 </div>
-              </section>
-
-              <section
-                id="aoi-local-drilldown-intro"
-                class="aoi-drilldown-intro"
-                aria-labelledby="aoi-local-drilldown-title"
-              >
-                <h4 id="aoi-local-drilldown-title" class="aoi-drilldown-title">
-                  {{ 'analysis.aoi.drillDown.title' | translate }}
-                </h4>
-                <p id="aoi-local-drilldown-description" class="aoi-drilldown-description">
-                  {{ 'analysis.aoi.drillDown.description' | translate }}
-                </p>
               </section>
 
               <!-- ─── SECTION B: Biodiversity ─── -->
@@ -2013,6 +1914,31 @@
                             {{ 'analysis.aoi.stats.iucnLabel' | translate }}
                           </p>
                         </div>
+                        @if (
+                          !isCustomAoiSelected() ||
+                          hasDisplayableAoiMetric('threatened_species_secured')
+                        ) {
+                          <div id="aoi-stat-threatened-secured" class="aoi-stat-card">
+                            <p id="aoi-stat-threatened-secured-label" class="aoi-stat-label">
+                              {{ 'analysis.aoi.stats.threatenedSpeciesSecured' | translate }}
+                            </p>
+                            <p
+                              id="aoi-stat-threatened-secured-value"
+                              class="aoi-stat-value"
+                              [attr.data-full-value]="
+                                getAoiMetricFullValue('threatened_species_secured')
+                              "
+                              [attr.tabindex]="
+                                getAoiMetricFullValue('threatened_species_secured') ? 0 : null
+                              "
+                            >
+                              {{ getAoiMetricValue('threatened_species_secured', '90') }}
+                            </p>
+                            <p id="aoi-stat-threatened-secured-unit" class="aoi-stat-unit">
+                              {{ 'analysis.aoi.stats.threatenedSpeciesSecuredDesc' | translate }}
+                            </p>
+                          </div>
+                        }
                         @if (!isCustomAoiSelected()) {
                           <div id="aoi-stat-endemic" class="aoi-stat-card">
                             <p id="aoi-stat-endemic-label" class="aoi-stat-label">
@@ -2407,7 +2333,7 @@
                 </div>
               </section>
 
-              <!-- ─── SECTION E: Carbon ─── -->
+              <!-- ─── SECTION E: Ecosystem Services ─── -->
               <section id="aoi-section-carbon">
                 <button
                   id="aoi-head-carbon"
@@ -2418,7 +2344,7 @@
                 >
                   <span id="aoi-dot-carbon" class="aoi-section-dot aoi-dot-carbon"></span>
                   <span id="aoi-label-carbon" class="aoi-section-label rs-header-optical-nudge">{{
-                    'analysis.aoi.sections.carbon' | translate
+                    'analysis.aoi.sections.ecosystemServices' | translate
                   }}</span>
                   <span
                     id="aoi-chevron-carbon"
@@ -2620,6 +2546,29 @@
                           </span>
                         </p>
                       </div>
+                      <div id="aoi-stat-water-regulation" class="aoi-stat-card">
+                        <p id="aoi-stat-water-regulation-label" class="aoi-stat-label">
+                          {{ 'analysis.aoi.stats.waterRegulation' | translate }}
+                        </p>
+                        <p
+                          id="aoi-stat-water-regulation-value"
+                          class="aoi-stat-value"
+                          [attr.data-full-value]="getAoiMetricFullValue('water_regulation_area')"
+                          [attr.tabindex]="
+                            getAoiMetricFullValue('water_regulation_area') ? 0 : null
+                          "
+                        >
+                          {{
+                            getAoiMetricValue(
+                              'water_regulation_area',
+                              getAoiUnitFallback(78, 'km²')
+                            )
+                          }}
+                        </p>
+                        <p id="aoi-stat-water-regulation-unit" class="aoi-stat-unit">
+                          {{ 'analysis.aoi.stats.waterRegulationDesc' | translate }}
+                        </p>
+                      </div>
                     </div>
 
                     @if (fillDummyAoiMetrics()) {
@@ -2678,47 +2627,76 @@
                   [attr.aria-hidden]="!isAoiSectionExpanded('land')"
                 >
                   <div id="aoi-body-land-inner" class="collapse-motion-inner aoi-section-body">
-                    <section id="aoi-landuse-scenario-chart-section" class="aoi-landuse-chart-section">
+                    <div id="aoi-landuse-agricultural-area-stats" class="aoi-stat-grid">
+                      <div
+                        id="aoi-stat-agricultural-conservation-area"
+                        class="aoi-stat-card col-span-2"
+                      >
+                        <p
+                          id="aoi-stat-agricultural-conservation-area-label"
+                          class="aoi-stat-label"
+                        >
+                          {{ 'analysis.aoi.stats.agriculturalConservationArea' | translate }}
+                        </p>
+                        <p
+                          id="aoi-stat-agricultural-conservation-area-value"
+                          class="aoi-stat-value"
+                          [attr.data-full-value]="getAoiMetricFullValue('agricultural_area')"
+                          [attr.tabindex]="getAoiMetricFullValue('agricultural_area') ? 0 : null"
+                        >
+                          {{
+                            getAoiMetricValue('agricultural_area', getAoiUnitFallback(125, 'km²'))
+                          }}
+                        </p>
+                        <p id="aoi-stat-agricultural-conservation-area-unit" class="aoi-stat-unit">
+                          {{ 'analysis.aoi.stats.agriculturalConservationAreaDesc' | translate }}
+                        </p>
+                      </div>
+                    </div>
+                    <section
+                      id="aoi-landuse-scenario-chart-section"
+                      class="aoi-landuse-chart-section"
+                    >
                       <h3 id="aoi-landuse-scenario-chart-title" class="aoi-landuse-chart-title">
                         {{ 'analysis.aoi.landUseLabels.scenarioAreaWithinAoi' | translate }}
                       </h3>
                       <div id="aoi-landuse-scenario-chart" class="aoi-bar-chart">
-                      @for (bar of aoiLandUseBars(); track bar.id) {
-                        <div [id]="'aoi-bar-' + bar.id" class="aoi-bar-row">
-                          <span [id]="'aoi-bar-label-' + bar.id" class="aoi-bar-label">
-                            {{ bar.label }}
-                          </span>
-                          <div [id]="'aoi-bar-fill-shell-' + bar.id" class="aoi-bar-fill-shell">
-                            <span
-                              [id]="'aoi-bar-fill-' + bar.id"
-                              class="aoi-bar-fill"
-                              [style.width.%]="
-                                getAoiMetricPercent(
+                        @for (bar of aoiLandUseBars(); track bar.id) {
+                          <div [id]="'aoi-bar-' + bar.id" class="aoi-bar-row">
+                            <span [id]="'aoi-bar-label-' + bar.id" class="aoi-bar-label">
+                              {{ bar.label }}
+                            </span>
+                            <div [id]="'aoi-bar-fill-shell-' + bar.id" class="aoi-bar-fill-shell">
+                              <span
+                                [id]="'aoi-bar-fill-' + bar.id"
+                                class="aoi-bar-fill"
+                                [style.width.%]="
+                                  getAoiMetricPercent(
+                                    bar.id === 'forest'
+                                      ? 'land_use_forest_pct'
+                                      : bar.id === 'agriculture'
+                                        ? 'land_use_agriculture_pct'
+                                        : 'land_use_other_pct',
+                                    bar.percent
+                                  )
+                                "
+                                [style.background-color]="bar.color"
+                              ></span>
+                            </div>
+                            <span [id]="'aoi-bar-val-' + bar.id" class="aoi-bar-val">
+                              {{
+                                getAoiMetricValue(
                                   bar.id === 'forest'
                                     ? 'land_use_forest_pct'
                                     : bar.id === 'agriculture'
                                       ? 'land_use_agriculture_pct'
                                       : 'land_use_other_pct',
-                                  bar.percent
+                                  bar.percent + '%'
                                 )
-                              "
-                              [style.background-color]="bar.color"
-                            ></span>
+                              }}
+                            </span>
                           </div>
-                          <span [id]="'aoi-bar-val-' + bar.id" class="aoi-bar-val">
-                            {{
-                              getAoiMetricValue(
-                                bar.id === 'forest'
-                                  ? 'land_use_forest_pct'
-                                  : bar.id === 'agriculture'
-                                    ? 'land_use_agriculture_pct'
-                                    : 'land_use_other_pct',
-                                bar.percent + '%'
-                              )
-                            }}
-                          </span>
-                        </div>
-                      }
+                        }
                       </div>
                     </section>
 

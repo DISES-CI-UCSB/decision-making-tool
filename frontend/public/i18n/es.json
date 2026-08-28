@@ -457,8 +457,8 @@
         "waterRegulationServicesMethodology": "Usa la capa de IDEAM de recarga de aguas subterráneas moderada a alta. Fórmula: suma del área seleccionada por el escenario que se superpone con zonas de recarga.",
         "waterRegulationServicesSourceLabel": "Fuente: capa de recarga IDEAM ENA 2018",
         "waterRegulationServicesSourceUrl": "https://bart.ideam.gov.co/cneideam/Capasgeo/#:~:text=Zonas%5FPotenciales%5Fde%5FRecarga%5Fde%5FAgua%5FSubterraneas%5FEna2018",
-        "affectedAgriculturalArea": "Área agrícola afectada",
-        "affectedAgriculturalAreaDesc": "Tierra agrícola dentro de áreas de conservación existentes y candidatas"
+        "affectedAgriculturalArea": "Área de conservación en terrenos agrícolas",
+        "affectedAgriculturalAreaDesc": "Área de conservación seleccionada clasificada como terreno agrícola"
       },
       "metricUnits": {
         "ofFeatures": "de los elementos",
@@ -485,16 +485,11 @@
       "kicker": "Detalle de AOI",
       "title": "Detalle del área de interés",
       "description": "Enfoca el escenario activo en una geografía seleccionada para inspeccionar métricas específicas del AOI.",
-      "scopeExplanation": "Las métricas del AOI describen la geografía seleccionada y pueden diferir de los totales del escenario.",
       "alignedMetrics": {
         "title": "Métricas de resumen en este AOI",
         "description": "Las mismas familias de métricas principales del Resumen, enfocadas en el área seleccionada.",
         "priorityAreaDrawn": "Área de conservación candidata (dibujada)",
         "priorityAreaSelectedDesc": "Área de conservación candidata y su porcentaje de esta área de interés"
-      },
-      "drillDown": {
-        "title": "Métricas locales de detalle",
-        "description": "Usa estas secciones para revisar detalle adicional específico del AOI más allá de las familias principales del resumen."
       },
       "selectedLabel": "AOI seleccionado",
       "typeLabel": "Tipo",
@@ -525,14 +520,13 @@
       },
       "emptyMetricsTitle": "Las métricas del AOI no están listas",
       "emptyMetricsDescription": "Las métricas del AOI aparecen aquí cuando hay un escenario y un área de interés disponibles.",
-      "sirapWholeFeatureContext": "SIRAP completo seleccionado · Las métricas almacenadas incluyen todos los polígonos.",
       "scopeFull": "SIRAP completo (todos los polígonos)",
       "sections": {
         "conservation": "Instantanea del area seleccionada",
         "biodiversity": "Biodiversidad",
         "ecosystems": "Ecosistemas",
         "strategicEcosystems": "Ecosistemas estratégicos",
-        "carbon": "Carbono",
+        "ecosystemServices": "Servicios ecosistémicos",
         "land": "Uso del suelo",
         "cultural": "Territorios culturales e indígenas",
         "marine": "Marino"
@@ -839,6 +833,8 @@
         "speciesChartAxisLabel": "Conteo de especies por grupo taxonómico",
         "threatenedSpecies": "Especies amenazadas",
         "iucnLabel": "UICN CR / EN / VU",
+        "threatenedSpeciesSecured": "Especies amenazadas aseguradas",
+        "threatenedSpeciesSecuredDesc": "Especies amenazadas representadas en áreas de conservación seleccionadas",
         "endemicSpecies": "Especies endémicas",
         "colombiaEndemics": "Endémicas de Colombia",
         "nationalSpeciesTotal": "% del total nacional de especies",
@@ -850,6 +846,8 @@
         "soilOrganicCarbon": "Carbono orgánico del suelo",
         "waterRegulation": "Capacidad de regulación hídrica",
         "waterRegulationDesc": "Provisión de servicios hidrológicos para comunidades aguas abajo",
+        "agriculturalConservationArea": "Área de conservación en terrenos agrícolas",
+        "agriculturalConservationAreaDesc": "Área de conservación seleccionada clasificada como terreno agrícola",
         "waterIndex": "Índice 78 / 100",
         "indigenousReservations": "Resguardos indígenas",
         "indigenousReservationsDesc": "Área dentro de las zonas candidatas del AOI",
@@ -961,8 +959,8 @@
         "preExistingAreaDesc": "Área ya incluida antes de sumar las nuevas prioridades seleccionadas.",
         "newSelectedArea": "Área nueva seleccionada",
         "newSelectedAreaDesc": "Área nueva seleccionada por el escenario, excluyendo el área preexistente.",
-        "nationalTarget": "Porcentaje del área terrestre de Colombia",
-        "nationalTargetDesc": "Área total seleccionada dividida por el área terrestre total de Colombia.",
+        "nationalTarget": "Porcentaje del área nacional de planificación",
+        "nationalTargetDesc": "Área total seleccionada dividida por el área nacional válida de planificación de cada escenario.",
         "biodiversity": "Biodiversidad",
         "biodiversityDesc": "Puntaje compuesto de desempeño en biodiversidad.",
         "ecosystemCoverage": "Cobertura de ecosistemas",

@@ -457,8 +457,8 @@
         "waterRegulationServicesMethodology": "Uses IDEAM's moderate-to-high groundwater recharge layer. Formula: sum the selected scenario area that overlaps recharge zones.",
         "waterRegulationServicesSourceLabel": "Source: IDEAM ENA 2018 recharge layer",
         "waterRegulationServicesSourceUrl": "https://bart.ideam.gov.co/cneideam/Capasgeo/#:~:text=Zonas%5FPotenciales%5Fde%5FRecarga%5Fde%5FAgua%5FSubterraneas%5FEna2018",
-        "affectedAgriculturalArea": "Affected Agricultural Area",
-        "affectedAgriculturalAreaDesc": "Agricultural land within existing and candidate conservation areas"
+        "affectedAgriculturalArea": "Conservation Area on Agricultural Land",
+        "affectedAgriculturalAreaDesc": "Selected conservation area classified as agricultural land"
       },
       "metricUnits": {
         "ofFeatures": "of features",
@@ -542,8 +542,8 @@
         "preExistingAreaDesc": "Area already included before candidate conservation areas are added.",
         "newSelectedArea": "New selected area",
         "newSelectedAreaDesc": "Candidate conservation area in the scenario, excluding existing conservation areas.",
-        "nationalTarget": "Share of Colombia land area",
-        "nationalTargetDesc": "Total selected area divided by Colombia's total land area.",
+        "nationalTarget": "Share of national planning area",
+        "nationalTargetDesc": "Total selected area divided by the valid national planning area for each scenario.",
         "biodiversity": "Biodiversity",
         "biodiversityDesc": "Composite biodiversity performance score.",
         "ecosystemCoverage": "Ecosystem Coverage",
@@ -568,16 +568,11 @@
       "kicker": "AOI detail",
       "title": "Area of interest detail",
       "description": "Focus the active scenario on a selected geography to inspect AOI-specific metrics.",
-      "scopeExplanation": "AOI metrics describe the selected geography and may differ from scenario-wide totals.",
       "alignedMetrics": {
         "title": "Summary Metrics in This AOI",
         "description": "The same headline metric families from Overview, scoped to the selected area.",
         "priorityAreaDrawn": "Candidate Conservation Area (Drawn)",
         "priorityAreaSelectedDesc": "Candidate conservation area and its share of this area of interest"
-      },
-      "drillDown": {
-        "title": "Local Drill-Down Metrics",
-        "description": "Use these sections for additional AOI-specific detail beyond the headline summary families."
       },
       "selectedLabel": "Selected AOI",
       "typeLabel": "Type",
@@ -608,14 +603,13 @@
       },
       "emptyMetricsTitle": "AOI metrics are not ready",
       "emptyMetricsDescription": "AOI metrics appear here once both a scenario and an area of interest are available.",
-      "sirapWholeFeatureContext": "Complete SIRAP selected · Cached metrics include all polygons.",
       "scopeFull": "Complete SIRAP (all polygons)",
       "sections": {
         "conservation": "Selected Area Snapshot",
         "biodiversity": "Biodiversity",
         "ecosystems": "Ecosystems",
         "strategicEcosystems": "Strategic ecosystems",
-        "carbon": "Carbon",
+        "ecosystemServices": "Ecosystem Services",
         "land": "Land Use",
         "cultural": "Cultural & Indigenous Territories",
         "marine": "Marine"
@@ -922,6 +916,8 @@
         "speciesChartAxisLabel": "Species count by taxa",
         "threatenedSpecies": "Threatened Species",
         "iucnLabel": "IUCN CR / EN / VU",
+        "threatenedSpeciesSecured": "Threatened Species Secured",
+        "threatenedSpeciesSecuredDesc": "Threatened species represented in selected conservation areas",
         "endemicSpecies": "Endemic Species",
         "colombiaEndemics": "Colombia endemics",
         "nationalSpeciesTotal": "% of National Species Total",
@@ -933,6 +929,8 @@
         "soilOrganicCarbon": "Soil Organic Carbon",
         "waterRegulation": "Water Regulation Capacity",
         "waterRegulationDesc": "Hydrological service provision for downstream communities",
+        "agriculturalConservationArea": "Conservation Area on Agricultural Land",
+        "agriculturalConservationAreaDesc": "Selected conservation area classified as agricultural land",
         "waterIndex": "Index 78 / 100",
         "indigenousReservations": "Indigenous Reservations",
         "indigenousReservationsDesc": "Area within AOI candidate zones",

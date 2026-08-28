@@ -150,7 +150,7 @@ export function calculateLiveSolutionMetrics(loaded: LoadedSolution): LiveSoluti
   }
 
   const nationalContributionPct =
-    selectedAreaKm2 >= 0 ? (selectedAreaKm2 / COLOMBIA_REFERENCE_AREA_KM2) * 100 : null;
+    validAreaKm2 > 0 ? (selectedAreaKm2 / validAreaKm2) * 100 : null;
 
   return {
     selectedAreaKm2,
@@ -199,6 +199,8 @@ export function calculateLiveComparisonMetrics(
   let candidatePreExistingAreaKm2 = 0;
   let baselineNewAreaKm2 = 0;
   let candidateNewAreaKm2 = 0;
+  let baselineValidAreaKm2 = 0;
+  let candidateValidAreaKm2 = 0;
   const width = baseline.rasterMeta.width;
 
   for (let index = 0; index < expectedLength; index++) {
@@ -213,6 +215,12 @@ export function calculateLiveComparisonMetrics(
     const newBaseline = isNewSolutionCell(baselineValue, baseline.rasterMeta.noDataValue);
     const newCandidate = isNewSolutionCell(candidateValue, candidate.rasterMeta.noDataValue);
 
+    if (isValidSolutionCell(baselineValue, baseline.rasterMeta.noDataValue)) {
+      baselineValidAreaKm2 += cellAreaKm2;
+    }
+    if (isValidSolutionCell(candidateValue, candidate.rasterMeta.noDataValue)) {
+      candidateValidAreaKm2 += cellAreaKm2;
+    }
     if (isPreExistingSolutionCell(baselineValue, baseline.rasterMeta.noDataValue)) {
       baselinePreExistingAreaKm2 += cellAreaKm2;
     }
@@ -257,9 +265,10 @@ export function calculateLiveComparisonMetrics(
     candidatePreExistingAreaKm2,
     baselineNewAreaKm2,
     candidateNewAreaKm2,
-    baselineNationalContributionPct: (baselineSelectedAreaKm2 / COLOMBIA_REFERENCE_AREA_KM2) * 100,
+    baselineNationalContributionPct:
+      baselineValidAreaKm2 > 0 ? (baselineSelectedAreaKm2 / baselineValidAreaKm2) * 100 : null,
     candidateNationalContributionPct:
-      (candidateSelectedAreaKm2 / COLOMBIA_REFERENCE_AREA_KM2) * 100,
+      candidateValidAreaKm2 > 0 ? (candidateSelectedAreaKm2 / candidateValidAreaKm2) * 100 : null,
     status: 'ready',
     notes: null,
   };
