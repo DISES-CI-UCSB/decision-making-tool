@@ -48,16 +48,29 @@ const RICHNESS_LAYER_DETAILS = {
     id: 'species_richness_plants', es: 'Plantas', en: 'Plants', min: 1, max: 2884,
   },
 };
+const COG_GRADIENT_RANGE_OVERRIDES = {
+  human_footprint_2022: { noDataValue: -9999 },
+  hhm: { noDataValue: -9999 },
+  // The source layer previously derived this range during client-side loading.
+  // ImageryTileLayer needs it in the manifest, so retain those source bounds.
+  net_benefit: { minValue: 0, maxValue: 2_147_483_648, noDataValue: -9999 },
+};
 
 function parseArgs(argv) {
-  const values = {};
-  for (let index = 0; index < argv.length; index += 2) {
+  const values = { staticReportPaths: [] };
+  for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
     const value = argv[index + 1];
     if (!option?.startsWith('--') || !value || value.startsWith('--')) {
       throw new Error('expected --base-manifest, --version, and --output-dir option/value pairs');
     }
+    if (option === '--static-report') {
+      values.staticReportPaths.push(path.resolve(process.cwd(), value));
+      index += 1;
+      continue;
+    }
     values[option.slice(2)] = value;
+    index += 1;
   }
   for (const required of ['base-manifest', 'version', 'output-dir']) {
     if (!values[required]) throw new Error(`--${required} is required`);
@@ -69,6 +82,7 @@ function parseArgs(argv) {
     baseManifestPath: path.resolve(process.cwd(), values['base-manifest']),
     version: values.version,
     outputDir: path.resolve(process.cwd(), values['output-dir']),
+    staticReportPaths: values.staticReportPaths,
   };
 }
 
@@ -134,7 +148,14 @@ function buildStaticCogUrls(reports) {
       throw new Error('static COG report contains an incomplete entry');
     }
     const filename = path.basename(entry.outputPath);
-    urls.set(entry.layerId.replaceAll('-', '_'), `${STATIC_COG_PREFIX}/${encodeURIComponent(filename)}`);
+    if (entry.remoteUrl) {
+      if (entry.remoteSha256 !== entry.outputSha256) {
+        throw new Error(`remote checksum mismatch recorded for static layer ${entry.layerId}`);
+      }
+      urls.set(entry.layerId.replaceAll('-', '_'), entry.remoteUrl);
+    } else {
+      urls.set(entry.layerId.replaceAll('-', '_'), `${STATIC_COG_PREFIX}/${encodeURIComponent(filename)}`);
+    }
   }
   return urls;
 }
@@ -143,6 +164,9 @@ function addRichnessLayers(manifest, staticCogUrls) {
   const total = manifest.layers.find((layer) => layer.id === 'species_richness');
   if (!total) throw new Error('base manifest is missing species_richness');
   for (const [reportId, detail] of Object.entries(RICHNESS_LAYER_DETAILS)) {
+    if (manifest.layers.some((layer) => layer.id === detail.id)) {
+      continue;
+    }
     const displayCogUrl = staticCogUrls.get(reportId.replaceAll('-', '_'));
     if (!displayCogUrl) throw new Error(`missing static COG report entry: ${reportId}`);
     const sourceFile = path.basename(displayCogUrl).replace('.epsg9377.cog.tif', '.tif');
@@ -166,10 +190,42 @@ function addRichnessLayers(manifest, staticCogUrls) {
   }
 }
 
-export async function buildDisplayCogRelease({ baseManifestPath, version, outputDir }) {
+function buildDisplayOnlyCatalog(manifest) {
+  const solutions = manifest.solutions
+    .map((solution) => ({
+      solutionId: solution.id,
+      solutionBasename: solution.rasterFile,
+      domain: solution.domain ?? (solution.scope === 'marine' ? 'marine' : 'land'),
+      rasterSha256: solution.rasterSha256,
+    }))
+    .sort((left, right) => left.solutionId.localeCompare(right.solutionId));
+  const expectedLandSolutionCount = solutions.filter((solution) => solution.domain === 'land').length;
+
+  return {
+    format: 'solution-catalog-v1',
+    catalogVersion: manifest.catalogVersion,
+    releaseId: manifest.releaseId,
+    expectedSolutionCount: solutions.length,
+    expectedLandSolutionCount,
+    expectedMarineSolutionCount: solutions.length - expectedLandSolutionCount,
+    solutions,
+  };
+}
+
+export async function buildDisplayCogRelease({
+  baseManifestPath,
+  version,
+  outputDir,
+  staticReportPaths = [],
+}) {
+  const reportPaths = [
+    ...SPECIES_REPORT_PATHS,
+    ...STATIC_REPORT_PATHS,
+    ...staticReportPaths.map((reportPath) => path.relative(repoRoot, reportPath)),
+  ];
   const [baseManifest, ...reports] = await Promise.all([
     readJson(baseManifestPath),
-    ...[...SPECIES_REPORT_PATHS, ...STATIC_REPORT_PATHS].map((relativePath) =>
+    ...reportPaths.map((relativePath) =>
       readJson(path.join(repoRoot, relativePath)),
     ),
   ]);
@@ -200,10 +256,20 @@ export async function buildDisplayCogRelease({ baseManifestPath, version, output
     if (layer.id === 'species') {
       return {
         ...layer,
-        speciesManifestUrl: `${SPECIES_COG_PREFIX}/manifests/species.manifest.v${version}.json`,
+        speciesManifestUrl:
+          layer.speciesManifestUrl ??
+          `${SPECIES_COG_PREFIX}/manifests/species.manifest.v${version}.json`,
       };
     }
-    return displayCogUrl ? { ...layer, displayCogUrl } : layer;
+    if (!displayCogUrl) return layer;
+    const renderingOverride = COG_GRADIENT_RANGE_OVERRIDES[layer.id];
+    return {
+      ...layer,
+      displayCogUrl,
+      ...(renderingOverride
+        ? { rendering: { ...layer.rendering, ...renderingOverride } }
+        : {}),
+    };
   });
   addRichnessLayers(manifest, staticCogUrls);
   const speciesManifest = {
@@ -216,16 +282,24 @@ export async function buildDisplayCogRelease({ baseManifestPath, version, output
     sourceOnlyLayerCount: 168,
     layers: speciesEntries.map(toSpeciesLayer).sort((left, right) => left.id.localeCompare(right.id)),
   };
+  const displayOnlyCatalog = buildDisplayOnlyCatalog(manifest);
+  const shouldWriteSpeciesManifest = !baseManifest.layers.some(
+    (layer) => layer.id === 'species' && layer.speciesManifestUrl,
+  );
 
   await fs.mkdir(outputDir, { recursive: true });
-  await Promise.all([
+  const outputWrites = [
     fs.writeFile(path.join(outputDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`),
-    fs.writeFile(
+    fs.writeFile(path.join(outputDir, 'catalog.json'), `${JSON.stringify(displayOnlyCatalog, null, 2)}\n`),
+  ];
+  if (shouldWriteSpeciesManifest) {
+    outputWrites.push(fs.writeFile(
       path.join(outputDir, 'species.manifest.json'),
       `${JSON.stringify(speciesManifest, null, 2)}\n`,
-    ),
-  ]);
-  return { manifest, speciesManifest, statusCounts, staticCogUrls };
+    ));
+  }
+  await Promise.all(outputWrites);
+  return { manifest, speciesManifest, displayOnlyCatalog, statusCounts, staticCogUrls };
 }
 
 async function main() {
