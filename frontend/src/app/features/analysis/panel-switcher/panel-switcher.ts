@@ -2226,8 +2226,13 @@ export class PanelSwitcherComponent {
     if (domain.featureType === 'strategicEcosystems' && !domain.targeted) {
       return 'analysis.overview.goalsWidget.modal.strategicRasterAdditionalDescription';
     }
-    if (domain.featureType === 'species' && !domain.targeted && this.speciesReferenceSummary()) {
-      return 'analysis.overview.goalsWidget.modal.speciesReferenceAdditionalDescription';
+    if (domain.featureType === 'species') {
+      if (!domain.targeted && this.speciesReferenceSummary()) {
+        return 'analysis.overview.goalsWidget.modal.speciesReferenceAdditionalDescription';
+      }
+      return domain.targeted
+        ? 'analysis.overview.goalsWidget.modal.speciesTargetedDescription'
+        : 'analysis.overview.goalsWidget.modal.speciesAdditionalDescription';
     }
     return domain.targeted
       ? 'analysis.overview.goalsWidget.modal.targetedDescription'
