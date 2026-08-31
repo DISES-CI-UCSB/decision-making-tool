@@ -17,6 +17,19 @@ export const MEC_GEOGRAPHY_LEVELS = Object.freeze([
   'omecs',
 ]);
 
+/**
+ * SIRAP packets certify regular metrics only. They intentionally do not publish
+ * MEC artifacts: those would otherwise claim unsupported national, RUNAP, OMEC,
+ * or SIRAP-polygon coverage. Keep this rule beside URL construction so a runtime
+ * manifest cannot advertise an artifact the release assembler must reject.
+ */
+export function mecGeographyLevelsForSolution({ domain = 'land', scope = null } = {}) {
+  if (domain !== 'land' || scope === 'sirap') {
+    return [];
+  }
+  return MEC_GEOGRAPHY_LEVELS;
+}
+
 export function createPrecomputedMetricUrls(layerId, roleInMetricCalculation) {
   if (roleInMetricCalculation === 'none') {
     return {};
@@ -49,6 +62,7 @@ export function createSolutionPrecomputedMetricUrls(
   } = existingUrls;
 
   const releaseId = options.releaseId ?? null;
+  const mecGeographyLevels = mecGeographyLevelsForSolution({ domain, scope: options.scope });
   const releaseRoot = releaseId ? `${RELEASE_CONTRACT.prefixRoot}/${releaseId}` : null;
   const releaseArtifactBaseUrl = options.releaseArtifactBaseUrl ?? PUBLIC_BLOB_HOST;
   const goalsDirectory = releaseRoot
@@ -74,10 +88,14 @@ export function createSolutionPrecomputedMetricUrls(
 
   return {
     ...preservedUrls,
-    goals: artifactUrl(
-      releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
-      `${goalsDirectory}/${safeSolutionId}.goals.json`,
-    ),
+    ...(options.scope === 'sirap'
+      ? {}
+      : {
+          goals: artifactUrl(
+            releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
+            `${goalsDirectory}/${safeSolutionId}.goals.json`,
+          ),
+        }),
     ...(releaseRoot
       ? {
           cache: artifactUrl(
@@ -95,11 +113,16 @@ export function createSolutionPrecomputedMetricUrls(
           ...(!releaseRoot
             ? { mecByGeography: createMecUrls(safeSolutionId, SOLUTION_MEC_CACHE_BLOB_DIRECTORY) }
             : {}),
-          mecV2ByGeography: createMecUrls(
-            safeSolutionId,
-            mecV2Directory,
-            releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
-          ),
+          ...(mecGeographyLevels.length > 0
+            ? {
+                mecV2ByGeography: createMecUrls(
+                  safeSolutionId,
+                  mecV2Directory,
+                  releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
+                  mecGeographyLevels,
+                ),
+              }
+            : {}),
           ...(speciesGoalsUrls ?? {}),
         }
       : {}),
@@ -185,9 +208,14 @@ export function createReleaseBoundaryUrls(releaseId) {
   };
 }
 
-function createMecUrls(safeSolutionId, directory, baseUrl = PUBLIC_BLOB_HOST) {
+function createMecUrls(
+  safeSolutionId,
+  directory,
+  baseUrl = PUBLIC_BLOB_HOST,
+  geographyLevels = MEC_GEOGRAPHY_LEVELS,
+) {
   return Object.fromEntries(
-    MEC_GEOGRAPHY_LEVELS.map((level) => [
+    geographyLevels.map((level) => [
       level,
       artifactUrl(baseUrl, `${directory}/${safeSolutionId}/${level}.mec.compact.json`),
     ]),

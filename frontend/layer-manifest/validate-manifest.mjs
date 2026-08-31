@@ -603,7 +603,12 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
       const allowOriginRelative = options.aoiCoveragePreviewSolutionId === solution.id;
       assertRequiredReleaseMetricUrls(solution, manifest.releaseId, allowOriginRelative);
       assert(!('mecByGeography' in urls), `${solution.id} must omit MEC v1 in release mode`);
-      assertMecGeographyUrls(urls.mecV2ByGeography, `${solution.id}.mecV2ByGeography`);
+      if (solution.scope === 'sirap') {
+        assert(!('goals' in urls), `${solution.id} must omit unsupported SIRAP goals`);
+        assert(!('mecV2ByGeography' in urls), `${solution.id} must omit unsupported SIRAP MEC`);
+      } else {
+        assertMecGeographyUrls(urls.mecV2ByGeography, `${solution.id}.mecV2ByGeography`);
+      }
       assertReleaseMetricUrls(solution, manifest.releaseId, allowOriginRelative);
     }
     for (const solution of marine) {
@@ -633,7 +638,8 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
 
 function assertRequiredReleaseMetricUrls(solution, releaseId, allowOriginRelative = false) {
   const urls = solution.precomputedMetricUrls ?? {};
-  for (const key of ['goals', 'cache', 'compactCache']) {
+  const keys = solution.scope === 'sirap' ? ['cache', 'compactCache'] : ['goals', 'cache', 'compactCache'];
+  for (const key of keys) {
     assertReleaseMetricUrl(
       urls[key],
       releaseId,

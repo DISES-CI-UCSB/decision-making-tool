@@ -73,6 +73,24 @@ describe('metric URL construction', () => {
     assert.strictEqual(result.mecV2ByGeography, undefined);
   });
 
+  it('advertises only certified regular artifacts for SIRAP solutions', () => {
+    const result = createSolutionPrecomputedMetricUrls(
+      'sirap_eje_cafetero_example',
+      {
+        mecByGeography: { national: 'https://example.com/stale-mec.json' },
+        mecV2ByGeography: { national: 'https://example.com/stale-mec-v2.json' },
+      },
+      'land',
+      { releaseId: defaultReleaseId(), scope: 'sirap' },
+    );
+
+    assert.match(result.cache, /\/releases\/[^/]+\/regular\/verbose\//);
+    assert.match(result.compactCache, /\/releases\/[^/]+\/regular\/compact\//);
+    assert.strictEqual(result.goals, undefined);
+    assert.strictEqual(result.mecByGeography, undefined);
+    assert.strictEqual(result.mecV2ByGeography, undefined);
+  });
+
   it('constructs an atomic release map without advertising MEC v1', () => {
     const releaseId = defaultReleaseId();
     const result = createSolutionPrecomputedMetricUrls('land_solution', {}, 'land', { releaseId });

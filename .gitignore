@@ -52,6 +52,7 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 !/data/boundaries/**
 /data/boundaries/SIRAPS/
 !/data/**/*.py
+!/data/metrics/python/mesa_parity/*.R
 # Tracked Python script dependency files.
 !/data/scripts/**/requirements.txt
 # Reference-layer pipeline source is tracked; downloaded snapshots and outputs stay local.

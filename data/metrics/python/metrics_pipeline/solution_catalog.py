@@ -48,14 +48,18 @@ class SolutionCatalogEntry:
     solution_basename: str
     domain: str
     raster_sha256: str
+    scope: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        entry = {
             "solutionId": self.solution_id,
             "solutionBasename": self.solution_basename,
             "domain": self.domain,
             "rasterSha256": self.raster_sha256,
         }
+        if self.scope is not None:
+            entry["scope"] = self.scope
+        return entry
 
 
 @dataclass(frozen=True)
@@ -202,6 +206,11 @@ def load_solution_catalog(path: Path) -> SolutionCatalog:
             domain = normalize_domain(_required_string(item, "domain", label=label))
         except ValueError as exc:
             raise SolutionCatalogError(f"{label}.domain must be land or marine.") from exc
+        scope = item.get("scope")
+        if scope is not None and scope != "sirap":
+            raise SolutionCatalogError(f"{label}.scope must be 'sirap' when provided.")
+        if scope == "sirap" and domain != "land":
+            raise SolutionCatalogError(f"{label}.scope 'sirap' requires domain 'land'.")
 
         raster_sha256 = _required_string(item, "rasterSha256", label=label).lower()
         if not _SHA256_PATTERN.fullmatch(raster_sha256):
@@ -212,6 +221,7 @@ def load_solution_catalog(path: Path) -> SolutionCatalog:
                 solution_basename=basename,
                 domain=domain,
                 raster_sha256=raster_sha256,
+                scope=scope,
             )
         )
 
@@ -339,6 +349,7 @@ def _load_release_plan_document(
             entry.get("solutionBasename") != expected_entry.solution_basename
             or entry.get("domain") != expected_entry.domain
             or entry.get("rasterSha256") != expected_entry.raster_sha256
+            or entry.get("scope") != expected_entry.scope
         ):
             raise SolutionCatalogError(
                 f"release plan entry for {solution_id!r} does not match the catalog."
