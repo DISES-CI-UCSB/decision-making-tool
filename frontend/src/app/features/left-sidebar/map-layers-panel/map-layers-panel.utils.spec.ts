@@ -136,6 +136,19 @@ describe('scenario status aliases', () => {
     );
   });
 
+  it('considers National Natural Parks when its parent RUNAP layer is included', () => {
+    const consideredIds = buildConsideredLayerIdSet(['INCL_RUNAP']);
+
+    expect(
+      scenarioLayerStatus(
+        'overlay-runap-national-parks',
+        'runap_national_parks',
+        consideredIds,
+        true,
+      ),
+    ).toBe('considered');
+  });
+
   it('returns reference or no status when aliases do not match or status is unavailable', () => {
     const consideredIds = buildConsideredLayerIdSet(['runap']);
 

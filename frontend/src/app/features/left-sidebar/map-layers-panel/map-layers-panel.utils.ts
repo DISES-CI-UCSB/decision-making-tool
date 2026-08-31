@@ -336,6 +336,11 @@ export function scenarioLayerStatus(
     ...normalizeLayerIdAliases(rowId),
     ...normalizeLayerIdAliases(manifestOverlayLayerId),
   ];
+  const isNationalNaturalParksRow = aliases.includes('runap_national_parks');
+  if (isNationalNaturalParksRow && consideredIds.has('runap')) {
+    return 'considered';
+  }
+
   return aliases.some((id) => consideredIds.has(id)) ? 'considered' : 'reference';
 }
 
