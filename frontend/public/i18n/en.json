@@ -12,7 +12,7 @@
       "selectSolution": "Set goals: Set goals for conserving species, ecosystems, and more.",
       "exploreMap": "View Candidate Areas for Future Conservation: The map displays areas that, if conserved, would achieve the goals you set while minimizing barriers to conservation such as human activity in these areas.",
       "reviewAnalysis": "Explore the map: Examine the benefits and costs of conserving these candidate areas, and see how these areas change with different targets and assumptions.",
-      "downloadOutputs": "Analyze Further: Download maps and data for further analysis."
+      "downloadOutputs": "Analyze Further: Download maps and metrics for further analysis"
     },
     "actions": {
       "exploreFirst": "Explore map first",
