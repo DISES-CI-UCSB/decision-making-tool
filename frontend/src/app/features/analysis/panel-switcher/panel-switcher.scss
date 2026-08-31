@@ -1290,6 +1290,12 @@
   margin-top: 8px;
 }
 
+.c2-comparison-name-form-actions .c2-action-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 108px;
+}
+
 .c2-comparison-name-save-btn {
   border-color: #7c3aed;
   background: #7c3aed;
