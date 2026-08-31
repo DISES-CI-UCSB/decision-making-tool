@@ -75,6 +75,11 @@ interface ManifestRasterLayerState {
   rendering: RuntimeLayerManifestRenderingConfig;
 }
 
+type RasterFunctionUtils = Pick<
+  typeof import('@arcgis/core/layers/support/rasterFunctionUtils'),
+  'defaultRaster' | 'mask'
+>;
+
 const DEFAULT_BBOX: [number, number, number, number] = [-79.0, -4.5, -66.0, 13.5];
 const RASTER_ALPHA = 255;
 const GEOJSON_FILL_ALPHA = 0.35;
@@ -94,6 +99,7 @@ export function isCogRasterRenderingSupported(
   return (
     isCogDisplayUrl(displayUrl) &&
     (rendering.renderMode === 'mask' ||
+      rendering.renderMode === 'categorical' ||
       (rendering.renderMode === 'gradient' &&
         typeof rendering.minValue === 'number' &&
         typeof rendering.maxValue === 'number' &&
@@ -173,12 +179,55 @@ export function buildManifestCogGradientRenderer(
   });
 }
 
+export function buildManifestCogCategoricalRenderer(
+  state: ManifestRasterLayerState,
+): ClassBreaksRenderer {
+  return new ClassBreaksRenderer({
+    field: 'Value',
+    defaultSymbol: new SimpleFillSymbol({ color: [0, 0, 0, 0], outline: null }),
+    classBreakInfos: (state.rendering.classColors ?? []).map((entry) => {
+      const color = hexToRgb(entry.color);
+      return {
+        minValue: entry.value - 0.5,
+        maxValue: entry.value + 0.5,
+        label: entry.label ?? undefined,
+        symbol: new SimpleFillSymbol({
+          color: color ? [...color, 1] : [0, 0, 0, 0],
+          outline: null,
+        }),
+      };
+    }),
+  });
+}
+
 function buildManifestCogRasterRenderer(
   state: ManifestRasterLayerState,
 ): ClassBreaksRenderer | RasterStretchRenderer {
-  return state.rendering.renderMode === 'gradient'
-    ? buildManifestCogGradientRenderer(state)
-    : buildManifestCogRenderer(state);
+  switch (state.rendering.renderMode) {
+    case 'gradient':
+      return buildManifestCogGradientRenderer(state);
+    case 'categorical':
+      return buildManifestCogCategoricalRenderer(state);
+    default:
+      return buildManifestCogRenderer(state);
+  }
+}
+
+export function buildManifestCogNoDataRasterFunction(
+  noDataValue: number | null | undefined,
+  rasterFunctionUtils: RasterFunctionUtils,
+): ReturnType<RasterFunctionUtils['mask']> | null {
+  if (typeof noDataValue !== 'number') {
+    return null;
+  }
+  return rasterFunctionUtils.mask({
+    // Direct-file COG processing needs the ArcGIS default-raster token as the
+    // explicit function input. The helper translates the nested band values
+    // and interpretation string into the client-side Mask function format.
+    raster: rasterFunctionUtils.defaultRaster,
+    noDataValues: [[noDataValue]],
+    noDataInterpretation: 'match-any',
+  });
 }
 
 function hexToRgb(hexColor: string): [number, number, number] | null {
@@ -342,11 +391,17 @@ export class ManifestRasterLayerService {
       return;
     }
     const { default: ImageryTileLayer } = await import('@arcgis/core/layers/ImageryTileLayer');
+    const rasterFunctionUtils = await import('@arcgis/core/layers/support/rasterFunctionUtils');
+    const rasterFunction = buildManifestCogNoDataRasterFunction(
+      state.rendering.noDataValue,
+      rasterFunctionUtils,
+    );
     const existingLayer = this.layersById.get(layerId);
     if (existingLayer instanceof ImageryTileLayer && existingLayer.url === state.displayUrl) {
       existingLayer.visible = state.visible;
       existingLayer.opacity = state.opacity;
       existingLayer.renderer = buildManifestCogRasterRenderer(state);
+      existingLayer.rasterFunction = rasterFunction;
       this.bumpRenderedLayerRevision();
       return;
     }
@@ -363,6 +418,7 @@ export class ManifestRasterLayerService {
         url: state.displayUrl,
         // Keeps the 1 km cells crisp instead of blurring them together.
         interpolation: 'nearest',
+        rasterFunction,
         renderer: buildManifestCogRasterRenderer(state),
         visible: state.visible,
         opacity: state.opacity,

@@ -1,6 +1,9 @@
+import * as rasterFunctionUtils from '@arcgis/core/layers/support/rasterFunctionUtils';
 import {
+  buildManifestCogCategoricalRenderer,
   buildManifestCogRenderer,
   buildManifestCogGradientRenderer,
+  buildManifestCogNoDataRasterFunction,
   buildManifestGeoJsonRenderer,
   isCogDisplayUrl,
   isCogRasterRenderingSupported,
@@ -105,11 +108,69 @@ describe('manifest GeoJSON rendering', () => {
     });
   });
 
-  it('routes mask and valid fixed-range gradient COGs through ImageryTileLayer', () => {
+  it('binds a COG NoData mask to the direct-file raster input', () => {
+    const rasterFunction = buildManifestCogNoDataRasterFunction(-9999, rasterFunctionUtils);
+
+    expect(rasterFunction?.functionName).toBe('Mask');
+    expect(rasterFunction?.functionArguments).toEqual({
+      raster: '$$',
+      noDataInterpretation: 0,
+      noDataValues: ['-9999'],
+    });
+  });
+
+  it('does not create a mask without configured NoData', () => {
+    expect(buildManifestCogNoDataRasterFunction(null, rasterFunctionUtils)).toBeNull();
+  });
+
+  it('preserves categorical COG class values, colors, and labels', () => {
+    const renderer = buildManifestCogCategoricalRenderer({
+      displayUrl: 'https://example.com/ecosystems.epsg9377.cog.tif',
+      visible: true,
+      opacity: 1,
+      color: '#475569',
+      rendering: {
+        valueType: 'categorical',
+        renderMode: 'categorical',
+        noDataValue: 0,
+        classColors: [
+          { value: 3, color: '#14532d', label: 'Montane forest' },
+          { value: 7, color: '#f97316', label: 'Dry forest' },
+        ],
+      },
+    });
+
+    expect(renderer.field).toBe('Value');
+    expect(renderer.defaultSymbol?.color).toMatchObject({ r: 0, g: 0, b: 0, a: 0 });
+    expect(renderer.classBreakInfos).toHaveLength(2);
+    expect(renderer.classBreakInfos).toMatchObject([
+      {
+        minValue: 2.5,
+        maxValue: 3.5,
+        label: 'Montane forest',
+        symbol: { color: { r: 20, g: 83, b: 45, a: 1 } },
+      },
+      {
+        minValue: 6.5,
+        maxValue: 7.5,
+        label: 'Dry forest',
+        symbol: { color: { r: 249, g: 115, b: 22, a: 1 } },
+      },
+    ]);
+  });
+
+  it('routes mask, categorical, and valid fixed-range gradient COGs through ImageryTileLayer', () => {
     expect(
       isCogRasterRenderingSupported('https://example.com/mask.epsg9377.cog.tif', {
         valueType: 'binary',
         renderMode: 'mask',
+      }),
+    ).toBe(true);
+    expect(
+      isCogRasterRenderingSupported('https://example.com/ecosystems.epsg9377.cog.tif', {
+        valueType: 'categorical',
+        renderMode: 'categorical',
+        classColors: [{ value: 1, color: '#166534', label: 'Forest' }],
       }),
     ).toBe(true);
     expect(
