@@ -112,6 +112,8 @@ export class FinderModalComponent implements OnDestroy, OnInit {
       id: 'ecosystems',
       labelKey: 'solutionControls.finder.step1.ecosystemsLabel',
       helpKey: 'solutionControls.finder.step1.ecosystemsHelp',
+      helpTooltipKey: 'solutionControls.finder.step1.ecosystemsTechnicalHelp',
+      helpTooltipToggleKey: 'solutionControls.finder.step1.ecosystemsTechnicalHelpToggle',
       sourceLinks: [
         {
           labelKey: 'solutionControls.finder.step1.ecosystemsOverviewSourceLabel',
@@ -129,6 +131,8 @@ export class FinderModalComponent implements OnDestroy, OnInit {
       id: 'strategic-ecosystems',
       labelKey: 'solutionControls.finder.step1.strategicEcosystemsLabel',
       helpKey: 'solutionControls.finder.step1.strategicEcosystemsHelp',
+      helpTooltipKey: 'solutionControls.finder.step1.strategicEcosystemsTechnicalHelp',
+      helpTooltipToggleKey: 'solutionControls.finder.step1.strategicEcosystemsTechnicalHelpToggle',
       sourceLinks: [
         {
           labelKey: 'solutionControls.finder.step1.strategicEcosystemsSiacSourceLabel',

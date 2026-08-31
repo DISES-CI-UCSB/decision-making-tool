@@ -149,11 +149,20 @@ describe('FinderModalComponent', () => {
     );
   });
 
-  it('renders the approved species range help text with a technical-details tooltip only on the species card', () => {
+  it('renders approved help text with technical-details tooltips on ecosystems, strategic ecosystems, and species cards', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    const ecosystemsHelp = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-ecosystems',
+    );
+    const ecosystemsHelpToggle = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-toggle-ecosystems',
+    );
+    const ecosystemsHelpTooltip = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-ecosystems',
+    );
     const speciesHelp = compiled.querySelector(
       '#solution-finder-modal-step1-target-type-help-species-richness',
     );
@@ -163,16 +172,32 @@ describe('FinderModalComponent', () => {
     const speciesHelpTooltip = compiled.querySelector(
       '#solution-finder-modal-step1-target-type-help-tooltip-species-richness',
     );
-    const ecosystemsHelpToggle = compiled.querySelector(
-      '#solution-finder-modal-step1-target-type-help-tooltip-toggle-ecosystems',
+    const strategicHelp = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-strategic-ecosystems',
     );
     const strategicHelpToggle = compiled.querySelector(
       '#solution-finder-modal-step1-target-type-help-tooltip-toggle-strategic-ecosystems',
+    );
+    const strategicHelpTooltip = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-strategic-ecosystems',
     );
     const servicesHelpToggle = compiled.querySelector(
       '#solution-finder-modal-step1-target-type-help-tooltip-toggle-ecosystem-services',
     );
 
+    expect(ecosystemsHelp?.textContent).toContain('solutionControls.finder.step1.ecosystemsHelp');
+    expect(ecosystemsHelp?.getAttribute('title')).toBeNull();
+    expect(ecosystemsHelpToggle).not.toBeNull();
+    expect(ecosystemsHelpToggle?.getAttribute('aria-label')).toContain(
+      'solutionControls.finder.step1.ecosystemsTechnicalHelpToggle',
+    );
+    expect(ecosystemsHelpToggle?.getAttribute('aria-describedby')).toBe(
+      'solution-finder-modal-step1-target-type-help-tooltip-ecosystems',
+    );
+    expect(ecosystemsHelpTooltip?.getAttribute('role')).toBe('tooltip');
+    expect(ecosystemsHelpTooltip?.textContent).toContain(
+      'solutionControls.finder.step1.ecosystemsTechnicalHelp',
+    );
     expect(speciesHelp?.textContent).toContain('solutionControls.finder.step1.speciesRichnessHelp');
     expect(speciesHelp?.getAttribute('title')).toBeNull();
     expect(speciesHelpToggle).not.toBeNull();
@@ -186,8 +211,21 @@ describe('FinderModalComponent', () => {
     expect(speciesHelpTooltip?.textContent).toContain(
       'solutionControls.finder.step1.speciesRichnessTechnicalHelp',
     );
-    expect(ecosystemsHelpToggle).toBeNull();
-    expect(strategicHelpToggle).toBeNull();
+    expect(strategicHelp?.textContent).toContain(
+      'solutionControls.finder.step1.strategicEcosystemsHelp',
+    );
+    expect(strategicHelp?.getAttribute('title')).toBeNull();
+    expect(strategicHelpToggle).not.toBeNull();
+    expect(strategicHelpToggle?.getAttribute('aria-label')).toContain(
+      'solutionControls.finder.step1.strategicEcosystemsTechnicalHelpToggle',
+    );
+    expect(strategicHelpToggle?.getAttribute('aria-describedby')).toBe(
+      'solution-finder-modal-step1-target-type-help-tooltip-strategic-ecosystems',
+    );
+    expect(strategicHelpTooltip?.getAttribute('role')).toBe('tooltip');
+    expect(strategicHelpTooltip?.textContent).toContain(
+      'solutionControls.finder.step1.strategicEcosystemsTechnicalHelp',
+    );
     expect(servicesHelpToggle).toBeNull();
   });
 
