@@ -178,33 +178,6 @@
       @case ('overview') {
         @if (activeSolution(); as solution) {
           <section id="solution-overview-panel" class="panel-enter v3-panel">
-            <header id="right-sidebar-v3-overview-header" class="v3-panel-header">
-              <div id="right-sidebar-overview-area-unit-row" class="rs-area-unit-row">
-                <span id="right-sidebar-overview-area-unit-label" class="rs-area-unit-label">
-                  {{ 'analysis.areaUnitToggle.label' | translate }}
-                </span>
-                <div
-                  id="right-sidebar-overview-area-unit-toggle"
-                  class="rs-area-unit-toggle"
-                  role="group"
-                  [attr.aria-label]="'analysis.areaUnitToggle.ariaLabel' | translate"
-                >
-                  @for (unit of areaUnitOptions; track unit) {
-                    <button
-                      [id]="'right-sidebar-overview-area-unit-toggle-' + unit"
-                      type="button"
-                      class="rs-area-unit-button"
-                      [class.rs-area-unit-button-active]="isAreaDisplayUnitSelected(unit)"
-                      [attr.aria-pressed]="isAreaDisplayUnitSelected(unit)"
-                      (click)="selectAreaDisplayUnit(unit)"
-                    >
-                      {{ getAreaDisplayUnitLabel(unit) }}
-                    </button>
-                  }
-                </div>
-              </div>
-            </header>
-
             <div id="right-sidebar-v3-overview-body" class="v3-panel-body">
               <section
                 id="right-sidebar-v3-overview-goals-widget"
@@ -221,25 +194,15 @@
                     >
                       {{ 'analysis.overview.goalsWidget.title' | translate }}
                     </h4>
-                    <p
-                      id="right-sidebar-v3-overview-goals-widget-target-rule"
-                      class="mt-1 mb-0 text-xs leading-4 text-slate-700"
-                    >
-                      @if (isSirapPacketOverview()) {
-                        {{ 'analysis.overview.goalsWidget.sirap.sourceCue' | translate }}
-                      } @else {
+                    @if (!isSirapPacketOverview()) {
+                      <p
+                        id="right-sidebar-v3-overview-goals-widget-target-rule"
+                        class="mt-1 mb-0 text-xs leading-4 text-slate-700"
+                      >
                         {{ getGoalsTargetRuleLabel() }}
-                      }
-                    </p>
+                      </p>
+                    }
                   </div>
-                  @if (isSirapPacketOverview()) {
-                    <span
-                      id="right-sidebar-v3-overview-sirap-certified-badge"
-                      class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-extrabold tracking-[0.06em] text-emerald-800 uppercase"
-                    >
-                      {{ 'analysis.overview.goalsWidget.sirap.certifiedBadge' | translate }}
-                    </span>
-                  }
                 </div>
 
                 @if (isSirapPacketOverview()) {
@@ -1000,6 +963,31 @@
                   </div>
                 }
               </section>
+
+              <div id="right-sidebar-overview-area-unit-row" class="rs-area-unit-row">
+                <span id="right-sidebar-overview-area-unit-label" class="rs-area-unit-label">
+                  {{ 'analysis.areaUnitToggle.label' | translate }}
+                </span>
+                <div
+                  id="right-sidebar-overview-area-unit-toggle"
+                  class="rs-area-unit-toggle"
+                  role="group"
+                  [attr.aria-label]="'analysis.areaUnitToggle.ariaLabel' | translate"
+                >
+                  @for (unit of areaUnitOptions; track unit) {
+                    <button
+                      [id]="'right-sidebar-overview-area-unit-toggle-' + unit"
+                      type="button"
+                      class="rs-area-unit-button"
+                      [class.rs-area-unit-button-active]="isAreaDisplayUnitSelected(unit)"
+                      [attr.aria-pressed]="isAreaDisplayUnitSelected(unit)"
+                      (click)="selectAreaDisplayUnit(unit)"
+                    >
+                      {{ getAreaDisplayUnitLabel(unit) }}
+                    </button>
+                  }
+                </div>
+              </div>
 
               @if (isOverviewLoading()) {
                 <section

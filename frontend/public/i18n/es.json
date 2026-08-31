@@ -1136,6 +1136,55 @@
         "selectScenario": "— Seleccionar un escenario certificado —",
         "noResults": "Ningún escenario certificado coincide con la búsqueda."
       },
+      "sirapWorkflow": {
+        "included": "Incluido",
+        "notSelected": "Sin seleccionar",
+        "sourceLabel": "Fuente: catálogo certificado de escenarios SIRAP",
+        "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-29-v2/catalog.json",
+        "step1": {
+          "label": "Metas de conservación",
+          "help": "Elija los elementos regionales y sus niveles de meta. Solo se pueden seleccionar combinaciones disponibles en el catálogo certificado.",
+          "regionRequired": "Seleccione arriba un SIRAP para ver sus metas certificadas."
+        },
+        "step2": {
+          "label": "Configuración de conservación",
+          "help": "Elija qué áreas debe tratar la herramienta como áreas de conservación existentes. RUNAP siempre está incluido; las OMEC son opcionales.",
+          "omecsLabel": "Incluir OMEC"
+        },
+        "step3": {
+          "label": "Costo / unidades de planificación",
+          "help": "Elija el vector certificado de costo y unidades de planificación IHEH que usará la herramienta para identificar áreas candidatas.",
+          "ihehLabel": "Huella humana",
+          "ihehHelp": "Seleccione el vector certificado de costo por unidad de planificación IHEH2022 o IHEH2030. Aquí no se supone ninguna interpretación científica adicional de la opción 2030."
+        },
+        "lock": {
+          "selectRegion": "Seleccione una región SIRAP autorizada para comenzar el Paso 1.",
+          "completeTargets": "Complete las metas certificadas del Paso 1 para desbloquear este paso."
+        },
+        "targets": {
+          "strategicEcosystemsLabel": "Ecosistemas estratégicos",
+          "strategicEcosystemsHelp": "Define la meta relativa del solucionador para los elementos de ecosistemas estratégicos de la región.",
+          "strategicEcosystemsQuestion": "¿Qué proporción de cada ecosistema estratégico le gustaría conservar?",
+          "strategicTargetRationaleToggle": "¿Por qué estos valores?",
+          "strategicTargetRationale": "Estos niveles de meta provienen del catálogo certificado de escenarios del SIRAP seleccionado. Los valores que no están disponibles para esa región están deshabilitados.",
+          "dryForestLabel": "Bosque seco",
+          "dryForestHelp": "El bosque seco siempre está incluido. Puede heredar la meta de ecosistemas estratégicos como parte de esa matriz de elementos, o separarse y recibir una meta del 100%.",
+          "dryForestQuestion": "¿Cómo se debe definir la meta de bosque seco?",
+          "dryForestRationaleToggle": "¿Por qué están disponibles estas opciones para bosque seco?",
+          "dryForestRationale": "El catálogo certificado incluye el bosque seco dentro de la meta de ecosistemas estratégicos o como un elemento separado con una meta del 100%. Las opciones no disponibles para la meta estratégica actual están deshabilitadas.",
+          "inheritStrategic": "Heredar meta estratégica",
+          "separate100": "100% por separado",
+          "ejeWetlandsLabel": "Humedales del Eje Cafetero",
+          "ejeWetlandsHelp": "Define la meta relativa del solucionador para el elemento regional de humedales del Eje Cafetero.",
+          "ejeWetlandsQuestion": "¿Qué proporción de los humedales del Eje Cafetero le gustaría conservar?",
+          "congrialesLabel": "Congriales",
+          "congrialesHelp": "Congriales es un elemento del modelo suministrado. Su meta certificada está emparejada con la misma meta de ecosistemas estratégicos.",
+          "paired": "Emparejado",
+          "savannasLabel": "Sabanas",
+          "savannasHelp": "Define la meta relativa del solucionador para el elemento suministrado de sabanas de la Orinoquía.",
+          "savannasQuestion": "¿Qué proporción de las sabanas de la Orinoquía le gustaría conservar?"
+        }
+      },
       "loading": "Buscando escenario…",
       "stepPrefixes": {
         "step1": "Paso 1",

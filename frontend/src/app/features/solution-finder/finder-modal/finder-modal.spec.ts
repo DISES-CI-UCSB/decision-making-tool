@@ -1,5 +1,5 @@
 import { signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   TranslateNoOpLoader,
   provideTranslateLoader,
@@ -1179,13 +1179,13 @@ describe('FinderModalComponent', () => {
     expect(component.selectedCostLayerId).toBe('human-footprint');
   });
 
-  it('preserves an authorized remembered SIRAP and only lists accessible regions', () => {
+  it('preserves an authorized remembered SIRAP and only lists finder-supported accessible regions', () => {
     const appState = TestBed.inject(AppStateService);
-    appState.allowedSirapIds$.set(['caribe']);
+    appState.allowedSirapIds$.set(['caribe', 'eje-cafetero', 'orinoquia']);
     appState.setFinderSelectionMemory({
       planningDomain: 'land',
       selectedScope: 'sirap',
-      selectedSirapRegion: 'caribe',
+      selectedSirapRegion: 'eje-cafetero',
       selectedTargetTypeIds: ['ecosystems'],
       targetLevelByType: { ecosystems: 17 },
       speciesTargetMethod: null,
@@ -1209,79 +1209,431 @@ describe('FinderModalComponent', () => {
     ) as HTMLSelectElement;
 
     expect(component.selectedScope).toBe('sirap');
-    expect(component.selectedSirapRegion).toBe('caribe');
+    expect(component.selectedSirapRegion).toBe('eje-cafetero');
     expect(regionSelect).not.toBeNull();
-    expect([...regionSelect.options].map((option) => option.value)).toEqual(['', 'caribe']);
+    expect([...regionSelect.options].map((option) => option.value)).toEqual([
+      '',
+      'eje-cafetero',
+      'orinoquia',
+    ]);
+    expect(
+      regionSelect.querySelector('#solution-finder-modal-scope-bar-sirap-region-caribe'),
+    ).toBeNull();
   });
 
-  it('lists only certified, accessible solutions for the selected SIRAP region', () => {
+  it('lists only one finder-supported region when only one is accessible', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.allowedSirapIds$.set(['orinoquia']);
+
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+
+    (
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-scope-btn-sirap',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    const regionSelect = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-scope-bar-sirap-region-select',
+    ) as HTMLSelectElement;
+
+    expect([...regionSelect.options].map((option) => option.value)).toEqual(['', 'orinoquia']);
+  });
+
+  it('renders Eje target features as individual controls and exposes only 10 certified tuples', () => {
     const appState = TestBed.inject(AppStateService);
     appState.allowedSirapIds$.set(['eje-cafetero']);
     catalog.getAll.mockReturnValue([
-      ...buildSirapSolutions('eje', 'Eje certified scenario', 'eje-cafetero', 40),
-      ...buildSirapSolutions('orinoquia', 'Orinoquía certified scenario', 'orinoquia', 16),
-      buildSolution({
-        id: 'national-1',
-        name: 'National scenario',
-        targetFeatureSet: 'ecosystems',
-        targetFeatureIds: ['ecosistemas'],
-        targetPercent: 17,
-        costLayerId: 'iheh_2022',
-        includeLayerIds: ['runap'],
-      }),
+      ...buildCertifiedSirapCatalog('eje-cafetero'),
+      ...buildCertifiedSirapCatalog('orinoquia'),
     ]);
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance as unknown as {
-      selectScope: (scope: 'nacional' | 'sirap') => void;
-      selectSirapRegion: (event: Event) => void;
-      matchResults: { solutionId: string }[];
+      sirapTargetTuples: () => { id: string }[];
+      sirapStrategicTarget: number | null;
+      sirapDryForestMode: string | null;
+      sirapWetlandsTarget: number | null;
+      matchResults: { name: string }[];
     };
 
-    component.selectScope('sirap');
-    component.selectSirapRegion({ target: { value: 'eje-cafetero' } } as unknown as Event);
+    selectSirapWorkflow(fixture, 'eje-cafetero');
 
-    expect(component.matchResults).toHaveLength(40);
-    expect(component.matchResults.every((match) => match.solutionId.startsWith('eje-'))).toBe(true);
+    expect(component.sirapTargetTuples()).toHaveLength(10);
+    expect(component.sirapStrategicTarget).toBe(17);
+    expect(component.sirapDryForestMode).toBe('inherit');
+    expect(component.sirapWetlandsTarget).toBe(70);
+    expect(component.matchResults.map((match) => match.name)).toEqual([
+      'Estr17+HuEC70+RUNAP_IHEH2022',
+    ]);
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-target-select'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-strategic-card'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-dry-forest-card'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-wetlands-card'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-congriales-card'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement
+        .querySelector('#solution-finder-modal-sirap-strategic-target-level-panel')
+        ?.classList.contains('finder-target-level-panel'),
+    ).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-strategic-target-level-question',
+      )?.textContent,
+    ).toContain('solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsQuestion');
+    const nationalTargetTitle = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-step1-target-level-title-ecosystems',
+    ) as HTMLElement;
+    const nationalTargetQuestion = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-step1-target-level-coverage-label-ecosystems',
+    ) as HTMLElement;
+    expect(nationalTargetTitle).not.toBeNull();
+    expect(nationalTargetQuestion).not.toBeNull();
+    const expectedTargetTitleClasses = [...nationalTargetTitle.classList].sort();
+    const expectedTargetQuestionClasses = [...nationalTargetQuestion.classList].sort();
+    for (const target of ['strategic', 'dry-forest', 'wetlands'] as const) {
+      expect(
+        fixture.nativeElement
+          .querySelector(`#solution-finder-modal-sirap-${target}-target-level-panel`)
+          ?.classList.contains('finder-target-level-panel'),
+      ).toBe(true);
+      expect(
+        fixture.nativeElement
+          .querySelector(`#solution-finder-modal-sirap-${target}-target-level-panel`)
+          ?.classList.contains('bg-white'),
+      ).toBe(true);
+      const title = fixture.nativeElement.querySelector(
+        `#solution-finder-modal-sirap-${target}-target-level-title`,
+      ) as HTMLElement;
+      const question = fixture.nativeElement.querySelector(
+        `#solution-finder-modal-sirap-${target}-target-level-question`,
+      ) as HTMLElement;
+      expect([...title.classList].sort()).toEqual(expectedTargetTitleClasses);
+      expect([...question.classList].sort()).toEqual(expectedTargetQuestionClasses);
+    }
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-dry-forest-target-level-question',
+      )?.textContent,
+    ).toContain('solutionControls.finder.sirapWorkflow.targets.dryForestQuestion');
+    expect(
+      fixture.nativeElement
+        .querySelector('#solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip')
+        ?.getAttribute('role'),
+    ).toBe('tooltip');
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-wetlands-target-level-question',
+      )?.textContent,
+    ).toContain('solutionControls.finder.sirapWorkflow.targets.ejeWetlandsQuestion');
+    for (const cardId of [
+      'solution-finder-modal-sirap-strategic-card',
+      'solution-finder-modal-sirap-dry-forest-card',
+      'solution-finder-modal-sirap-wetlands-card',
+    ]) {
+      const card = fixture.nativeElement.querySelector(`#${cardId}`) as HTMLElement;
+      expect(card.classList.contains('finder-selected-card-border')).toBe(true);
+      expect(card.classList.contains('bg-sky-100')).toBe(true);
+      expect(card.classList.contains('opacity-60')).toBe(false);
+    }
+    expect(
+      fixture.nativeElement
+        .querySelector('#solution-finder-modal-sirap-strategic-target-level-rationale-tooltip')
+        ?.getAttribute('role'),
+    ).toBe('tooltip');
+    for (const target of [17, 30, 50, 100]) {
+      const button = fixture.nativeElement.querySelector(
+        `#solution-finder-modal-sirap-strategic-${target}`,
+      ) as HTMLButtonElement;
+      expect(button.classList.contains('finder-target-level-choice-button')).toBe(true);
+      expect(button.disabled).toBe(false);
+    }
   });
 
-  it('emits the selected certified SIRAP solution and clears it when region changes', () => {
+  it('prevents unavailable Eje combinations with dependent certified controls', () => {
     const appState = TestBed.inject(AppStateService);
-    appState.allowedSirapIds$.set(['eje-cafetero', 'orinoquia']);
+    appState.allowedSirapIds$.set(['eje-cafetero']);
+    catalog.getAll.mockReturnValue(buildCertifiedSirapCatalog('eje-cafetero'));
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      selectSirapStrategicTarget: (target: 50) => void;
+      selectSirapDryForestMode: (mode: 'inherit' | 'separate-100') => void;
+      selectSirapWetlandsTarget: (target: 70 | 100) => void;
+      sirapDryForestMode: string | null;
+      sirapWetlandsTarget: number | null;
+    };
+
+    selectSirapWorkflow(fixture, 'eje-cafetero');
+    (
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-strategic-50',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#solution-finder-modal-sirap-dry-forest-100',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    component.selectSirapDryForestMode('separate-100');
+    expect(component.sirapDryForestMode).toBe('inherit');
+    expect(component.sirapWetlandsTarget).toBe(100);
+
+    (
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-dry-forest-inherit',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#solution-finder-modal-sirap-wetlands-70',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    component.selectSirapWetlandsTarget(70);
+    expect(component.sirapWetlandsTarget).toBe(100);
+    component.selectSirapWetlandsTarget(100);
+    expect(component.sirapWetlandsTarget).toBe(100);
+  });
+
+  it('matches exactly one certified Eje scenario across target, OMEC, and IHEH choices', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.allowedSirapIds$.set(['eje-cafetero']);
+    catalog.getAll.mockReturnValue(buildCertifiedSirapCatalog('eje-cafetero'));
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      selectSirapStrategicTarget: (target: 17 | 30 | 50 | 100) => void;
+      selectSirapDryForestMode: (mode: 'inherit' | 'separate-100') => void;
+      selectSirapWetlandsTarget: (target: 70 | 100) => void;
+      toggleSirapIncludeOmecs: () => void;
+      selectSirapCostYear: (year: 2022 | 2030) => void;
+      matchResults: { name: string }[];
+    };
+
+    selectSirapWorkflow(fixture, 'eje-cafetero');
+    component.selectSirapStrategicTarget(30);
+    component.selectSirapDryForestMode('separate-100');
+    component.selectSirapWetlandsTarget(70);
+    expect(component.matchResults.map((match) => match.name)).toEqual([
+      'Estr30+Bs100+HuEC70+RUNAP_IHEH2022',
+    ]);
+
+    component.toggleSirapIncludeOmecs();
+    component.selectSirapCostYear(2030);
+    expect(component.matchResults.map((match) => match.name)).toEqual([
+      'Estr30+Bs100+HuEC70+RUNAP+OMEC_IHEH2030',
+    ]);
+  });
+
+  it('renders Orinoquía controls with Congriales paired and rejects an uncertified pair', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.allowedSirapIds$.set(['orinoquia']);
     catalog.getAll.mockReturnValue([
-      buildSirapSolution('eje-1', 'Eje certified scenario', 'eje-cafetero'),
-      ...buildSirapSolutions('orinoquia', 'Orinoquía certified scenario', 'orinoquia', 16),
+      ...buildCertifiedSirapCatalog('orinoquia'),
+      buildSirapSolution('invalid-pair', 'Estr17+Cong30+Sab17+RUNAP_IHEH2022', 'orinoquia'),
     ]);
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
     const component = fixture.componentInstance as unknown as {
-      selectScope: (scope: 'nacional' | 'sirap') => void;
-      selectSirapRegion: (event: Event) => void;
-      selectCertifiedSirapSolution: (event: Event) => void;
-      selectedMatch: { solutionId: string } | null;
+      selectSirapStrategicTarget: (target: 17 | 30) => void;
+      selectSirapSavannasTarget: (target: 17 | 30) => void;
+      sirapTargetTuples: () => { id: string }[];
       matchResults: { solutionId: string }[];
-      applySelectedSolution: () => void;
     };
-    const solutionAppliedSpy = vi.spyOn(fixture.componentInstance.solutionApplied, 'emit');
 
-    component.selectScope('sirap');
-    component.selectSirapRegion({ target: { value: 'eje-cafetero' } } as unknown as Event);
-    component.selectCertifiedSirapSolution({ target: { value: 'eje-1' } } as unknown as Event);
-
-    expect((component as unknown as { canApplySolution: () => boolean }).canApplySolution()).toBe(
-      true,
+    selectSirapWorkflow(fixture, 'orinoquia');
+    expect(component.sirapTargetTuples()).toHaveLength(4);
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-congriales-card'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-savannas-card'),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement
+        .querySelector('#solution-finder-modal-sirap-savannas-target-level-panel')
+        ?.classList.contains('finder-target-level-panel'),
+    ).toBe(true);
+    expect(
+      fixture.nativeElement
+        .querySelector('#solution-finder-modal-sirap-savannas-target-level-panel')
+        ?.classList.contains('bg-white'),
+    ).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-savannas-target-level-question',
+      )?.textContent,
+    ).toContain('solutionControls.finder.sirapWorkflow.targets.savannasQuestion');
+    const nationalTargetTitle = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-step1-target-level-title-ecosystems',
+    ) as HTMLElement;
+    const nationalTargetQuestion = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-step1-target-level-coverage-label-ecosystems',
+    ) as HTMLElement;
+    const savannasTitle = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-sirap-savannas-target-level-title',
+    ) as HTMLElement;
+    const savannasQuestion = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-sirap-savannas-target-level-question',
+    ) as HTMLElement;
+    expect([...savannasTitle.classList].sort()).toEqual([...nationalTargetTitle.classList].sort());
+    expect([...savannasQuestion.classList].sort()).toEqual(
+      [...nationalTargetQuestion.classList].sort(),
     );
-    component.applySelectedSolution();
-    expect(solutionAppliedSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ solutionId: 'eje-1' }),
+    for (const target of [17, 30]) {
+      expect(
+        fixture.nativeElement
+          .querySelector(`#solution-finder-modal-sirap-savannas-${target}`)
+          ?.classList.contains('finder-target-level-choice-button'),
+      ).toBe(true);
+    }
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#solution-finder-modal-sirap-strategic-50',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#solution-finder-modal-sirap-strategic-100',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+
+    (
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-strategic-17',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-savannas-17',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-congriales-paired-value')
+        ?.textContent,
+    ).toContain('17%');
+    expect(component.matchResults).toHaveLength(1);
+    expect(component.matchResults[0].solutionId).not.toBe('invalid-pair');
+  });
+
+  it('initializes Orinoquía defaults and keeps every SIRAP step unlocked and undimmed', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.allowedSirapIds$.set(['orinoquia']);
+    catalog.getAll.mockReturnValue(buildCertifiedSirapCatalog('orinoquia'));
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    selectSirapWorkflow(fixture, 'orinoquia');
+
+    const component = fixture.componentInstance as unknown as {
+      sirapStrategicTarget: number | null;
+      sirapSavannasTarget: number | null;
+      matchResults: { name: string }[];
+    };
+    expect(component.sirapStrategicTarget).toBe(17);
+    expect(component.sirapSavannasTarget).toBe(17);
+    expect(component.matchResults.map((match) => match.name)).toEqual([
+      'Estr17+Cong17+Sab17+RUNAP_IHEH2022',
+    ]);
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-step2-lock'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-step3-lock'),
+    ).toBeNull();
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#solution-finder-modal-sirap-cost-year-2030',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '#solution-finder-modal-sirap-omec-setting-value',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    expect(
+      fixture.nativeElement
+        .querySelector('#solution-finder-modal-sirap-savannas-card')
+        ?.classList.contains('opacity-60'),
+    ).toBe(false);
+    expect(
+      fixture.nativeElement
+        .querySelector('#solution-finder-modal-sirap-strategic-values')
+        ?.getAttribute('role'),
+    ).toBe('radiogroup');
+    expect(
+      fixture.nativeElement
+        .querySelector('#solution-finder-modal-sirap-omec-setting-value')
+        ?.getAttribute('role'),
+    ).toBe('switch');
+  });
+
+  it('reuses National Human Footprint and included-area copy and control styling in SIRAP', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.allowedSirapIds$.set(['eje-cafetero']);
+    catalog.getAll.mockReturnValue(buildCertifiedSirapCatalog('eje-cafetero'));
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    selectSirapWorkflow(fixture, 'eje-cafetero');
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(
+      compiled.querySelector('#solution-finder-modal-sirap-iheh-label')?.textContent,
+    ).toContain('solutionControls.finder.step2b.humanFootprintLabel');
+    expect(compiled.querySelector('#solution-finder-modal-sirap-iheh-help')?.textContent).toContain(
+      'solutionControls.finder.step2b.humanFootprintHelp',
     );
+    expect(
+      compiled.querySelector('#solution-finder-modal-sirap-iheh-source')?.textContent,
+    ).toContain('solutionControls.finder.step2b.humanFootprintSourceLabel');
+    expect(
+      compiled.querySelector('#solution-finder-modal-sirap-runap-setting-label')?.textContent,
+    ).toContain('solutionControls.finder.step2a.alwaysRunapLabel');
+    expect(
+      compiled.querySelector('#solution-finder-modal-sirap-omec-setting-label')?.textContent,
+    ).toContain('solutionControls.finder.step2a.includeOmecsLabel');
 
-    component.selectSirapRegion({ target: { value: 'orinoquia' } } as unknown as Event);
-    expect(component.selectedMatch).toBeNull();
-    expect(component.matchResults).toHaveLength(16);
-
-    component.selectScope('nacional');
-    expect(component.selectedMatch).toBeNull();
+    const omecCard = compiled.querySelector(
+      '#solution-finder-modal-sirap-omec-setting',
+    ) as HTMLElement;
+    const omecToggle = compiled.querySelector(
+      '#solution-finder-modal-sirap-omec-setting-value',
+    ) as HTMLButtonElement;
+    expect(omecCard.classList.contains('bg-white')).toBe(true);
+    expect(omecCard.classList.contains('bg-sky-100')).toBe(false);
+    expect(omecToggle.classList.contains('bg-slate-300')).toBe(true);
+    omecToggle.click();
+    fixture.detectChanges();
+    expect(omecCard.classList.contains('bg-sky-100')).toBe(true);
+    expect(omecToggle.classList.contains('bg-sky-600')).toBe(true);
   });
 
   it('renders mandatory Ecosystems and explicit required Human Footprint years', () => {
@@ -1377,6 +1729,25 @@ interface LandTargetConfiguration {
   strategicEcosystems: 17 | 30 | null;
   speciesMethod: 'representation-17' | 'representation-30' | 'national-responsibility' | null;
   ecosystemServices: 17 | 30 | null;
+}
+
+function selectSirapWorkflow(
+  fixture: ComponentFixture<FinderModalComponent>,
+  region: 'eje-cafetero' | 'orinoquia',
+): void {
+  (
+    fixture.nativeElement.querySelector(
+      '#solution-finder-modal-scope-btn-sirap',
+    ) as HTMLButtonElement
+  ).click();
+  fixture.detectChanges();
+
+  const regionSelect = fixture.nativeElement.querySelector(
+    '#solution-finder-modal-scope-bar-sirap-region-select',
+  ) as HTMLSelectElement;
+  regionSelect.value = region;
+  regionSelect.dispatchEvent(new Event('change'));
+  fixture.detectChanges();
 }
 
 function buildLandTargetConfigurations(): LandTargetConfiguration[] {
@@ -1565,14 +1936,39 @@ function buildSirapSolution(
   });
 }
 
-function buildSirapSolutions(
-  idPrefix: string,
-  namePrefix: string,
-  sirapId: 'eje-cafetero' | 'orinoquia',
-  count: number,
-): CatalogSolution[] {
-  return Array.from({ length: count }, (_, index) =>
-    buildSirapSolution(`${idPrefix}-${index + 1}`, `${namePrefix} ${index + 1}`, sirapId),
+function buildCertifiedSirapCatalog(sirapId: 'eje-cafetero' | 'orinoquia'): CatalogSolution[] {
+  const targets =
+    sirapId === 'eje-cafetero'
+      ? [
+          'Estr17+Bs100+HuEC70',
+          'Estr17+Bs100+HuEC100',
+          'Estr17+HuEC70',
+          'Estr17+HuEC100',
+          'Estr30+Bs100+HuEC70',
+          'Estr30+Bs100+HuEC100',
+          'Estr30+HuEC70',
+          'Estr30+HuEC100',
+          'Estr50+HuEC100',
+          'Estr100+HuEC70',
+        ]
+      : [
+          'Estr17+Cong17+Sab17',
+          'Estr17+Cong17+Sab30',
+          'Estr30+Cong30+Sab17',
+          'Estr30+Cong30+Sab30',
+        ];
+
+  return targets.flatMap((target, targetIndex) =>
+    ([2022, 2030] as const).flatMap((year) =>
+      [false, true].map((includeOmecs) => {
+        const name = `${target}+RUNAP${includeOmecs ? '+OMEC' : ''}_IHEH${year}`;
+        return buildSirapSolution(
+          `${sirapId}-${targetIndex}-${year}-${includeOmecs ? 'omec' : 'no-omec'}`,
+          name,
+          sirapId,
+        );
+      }),
+    ),
   );
 }
 

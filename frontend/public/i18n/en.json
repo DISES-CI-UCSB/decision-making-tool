@@ -1136,6 +1136,55 @@
         "selectScenario": "— Select a certified scenario —",
         "noResults": "No certified scenarios match this search."
       },
+      "sirapWorkflow": {
+        "included": "Included",
+        "notSelected": "Not selected",
+        "sourceLabel": "Source: certified SIRAP scenario catalog",
+        "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-29-v2/catalog.json",
+        "step1": {
+          "label": "Conservation targets",
+          "help": "Choose the regional features and target levels to conserve. Only combinations available in the certified catalog can be selected.",
+          "regionRequired": "Select a SIRAP above to view its certified targets."
+        },
+        "step2": {
+          "label": "Conservation settings",
+          "help": "Choose which areas the tool should treat as existing conservation areas. RUNAP is always included; OMECs are optional.",
+          "omecsLabel": "Include OMECs"
+        },
+        "step3": {
+          "label": "Cost / planning units",
+          "help": "Choose the certified IHEH cost and planning-unit vector the tool should use when identifying candidate areas.",
+          "ihehLabel": "Human Footprint",
+          "ihehHelp": "Select the certified IHEH2022 or IHEH2030 planning-unit cost vector. No additional scientific interpretation of the 2030 option is assumed here."
+        },
+        "lock": {
+          "selectRegion": "Select an authorized SIRAP region to begin Step 1.",
+          "completeTargets": "Complete the certified Step 1 target choices to unlock this step."
+        },
+        "targets": {
+          "strategicEcosystemsLabel": "Strategic ecosystems",
+          "strategicEcosystemsHelp": "Sets the relative solver target for the region’s strategic-ecosystem features.",
+          "strategicEcosystemsQuestion": "What proportion of each strategic ecosystem would you like to conserve?",
+          "strategicTargetRationaleToggle": "Why these values?",
+          "strategicTargetRationale": "These target levels come from the certified scenario catalog for the selected SIRAP. Values that are not available for that region are disabled.",
+          "dryForestLabel": "Dry forest",
+          "dryForestHelp": "Dry forest is always included. It can inherit the strategic-ecosystems target as part of that feature matrix, or be separated and assigned a 100% target.",
+          "dryForestQuestion": "How should the dry forest target be set?",
+          "dryForestRationaleToggle": "Why are these the available dry forest choices?",
+          "dryForestRationale": "The certified catalog includes dry forest either within the strategic-ecosystems target or as a separate feature with a 100% target. Choices unavailable for the current strategic target are disabled.",
+          "inheritStrategic": "Inherit strategic target",
+          "separate100": "Separate 100%",
+          "ejeWetlandsLabel": "Eje Cafetero wetlands",
+          "ejeWetlandsHelp": "Sets the relative solver target for the Eje-specific wetlands feature.",
+          "ejeWetlandsQuestion": "What proportion of Eje Cafetero wetlands would you like to conserve?",
+          "congrialesLabel": "Congriales",
+          "congrialesHelp": "Congriales is a supplied model feature. Its certified target is paired with the same strategic-ecosystems target.",
+          "paired": "Paired",
+          "savannasLabel": "Savannas",
+          "savannasHelp": "Sets the relative solver target for the supplied Orinoquía savannas feature.",
+          "savannasQuestion": "What proportion of Orinoquía savannas would you like to conserve?"
+        }
+      },
       "loading": "Finding scenario…",
       "stepPrefixes": {
         "step1": "Step 1",
