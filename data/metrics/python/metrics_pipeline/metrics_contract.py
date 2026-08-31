@@ -65,6 +65,28 @@ VALID_METRIC_STATUSES = (
     "not_applicable",
     "empty",
 )
+SIRAP_MISSING_INPUT_METRIC_IDS = frozenset(
+    {
+        "species_groups_protected",
+        "threatened_species_secured",
+        "carbon_storage_biomass",
+        "agricultural_area",
+        "national_contribution",
+        "threatened_species_count",
+        "species_pct_of_national",
+        "mangrove_coverage",
+        "carbon_biomass_total",
+        "soil_organic_carbon",
+        "carbon_pct_of_national",
+        "land_use_forests_and_semi_natural_areas_pct",
+        "land_use_agricultural_areas_pct",
+        "land_use_artificial_surfaces_pct",
+        "land_use_wetlands_pct",
+        "land_use_water_bodies_pct",
+        "national_parks_pct",
+    }
+)
+SIRAP_MISSING_INPUT_SOURCE = "regionalInputPacket.missingInputAuthority"
 _SHA256_LENGTH = 64
 _UNSET = object()
 
@@ -238,6 +260,7 @@ def generation_config(
     domain: SolutionDomain,
     *,
     national_only: bool = False,
+    regional_packet: bool = False,
     skip_species: bool = False,
     skip_species_boundary_levels: Iterable[str] = (),
     species_csv_url: str | None = None,
@@ -250,6 +273,7 @@ def generation_config(
 
     config: dict[str, Any] = {
         "nationalOnly": bool(national_only),
+        "regionalPacket": bool(regional_packet),
         "boundaryFanout": boundary_fanout_identity(boundary_fanout_mode),
         "weightedBoundaryExecution": weighted_execution_identity(
             weighted_execution_mode
@@ -268,7 +292,11 @@ def generation_config(
             if national_only or species_skipped
             else sorted(set(skip_species_boundary_levels))
         )
-        config["speciesCsvUrl"] = None if species_skipped else species_csv_url
+        config["speciesCsvUrl"] = (
+            None
+            if species_skipped or regional_packet
+            else species_csv_url
+        )
         config["speciesAlignmentPolicy"] = (
             None if species_skipped else SPECIES_OVERLAP_ALGORITHM_VERSION
         )
@@ -358,6 +386,7 @@ def build_metrics_provenance(
     domain: SolutionDomain,
     *,
     national_only: bool = False,
+    regional_packet: bool = False,
     skip_species: bool = False,
     skip_species_boundary_levels: Iterable[str] = (),
     species_csv_url: str | None = None,
@@ -372,6 +401,7 @@ def build_metrics_provenance(
     config = generation_config(
         domain,
         national_only=national_only,
+        regional_packet=regional_packet,
         skip_species=skip_species,
         skip_species_boundary_levels=skip_species_boundary_levels,
         species_csv_url=species_csv_url,
@@ -380,21 +410,26 @@ def build_metrics_provenance(
         weighted_execution_mode=weighted_execution_mode,
         species_execution=species_execution,
     )
-    boundary_sources = {
-        level: {
-            "url": spec.url,
-            "sha256": spec.expected_sha256,
-            "catalogSha256": spec.expected_catalog_sha256,
-            "geometryCollectionSha256": spec.expected_geometry_collection_sha256,
-            "crs": spec.expected_crs,
-            "featureCount": spec.expected_feature_count,
-            "idField": spec.id_field,
-            "nameField": spec.name_field,
-            "featureBehavior": spec.feature_behavior,
-            "rasterization": BOUNDARY_RASTERIZATION,
+    boundary_sources = (
+        {}
+        if national_only and regional_packet
+        else {
+            level: {
+                "url": spec.url,
+                "sha256": spec.expected_sha256,
+                "catalogSha256": spec.expected_catalog_sha256,
+                "geometryCollectionSha256": spec.expected_geometry_collection_sha256,
+                "crs": spec.expected_crs,
+                "featureCount": spec.expected_feature_count,
+                "idField": spec.id_field,
+                "nameField": spec.name_field,
+                "featureBehavior": spec.feature_behavior,
+                "rasterization": BOUNDARY_RASTERIZATION,
+            }
+            for level, spec in sorted(BOUNDARY_SOURCE_SPECS.items())
+            if not regional_packet or level in {"departments", "municipalities"}
         }
-        for level, spec in sorted(BOUNDARY_SOURCE_SPECS.items())
-    }
+    )
     boundary_signature = hashlib.sha256(
         json.dumps(
             boundary_sources,
@@ -577,12 +612,32 @@ def provenance_issues(
         if not isinstance(sources, dict):
             issues.append("missing or invalid boundary provenance sources")
         else:
+            regional_packet = bool(
+                config.get("regionalPacket") if isinstance(config, dict) else False
+            )
             expected = build_metrics_provenance(
                 domain or "land",
+                national_only=bool(
+                    config.get("nationalOnly") if isinstance(config, dict) else False
+                ),
+                regional_packet=regional_packet,
             )["boundaryProvenance"]
-            for level, count in EXPECTED_BOUNDARY_COUNTS.items():
+            if regional_packet and bool(config.get("nationalOnly")):
+                if sources:
+                    issues.append(
+                        "regional packet national-only output must omit boundary sources"
+                    )
+            expected_levels = (
+                {"departments", "municipalities"}
+                if regional_packet and not bool(config.get("nationalOnly"))
+                else set(EXPECTED_BOUNDARY_COUNTS)
+            )
+            for level in expected_levels:
+                count = EXPECTED_BOUNDARY_COUNTS[level]
                 source = sources.get(level)
-                expected_source = expected["sources"][level]
+                expected_source = expected["sources"].get(level)
+                if expected_source is None:
+                    continue
                 if not isinstance(source, dict):
                     issues.append(f"missing boundary provenance for {level}")
                     continue
@@ -653,16 +708,35 @@ def regular_artifact_completeness_issues(
     national_only: bool,
     domain: SolutionDomain,
     skip_species: bool = False,
+    regional_packet: bool = False,
 ) -> list[str]:
-    """Validate the complete regular artifact contract shared by every gate."""
+    """Validate the complete regular artifact contract shared by every gate.
+
+    Regional packet runs may publish explicit unavailable-input statuses rather
+    than requiring every national metric input to be present.
+    """
 
     expected_levels = (
         {"national"}
         if national_only
+        else {"national", "departments", "municipalities"}
+        if regional_packet
         else {"national", "departments", "municipalities", "siraps", "runaps", "omecs"}
     )
     geographies = document.get("geographies")
-    if not isinstance(geographies, dict) or set(geographies) != expected_levels:
+    accepted_level_sets = {frozenset(expected_levels)}
+    if regional_packet and not national_only:
+        # Accept pre-fanout packet artifacts while they are revalidated and
+        # replaced; newly generated packet artifacts use the minimal scope.
+        accepted_level_sets.add(
+            frozenset(
+                {"national", "departments", "municipalities", "siraps", "runaps", "omecs"}
+            )
+        )
+    if (
+        not isinstance(geographies, dict)
+        or frozenset(geographies) not in accepted_level_sets
+    ):
         return ["geography levels are incomplete or unexpected"]
 
     definitions = computable_metrics()
@@ -859,6 +933,16 @@ def regular_artifact_completeness_issues(
                         "without zero-support scope evidence"
                     )
                     continue
+                if regional_packet and definition.metric_id in SIRAP_MISSING_INPUT_METRIC_IDS:
+                    if (
+                        status != "blocked"
+                        or value is not None
+                        or metric.get("source") != SIRAP_MISSING_INPUT_SOURCE
+                    ):
+                        issues.append(
+                            f"{level}/{scope_id}/{definition.metric_id} must be blocked "
+                            "with regionalInputPacket.missingInputAuthority"
+                        )
                 structurally_not_applicable = (
                     domain not in definition.applicable_domains
                     or (
@@ -885,6 +969,8 @@ def regular_artifact_completeness_issues(
                     and is_species_metric_kind(definition.kind)
                 ):
                     expected_status = "partial"
+                elif regional_packet:
+                    expected_status = None
                 else:
                     expected_status = "ready"
                 if expected_status is not None and status != expected_status:
@@ -920,7 +1006,7 @@ def regular_artifact_completeness_issues(
                         f"{level}/{scope_id}/{definition.metric_id} metadata is incomplete"
                     )
 
-    if domain == "land" and not skip_species:
+    if domain == "land" and not skip_species and not regional_packet:
         completeness = document.get("speciesCompleteness")
         if not isinstance(completeness, dict):
             issues.append("speciesCompleteness is missing")

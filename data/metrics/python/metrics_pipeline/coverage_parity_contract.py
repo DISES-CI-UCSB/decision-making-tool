@@ -71,12 +71,32 @@ def load_coverage_parity_contract(path: Path) -> CoverageParityContract:
             raise CoverageParityContractError(
                 f"Parity contract is missing {'.'.join(keys)}."
             ) from exc
-    if document["scientificAuthority"]["speciesUniversePolicy"] != "legacy-summary-7980":
-        raise CoverageParityContractError("V3 parity must preserve the approved legacy summary.")
+    species_policy = document["scientificAuthority"]["speciesUniversePolicy"]
+    if species_policy not in {"legacy-summary-7980", "regional-summary"}:
+        raise CoverageParityContractError(
+            "Parity contract speciesUniversePolicy is unsupported."
+        )
     if int(document["validation"]["unexplainedMismatchLimit"]) != 0:
         raise CoverageParityContractError("Parity contract must reject every unexplained mismatch.")
-    if int(document["ecosystems"]["featureCount"]) != 417:
-        raise CoverageParityContractError("V3 ecosystem golden inventory must contain 417 rows.")
-    if int(document["species"]["summaryFeatureCount"]) != 7980:
-        raise CoverageParityContractError("V3 species golden inventory must contain 7,980 rows.")
+    ecosystem_count = int(document["ecosystems"]["featureCount"])
+    species_count = int(document["species"]["summaryFeatureCount"])
+    if species_policy == "legacy-summary-7980":
+        if ecosystem_count != 417:
+            raise CoverageParityContractError(
+                "V3 ecosystem golden inventory must contain 417 rows."
+            )
+        if species_count != 7980:
+            raise CoverageParityContractError(
+                "V3 species golden inventory must contain 7,980 rows."
+            )
+    else:
+        region_id = document["scientificAuthority"].get("regionId")
+        if not isinstance(region_id, str) or not region_id.strip():
+            raise CoverageParityContractError(
+                "Regional parity requires scientificAuthority.regionId."
+            )
+        if ecosystem_count < 1 or species_count < 1:
+            raise CoverageParityContractError(
+                "Regional parity inventories must contain ecosystem and species rows."
+            )
     return CoverageParityContract(path=path, document=document)

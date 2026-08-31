@@ -15,7 +15,7 @@ T6 metrics added (17 additional):
   Water:              6, 44
   Protected areas:    63, 64, 66
   AOI percentage:     19
-  Land cover:         9, 51, 52/53, 54  (coberturas.tif — class IDs 1=forest, 2=agri, 3=wetland, 4=water, 5=urban)
+  Land cover:         9, 51, 52, 54, 55, 56  (coberturas.tif — class IDs 1=artificial, 2=agri, 3=forest/semi-natural, 4=wetland, 5=water)
   Comparison:         70, 71, 72  (deferred pairwise)
 
 T10 metrics added (8 additional, species):
@@ -568,57 +568,74 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         ),
     ),
     MetricDefinition(
-        metric_id="land_use_forest_pct",
-        metric_number=51,
-        label_key="metrics.tier1.land_use_forest_pct",
-        english_label="Land Use - Natural Forest",
-        spanish_label="Uso del suelo - Bosque natural",
+        metric_id="land_use_artificial_surfaces_pct",
+        metric_number=54,
+        label_key="metrics.tier1.land_use_artificial_surfaces_pct",
+        english_label="Artificial Surfaces",
+        spanish_label="Territorios Artificializados",
         unit="%",
         format_hint="percent",
-        source_note=(
-            "% of selected area classified as Bosques y Áreas Seminaturales (class 1) in coberturas.tif. "
-            "CORINE Land Cover Level 1. Note: original CSV classes 1 and 3 were swapped; class 1 in the "
-            "TIF is forest/seminatural, confirmed by spatial inspection."
-        ),
+        source_note="% of selected area in coberturas.tif value 1: Territorios Artificializados.",
         kind="binary_overlap_percent_of_selected",
-        layer_id="coberturas_forest",
+        layer_id="coberturas_artificial_surfaces",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
         off_manifest_rendering={"valueType": "binary", "selectedValue": 1},
     ),
     MetricDefinition(
-        metric_id="land_use_agriculture_pct",
+        metric_id="land_use_agricultural_areas_pct",
         metric_number=52,
-        label_key="metrics.tier1.land_use_agriculture_pct",
-        english_label="Land Use - Agriculture (Combined #52/#53)",
-        spanish_label="Uso del suelo - Agricultura (combinado #52/#53)",
+        label_key="metrics.tier1.land_use_agricultural_areas_pct",
+        english_label="Agricultural Areas",
+        spanish_label="Territorios Agrícolas",
         unit="%",
         format_hint="percent",
-        source_note=(
-            "% of selected area classified as Territorios Agrícolas (class 2) in coberturas.tif. "
-            "CORINE Level 1 combines pasture (#52) and crop agriculture (#53) into one class. "
-            "A finer-resolution raster would be needed to distinguish them."
-        ),
+        source_note="% of selected area in coberturas.tif value 2: Territorios Agrícolas.",
         kind="binary_overlap_percent_of_selected",
-        layer_id="coberturas_agriculture",
+        layer_id="coberturas_agricultural_areas",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
         off_manifest_rendering={"valueType": "binary", "selectedValue": 2},
     ),
     MetricDefinition(
-        metric_id="land_use_other_pct",
-        metric_number=54,
-        label_key="metrics.tier1.land_use_other_pct",
-        english_label="Land Use - Other",
-        spanish_label="Uso del suelo - Otro",
+        metric_id="land_use_forests_and_semi_natural_areas_pct",
+        metric_number=51,
+        label_key="metrics.tier1.land_use_forests_and_semi_natural_areas_pct",
+        english_label="Forests and Semi-natural Areas",
+        spanish_label="Bosques y Áreas Seminaturales",
         unit="%",
         format_hint="percent",
-        source_note=(
-            "% of selected area classified as Artificializados, Áreas Húmedas, or Superficies de Agua "
-            "(classes 3+4+5) in coberturas.tif. Represents the remainder after forest and agriculture."
-        ),
+        source_note="% of selected area in coberturas.tif value 3: Bosques y Áreas Seminaturales.",
         kind="binary_overlap_percent_of_selected",
-        layer_id="coberturas_other",
+        layer_id="coberturas_forests_and_semi_natural_areas",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
-        off_manifest_rendering={"valueType": "binary", "selectedValues": [3, 4, 5]},
+        off_manifest_rendering={"valueType": "binary", "selectedValue": 3},
+    ),
+    MetricDefinition(
+        metric_id="land_use_wetlands_pct",
+        metric_number=55,
+        label_key="metrics.tier1.land_use_wetlands_pct",
+        english_label="Wetlands",
+        spanish_label="Áreas Húmedas",
+        unit="%",
+        format_hint="percent",
+        source_note="% of selected area in coberturas.tif value 4: Áreas Húmedas.",
+        kind="binary_overlap_percent_of_selected",
+        layer_id="coberturas_wetlands",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering={"valueType": "binary", "selectedValue": 4},
+    ),
+    MetricDefinition(
+        metric_id="land_use_water_bodies_pct",
+        metric_number=56,
+        label_key="metrics.tier1.land_use_water_bodies_pct",
+        english_label="Water Bodies",
+        spanish_label="Superficies de Agua",
+        unit="%",
+        format_hint="percent",
+        source_note="% of selected area in coberturas.tif value 5: Superficies de Agua.",
+        kind="binary_overlap_percent_of_selected",
+        layer_id="coberturas_water_bodies",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering={"valueType": "binary", "selectedValue": 5},
     ),
     # --- T2 (continued) ---
     MetricDefinition(

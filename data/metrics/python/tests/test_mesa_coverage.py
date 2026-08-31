@@ -94,6 +94,31 @@ def test_categorical_and_sparse_binary_evaluation_are_equivalent():
     ]
 
 
+def test_coverage_evaluators_support_post_hoc_features_without_targets():
+    values = np.array([[1, 2], [1, 2]])
+    selected = np.array([[True, False], [False, True]])
+
+    categorical = evaluate_categorical_coverage(
+        category_values=values,
+        selected_mask=selected,
+        feature_ids=[1, 2],
+        feature_names=["Targeted", "Post hoc"],
+        relative_targets=[0.5, None],
+    )
+    sparse = evaluate_sparse_binary_coverage(
+        features=sparse_index_from_feature_cells(
+            [("Targeted", [0, 2]), ("Post hoc", [1, 3])]
+        ),
+        selected_mask=selected,
+        relative_targets=[0.5, None],
+    )
+
+    assert categorical == sparse
+    assert categorical[0].met is True
+    assert categorical[1].met is None
+    assert categorical[1].relative_held == pytest.approx(0.5)
+
+
 def test_sparse_aoi_returns_both_approved_denominators():
     features = sparse_index_from_feature_cells(
         [

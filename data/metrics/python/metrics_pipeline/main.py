@@ -63,7 +63,10 @@ from blob_manifest import (
     ManifestError,
     ResolvedManifest,
     fetch_manifest,
+    is_sirap_solution,
+    regional_packet_identity,
     resolve_layer_display_url,
+    resolve_solution_layer,
     solution_blob_basename,
 )
 from boundaries.boundary_id_grid import (
@@ -211,6 +214,13 @@ from solution_catalog import (
     release_plan_cache_policy,
     validate_catalog_solution_ids,
 )
+from sirap_packet import (
+    read_summary,
+    regional_species_accumulator,
+    regional_species_richness,
+)
+from sparse.format import SparseFormatError
+from species_taxonomy import class_bucket
 from solution_domain import SolutionDomain, solution_domain
 from solution_input_signature import build_solution_input_signature
 from sparse.layer_source import (
@@ -562,18 +572,39 @@ def _validate_species_execution_run(
         )
 
 
-def _resolve_layer_url(manifest: ResolvedManifest, layer_id: str) -> str:
-    """Return the display URL for a layer, falling back to off-manifest blob URL."""
+def _resolve_layer_binding(
+    manifest: ResolvedManifest,
+    solution: dict[str, Any],
+    layer_id: str,
+) -> dict[str, Any]:
+    """Resolve a layer binding, with SIRAP constrained to its packet."""
+    if is_sirap_solution(solution):
+        return resolve_solution_layer(manifest, solution, layer_id)
     try:
-        return resolve_layer_display_url(manifest, layer_id)
+        return {"url": resolve_layer_display_url(manifest, layer_id)}
     except ManifestError:
         if layer_id in _OFF_MANIFEST_URLS:
-            return _OFF_MANIFEST_URLS[layer_id]
+            return {"url": _OFF_MANIFEST_URLS[layer_id]}
         raise
 
 
-def _layer_rendering(manifest: ResolvedManifest, layer_id: str) -> dict:
+def _resolve_layer_url(
+    manifest: ResolvedManifest, solution: dict[str, Any], layer_id: str
+) -> str:
+    binding = _resolve_layer_binding(manifest, solution, layer_id)
+    url = binding.get("url") or binding.get("displayUrl")
+    if not isinstance(url, str) or not url.strip():
+        raise ManifestError(f"Layer '{layer_id}' has no readable source URL.")
+    return url
+
+
+def _layer_rendering(
+    manifest: ResolvedManifest, solution: dict[str, Any], layer_id: str
+) -> dict:
     """Return the rendering dict for a layer (manifest preferred; off-manifest fallback)."""
+    if is_sirap_solution(solution):
+        rendering = _resolve_layer_binding(manifest, solution, layer_id).get("rendering")
+        return rendering if isinstance(rendering, dict) else {}
     rendering = manifest.layers_by_id.get(layer_id, {}).get("rendering")
     if rendering:
         return rendering
@@ -650,6 +681,7 @@ class _LayerMaskCache:
         *,
         allow_sparse: bool = False,
         sparse_binding: SparseLayerBinding | None = None,
+        expected_sha256: str | None = None,
     ) -> np.ndarray:
         if self._last_fingerprint is not None and not self._last_fingerprint.matches(
             fingerprint
@@ -658,11 +690,20 @@ class _LayerMaskCache:
             self._source_diagnostics.clear()
         self._last_fingerprint = fingerprint
         use_sparse = allow_sparse and layer_id in LAND_BINARY_LAYER_IDS
-        cache_key = f"{layer_id}:{'sparse-enabled' if use_sparse else 'dense-only'}"
+        source_identity = expected_sha256 or hashlib.sha256(url.encode("utf-8")).hexdigest()
+        cache_key = (
+            f"{layer_id}:{source_identity}:"
+            f"{'sparse-enabled' if use_sparse else 'dense-only'}"
+        )
 
         if cache_key not in self._masks:
             def load_dense() -> np.ndarray:
                 dl = cached_download(url, cache_dir, force=force)
+                if expected_sha256 is not None and dl.sha256 != expected_sha256:
+                    raise DownloadError(
+                        f"Layer '{layer_id}' SHA-256 mismatch; expected "
+                        f"{expected_sha256}, observed {dl.sha256}."
+                    )
                 aligned = self._alignment_cache.align(
                     dl.path,
                     dl.sha256,
@@ -755,6 +796,8 @@ class _LayerValueCache:
         fingerprint,
         cache_dir: Path,
         force: bool,
+        *,
+        expected_sha256: str | None = None,
     ) -> np.ndarray:
         if self._last_fingerprint is not None and not self._last_fingerprint.matches(
             fingerprint
@@ -765,8 +808,15 @@ class _LayerValueCache:
             self._urls.clear()
         self._last_fingerprint = fingerprint
 
-        if layer_id not in self._arrays:
+        source_identity = expected_sha256 or hashlib.sha256(url.encode("utf-8")).hexdigest()
+        cache_key = f"{layer_id}:{source_identity}"
+        if cache_key not in self._arrays:
             dl = cached_download(url, cache_dir, force=force)
+            if expected_sha256 is not None and dl.sha256 != expected_sha256:
+                raise DownloadError(
+                    f"Layer '{layer_id}' SHA-256 mismatch; expected "
+                    f"{expected_sha256}, observed {dl.sha256}."
+                )
             aligned = self._alignment_cache.align(
                 dl.path,
                 dl.sha256,
@@ -776,22 +826,22 @@ class _LayerValueCache:
             )
             values = read_layer_values(aligned.path, fingerprint)
             values.flags.writeable = False
-            self._arrays[layer_id] = values
-            self._alignments[layer_id] = aligned
-            self._downloads[layer_id] = dl
-            self._urls[layer_id] = url
+            self._arrays[cache_key] = values
+            self._alignments[cache_key] = aligned
+            self._downloads[cache_key] = dl
+            self._urls[cache_key] = url
             while len(self._arrays) > self._max_items:
                 evicted, _ = self._arrays.popitem(last=False)
                 self._alignments.pop(evicted, None)
                 self._downloads.pop(evicted, None)
                 self._urls.pop(evicted, None)
         else:
-            if self._urls[layer_id] != url:
+            if self._urls[cache_key] != url:
                 raise AlignmentError(
                     f"Numeric layer {layer_id!r} source URL drifted within one run."
                 )
-            self._arrays.move_to_end(layer_id)
-        return self._arrays[layer_id]
+            self._arrays.move_to_end(cache_key)
+        return self._arrays[cache_key]
 
     def get_prepared_weighted(
         self,
@@ -803,12 +853,22 @@ class _LayerValueCache:
         cache: ImmutableWeightedLayerCache,
         *,
         value_units: str,
+        expected_sha256: str | None = None,
     ) -> tuple[PreparedWeightedLayer, bool]:
         """Prepare one immutable identity-bound weighted layer."""
 
-        values = self.get(layer_id, url, raster.fingerprint, cache_dir, force)
-        aligned = self._alignments[layer_id]
-        download = self._downloads[layer_id]
+        values = self.get(
+            layer_id,
+            url,
+            raster.fingerprint,
+            cache_dir,
+            force,
+            expected_sha256=expected_sha256,
+        )
+        source_identity = expected_sha256 or hashlib.sha256(url.encode("utf-8")).hexdigest()
+        source_key = f"{layer_id}:{source_identity}"
+        aligned = self._alignments[source_key]
+        download = self._downloads[source_key]
         identity = WeightedLayerIdentity(
             layer_id=layer_id,
             source_url=url,
@@ -918,6 +978,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         action="append",
         default=[],
+    )
+    parser.add_argument(
+        "--coverage-parity-species-class",
+        action="append",
+        default=[],
+        help="Restrict parity to one or more summary species classes (repeatable).",
     )
     parser.add_argument(
         "--domain",
@@ -1281,10 +1347,13 @@ def _has_complete_regular_output_shape(
     national_only: bool,
     domain: SolutionDomain = "land",
     skip_species: bool = False,
+    regional_packet: bool = False,
 ) -> bool:
     expected_levels = (
         {"national"}
         if national_only
+        else {"national", "departments", "municipalities"}
+        if regional_packet
         else {"national", "departments", "municipalities", "siraps", "runaps", "omecs"}
     )
     if set(geographies) != expected_levels:
@@ -1494,9 +1563,10 @@ def _resume_entry_for_document(
         national_only=national_only,
         domain=domain,
         skip_species=skip_species,
+        regional_packet=is_sirap_solution(solution),
     ):
         return None
-    if not _has_complete_required_input_metrics(
+    if not is_sirap_solution(solution) and not _has_complete_required_input_metrics(
         geographies,
         domain=domain,
         skip_species=skip_species,
@@ -1513,11 +1583,13 @@ def _resume_entry_for_document(
         national_only=national_only,
         domain=domain,
         skip_species=skip_species,
+        regional_packet=is_sirap_solution(solution),
     ):
         return None
     expected_config = generation_config(
         domain,
         national_only=national_only,
+        regional_packet=is_sirap_solution(solution),
         skip_species=skip_species,
         skip_species_boundary_levels=skip_species_boundary_levels or set(),
         species_csv_url=species_csv_url,
@@ -1664,6 +1736,7 @@ def _finalize_solution_document(
     national_only: bool,
     domain: SolutionDomain,
     skip_species: bool,
+    regional_packet: bool = False,
 ) -> Path:
     """Quarantine before validation, then atomically publish only valid output."""
 
@@ -1673,6 +1746,7 @@ def _finalize_solution_document(
         national_only=national_only,
         domain=domain,
         skip_species=skip_species,
+        regional_packet=regional_packet,
     )
     if issues:
         write_metrics_candidate(
@@ -1752,6 +1826,7 @@ def _promote_resumable_candidate(
         national_only=national_only,
         domain=binding.solution_domain,
         skip_species=skip_species,
+        regional_packet=is_sirap_solution(solution),
     )
     if validation_issues:
         write_metrics_candidate(
@@ -1817,14 +1892,36 @@ def _promote_resumable_candidate(
     return entry
 
 
-def _validate_required_layers(manifest: ResolvedManifest) -> list[str]:
+def _validate_required_layers(
+    manifest: ResolvedManifest, solutions: list[dict[str, Any]]
+) -> list[str]:
+    """Validate global layers only when a selected national solution needs them."""
+    if not any(not is_sirap_solution(solution) for solution in solutions):
+        return []
     missing: list[str] = []
     for layer_id in required_layer_ids():
         try:
-            _resolve_layer_url(manifest, layer_id)
+            _resolve_layer_url(manifest, {}, layer_id)
         except ManifestError:
             missing.append(layer_id)
     return missing
+
+
+def _validate_sirap_execution_mode(
+    solutions: list[dict[str, Any]],
+    *,
+    national_only: bool,
+    boundary_fanout_mode: str,
+) -> None:
+    """Reject execution modes that cannot produce complete SIRAP artifacts."""
+    if not any(is_sirap_solution(solution) for solution in solutions):
+        return
+    if national_only:
+        raise ValueError("--national-only does not support SIRAP solutions.")
+    if boundary_fanout_mode != "grouped":
+        raise ValueError(
+            f"SIRAP analysis requires {_BOUNDARY_FANOUT_ENV}=grouped."
+        )
 
 
 def _solution_raster_source_url(solution: dict[str, Any]) -> str:
@@ -1905,7 +2002,18 @@ def _preflight_aligned_inputs(
 
     failures: list[str] = []
     if not solutions:
-        return None, None, failures
+        alignment_cache = RasterAlignmentCache(cache_dir)
+        inventory = {
+            "format": "metrics-alignment-inventory-v4",
+            "domains": {},
+            "cacheStorage": {
+                "completePairBytes": 0,
+                "configuredMaxBytes": alignment_cache.max_cache_bytes,
+                "estimatedReleaseBytes": 0,
+            },
+        }
+        inventory["sha256"] = alignment_manifest_sha256(inventory)
+        return alignment_cache, inventory, failures
 
     domain_references: dict[SolutionDomain, Any] = {}
     domain_reference_solutions: dict[SolutionDomain, str] = {}
@@ -1965,7 +2073,7 @@ def _preflight_aligned_inputs(
         )
         for layer_id in sorted(required_layers):
             try:
-                url = _resolve_layer_url(manifest, layer_id)
+                url = _resolve_layer_url(manifest, {}, layer_id)
                 download = cached_download(url, cache_dir, force=force_download)
                 aligned = alignment_cache.align(
                     download.path,
@@ -2138,6 +2246,18 @@ def _alignment_provenance_for_solution(
     """Return the fail-closed domain inventory bound to one solution."""
 
     domain = solution_domain(solution)
+    if is_sirap_solution(solution):
+        packet = regional_packet_identity(solution)
+        assert packet is not None
+        inventory = {
+            "format": "sirap-packet-alignment-inventory-v1",
+            "domain": domain,
+            "regionId": packet["regionId"],
+            "targetGridSha256": packet["gridSha256"],
+            "packetSha256": alignment_manifest_sha256(packet),
+        }
+        inventory["sha256"] = alignment_manifest_sha256(inventory)
+        return inventory
     domains = alignment_inventory.get("domains")
     domain_inventory = domains.get(domain) if isinstance(domains, dict) else None
     if (
@@ -2454,6 +2574,7 @@ def _compute_overlap_from_mask(
 def _compute_overlap_download(
     definition: MetricDefinition,
     raster: SolutionRaster,
+    solution: dict[str, Any],
     manifest: ResolvedManifest,
     layer_cache: _LayerMaskCache,
     cache_dir: Path,
@@ -2464,7 +2585,8 @@ def _compute_overlap_download(
     """Download (or retrieve cached) layer mask, compute overlap, return (metric, mask)."""
     layer_id = definition.layer_id or ""
     try:
-        layer_url = _resolve_layer_url(manifest, layer_id)
+        binding = _resolve_layer_binding(manifest, solution, layer_id)
+        layer_url = _resolve_layer_url(manifest, solution, layer_id)
     except ManifestError as exc:
         return _metric_value(
             definition,
@@ -2474,7 +2596,7 @@ def _compute_overlap_download(
             source=f"raster:{layer_id}",
         ), None
 
-    rendering = _layer_rendering(manifest, layer_id)
+    rendering = _layer_rendering(manifest, solution, layer_id)
     try:
         mask = layer_cache.get(
             layer_id,
@@ -2485,8 +2607,9 @@ def _compute_overlap_download(
             force_download,
             allow_sparse=allow_sparse,
             sparse_binding=_layer_sparse_binding(manifest, layer_id, layer_url),
+            expected_sha256=binding.get("sha256"),
         )
-    except (RasterError, OSError) as exc:
+    except (AlignmentError, DownloadError, RasterError, OSError) as exc:
         return _metric_value(
             definition,
             value=None,
@@ -2530,6 +2653,7 @@ def _compute_categorical_from_values(
 def _compute_categorical_download(
     definition: MetricDefinition,
     raster: SolutionRaster,
+    solution: dict[str, Any],
     manifest: ResolvedManifest,
     value_cache: _LayerValueCache,
     cache_dir: Path,
@@ -2538,7 +2662,8 @@ def _compute_categorical_download(
     """Load a categorical layer once and compute one class-overlap metric."""
     layer_id = definition.layer_id or ""
     try:
-        layer_url = _resolve_layer_url(manifest, layer_id)
+        binding = _resolve_layer_binding(manifest, solution, layer_id)
+        layer_url = _resolve_layer_url(manifest, solution, layer_id)
     except ManifestError as exc:
         return _metric_value(
             definition,
@@ -2555,8 +2680,9 @@ def _compute_categorical_download(
             raster.fingerprint,
             cache_dir,
             force_download,
+            expected_sha256=binding.get("sha256"),
         )
-    except (RasterError, OSError) as exc:
+    except (AlignmentError, DownloadError, RasterError, OSError) as exc:
         return _metric_value(
             definition,
             value=None,
@@ -2576,6 +2702,7 @@ def _compute_categorical_download(
 def _compute_weighted_download(
     definition: MetricDefinition,
     raster: SolutionRaster,
+    solution: dict[str, Any],
     manifest: ResolvedManifest,
     value_cache: _LayerValueCache,
     cache_dir: Path,
@@ -2584,7 +2711,8 @@ def _compute_weighted_download(
     """Download (or retrieve cached) continuous layer values and compute weighted metric."""
     layer_id = definition.layer_id or ""
     try:
-        layer_url = _resolve_layer_url(manifest, layer_id)
+        binding = _resolve_layer_binding(manifest, solution, layer_id)
+        layer_url = _resolve_layer_url(manifest, solution, layer_id)
     except ManifestError as exc:
         return _metric_value(
             definition,
@@ -2596,9 +2724,14 @@ def _compute_weighted_download(
 
     try:
         values = value_cache.get(
-            layer_id, layer_url, raster.fingerprint, cache_dir, force_download
+            layer_id,
+            layer_url,
+            raster.fingerprint,
+            cache_dir,
+            force_download,
+            expected_sha256=binding.get("sha256"),
         )
-    except (RasterError, OSError) as exc:
+    except (AlignmentError, DownloadError, RasterError, OSError) as exc:
         return _metric_value(
             definition,
             value=None,
@@ -3190,6 +3323,35 @@ def _metrics_for_domain(domain: SolutionDomain) -> tuple[MetricDefinition, ...]:
     )
 
 
+def _sirap_intersecting_boundaries(
+    boundaries_by_level: dict[str, list[BoundaryFeature]],
+    raster: SolutionRaster,
+    boundary_mask_cache: BoundaryMaskCache,
+) -> tuple[dict[str, list[BoundaryFeature]], dict[str, list[np.ndarray]]]:
+    """Keep only IGAC administrative boundaries with packet-valid grid support."""
+    filtered: dict[str, list[BoundaryFeature]] = {}
+    masks: dict[str, list[np.ndarray]] = {}
+    for level in ("departments", "municipalities"):
+        included: list[BoundaryFeature] = []
+        included_masks: list[np.ndarray] = []
+        for feature in boundaries_by_level.get(level, []):
+            mask = boundary_mask_cache.get(
+                feature.geo_level,
+                feature.boundary_id,
+                feature.geometry,
+                raster.fingerprint,
+                source_crs=feature.source_crs,
+                source_sha256=feature.source_sha256,
+                geometry_sha256=feature.geometry_sha256,
+            )
+            if np.any(mask & raster.solution_data_valid_mask):
+                included.append(feature)
+                included_masks.append(mask)
+        filtered[level] = included
+        masks[level] = included_masks
+    return filtered, masks
+
+
 def _build_grouped_boundary_primitives(
     raster: SolutionRaster,
     indexes: dict[str, AnyBoundaryIndex],
@@ -3238,6 +3400,8 @@ def _build_grouped_boundary_primitives(
 
         overlap_areas: dict[str, np.ndarray] = {}
         for layer_id in binary_layer_ids:
+            if layer_id not in layer_masks:
+                continue
             active = raster.selected_mask & layer_masks[layer_id]
             overlap_areas[layer_id] = aggregate_boundary_weighted_sums(
                 index,
@@ -3251,7 +3415,7 @@ def _build_grouped_boundary_primitives(
         categorical_areas: dict[str, np.ndarray] = {}
         for definition in categorical_definitions:
             class_ids = _CATEGORICAL_CLASS_IDS.get(definition.metric_id)
-            if class_ids is None:
+            if class_ids is None or definition.layer_id not in layer_values:
                 continue
             values = layer_values[definition.layer_id or ""]
             active = (
@@ -3286,6 +3450,7 @@ def _grouped_metric_overrides(
     definitions: tuple[MetricDefinition, ...],
     primitives: _GroupedBoundaryPrimitives,
     boundary_index: int,
+    solution: dict[str, Any],
     manifest: ResolvedManifest,
 ) -> dict[str, dict[str, Any]]:
     """Assemble existing metric payloads from grouped scalar primitives."""
@@ -3335,6 +3500,8 @@ def _grouped_metric_overrides(
             "binary_overlap_percent_of_selected",
         }:
             layer_id = definition.layer_id or ""
+            if layer_id not in primitives.overlap_area_km2:
+                continue
             area = float(primitives.overlap_area_km2[layer_id][boundary_index])
             if definition.kind == "binary_overlap_percent_of_selected":
                 if overlap_percent_calculator(layer_id) is None:
@@ -3370,7 +3537,7 @@ def _grouped_metric_overrides(
                     source=f"raster:{layer_id}",
                 )
             else:
-                rendering = _layer_rendering(manifest, layer_id)
+                rendering = _layer_rendering(manifest, solution, layer_id)
                 value_type = str(rendering.get("valueType") or "unknown").lower()
                 present_rule = (
                     f"cells equal to selectedValue={rendering.get('selectedValue', 1)}"
@@ -3390,7 +3557,9 @@ def _grouped_metric_overrides(
         else:
             layer_id = definition.layer_id or ""
             value = primitives.categorical_area_km2.get(definition.metric_id)
-            if categorical_area_calculator(definition.metric_id) is None or value is None:
+            if value is None:
+                continue
+            if categorical_area_calculator(definition.metric_id) is None:
                 metric = _metric_value(
                     definition,
                     value=None,
@@ -3512,6 +3681,25 @@ def _build_metrics(
         ]
 
     for defn in computable_metrics():
+        missing_input_overrides = solution.get("_sirapMissingInputMetricOverrides")
+        if (
+            isinstance(missing_input_overrides, dict)
+            and defn.metric_id in missing_input_overrides
+        ):
+            results.append(missing_input_overrides[defn.metric_id])
+            continue
+        sirap_overrides = solution.get("_sirapPacketMetricOverrides")
+        if isinstance(sirap_overrides, dict) and defn.metric_id in sirap_overrides:
+            if subnational and defn.metric_id == "conservation_goals_met":
+                results.append(_not_applicable(defn))
+            elif not subnational:
+                results.append(sirap_overrides[defn.metric_id])
+            else:
+                # Packet-wide richness is not valid for a nested boundary; let
+                # the scope-specific SMSP accumulator compute the metric below.
+                pass
+            if not subnational or defn.metric_id == "conservation_goals_met":
+                continue
         if domain not in defn.applicable_domains:
             results.append(_wrong_domain_metric(defn, domain))
             continue
@@ -3521,6 +3709,38 @@ def _build_metrics(
             continue
 
         if is_species_metric_kind(defn.kind):
+            if is_sirap_solution(solution):
+                if species_metrics is None:
+                    results.append(
+                        _metric_value(
+                            defn,
+                            value=None,
+                            status="derivation_needed",
+                            notes=(
+                                "Regional SMSP species matrix execution is unavailable; "
+                                "national species sources are forbidden."
+                            ),
+                            source="regionalInputPacket.species",
+                        )
+                    )
+                    continue
+                metric = _compute_species_metric(
+                    defn,
+                    species_metrics,
+                    species_target_policy
+                    or SpeciesTargetPolicy("scalar", None, {}, None),
+                )
+                metric["source"] = "regionalInputPacket.species"
+                metric["notes"] = (
+                    f"{metric.get('notes') or ''} Computed only from packet-declared "
+                    "SMSP cells within this scope."
+                ).strip()
+                metric["details"] = {
+                    **(metric.get("details") or {}),
+                    "matrices": solution.get("_sirapPacketSpeciesProvenance", []),
+                }
+                results.append(metric)
+                continue
             policy = species_target_policy or SpeciesTargetPolicy(
                 "scalar", None, {}, None
             )
@@ -3555,6 +3775,20 @@ def _build_metrics(
             continue
 
         if defn.kind in _NATIONAL_ONLY_KINDS:
+            if is_sirap_solution(solution):
+                results.append(
+                    _metric_value(
+                        defn,
+                        value=None,
+                        status="derivation_needed",
+                        notes=(
+                            "Regional summary extraction is not yet implemented; "
+                            "national metadata sources are forbidden."
+                        ),
+                        source="regionalInputPacket.authoritativeSummary",
+                    )
+                )
+                continue
             if subnational:
                 results.append(_not_applicable(defn))
             elif defn.kind == "metadata_summary":
@@ -3589,7 +3823,7 @@ def _build_metrics(
         elif defn.kind in ("binary_overlap_area", "binary_overlap_percent_of_selected"):
             layer_id = defn.layer_id or ""
             if preloaded_layer_masks and layer_id in preloaded_layer_masks:
-                rendering = _layer_rendering(manifest, layer_id)
+                rendering = _layer_rendering(manifest, solution, layer_id)
                 results.append(
                     _compute_overlap_from_mask(
                         defn,
@@ -3603,6 +3837,7 @@ def _build_metrics(
                 metric, _ = _compute_overlap_download(
                     defn,
                     raster,
+                    solution,
                     manifest,
                     layer_cache,
                     cache_dir,
@@ -3626,6 +3861,7 @@ def _build_metrics(
                 metric, _ = _compute_categorical_download(
                     defn,
                     raster,
+                    solution,
                     manifest,
                     value_cache,
                     cache_dir,
@@ -3696,7 +3932,7 @@ def _build_metrics(
                     )
             else:
                 metric, _ = _compute_weighted_download(
-                    defn, raster, manifest, value_cache, cache_dir, force_download
+                    defn, raster, solution, manifest, value_cache, cache_dir, force_download
                 )
                 results.append(metric)
 
@@ -3719,8 +3955,169 @@ def _build_metrics(
 # ---------------------------------------------------------------------------
 
 
+_SIRAP_MISSING_INPUT_REASONS: dict[str, str] = {
+    "species_groups_protected": (
+        "Regional taxonomy/IUCN companion and target-semantics contract are absent; "
+        "packet SMSP matrices alone cannot support this metric."
+    ),
+    "threatened_species_secured": (
+        "Regional taxonomy/IUCN companion and target-semantics contract are absent; "
+        "packet SMSP matrices alone cannot support this metric."
+    ),
+    "carbon_storage_biomass": (
+        "No qualified regional above- plus below-ground biomass raster with units and "
+        "provenance is available; the delivered carbono raster is not semantically qualified."
+    ),
+    "agricultural_area": (
+        "No regional Level-1 land-cover raster and authoritative class 2 legend are available."
+    ),
+    "national_contribution": (
+        "Approved national reference denominator and definition contract are absent."
+    ),
+    "threatened_species_count": (
+        "Regional taxonomy/IUCN companion is absent; packet SMSP matrices alone cannot "
+        "reliably classify CR/EN/VU species."
+    ),
+    "species_pct_of_national": (
+        "Approved national non-fish species denominator and inclusion/exclusion contract are absent."
+    ),
+    "mangrove_coverage": "No regional mangrove presence/absence raster is available.",
+    "carbon_biomass_total": (
+        "No qualified regional above- plus below-ground biomass raster with units and "
+        "provenance is available; the delivered carbono raster is not semantically qualified."
+    ),
+    "soil_organic_carbon": (
+        "No separately identified qualified regional soil-organic-carbon raster with "
+        "units and provenance is available."
+    ),
+    "carbon_pct_of_national": (
+        "Qualified regional biomass input and approved national biomass denominator "
+        "contract are absent."
+    ),
+    "land_use_forests_and_semi_natural_areas_pct": (
+        "No regional Level-1 land-cover raster and authoritative class 3 legend are available."
+    ),
+    "land_use_agricultural_areas_pct": (
+        "No regional Level-1 land-cover raster and authoritative class 2 legend are available."
+    ),
+    "land_use_artificial_surfaces_pct": (
+        "No regional Level-1 land-cover raster and authoritative class 1 legend are available."
+    ),
+    "land_use_wetlands_pct": (
+        "No regional Level-1 land-cover raster and authoritative class 4 legend are available."
+    ),
+    "land_use_water_bodies_pct": (
+        "No regional Level-1 land-cover raster and authoritative class 5 legend are available."
+    ),
+    "national_parks_pct": (
+        "The regional RUNAP raster is binary presence-only and cannot distinguish "
+        "category 3 / Parque Nacional Natural."
+    ),
+}
+
+
+def _sirap_missing_input_metric_overrides() -> dict[str, dict[str, Any]]:
+    """Return explicit blocked metrics for known SIRAP packet input gaps."""
+    definitions = {definition.metric_id: definition for definition in METRIC_CATALOG}
+    return {
+        metric_id: _metric_value(
+            definitions[metric_id],
+            value=None,
+            status="blocked",
+            notes=reason,
+            source="regionalInputPacket.missingInputAuthority",
+        )
+        for metric_id, reason in _SIRAP_MISSING_INPUT_REASONS.items()
+    }
+
+
+def _sirap_packet_metric_overrides(
+    solution: dict[str, Any],
+    raster: SolutionRaster,
+    cache_dir: Path,
+    force_download: bool,
+) -> dict[str, dict[str, Any]]:
+    """Build packet-wide SIRAP metrics that cannot be attributed to a boundary."""
+    packet = solution["regionalInputPacket"]
+    overrides: dict[str, dict[str, Any]] = {}
+    try:
+        summary, download = read_summary(
+            packet["authoritativeSummary"], cache_dir, force=force_download
+        )
+        overrides["conservation_goals_met"] = _metric_value(
+            next(metric for metric in METRIC_CATALOG if metric.metric_id == "conservation_goals_met"),
+            value=summary.targets_met_pct,
+            status="ready" if summary.targets_met_pct is not None else "derivation_needed",
+            notes=(
+                f"{summary.met_target_count} of {summary.target_count} targeted summary rows met."
+                if summary.targets_met_pct is not None
+                else "Regional summary contains no targetable rows."
+            ),
+            source="regionalInputPacket.authoritativeSummary",
+            details={"url": download.url, "sha256": download.sha256},
+        )
+    except (DownloadError, OSError, ValueError) as exc:
+        definition = next(
+            metric for metric in METRIC_CATALOG if metric.metric_id == "conservation_goals_met"
+        )
+        overrides["conservation_goals_met"] = _metric_value(
+            definition,
+            value=None,
+            status="derivation_needed",
+            notes=f"Regional authoritative summary unavailable: {exc}",
+            source="regionalInputPacket.authoritativeSummary",
+        )
+
+    try:
+        counts, provenance = regional_species_richness(
+            packet["species"]["matrices"],
+            raster,
+            packet["grid"]["sha256"],
+            cache_dir,
+            force=force_download,
+        )
+        declared_buckets = {
+            bucket
+            for matrix in packet["species"]["matrices"]
+            if (bucket := class_bucket(matrix["taxonomicClass"])) is not None
+        }
+        for definition in METRIC_CATALOG:
+            bucket = definition.species_bucket
+            if bucket is None:
+                continue
+            if bucket not in declared_buckets:
+                overrides[definition.metric_id] = _metric_value(
+                    definition,
+                    value=None,
+                    status="derivation_needed",
+                    notes=f"Packet declares no SMSP matrix for the {bucket} class.",
+                    source="regionalInputPacket.species",
+                )
+                continue
+            overrides[definition.metric_id] = _metric_value(
+                definition,
+                value=counts[bucket],
+                status="ready",
+                notes=f"Counted selected species from packet-declared {bucket} SMSP matrices.",
+                source="regionalInputPacket.species",
+                details={"matrices": provenance},
+            )
+    except (DownloadError, OSError, SparseFormatError, ValueError, IndexError) as exc:
+        for definition in METRIC_CATALOG:
+            if definition.species_bucket is not None:
+                overrides[definition.metric_id] = _metric_value(
+                    definition,
+                    value=None,
+                    status="derivation_needed",
+                    notes=f"Regional SMSP execution unavailable: {exc}",
+                    source="regionalInputPacket.species",
+                )
+    return overrides
+
+
 def _preload_layer_masks(
     raster: SolutionRaster,
+    solution: dict[str, Any],
     manifest: ResolvedManifest,
     layer_cache: _LayerMaskCache,
     cache_dir: Path,
@@ -3746,8 +4143,9 @@ def _preload_layer_masks(
     masks: dict[str, np.ndarray] = {}
     for layer_id in mask_layer_ids:
         try:
-            url = _resolve_layer_url(manifest, layer_id)
-            rendering = _layer_rendering(manifest, layer_id)
+            binding = _resolve_layer_binding(manifest, solution, layer_id)
+            url = _resolve_layer_url(manifest, solution, layer_id)
+            rendering = _layer_rendering(manifest, solution, layer_id)
             masks[layer_id] = layer_cache.get(
                 layer_id,
                 url,
@@ -3757,16 +4155,18 @@ def _preload_layer_masks(
                 force_download,
                 allow_sparse=domain == "land",
                 sparse_binding=_layer_sparse_binding(manifest, layer_id, url),
+                expected_sha256=binding.get("sha256"),
             )
-        except (AlignmentError, ManifestError, RasterError, OSError) as exc:
-            raise AlignmentError(
-                f"Required mask layer {layer_id!r} could not be loaded: {exc}"
-            ) from exc
+        except (AlignmentError, DownloadError, ManifestError, RasterError, OSError):
+            # _build_metrics reports the affected metric as blocked. This permits
+            # partial regional packets without substituting national layers.
+            continue
     return masks
 
 
 def _preload_layer_values(
     raster: SolutionRaster,
+    solution: dict[str, Any],
     manifest: ResolvedManifest,
     value_cache: _LayerValueCache,
     cache_dir: Path,
@@ -3790,14 +4190,18 @@ def _preload_layer_values(
     arrays: dict[str, np.ndarray] = {}
     for layer_id in value_layer_ids:
         try:
-            url = _resolve_layer_url(manifest, layer_id)
+            binding = _resolve_layer_binding(manifest, solution, layer_id)
+            url = _resolve_layer_url(manifest, solution, layer_id)
             arrays[layer_id] = value_cache.get(
-                layer_id, url, raster.fingerprint, cache_dir, force_download
+                layer_id,
+                url,
+                raster.fingerprint,
+                cache_dir,
+                force_download,
+                expected_sha256=binding.get("sha256"),
             )
-        except (AlignmentError, ManifestError, RasterError, OSError) as exc:
-            raise AlignmentError(
-                f"Required value layer {layer_id!r} could not be loaded: {exc}"
-            ) from exc
+        except (AlignmentError, DownloadError, ManifestError, RasterError, OSError):
+            continue
     return arrays
 
 
@@ -3843,9 +4247,11 @@ def _process_solution(
     basename = solution_blob_basename(solution)
     solution_id = str(solution.get("id"))
     domain = solution_domain(solution)
+    packet_identity = regional_packet_identity(solution)
     started = time.time()
     usage_started = resource.getrusage(resource.RUSAGE_SELF)
     phase_seconds: dict[str, float] = {}
+    species_accumulator: SpeciesAccumulator | None = precomputed_species_accumulator
     fanout_mode = boundary_fanout_mode or _boundary_fanout_mode()
     fanout_identity = boundary_fanout_identity(fanout_mode)
     weighted_mode = (
@@ -3857,6 +4263,12 @@ def _process_solution(
             f"{_WEIGHTED_BOUNDARY_FANOUT_ENV}=grouped-weighted-v1 requires "
             f"{_BOUNDARY_FANOUT_ENV}=grouped."
         )
+    effective_target_policy = species_target_policy or SpeciesTargetPolicy(
+        "scalar",
+        resolve_solution_species_target_percent(solution),
+        {},
+        None,
+    )
 
     download = raster_download or cached_download(
         _solution_raster_source_url(solution),
@@ -3869,7 +4281,33 @@ def _process_solution(
             f"Solution {solution_id!r} has zero valid cells at national scope."
         )
     target_grid_sha256 = grid_sha256(raster.fingerprint)
+    if packet_identity is not None and packet_identity["gridSha256"] != target_grid_sha256:
+        raise AlignmentError(
+            f"SIRAP solution {solution_id!r} grid SHA-256 does not match its "
+            "regionalInputPacket grid pin."
+        )
+    if packet_identity is not None:
+        solution["_sirapPacketMetricOverrides"] = _sirap_packet_metric_overrides(
+            solution, raster, cache_dir, force_download
+        )
+        solution["_sirapMissingInputMetricOverrides"] = (
+            _sirap_missing_input_metric_overrides()
+        )
     validity_mask_sha256 = boolean_mask_sha256(raster.solution_data_valid_mask)
+    active_boundaries_by_level = boundaries_by_level
+    packet_boundary_masks: dict[str, list[np.ndarray]] = {}
+    if packet_identity is not None and not national_only:
+        active_boundaries_by_level, packet_boundary_masks = _sirap_intersecting_boundaries(
+            boundaries_by_level,
+            raster,
+            boundary_mask_cache,
+        )
+        print(
+            "[tier1-metrics]   SIRAP boundary inclusion: "
+            f"departments={len(active_boundaries_by_level['departments'])}, "
+            f"municipalities={len(active_boundaries_by_level['municipalities'])} "
+            "(pixel-center intersects packet validity mask)"
+        )
     if alignment_provenance is not None:
         expected_grid_sha256 = alignment_provenance.get("targetGridSha256")
         observed_grid_sha256 = grid_sha256(raster.fingerprint)
@@ -3891,11 +4329,11 @@ def _process_solution(
     boundary_indexes: dict[str, AnyBoundaryIndex] = {}
     topology_cache_hit = False
     setup_started = time.time()
-    if not national_only and boundaries_by_level:
+    if not national_only and active_boundaries_by_level:
         if fanout_mode == "grouped":
             topology_cache = boundary_topology_cache or BoundaryTopologyCache()
             boundary_indexes, topology_cache_hit = topology_cache.get(
-                boundaries_by_level,
+                active_boundaries_by_level,
                 raster.fingerprint,
             )
             topology_bytes = sum(
@@ -3924,19 +4362,38 @@ def _process_solution(
             )
         else:
             print("[tier1-metrics]   rasterizing boundaries…")
-            boundary_mask_cache.precompute_all(boundaries_by_level, raster.fingerprint)
+            boundary_mask_cache.precompute_all(active_boundaries_by_level, raster.fingerprint)
             # Reuse boundary-id grids only among solutions with the same reference grid.
             if boundary_grid_cache is not None:
                 boundary_grids = boundary_grid_cache.get(
-                    boundaries_by_level,
+                    active_boundaries_by_level,
                     raster.fingerprint,
                     boundary_mask_cache,
                 )
     phase_seconds["boundarySetup"] = time.time() - setup_started
+    if packet_identity is not None:
+        if fanout_mode != "grouped" or not boundary_indexes:
+            raise ValueError(
+                "SIRAP SMSP aggregation requires non-empty grouped boundary topology."
+            )
+        species_started = time.time()
+        species_accumulator, species_provenance = regional_species_accumulator(
+            solution["regionalInputPacket"]["species"]["matrices"],
+            raster,
+            packet_identity["gridSha256"],
+            boundary_indexes,
+            cache_dir,
+            force=force_download,
+            target_policy=effective_target_policy,
+        )
+        solution["_sirapPacketSpeciesProvenance"] = species_provenance
+        species_pool_sizes = species_accumulator.pool_sizes
+        phase_seconds["species"] = time.time() - species_started
 
     provenance = build_metrics_provenance(
         domain,
         national_only=national_only,
+        regional_packet=is_sirap_solution(solution),
         skip_species=skip_species,
         skip_species_boundary_levels=skip_species_boundary_levels or set(),
         species_csv_url=species_csv_url,
@@ -3954,7 +4411,6 @@ def _process_solution(
     )
 
     # --- Species pass: compute counters across all scopes for this solution ---
-    species_accumulator: SpeciesAccumulator | None = precomputed_species_accumulator
     effective_species_runtime = (
         {
             **species_execution_runtime,
@@ -3968,6 +4424,7 @@ def _process_solution(
     if (
         species_accumulator is None
         and domain == "land"
+        and not is_sirap_solution(solution)
         and not skip_species
         and species_records
         and species_pool_sizes
@@ -4071,7 +4528,7 @@ def _process_solution(
                 "solutionEquivalentSeconds": phase_seconds["species"],
             }
         )
-    elif species_accumulator is not None:
+    elif species_accumulator is not None and "species" not in phase_seconds:
         phase_seconds["species"] = float(
             (effective_species_runtime or {}).get("solutionEquivalentSeconds", 0.0)
         )
@@ -4083,9 +4540,6 @@ def _process_solution(
         )
         if species_accumulator and species_pool_sizes
         else None
-    )
-    effective_target_policy = species_target_policy or SpeciesTargetPolicy(
-        "scalar", None, {}, None
     )
     national_metrics = _build_metrics(
         raster,
@@ -4122,7 +4576,7 @@ def _process_solution(
     }
 
     # --- Sub-national levels ---
-    if not national_only and boundaries_by_level:
+    if not national_only and active_boundaries_by_level:
         definitions = _metrics_for_domain(domain)
         # Preload dense masks once per solution. Eligible sparse sidecars only
         # optimize validated source loading before dense mask materialization.
@@ -4149,6 +4603,7 @@ def _process_solution(
         layer_preparation_started = time.perf_counter()
         layer_masks = _preload_layer_masks(
             raster,
+            solution,
             manifest,
             layer_cache,
             cache_dir,
@@ -4157,6 +4612,7 @@ def _process_solution(
         )
         layer_values = _preload_layer_values(
             raster,
+            solution,
             manifest,
             value_cache,
             cache_dir,
@@ -4183,14 +4639,19 @@ def _process_solution(
         )
         weighted_fanout: WeightedFanoutResult | None = None
         prepared_weighted_layers: dict[str, PreparedWeightedLayer] = {}
-        if weighted_mode == "grouped-weighted-v1" and has_weighted_metrics:
+        if (
+            weighted_mode == "grouped-weighted-v1"
+            and has_weighted_metrics
+            and not is_sirap_solution(solution)
+        ):
             specs = approved_weighted_specs(definitions)
             active_weighted_cache = (
                 weighted_layer_cache or ImmutableWeightedLayerCache()
             )
             weighted_prepare_started = time.perf_counter()
             for layer_id in sorted({spec.layer_id for spec in specs}):
-                source_url = _resolve_layer_url(manifest, layer_id)
+                binding = _resolve_layer_binding(manifest, solution, layer_id)
+                source_url = _resolve_layer_url(manifest, solution, layer_id)
                 units = next(
                     spec.unit
                     for spec in specs
@@ -4204,6 +4665,7 @@ def _process_solution(
                     force_download,
                     active_weighted_cache,
                     value_units=units,
+                    expected_sha256=binding.get("sha256"),
                 )
                 prepared_weighted_layers[layer_id] = prepared
             phase_seconds["weightedLayerPreparation"] = (
@@ -4221,7 +4683,7 @@ def _process_solution(
         weighted_fallback = has_weighted_metrics and weighted_fanout is None
         boundary_output_started = time.time()
 
-        for geo_level, features in boundaries_by_level.items():
+        for geo_level, features in active_boundaries_by_level.items():
             level_out: dict[str, Any] = {}
             fanout = (
                 boundary_indexes.get(geo_level)
@@ -4240,6 +4702,7 @@ def _process_solution(
                         definitions,
                         grouped_level,
                         boundary_index,
+                        solution,
                         manifest,
                     )
                     if weighted_fanout is not None:
@@ -4349,7 +4812,7 @@ def _process_solution(
             scope_catalog=[["colombia", "Colombia"]],
             generated_at=generated_at,
         )
-        for level, features in boundaries_by_level.items():
+        for level, features in active_boundaries_by_level.items():
             if level not in species_accumulator.sub:
                 continue
             species_detail_sink.write_partition_streaming(
@@ -4446,6 +4909,7 @@ def _process_solution(
         national_only=national_only,
         domain=domain,
         skip_species=skip_species,
+        regional_packet=is_sirap_solution(solution),
     )
     phase_seconds["output"] = time.time() - output_started
     if effective_species_runtime is not None:
@@ -4516,7 +4980,7 @@ def _process_solution(
             **fanout_identity,
             "topologyCacheHit": topology_cache_hit if fanout_mode == "grouped" else None,
             "weightedFallback": weighted_fallback
-            if not national_only and boundaries_by_level
+            if not national_only and active_boundaries_by_level
             else False,
             "phaseSeconds": {
                 key: round(value, 2) for key, value in phase_seconds.items()
@@ -4578,6 +5042,8 @@ def _run_coverage_parity_gate(
     ]
     for matrix in args.coverage_parity_species_matrix:
         command.extend(["--species-matrix", str(matrix)])
+    for species_class in args.coverage_parity_species_class:
+        command.extend(["--species-class", species_class])
     completed = subprocess.run(
         command,
         cwd=Path(__file__).resolve().parents[4],
@@ -4718,7 +5184,7 @@ def main(argv: list[str] | None = None) -> int:
         f"({domain_counts['land']} land, {domain_counts['marine']} marine)"
     )
 
-    missing_layers = _validate_required_layers(manifest)
+    missing_layers = _validate_required_layers(manifest, catalog_solutions)
     if missing_layers:
         print(
             f"[tier1-metrics] WARNING: missing displayUrl for layers: {missing_layers}. "
@@ -4759,6 +5225,16 @@ def main(argv: list[str] | None = None) -> int:
                 release_plan=args.release_plan,
             )
     except (ManifestError, SolutionCatalogError) as exc:
+        print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        _validate_sirap_execution_mode(
+            selected_solutions,
+            national_only=args.national_only,
+            boundary_fanout_mode=fanout_mode,
+        )
+    except ValueError as exc:
         print(f"[tier1-metrics] ERROR: {exc}", file=sys.stderr)
         return 2
 
@@ -4815,7 +5291,10 @@ def main(argv: list[str] | None = None) -> int:
     species_pool_sizes: SpeciesPoolSizes | None = None
     species_goals_catalog: dict[str, Any] | None = None
     if (
-        any(solution_domain(solution) == "land" for solution in selected_solutions)
+        any(
+            solution_domain(solution) == "land" and not is_sirap_solution(solution)
+            for solution in selected_solutions
+        )
         and not args.skip_species
     ):
         try:
@@ -4912,7 +5391,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skip_species:
         try:
             for solution in selected_solutions:
-                if solution_domain(solution) != "land":
+                if solution_domain(solution) != "land" or is_sirap_solution(solution):
                     continue
                 species_target_policies[str(solution.get("id"))] = (
                     resolve_species_target_policy(
@@ -4931,7 +5410,11 @@ def main(argv: list[str] | None = None) -> int:
     print("[tier1-metrics] preflight: warming aligned input cache")
     alignment_cache, alignment_provenance, alignment_failures = (
         _preflight_aligned_inputs(
-            selected_solutions,
+            [
+                solution
+                for solution in selected_solutions
+                if not is_sirap_solution(solution)
+            ],
             preflight_downloads,
             manifest,
             cache_dir=args.cache_dir,
@@ -5224,6 +5707,7 @@ def main(argv: list[str] | None = None) -> int:
             expected_provenance = build_metrics_provenance(
                 solution_domain(solution),
                 national_only=args.national_only,
+                regional_packet=is_sirap_solution(solution),
                 skip_species=args.skip_species,
                 skip_species_boundary_levels=set(args.skip_species_boundary_level),
                 species_csv_url=args.species_csv_url,
@@ -5463,7 +5947,8 @@ def main(argv: list[str] | None = None) -> int:
 
     species_load_error: str | None = None
     has_pending_land = any(
-        solution_domain(solution) == "land" for solution in pending_solutions
+        solution_domain(solution) == "land" and not is_sirap_solution(solution)
+        for solution in pending_solutions
     )
     if has_pending_land and not args.skip_species:
         if species_records is None or species_pool_sizes is None:

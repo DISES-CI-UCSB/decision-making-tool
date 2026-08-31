@@ -243,6 +243,7 @@ def _inspect_doc(solution_id: str, doc: dict[str, Any]) -> list[InspectIssue]:
                     national_only=bool(config.get("nationalOnly")),
                     domain=domain,
                     skip_species=bool(config.get("speciesSkipped")),
+                    regional_packet=bool(config.get("regionalPacket")),
                 )
             )
 
