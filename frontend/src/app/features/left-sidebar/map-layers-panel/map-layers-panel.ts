@@ -33,6 +33,7 @@ import {
   type RuntimeSpeciesManifestLayer,
   type Solution,
   type SolutionIdentitySummary,
+  resolveSolutionDisplayLabel,
 } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
@@ -560,7 +561,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         if (solution && speciesManifestUrl) {
           this.layerManifestService.preloadSpeciesManifest(speciesManifestUrl);
         }
-        this.syncPrimarySolutionOverlay(solution?.name ?? null);
+        this.syncPrimarySolutionOverlay(
+          solution ? this.resolveActiveSolutionDisplayName(solutionLabel) : null,
+        );
       });
     });
 
@@ -571,6 +574,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     effect(() => {
       const comparisonSolution = this.appState.comparisonSolution$();
+      const comparisonLabel = this.appState.comparisonSolutionLabel$();
       const vizMode = this.appState.comparisonVisualizationMode$();
       const rightSidebarMode = this.appState.rightSidebarMode$();
       untracked(() => {
@@ -595,7 +599,9 @@ export class MapLayersPanelComponent implements OnDestroy {
           return;
         }
 
-        this.syncComparisonSolutionOverlay(comparisonSolution.name);
+        this.syncComparisonSolutionOverlay(
+          this.resolveComparisonSolutionDisplayName(comparisonLabel),
+        );
         this.syncComparisonOverlapOverlay(comparisonSolution.name, vizMode === 'threeColorOverlay');
       });
     });
@@ -3658,11 +3664,25 @@ export class MapLayersPanelComponent implements OnDestroy {
     ];
   }
 
-  private syncPrimarySolutionOverlay(solutionName: string | null): void {
+  private resolveActiveSolutionDisplayName(customLabel: string | null): string {
+    return resolveSolutionDisplayLabel(
+      customLabel,
+      this.localizedText('mapLayersPanel.activeSolutionLabel'),
+    );
+  }
+
+  private resolveComparisonSolutionDisplayName(customLabel: string | null): string {
+    return resolveSolutionDisplayLabel(
+      customLabel,
+      this.localizedText('analysis.comparison.candidateLabel'),
+    );
+  }
+
+  private syncPrimarySolutionOverlay(displayName: string | null): void {
     this.overlays.update((rows) =>
       rows.map((row) =>
-        row.id === BASELINE_SOLUTION_OVERLAY_ID && solutionName
-          ? { ...row, name: solutionName }
+        row.id === BASELINE_SOLUTION_OVERLAY_ID && displayName
+          ? { ...row, name: displayName }
           : row,
       ),
     );
@@ -3708,8 +3728,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, false);
   }
 
-  private syncComparisonSolutionOverlay(solutionName: string | null): void {
-    if (!solutionName) {
+  private syncComparisonSolutionOverlay(displayName: string | null): void {
+    if (!displayName) {
       this.overlays.update((rows) =>
         rows.filter((row) => row.id !== CANDIDATE_SOLUTION_OVERLAY_ID),
       );
@@ -3726,7 +3746,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         hasCandidateOverlay = true;
         return {
           ...row,
-          name: solutionName,
+          name: displayName,
           selected: true,
           visible: true,
         };
@@ -3740,7 +3760,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         ...nextRows,
         {
           id: CANDIDATE_SOLUTION_OVERLAY_ID,
-          name: solutionName,
+          name: displayName,
           selected: true,
           visible: true,
           expanded: true,

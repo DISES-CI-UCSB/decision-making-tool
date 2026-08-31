@@ -149,6 +149,7 @@ import {
   MEC_BREAKDOWNS,
   resolveMecScopeSummary,
   resolveMecScopeIndex,
+  slugify,
   type MecBreakdownConfig,
   type MecBreakdownId,
   type MecCoverageRow,
@@ -574,7 +575,9 @@ export class PanelSwitcherComponent {
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
   protected readonly activeScenarioName = computed(
-    () => this.appState.activeSolutionLabel$()?.trim() || this.activeSolution()?.name,
+    () =>
+      this.appState.activeSolutionLabel$()?.trim() ||
+      this.localizedText('mapLayersPanel.activeSolutionLabel'),
   );
   protected readonly comparisonBaselineName = computed(
     () =>
@@ -702,12 +705,13 @@ export class PanelSwitcherComponent {
       return [];
     }
 
-    // Summary-goals rows are the canonical IAvH target universe. MEC remains
-    // supporting classification data until a Mesa-compatible sidecar is wired.
-    if (domain.featureType === 'ecosystems' && this.goalsModalEcosystemBreakdownId() !== 'iavh') {
+    if (domain.featureType === 'ecosystems') {
       const mecRows = this.goalsModalEcosystemRowsByView().get(
         this.goalsModalEcosystemBreakdown().view,
       );
+      if (this.goalsModalEcosystemBreakdownId() === 'iavh') {
+        return this.mergeGoalsModalEcosystemCoverage(document.features.ecosystems, mecRows);
+      }
       if (mecRows) {
         const relativeTarget = this.getGoalsModalEcosystemRelativeTarget();
         return mecRows.map((row) => this.toGoalsModalEcosystemRow(row, relativeTarget));
@@ -1996,6 +2000,37 @@ export class PanelSwitcherComponent {
         relativeHeld !== null &&
         relativeHeld >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_30,
     };
+  }
+
+  private mergeGoalsModalEcosystemCoverage(
+    features: GoalFeatureRow[],
+    mecRows: MecCoverageRow[] | undefined,
+  ): GoalsModalRow[] {
+    const goalRows = features.map((feature) => this.toGoalsModalRow(feature));
+    const mecDocument = this.goalsModalEcosystemMecDocument();
+    if (!mecRows || !mecDocument || !isMecCompactV2Document(mecDocument)) {
+      return goalRows;
+    }
+
+    const mecRowsByLabel = new Map(mecRows.map((row) => [slugify(row.label), row]));
+    return goalRows.map((goalRow) => {
+      const mecRow = mecRowsByLabel.get(slugify(goalRow.name));
+      if (!mecRow) {
+        return goalRow;
+      }
+
+      const coverageRow = this.toGoalsModalEcosystemRow(mecRow, goalRow.relativeTarget);
+      return {
+        ...goalRow,
+        relativeHeld: coverageRow.relativeHeld,
+        preExistingRelativeHeld: coverageRow.preExistingRelativeHeld,
+        newRelativeHeld: coverageRow.newRelativeHeld,
+        ecosystemAreaKm2: coverageRow.ecosystemAreaKm2,
+        solutionCoverageAreaKm2: coverageRow.solutionCoverageAreaKm2,
+        preExistingCoverageAreaKm2: coverageRow.preExistingCoverageAreaKm2,
+        newCoverageAreaKm2: coverageRow.newCoverageAreaKm2,
+      };
+    });
   }
 
   private getGoalsModalEcosystemRelativeTarget(): number | null {

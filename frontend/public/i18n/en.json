@@ -76,7 +76,7 @@
   },
   "mapLegend": {
     "title": "Legend",
-    "activeSolutionLabel": "Active scenario",
+    "activeSolutionLabel": "Active Scenario",
     "comparison": "Comparison",
     "solutionAFallback": "Scenario A",
     "solutionBFallback": "Scenario B",
@@ -1139,7 +1139,7 @@
         "targetTypeIntro": "Choose one or more of the following targets to conserve. Then, set a goal for the proportion of each selected target you would like to conserve.",
         "ecosystemsLabel": "Ecosystems",
         "ecosystemsHelp": "The tool will identify candidate areas that ensure that the selected proportion of each type of ecosystem is contained within existing and candidate conservation areas.",
-        "ecosystemsTechnicalHelp": "Uses detailed biome-region classes from Colombia's official MEC 2024 ecosystem data. A 17% or 30% coverage level means the solution tries to represent that share of each of 429 detailed Humboldt/IAvH classes, such as \"Hidrobioma Alto Caquetá\"; the left sidebar groups those classes into 8 broad biome families so the map stays readable.",
+        "ecosystemsTechnicalHelp": "Uses detailed biome-region classes from Colombia's official MEC 2024 ecosystem data. A 17% or 30% coverage level means the scenario tries to represent that share of each of 429 detailed Humboldt/IAvH classes, such as \"Hidrobioma Alto Caquetá\"; the left sidebar groups those classes into 8 broad biome families so the map stays readable.",
         "ecosystemsTechnicalHelpToggle": "Technical details about MEC ecosystem data",
         "ecosystemsSourceLabel": "Source: IDEAM MEC / Humboldt-IAvH (2024)",
         "ecosystemsSourceUrl": "https://www.ideam.gov.co/ecosistemas",
