@@ -56,6 +56,7 @@ describe('PanelSwitcherComponent', () => {
   >;
   let mecMetricsLoaderSpy: Pick<MecMetricsLoaderService, 'loadMecMetrics'>;
   let speciesGoalsLoaderSpy: Pick<SpeciesGoalsLoaderService, 'load'>;
+  let solutionGoalsLoaderSpy: Pick<SolutionGoalsLoaderService, 'loadGoals'>;
   let httpClientSpy: { get: ReturnType<typeof vi.fn> };
   let goalsDocument: SolutionGoalsDocument | null;
   let strategicOutcomesDocument: StrategicEcosystemOutcomesDocument | null;
@@ -114,6 +115,9 @@ describe('PanelSwitcherComponent', () => {
     speciesGoalsLoaderSpy = {
       load: vi.fn(() => of(buildHydratedSpeciesRecords(goalsDocument))),
     };
+    solutionGoalsLoaderSpy = {
+      loadGoals: vi.fn(() => of(goalsDocument)),
+    };
     httpClientSpy = {
       get: vi.fn(() =>
         of({
@@ -137,7 +141,7 @@ describe('PanelSwitcherComponent', () => {
         { provide: SpeciesGoalsLoaderService, useValue: speciesGoalsLoaderSpy },
         {
           provide: SolutionGoalsLoaderService,
-          useValue: { loadGoals: vi.fn(() => of(goalsDocument)) },
+          useValue: solutionGoalsLoaderSpy,
         },
         {
           provide: StrategicEcosystemOutcomesLoaderService,
@@ -264,10 +268,8 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#custom-aoi-species-inventory-modal')).toBeNull();
     expect(
-      fixture.nativeElement
-        .querySelector('#aoi-biodiversity-open-species-inventory-button')
-        ?.getAttribute('aria-expanded'),
-    ).toBe('false');
+      fixture.nativeElement.querySelector('#aoi-biodiversity-open-species-inventory-button'),
+    ).toBeNull();
     expect(apiServiceSpy.cancelDetailedSpeciesCoverageJob).toHaveBeenCalledWith(
       'panel-species-job',
     );
@@ -374,6 +376,16 @@ describe('PanelSwitcherComponent', () => {
     const solution = mockData.getSolutionById('sol-001');
     expect(solution).not.toBeNull();
     goalsDocument = buildGoalsDocument();
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution!.id,
+      domain: 'land',
+      precomputedMetricUrls: {
+        speciesGoalsCatalog: '/releases/test/species-goals/catalog.json',
+        speciesGoalsByGeography: {
+          municipalities: '/releases/test/species-goals/municipalities.json',
+        },
+      },
+    } as CatalogSolution);
     appState.activeSolution$.set({
       ...solution!,
       metadata: { ...solution!.metadata, domain: 'land' },
@@ -1644,6 +1656,206 @@ describe('PanelSwitcherComponent', () => {
       expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith('test-solution', 'siraps');
     },
   );
+
+  it('renders regional SIRAP species and ecosystem aggregates from its primary packet scope', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(buildRegionalSirapMetricsDocument(solution.id)),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'sirap:eje-cafetero',
+      name: 'SIRAP Eje Cafetero',
+      type: 'sirap',
+      geometryUrl: '/inputs/boundaries/sirap/production.geojson',
+      boundarySourceLayerKey: 'siraps',
+      boundarySourceId: 'aoi-siraps-combined-colombia',
+      boundaryGeometrySelection: 'whole-feature',
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('64');
+    expect(compiled.querySelector('#aoi-species-value-plants')?.textContent).toContain('1248');
+    expect(compiled.querySelector('#aoi-strategic-value-paramos')?.textContent).toContain('25%');
+    expect(
+      (fixture.componentInstance as unknown as { aoiMetrics(): MetricValue[] })
+        .aoiMetrics()
+        .map((metric) => metric.metricId),
+    ).toContain('ecosystem_coverage_paramo');
+  });
+
+  it('presents Vichada-like SIRAP AOI aggregates without MEC or species drilldown artifacts', async () => {
+    const solution = {
+      ...buildTestSolution(),
+      metadata: { ...buildTestSolution().metadata, domain: 'land' },
+    };
+    const document = buildRegionalSirapMetricsDocument(solution.id);
+    const metrics = document.geographies.sirap?.['eje-cafetero'].metrics ?? [];
+    replaceMetric(metrics, buildMetric('ecosystem_coverage_paramo', 0, 'km²', 'number'));
+    replaceMetric(metrics, buildUnavailableMetric('ecosystem_coverage_wetlands', 'blocked'));
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(of(document));
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'land',
+      scope: 'sirap',
+      precomputedMetricUrls: {},
+    } as CatalogSolution);
+    appLocale.setLocale('en');
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'sirap:eje-cafetero',
+      name: 'SIRAP Vichada',
+      type: 'sirap',
+      geometryUrl: '/inputs/boundaries/sirap/production.geojson',
+      boundarySourceLayerKey: 'siraps',
+      boundarySourceId: 'aoi-siraps-combined-colombia',
+      boundaryGeometrySelection: 'whole-feature',
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-sirap-biodiversity-context')?.textContent).toContain(
+      'analysis.aoi.sirapAggregate.speciesContext',
+    );
+    expect(compiled.querySelector('#aoi-sirap-ecosystem-aggregate-iavh')?.textContent).toContain(
+      '1.3K km²',
+    );
+    expect(compiled.querySelector('#aoi-sirap-ecosystem-aggregate-paramo')?.textContent).toContain(
+      '0 km²',
+    );
+    expect(
+      compiled.querySelector('#aoi-sirap-ecosystem-aggregate-status-wetlands')?.textContent,
+    ).toContain('blocked');
+    expect(compiled.querySelector('#aoi-mec-breakdown-select')).toBeNull();
+    expect(compiled.querySelector('#aoi-biodiversity-open-species-inventory-button')).toBeNull();
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+  });
+
+  it('keeps the species drilldown for departments with explicit artifacts', async () => {
+    const solution = {
+      ...buildTestSolution(),
+      metadata: { ...buildTestSolution().metadata, domain: 'land' },
+    };
+    goalsDocument = buildGoalsDocument();
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'land',
+      precomputedMetricUrls: {
+        speciesGoalsCatalog: '/releases/test/species-goals/catalog.json',
+        speciesGoalsByGeography: {
+          departments: '/releases/test/species-goals/departments.json',
+        },
+      },
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildMetaDepartmentAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector(
+      '#aoi-biodiversity-open-species-inventory-button',
+    ) as HTMLButtonElement;
+    expect(button).not.toBeNull();
+
+    button.click();
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'departments', '50');
+  });
+
+  it('renders authoritative SIRAP target progress without requesting unavailable breakouts', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(buildRegionalSirapMetricsDocument(solution.id)),
+    );
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      scope: 'sirap',
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.clearAOI();
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(
+      (
+        fixture.componentInstance as unknown as {
+          cachedMetricsDocument(): CachedSolutionMetricsDocument | null;
+        }
+      ).cachedMetricsDocument()?.primaryGeography,
+    ).toEqual({ level: 'sirap', scopeId: 'eje-cafetero' });
+    expect(
+      (
+        fixture.componentInstance as unknown as { isSirapPacketOverview(): boolean }
+      ).isSirapPacketOverview(),
+    ).toBe(true);
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-certified-badge')?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.certifiedBadge');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-result-value')?.textContent,
+    ).toContain('73%');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-iavh-total')?.textContent,
+    ).toContain('1.250 km²');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-dry-forest')?.textContent,
+    ).toContain('24 km²');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-species-mammals')?.textContent,
+    ).toContain('64');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-species-plants')?.textContent,
+    ).toContain('1.248');
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-widget-empty')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-view-species'),
+    ).toBeNull();
+    expect(solutionGoalsLoaderSpy.loadGoals).not.toHaveBeenCalled();
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
+  });
+
+  it('does not present pending or blocked SIRAP metrics as zero', async () => {
+    const solution = buildTestSolution();
+    const document = buildRegionalSirapMetricsDocument(solution.id);
+    const metrics = document.geographies.sirap?.['eje-cafetero'].metrics ?? [];
+    replaceMetric(metrics, buildUnavailableMetric('ecosystem_coverage_wetlands', 'blocked'));
+    replaceMetric(metrics, buildUnavailableMetric('species_richness_reptiles', 'pending'));
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(of(document));
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      scope: 'sirap',
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.clearAOI();
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-wetlands'),
+    ).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-species-reptiles')).toBeNull();
+  });
 
   it('blocks stale cached and MEC metrics for the outdated territorial source', async () => {
     const solution = buildTestSolution();
@@ -3501,6 +3713,51 @@ function buildCachedSirapMetricsDocument(
       },
     },
   };
+}
+
+function buildRegionalSirapMetricsDocument(solutionId: string): CachedSolutionMetricsDocument {
+  return {
+    solutionId,
+    generatedAt: '2026-08-29T00:00:00.000Z',
+    primaryGeography: { level: 'sirap', scopeId: 'eje-cafetero' },
+    geographies: {
+      national: { colombia: { metrics: [] } },
+      sirap: {
+        'eje-cafetero': {
+          name: 'SIRAP Eje Cafetero',
+          metrics: [
+            buildMetric('priority_area_in_region', 40, 'km²', 'number'),
+            buildMetric('conservation_goals_met', 73, '%', 'percent'),
+            buildMetric('ecosystem_coverage', 1_250, 'km²', 'number'),
+            buildMetric('ecosystem_coverage_paramo', 10, 'km²', 'number'),
+            buildMetric('ecosystem_coverage_dry_forest', 24, 'km²', 'number'),
+            buildMetric('ecosystem_coverage_wetlands', 18, 'km²', 'number'),
+            buildMetric('species_richness_mammals', 64, 'count', 'number'),
+            buildMetric('species_richness_birds', 412, 'count', 'number'),
+            buildMetric('species_richness_amphibians', 31, 'count', 'number'),
+            buildMetric('species_richness_reptiles', 47, 'count', 'number'),
+            buildMetric('species_richness_plants', 1_248, 'count', 'number'),
+          ],
+        },
+      },
+    },
+  };
+}
+
+function buildUnavailableMetric(
+  metricId: string,
+  status: Extract<MetricValue['status'], 'blocked' | 'pending'>,
+): MetricValue {
+  return {
+    ...buildMetric(metricId, 0, 'km²', 'number'),
+    value: null,
+    status,
+  };
+}
+
+function replaceMetric(metrics: MetricValue[], replacement: MetricValue): void {
+  const index = metrics.findIndex((metric) => metric.metricId === replacement.metricId);
+  metrics[index] = replacement;
 }
 
 function buildMetric(

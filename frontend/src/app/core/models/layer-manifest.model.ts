@@ -93,6 +93,35 @@ export interface RuntimeLayerManifest {
   solutions: RuntimeSolutionManifestEntry[];
 }
 
+/** Independently versioned, solution-only batch merged into the primary runtime manifest. */
+export interface RuntimeSirapManifest {
+  format: 'sirap-runtime-manifest-v1';
+  releaseId: string;
+  catalogVersion: string;
+  catalogSha256: string;
+  generatedAt: string;
+  publicBlobHost: string;
+  expectedSolutionCount: number;
+  expectedRegularArtifactCount: number;
+  solutions: RuntimeSolutionManifestEntry[];
+}
+
+/** Immutable runtime index that composes the complete app-visible solution inventory. */
+export interface RuntimeCatalogReleaseIndex {
+  format: 'runtime-catalog-release-v1';
+  catalogVersion: string;
+  releaseId: string;
+  generatedAt: string;
+  expectedSolutionCount: number;
+  batches: RuntimeCatalogReleaseBatch[];
+}
+
+export interface RuntimeCatalogReleaseBatch {
+  id: string;
+  manifestUrl: string;
+  expectedSolutionCount: number;
+}
+
 export interface RuntimeLayerManifestSubcategory {
   id: string;
   spanishLabel: string;

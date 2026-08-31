@@ -1214,6 +1214,76 @@ describe('FinderModalComponent', () => {
     expect([...regionSelect.options].map((option) => option.value)).toEqual(['', 'caribe']);
   });
 
+  it('lists only certified, accessible solutions for the selected SIRAP region', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.allowedSirapIds$.set(['eje-cafetero']);
+    catalog.getAll.mockReturnValue([
+      ...buildSirapSolutions('eje', 'Eje certified scenario', 'eje-cafetero', 40),
+      ...buildSirapSolutions('orinoquia', 'Orinoquía certified scenario', 'orinoquia', 16),
+      buildSolution({
+        id: 'national-1',
+        name: 'National scenario',
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosistemas'],
+        targetPercent: 17,
+        costLayerId: 'iheh_2022',
+        includeLayerIds: ['runap'],
+      }),
+    ]);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      selectScope: (scope: 'nacional' | 'sirap') => void;
+      selectSirapRegion: (event: Event) => void;
+      matchResults: { solutionId: string }[];
+    };
+
+    component.selectScope('sirap');
+    component.selectSirapRegion({ target: { value: 'eje-cafetero' } } as unknown as Event);
+
+    expect(component.matchResults).toHaveLength(40);
+    expect(component.matchResults.every((match) => match.solutionId.startsWith('eje-'))).toBe(true);
+  });
+
+  it('emits the selected certified SIRAP solution and clears it when region changes', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.allowedSirapIds$.set(['eje-cafetero', 'orinoquia']);
+    catalog.getAll.mockReturnValue([
+      buildSirapSolution('eje-1', 'Eje certified scenario', 'eje-cafetero'),
+      ...buildSirapSolutions('orinoquia', 'Orinoquía certified scenario', 'orinoquia', 16),
+    ]);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance as unknown as {
+      selectScope: (scope: 'nacional' | 'sirap') => void;
+      selectSirapRegion: (event: Event) => void;
+      selectCertifiedSirapSolution: (event: Event) => void;
+      selectedMatch: { solutionId: string } | null;
+      matchResults: { solutionId: string }[];
+      applySelectedSolution: () => void;
+    };
+    const solutionAppliedSpy = vi.spyOn(fixture.componentInstance.solutionApplied, 'emit');
+
+    component.selectScope('sirap');
+    component.selectSirapRegion({ target: { value: 'eje-cafetero' } } as unknown as Event);
+    component.selectCertifiedSirapSolution({ target: { value: 'eje-1' } } as unknown as Event);
+
+    expect((component as unknown as { canApplySolution: () => boolean }).canApplySolution()).toBe(
+      true,
+    );
+    component.applySelectedSolution();
+    expect(solutionAppliedSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ solutionId: 'eje-1' }),
+    );
+
+    component.selectSirapRegion({ target: { value: 'orinoquia' } } as unknown as Event);
+    expect(component.selectedMatch).toBeNull();
+    expect(component.matchResults).toHaveLength(16);
+
+    component.selectScope('nacional');
+    expect(component.selectedMatch).toBeNull();
+  });
+
   it('renders mandatory Ecosystems and explicit required Human Footprint years', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
@@ -1423,6 +1493,7 @@ function buildSolution(
   overrides: Pick<CatalogSolution, 'id' | 'name'> & {
     domain?: 'land' | 'marine';
     scope?: string;
+    sirapId?: string | null;
     targetFeatureSet: string;
     targetFeatureIds: string[];
     targetPercent: number | null;
@@ -1438,7 +1509,7 @@ function buildSolution(
     description: `${overrides.name} solution`,
     domain: overrides.domain ?? 'land',
     scope: overrides.scope ?? 'nacional',
-    sirapId: null,
+    sirapId: overrides.sirapId ?? null,
     displayUrl: `https://example.test/${overrides.name}.tif`,
     metadataUrl: `https://example.test/${overrides.name}.json`,
     rendering: {
@@ -1474,6 +1545,35 @@ function buildSolution(
     totalCost: 0,
     pctTargetsMet: 100,
   };
+}
+
+function buildSirapSolution(
+  id: string,
+  name: string,
+  sirapId: 'eje-cafetero' | 'orinoquia',
+): CatalogSolution {
+  return buildSolution({
+    id,
+    name,
+    scope: 'sirap',
+    sirapId,
+    targetFeatureSet: '',
+    targetFeatureIds: [],
+    targetPercent: 0,
+    costLayerId: '',
+    includeLayerIds: [],
+  });
+}
+
+function buildSirapSolutions(
+  idPrefix: string,
+  namePrefix: string,
+  sirapId: 'eje-cafetero' | 'orinoquia',
+  count: number,
+): CatalogSolution[] {
+  return Array.from({ length: count }, (_, index) =>
+    buildSirapSolution(`${idPrefix}-${index + 1}`, `${namePrefix} ${index + 1}`, sirapId),
+  );
 }
 
 function buildReleaseServiceTargets(targetPercent: 17 | 30) {

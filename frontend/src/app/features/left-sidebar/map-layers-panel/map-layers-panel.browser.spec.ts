@@ -131,6 +131,56 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
     expect(adminBoundaryVisibilitySync).toHaveBeenCalledWith('admin_departments', true);
   });
 
+  it('lists the active SIRAP context between its solution and Colombia outline', () => {
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', {
+      finder: {
+        scopeBar: {
+          regions: {
+            ejeCafetero: 'SIRAP Eje Cafetero',
+          },
+        },
+      },
+      mapLayersPanel: {
+        selectedLayersTitle: 'Displayed layers',
+        sourceLabels: {
+          selectedSolution: 'Selected scenario',
+          administrativeBoundaries: 'Administrative boundaries',
+        },
+        boundaryNames: {
+          colombiaOutline: 'Colombia Outline',
+        },
+      },
+    });
+    TestBed.inject(AppStateService).activeSolution$.set({
+      id: 'sirap-eje',
+      name: 'Eje scenario',
+      matchPercentage: 100,
+      geometryUrl: '',
+      metadata: { scope: 'sirap', sirapId: 'eje-cafetero' },
+      metrics: [],
+    } as Solution);
+    const fixture = TestBed.createComponent(MapLayersPanelComponent);
+    fixture.detectChanges();
+
+    const selectedRows = Array.from<Element>(
+      fixture.nativeElement.querySelectorAll(
+        '[id^="map-layers-selected-layer-row-"]',
+      ) as NodeListOf<Element>,
+    ).filter((row) => row.getAttribute('data-layer-id'));
+
+    expect(selectedRows.slice(0, 3).map((row) => row.getAttribute('data-layer-id'))).toEqual([
+      'overlay-conservation-solution',
+      'boundary-active_sirap',
+      'boundary-admin_country_outline',
+    ]);
+    expect(
+      fixture.nativeElement.querySelector(
+        '#map-layers-selected-layer-row-name-boundary-active_sirap',
+      )?.textContent,
+    ).toContain('SIRAP Eje Cafetero');
+  });
+
   it('removes displayed layers from the map when resetting defaults', async () => {
     const fixture = TestBed.createComponent(MapLayersPanelComponent);
     fixture.detectChanges();

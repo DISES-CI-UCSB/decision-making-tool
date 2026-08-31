@@ -269,6 +269,28 @@
         "taxaBreakdown": "Included species groups",
         "viewBreakdown": "View breakdown",
         "noTargetsSet": "No conservation domain was explicitly targeted in this scenario.",
+        "sirap": {
+          "certifiedBadge": "Certified SIRAP coverage",
+          "sourceCue": "Supplied regional packet",
+          "targetResult": "Packet target result",
+          "ecosystemCoverageTitle": "Ecosystem coverage in this SIRAP solution",
+          "speciesTitle": "Species represented in this SIRAP solution",
+          "ecosystems": {
+            "iavh": "IAvH total",
+            "paramo": "Páramo",
+            "dryForest": "Tropical dry forest",
+            "wetlands": "Wetlands"
+          },
+          "species": {
+            "mammals": "Mammals",
+            "birds": "Birds",
+            "amphibians": "Amphibians",
+            "reptiles": "Reptiles",
+            "plants": "Plants"
+          },
+          "detailsAvailabilityTitle": "Details availability",
+          "detailsAvailabilityDescription": "Detailed goal, MEC, and per-species breakouts are unavailable for this regional batch. The coverage values shown above remain supplied packet results."
+        },
         "additionalOutcomesHeading": "Additional outcomes",
         "additionalOutcomesDescription": "Measured coverage in domains that were not targeted by this scenario. The percentages are illustrative range-coverage checkpoints, not configured targets.",
         "strategicRasterDerivedMethod": "Post-hoc, raster-derived coverage; the 17% and 30% checkpoints are illustrative, not configured solver targets.",
@@ -747,6 +769,16 @@
         "wetlands": "Wetlands",
         "mangroves": "Mangroves"
       },
+      "sirapAggregate": {
+        "speciesContext": "Modeled species with positive regional packet range intersection in the selected priority area within this AOI. Counts are species counts, not target achievement.",
+        "ecosystemContext": "Selected priority-area overlap from the regional packet. These are aggregate areas, not a MEC breakdown, ecosystem composition, or target status.",
+        "iavh": "IAvH ecosystem classes",
+        "paramo": "Páramo",
+        "dryForest": "Tropical dry forest",
+        "wetlands": "Wetlands",
+        "blocked": "This overlap metric is blocked in the regional packet.",
+        "unavailable": "This overlap metric is not available in the regional packet."
+      },
       "strategic": {
         "description": "Share of this AOI's candidate area overlapping each strategic ecosystem layer.",
         "customDescription": "Share of this custom AOI overlapping each strategic ecosystem layer. Custom-AOI values describe polygon composition, not scenario candidate coverage."
@@ -1088,10 +1120,21 @@
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",
           "andesOccidentales": "SIRAP Andes Occidentales",
+          "ejeCafetero": "SIRAP Eje Cafetero",
           "andesNororientales": "SIRAP Andes Nororientales",
           "orinoquia": "SIRAP Orinoquía",
           "amazonia": "SIRAP Amazonía"
         }
+      },
+      "sirapCertified": {
+        "title": "Certified regional scenarios",
+        "help": "These supplied scenarios were certified by the science team for the selected SIRAP region. Choose one to view it on the map.",
+        "selectRegion": "Choose an authorized SIRAP region above to see its certified scenarios.",
+        "searchLabel": "Search certified scenarios",
+        "searchPlaceholder": "Search by scenario name or ID",
+        "listLabel": "Available certified scenarios",
+        "selectScenario": "— Select a certified scenario —",
+        "noResults": "No certified scenarios match this search."
       },
       "loading": "Finding scenario…",
       "stepPrefixes": {

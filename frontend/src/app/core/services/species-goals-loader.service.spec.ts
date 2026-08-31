@@ -26,9 +26,21 @@ describe('SpeciesGoalsLoaderService', () => {
   let http: HttpTestingController;
   let service: SpeciesGoalsLoaderService;
   let targetOverlayUrl: string | undefined;
+  let catalogSolution: CatalogSolution;
 
   beforeEach(() => {
     targetOverlayUrl = undefined;
+    catalogSolution = {
+      id: 'fixture',
+      precomputedMetricUrls: {
+        speciesGoalsCatalog: CATALOG_URL,
+        speciesGoalsByGeography: {
+          departments: COMPACT_URL,
+          national: NATIONAL_URL,
+        },
+        speciesGoalsTargetOverlay: targetOverlayUrl,
+      },
+    } as CatalogSolution;
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -37,18 +49,13 @@ describe('SpeciesGoalsLoaderService', () => {
         {
           provide: SolutionCatalogService,
           useValue: {
-            getById: () =>
-              ({
-                id: 'fixture',
-                precomputedMetricUrls: {
-                  speciesGoalsCatalog: CATALOG_URL,
-                  speciesGoalsByGeography: {
-                    departments: COMPACT_URL,
-                    national: NATIONAL_URL,
-                  },
-                  speciesGoalsTargetOverlay: targetOverlayUrl,
-                },
-              }) as CatalogSolution,
+            getById: () => ({
+              ...catalogSolution,
+              precomputedMetricUrls: {
+                ...catalogSolution.precomputedMetricUrls,
+                speciesGoalsTargetOverlay: targetOverlayUrl,
+              },
+            }),
           },
         },
       ],
@@ -206,6 +213,21 @@ describe('SpeciesGoalsLoaderService', () => {
     const result = await resultPromise;
     expect(result).toHaveLength(8_300);
     expect(result?.filter((row) => row.configured_target_percent !== null)).toHaveLength(8_001);
+  });
+
+  it('does not request absent species-goals artifacts for a SIRAP packet', async () => {
+    catalogSolution = {
+      id: 'sirap-orinoquia-estr17-cong17-sab17-runap-omec-iheh2030',
+      scope: 'sirap',
+      precomputedMetricUrls: {
+        compactCache: 'https://example.com/metrics/sirap/orinoquia.metrics.compact.json',
+      },
+    } as CatalogSolution;
+
+    await expect(
+      firstValueFrom(service.load(catalogSolution.id, 'siraps', 'orinoquia')),
+    ).resolves.toBeNull();
+    http.expectNone(() => true);
   });
 
   function flushCompletions(catalogSha256: string, compactSha256: string): void {

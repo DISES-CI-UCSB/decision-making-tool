@@ -5,7 +5,6 @@ import type {
   RuntimeSolutionManifestEntry,
 } from '@core/models/layer-manifest.model';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
-import { SIRAP_REGIONS } from '@core/models/sirap-access.model';
 import {
   getSolutionCostLabel,
   getSolutionIncludeFlags,
@@ -44,10 +43,7 @@ export class SolutionCatalogService {
         const nationalSolutions = (manifest.solutions ?? [])
           .filter((solution) => !isConflictCostSolution(solution))
           .map((solution) => this.toSolution(solution));
-        this.solutionsState.set([
-          ...nationalSolutions,
-          ...this.createDummySirapSolutions(nationalSolutions),
-        ]);
+        this.solutionsState.set(nationalSolutions);
         this.hasLoadedState.set(true);
         this.loadErrorState.set(null);
       },
@@ -135,26 +131,6 @@ export class SolutionCatalogService {
     }
 
     return constraints;
-  }
-
-  private createDummySirapSolutions(solutions: readonly CatalogSolution[]): CatalogSolution[] {
-    const landNationalSolutions = solutions.filter(
-      (solution) => solution.domain === 'land' && solution.scope === 'nacional',
-    );
-    return SIRAP_REGIONS.flatMap((region) =>
-      landNationalSolutions.map((solution) => ({
-        ...solution,
-        id: `demo-sirap-${region.id}-${solution.id}`,
-        name: `[Demo ${region.label}] ${solution.name}`,
-        description: `Dummy regional solution for authorization testing. ${solution.description}`,
-        scope: 'sirap',
-        sirapId: region.id,
-        finderInputs: {
-          ...solution.finderInputs,
-          scope: 'sirap',
-        },
-      })),
-    );
   }
 
   private canAccessSolution(solution: CatalogSolution): boolean {

@@ -171,6 +171,7 @@ export class App implements OnInit {
       metadata: {
         solutionId: solution.id,
         scope: solution.scope,
+        sirapId: solution.sirapId,
         rasterFile: solution.filename,
         metadataUrl: solution.metadataUrl,
       },

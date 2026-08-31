@@ -94,6 +94,33 @@ describe('cached-metrics.utils', () => {
     expect(nationalMetrics(document)[0].metricId).toBe('national_contribution');
   });
 
+  it('reads an explicit SIRAP primary scope instead of Colombia', () => {
+    const document = wrapFlatMetricsResponse({
+      solutionId: 'sirap-demo',
+      generatedAt: '2026-08-29T00:00:00Z',
+      metrics: [],
+    });
+    document.primaryGeography = { level: 'sirap', scopeId: 'eje-cafetero' };
+    document.geographies.sirap = {
+      'eje-cafetero': {
+        metrics: [
+          {
+            metricId: 'conservation_goals_met',
+            value: 88,
+            unit: '%',
+            status: 'ready',
+            source: 'regionalInputPacket.authoritativeSummary',
+            notes: null,
+            labelKey: 'metrics.conservation_goals_met',
+            formatHint: 'percent',
+          },
+        ],
+      },
+    };
+
+    expect(nationalMetrics(document)[0].value).toBe(88);
+  });
+
   it('reads scoped metrics for departments and municipalities', () => {
     const document = wrapFlatMetricsResponse({
       solutionId: 'demo',

@@ -185,6 +185,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   protected readonly savedSolutionScenarios = this.appState.savedSolutionScenarios$;
   protected readonly finderSelectionMemory = this.appState.finderSelectionMemory$;
   protected savedScenarioSearchQuery = '';
+  protected sirapSolutionSearchQuery = '';
   protected selectedDomain: PlanningDomain = 'land';
   protected selectedScope: 'nacional' | 'sirap' = 'nacional';
   protected selectedSirapRegion: SirapRegionId | null = null;
@@ -208,6 +209,11 @@ export class FinderModalComponent implements OnDestroy, OnInit {
         'Antioquia, Caldas, Cauca, Huila, Nariño, Quindío, Risaralda, Tolima, Valle del Cauca',
     },
     {
+      id: 'eje-cafetero',
+      labelKey: 'solutionControls.finder.scopeBar.regions.ejeCafetero',
+      departments: 'Caldas, Quindío, Risaralda',
+    },
+    {
       id: 'andes-nororientales',
       labelKey: 'solutionControls.finder.scopeBar.regions.andesNororientales',
       departments: 'Santander, Norte de Santander, Boyacá, Cundinamarca',
@@ -227,6 +233,50 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   protected accessibleSirapRegions(): readonly SirapRegionOption[] {
     const accessibleIds = this.appState.accessibleSirapIds();
     return this.sirapRegions.filter((region) => accessibleIds.includes(region.id));
+  }
+
+  protected isSirapSelection(): boolean {
+    return this.selectedDomain === 'land' && this.selectedScope === 'sirap';
+  }
+
+  protected certifiedSirapSolutions(): SolutionMatch[] {
+    if (!this.selectedSirapRegion) {
+      return [];
+    }
+
+    return this.solutionCatalog
+      .getAll()
+      .filter((solution) => this.userCanAccessSolution(solution))
+      .filter(
+        (solution) =>
+          this.getSolutionDomain(solution) === 'land' &&
+          normalizeSolutionToken(solution.finderInputs.scope || solution.scope) === 'sirap' &&
+          solution.sirapId === this.selectedSirapRegion,
+      )
+      .map((solution) => this.toSolutionMatch(solution));
+  }
+
+  protected filteredCertifiedSirapSolutions(): SolutionMatch[] {
+    const query = normalizeSolutionToken(this.sirapSolutionSearchQuery);
+    if (!query) {
+      return this.matchResults;
+    }
+
+    return this.matchResults.filter((solution) =>
+      normalizeSolutionToken(`${solution.name} ${solution.solutionId}`).includes(query),
+    );
+  }
+
+  protected updateSirapSolutionSearchQuery(query: string): void {
+    this.sirapSolutionSearchQuery = query;
+  }
+
+  protected selectCertifiedSirapSolution(event: Event): void {
+    const solutionId = (event.target as HTMLSelectElement).value;
+    const match =
+      this.matchResults.find((candidate) => candidate.solutionId === solutionId) ?? null;
+    this.selectedMatchId = match?.id ?? null;
+    this.selectedMatch = match;
   }
 
   /** Step 1 */
@@ -422,6 +472,11 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   protected runMatching(): void {
     this.clearLoadingTimer();
 
+    if (this.isSirapSelection()) {
+      this.runCertifiedSirapSelection();
+      return;
+    }
+
     if (!this.canRunMatching()) {
       this.clearResults();
       return;
@@ -448,7 +503,9 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     if (scope === this.selectedScope) return;
     this.selectedScope = scope;
     this.selectedSirapRegion = null;
+    this.sirapSolutionSearchQuery = '';
     this.clearSelections({ remember: true });
+    this.runMatching();
   }
 
   protected selectSirapRegion(event: Event): void {
@@ -456,7 +513,9 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     const accessibleIds = this.appState.accessibleSirapIds();
     this.selectedSirapRegion =
       isSirapRegionId(value) && accessibleIds.includes(value) ? value : null;
+    this.sirapSolutionSearchQuery = '';
     this.clearSelections({ remember: true });
+    this.runMatching();
   }
 
   protected updateSavedScenarioSearchQuery(query: string): void {
@@ -590,8 +649,9 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   protected canApplySolution(): boolean {
     return (
       this.matchState === 'ready' &&
-      this.matchResults.length === 1 &&
       this.selectedMatchId !== null &&
+      this.selectedMatch !== null &&
+      this.isSelectedMatchCurrentAndAccessible() &&
       !this.isSelectedMatchBaselineSolution()
     );
   }
@@ -628,6 +688,16 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   private clearResultsIfNeeded(): void {
     this.runMatching();
+  }
+
+  private runCertifiedSirapSelection(): void {
+    this.clearResults();
+    if (!this.selectedSirapRegion) {
+      return;
+    }
+
+    this.matchResults = this.certifiedSirapSolutions();
+    this.matchState = 'ready';
   }
 
   private restoreRememberedSelections(): void {
@@ -809,6 +879,14 @@ export class FinderModalComponent implements OnDestroy, OnInit {
       return this.marineSolutionMatchesSelection(solution);
     }
 
+    if (this.isSirapSelection()) {
+      return (
+        normalizeSolutionToken(solution.finderInputs.scope || solution.scope) === 'sirap' &&
+        solution.sirapId === this.selectedSirapRegion &&
+        this.userCanAccessSolution(solution)
+      );
+    }
+
     if (!this.solutionScopeMatchesSelection(solution)) {
       return false;
     }
@@ -970,6 +1048,21 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   private toSolutionMatchId(solutionId: string): string {
     return `solution-${solutionId.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  }
+
+  private isSelectedMatchCurrentAndAccessible(): boolean {
+    const selectedMatch = this.selectedMatch;
+    if (!selectedMatch) {
+      return false;
+    }
+
+    if (!this.isSirapSelection()) {
+      return true;
+    }
+
+    return this.certifiedSirapSolutions().some(
+      (candidate) => candidate.solutionId === selectedMatch.solutionId,
+    );
   }
 
   private clearLoadingTimer(): void {

@@ -42,6 +42,11 @@ interface BoundaryConfig {
   renderer?: Record<string, unknown>;
 }
 
+interface ActiveSirapBoundaryConfig extends BoundaryConfig {
+  sirapRegionId: string;
+  sirapBoundaryId: string;
+}
+
 interface HitTestCandidate {
   config: BoundaryConfig;
   attributes: Record<string, unknown>;
@@ -67,6 +72,7 @@ interface HoverHitTestRequest {
 }
 
 export type AdminBoundaryLayerKey =
+  | 'active_sirap'
   | 'siraps'
   | 'siraps_territorial'
   | 'siraps_territorial_updated'
@@ -86,6 +92,77 @@ const DEFAULT_ADMIN_BOUNDARY_HEX = '#6b7280';
 const DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR: BoundaryStyle['color'] = [107, 114, 128, 235];
 const AOI_HOVER_COLOR: BoundaryStyle['color'] = [250, 204, 21, 255];
 const AOI_SELECTION_COLOR: BoundaryStyle['color'] = [249, 115, 22, 255];
+const ACTIVE_SIRAP_BOUNDARY_COLOR: BoundaryStyle['color'] = [0, 0, 0, 255];
+const ACTIVE_SIRAP_BOUNDARY_WIDTH = 3;
+const ACTIVE_SIRAP_BOUNDARY_LAYER_ID = 'aoi-active-sirap-boundary';
+const ACTIVE_SIRAP_COUNTRY_OUTLINE_STYLE: BoundaryStyle = {
+  color: [107, 114, 128, 130],
+  width: 0.8,
+  style: 'solid',
+};
+const SIRAP_BOUNDARY_BY_REGION_ID: Record<
+  string,
+  Pick<ActiveSirapBoundaryConfig, 'layerKey' | 'sourceType' | 'url' | 'idFields' | 'nameFields'> & {
+    sirapBoundaryId: string;
+  }
+> = {
+  amazonia: {
+    layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
+    idFields: ['sirap_id'],
+    nameFields: ['sirap_name'],
+    sirapBoundaryId: 'territorial_territorial_amazonia_3',
+  },
+  'andes-nororientales': {
+    layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
+    idFields: ['sirap_id'],
+    nameFields: ['sirap_name'],
+    sirapBoundaryId: 'territorial_territorial_andes_nororientales_4',
+  },
+  'andes-occidentales': {
+    layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
+    idFields: ['sirap_id'],
+    nameFields: ['sirap_name'],
+    sirapBoundaryId: 'territorial_territorial_andes_occidentales_5',
+  },
+  caribe: {
+    layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
+    idFields: ['sirap_id'],
+    nameFields: ['sirap_name'],
+    sirapBoundaryId: 'territorial_territorial_caribe_6',
+  },
+  'eje-cafetero': {
+    layerKey: 'siraps_thematic',
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/${PRODUCTION_SIRAP_BOUNDARY_SOURCE.pathname}`,
+    idFields: ['sirap_id'],
+    nameFields: ['sirap_name'],
+    sirapBoundaryId: 'thematic_eje_cafetero_1',
+  },
+  orinoquia: {
+    layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
+    idFields: ['sirap_id'],
+    nameFields: ['sirap_name'],
+    sirapBoundaryId: 'territorial_territorial_orinoquia_7',
+  },
+  pacifico: {
+    layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
+    idFields: ['sirap_id'],
+    nameFields: ['sirap_name'],
+    sirapBoundaryId: 'territorial_territorial_pacifico_8',
+  },
+};
 export const COLOMBIA_OUTLINE_VISUAL_URL =
   `${PUBLIC_BLOB_HOST}/inputs/reference/colombia_outline_visual/` +
   'v0.1.0/colombia_outline_visual.geojson';
@@ -93,6 +170,11 @@ export const COLOMBIA_OUTLINE_VISUAL_URL =
 // has already tessellated, which avoids cloning large boundary polygons per move.
 const AOI_HOVER_HIGHLIGHT_NAME = 'aoi-hover';
 const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, BoundaryStyle> = {
+  active_sirap: {
+    color: ACTIVE_SIRAP_BOUNDARY_COLOR,
+    width: ACTIVE_SIRAP_BOUNDARY_WIDTH,
+    style: 'solid',
+  },
   siraps: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
   siraps_territorial: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'solid' },
   siraps_territorial_updated: {
@@ -267,6 +349,8 @@ export class AdminBoundaryService {
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private view: InstanceType<typeof ArcGISMapView> | null = null;
   private boundaryLayers: (FeatureLayer | GeoJSONLayer)[] = [];
+  private activeSirapBoundaryLayer: GeoJSONLayer | null = null;
+  private activeSirapBoundaryConfig: ActiveSirapBoundaryConfig | null = null;
   private supplementalHoverLayers: Layer[] = [];
   private aoiHoverLayer: GraphicsLayer | null = null;
   private aoiHighlightLayer: GraphicsLayer | null = null;
@@ -286,6 +370,7 @@ export class AdminBoundaryService {
   private hoveredFeatureKey: string | null = null;
   private unkeyedHoverCount = 0;
   private readonly defaultVisibilityByLayerKey: Record<AdminBoundaryLayerKey, boolean> = {
+    active_sirap: true,
     siraps: false,
     siraps_territorial: false,
     siraps_territorial_updated: false,
@@ -324,6 +409,10 @@ export class AdminBoundaryService {
         this.clearSelectionHighlight();
       }
     });
+    effect(() => {
+      this.appState.activeSolution$();
+      this.syncActiveSirapBoundary();
+    });
   }
 
   initialize(map: InstanceType<typeof ArcGISMap>, view: InstanceType<typeof ArcGISMapView>): void {
@@ -355,6 +444,7 @@ export class AdminBoundaryService {
       listMode: 'hide',
     });
     map.addMany([this.aoiHoverLayer, this.aoiHighlightLayer]);
+    this.syncActiveSirapBoundary();
     this.registerHoverHighlightOptions(view);
     for (const layer of this.boundaryLayers) {
       void view.whenLayerView(layer).catch((error: unknown) => {
@@ -389,6 +479,9 @@ export class AdminBoundaryService {
     if (map && this.boundaryLayers.length > 0) {
       map.removeMany(this.boundaryLayers);
     }
+    if (map && this.activeSirapBoundaryLayer) {
+      map.remove(this.activeSirapBoundaryLayer);
+    }
     if (map && this.aoiHoverLayer) {
       map.remove(this.aoiHoverLayer);
     }
@@ -399,6 +492,8 @@ export class AdminBoundaryService {
     this.map = null;
     this.view = null;
     this.boundaryLayers = [];
+    this.activeSirapBoundaryLayer = null;
+    this.activeSirapBoundaryConfig = null;
     this.supplementalHoverLayers = [];
     this.aoiHoverLayer = null;
     this.aoiHighlightLayer = null;
@@ -432,6 +527,9 @@ export class AdminBoundaryService {
 
   /** Returns ArcGIS layer IDs currently loaded for the given boundary layer key. */
   getLayerIdsByBoundaryKey(key: AdminBoundaryLayerKey): string[] {
+    if (key === 'active_sirap') {
+      return this.activeSirapBoundaryLayer ? [this.activeSirapBoundaryLayer.id] : [];
+    }
     const configIds = new Set(
       COLOMBIA_BOUNDARY_CONFIGS.filter((c) => c.layerKey === key).map((c) => c.id),
     );
@@ -439,6 +537,13 @@ export class AdminBoundaryService {
   }
 
   setLayerVisibility(target: AoiType | AdminBoundaryLayerKey, visible: boolean): void {
+    if (target === 'active_sirap') {
+      this.layerVisibilityByLayerKey$.update((state) => ({ ...state, active_sirap: visible }));
+      if (this.activeSirapBoundaryLayer) {
+        this.activeSirapBoundaryLayer.visible = visible;
+      }
+      return;
+    }
     const configs = this.getConfigsForTarget(target);
 
     if (visible) {
@@ -465,6 +570,7 @@ export class AdminBoundaryService {
       }
       this.keepInteractionHighlightsOnTop();
     }
+    this.syncActiveSirapBoundary();
   }
 
   toggleLayerVisibility(type: AoiType): void {
@@ -480,6 +586,22 @@ export class AdminBoundaryService {
       style?: AdminBoundaryLineStyle | null;
     },
   ): void {
+    if (target === 'active_sirap') {
+      const color = this.hexToRgba(options.color ?? '#000000');
+      this.boundaryStyleByLayerKey.update((state) => ({
+        ...state,
+        active_sirap: {
+          ...state.active_sirap,
+          color,
+          width: options.width ?? state.active_sirap.width,
+          style: options.style ?? state.active_sirap.style,
+        },
+      }));
+      if (this.activeSirapBoundaryLayer) {
+        this.activeSirapBoundaryLayer.renderer = this.getActiveSirapBoundaryRenderer() as never;
+      }
+      return;
+    }
     const configs = this.getConfigsForTarget(target);
     const color = this.hexToRgba(options.color ?? DEFAULT_ADMIN_BOUNDARY_HEX);
     this.boundaryStyleByLayerKey.update((state) =>
@@ -540,6 +662,104 @@ export class AdminBoundaryService {
     });
   }
 
+  private syncActiveSirapBoundary(): void {
+    const activeConfig = this.getActiveSirapBoundaryConfig();
+    this.applyCountryOutlineStyle(activeConfig !== null);
+
+    if (!this.map || !this.view) {
+      return;
+    }
+
+    if (this.activeSirapBoundaryLayer) {
+      this.map.remove(this.activeSirapBoundaryLayer);
+      this.activeSirapBoundaryLayer.destroy();
+      this.activeSirapBoundaryLayer = null;
+    }
+    this.activeSirapBoundaryConfig = activeConfig;
+    if (!activeConfig) {
+      return;
+    }
+
+    const layer = new GeoJSONLayer({
+      id: ACTIVE_SIRAP_BOUNDARY_LAYER_ID,
+      title: activeConfig.title,
+      url: activeConfig.url,
+      definitionExpression: activeConfig.definitionExpression,
+      outFields: ['*'],
+      opacity: 1,
+      visible: this.layerVisibilityByLayerKey$().active_sirap,
+      renderer: this.getActiveSirapBoundaryRenderer() as never,
+    });
+    this.activeSirapBoundaryLayer = layer;
+    this.map.add(layer);
+    this.map.reorder(layer, this.map.layers.length - 1);
+    this.keepInteractionHighlightsOnTop();
+    void this.view.whenLayerView(layer).catch((error: unknown) => {
+      console.warn('[AdminBoundaryService] active SIRAP boundary unavailable:', error);
+    });
+  }
+
+  private getActiveSirapBoundaryConfig(): ActiveSirapBoundaryConfig | null {
+    const activeSolution = this.appState.activeSolution$();
+    const scope = activeSolution?.metadata?.['scope'];
+    const sirapRegionId = activeSolution?.metadata?.['sirapId'];
+    if (scope !== 'sirap' || typeof sirapRegionId !== 'string') {
+      return null;
+    }
+
+    const source = SIRAP_BOUNDARY_BY_REGION_ID[sirapRegionId];
+    if (!source) {
+      return null;
+    }
+
+    return {
+      id: ACTIVE_SIRAP_BOUNDARY_LAYER_ID,
+      layerKey: 'active_sirap',
+      title: this.getActiveSirapRegionLabel(sirapRegionId),
+      type: 'sirap',
+      selectable: false,
+      sourceType: source.sourceType,
+      url: source.url,
+      idFields: source.idFields,
+      nameFields: source.nameFields,
+      definitionExpression: `sirap_id = '${source.sirapBoundaryId}'`,
+      visible: true,
+      opacity: 1,
+      sirapRegionId,
+      sirapBoundaryId: source.sirapBoundaryId,
+    };
+  }
+
+  private applyCountryOutlineStyle(isSirapActive: boolean): void {
+    const countryConfig = this.getConfigsForTarget('admin_country_outline');
+    if (countryConfig.length === 0) {
+      return;
+    }
+    this.boundaryStyleByLayerKey.update((state) => ({
+      ...state,
+      admin_country_outline: isSirapActive
+        ? ACTIVE_SIRAP_COUNTRY_OUTLINE_STYLE
+        : DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY.admin_country_outline,
+    }));
+    this.applyStyleToMapLayers(countryConfig);
+  }
+
+  private getActiveSirapBoundaryRenderer(): Record<string, unknown> {
+    const style = this.boundaryStyleByLayerKey().active_sirap;
+    return {
+      type: 'simple',
+      symbol: {
+        type: 'simple-fill',
+        color: [0, 0, 0, 0],
+        outline: {
+          color: [...style.color],
+          width: style.style === 'none' ? 0 : style.width,
+          style: style.style,
+        },
+      },
+    };
+  }
+
   private ensureLayerForConfig(config: BoundaryConfig): void {
     if (!this.map || !this.view) {
       return;
@@ -589,10 +809,7 @@ export class AdminBoundaryService {
     screenX: number,
     screenY: number,
   ): Promise<void> {
-    const interactiveLayers = this.boundaryLayers.filter((layer) => {
-      const config = ENABLED_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
-      return layer.visible && config?.selectable !== false;
-    });
+    const interactiveLayers = this.getInteractiveBoundaryLayers();
     if (interactiveLayers.length === 0) {
       this.clearSelectionState();
       return;
@@ -643,7 +860,10 @@ export class AdminBoundaryService {
       type: candidate.config.type,
       geometryUrl: candidate.config.url,
       boundarySourceLayerKey: candidate.config.layerKey,
-      boundarySourceId: candidate.config.id,
+      boundarySourceId:
+        candidate.config.id === ACTIVE_SIRAP_BOUNDARY_LAYER_ID
+          ? this.getCanonicalBoundarySourceId(candidate.config.layerKey)
+          : candidate.config.id,
       boundaryGeometrySelection: resolvedSelection.geometrySelection,
       areaKm2: this.calculateAreaKm2(selectionGeometry),
     });
@@ -651,6 +871,20 @@ export class AdminBoundaryService {
     requestAnimationFrame(() => {
       void this.zoomToSelection(view, selectionGeometry);
     });
+  }
+
+  private getInteractiveBoundaryLayers(): (FeatureLayer | GeoJSONLayer)[] {
+    const layers = this.boundaryLayers.filter((layer) => {
+      const config = this.getBoundaryConfigById(layer.id);
+      return layer.visible && config?.selectable !== false;
+    });
+    if (
+      this.activeSirapBoundaryLayer?.visible &&
+      this.activeSirapBoundaryConfig?.selectable !== false
+    ) {
+      layers.push(this.activeSirapBoundaryLayer);
+    }
+    return layers;
   }
 
   private enqueuePointerMove(
@@ -688,10 +922,7 @@ export class AdminBoundaryService {
     requestId,
   }: HoverHitTestRequest): Promise<void> {
     const interactiveLayers = [
-      ...this.boundaryLayers.filter((layer) => {
-        const config = ENABLED_BOUNDARY_CONFIGS.find((item) => item.id === layer.id);
-        return layer.visible && config?.selectable !== false;
-      }),
+      ...this.getInteractiveBoundaryLayers(),
       ...this.supplementalHoverLayers.filter((layer) => layer.visible),
     ];
 
@@ -738,7 +969,7 @@ export class AdminBoundaryService {
         continue;
       }
 
-      const config = ENABLED_BOUNDARY_CONFIGS.find((item) => item.id === layerId);
+      const config = this.getBoundaryConfigById(layerId);
       if (!config || config.selectable === false) {
         continue;
       }
@@ -760,7 +991,7 @@ export class AdminBoundaryService {
       return null;
     }
 
-    const config = ENABLED_BOUNDARY_CONFIGS.find((item) => item.id === layerId);
+    const config = this.getBoundaryConfigById(layerId);
     if (!config || config.selectable === false) {
       return null;
     }
@@ -776,7 +1007,9 @@ export class AdminBoundaryService {
     const hit = this.lastHoverHit;
     if (
       !hit ||
-      !this.boundaryLayers.includes(hit.graphic.layer as FeatureLayer | GeoJSONLayer) ||
+      !this.getInteractiveBoundaryLayers().includes(
+        hit.graphic.layer as FeatureLayer | GeoJSONLayer,
+      ) ||
       Math.hypot(hit.screenX - screenX, hit.screenY - screenY) > 4
     ) {
       return null;
@@ -835,11 +1068,28 @@ export class AdminBoundaryService {
   }
 
   private getConfigsForTarget(target: AoiType | AdminBoundaryLayerKey): BoundaryConfig[] {
+    if (target === 'active_sirap') {
+      return this.activeSirapBoundaryConfig ? [this.activeSirapBoundaryConfig] : [];
+    }
     const layerKeyConfigs = ENABLED_BOUNDARY_CONFIGS.filter((config) => config.layerKey === target);
     if (layerKeyConfigs.length > 0) {
       return layerKeyConfigs;
     }
     return ENABLED_BOUNDARY_CONFIGS.filter((config) => config.type === target);
+  }
+
+  private getBoundaryConfigById(layerId: string): BoundaryConfig | null {
+    return (
+      ENABLED_BOUNDARY_CONFIGS.find((config) => config.id === layerId) ??
+      (this.activeSirapBoundaryConfig?.id === layerId ? this.activeSirapBoundaryConfig : null)
+    );
+  }
+
+  private getCanonicalBoundarySourceId(layerKey: AdminBoundaryLayerKey): string {
+    if (layerKey === UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey) {
+      return UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.sourceId;
+    }
+    return PRODUCTION_SIRAP_BOUNDARY_SOURCE.sourceId;
   }
 
   private setVisibilityForConfigs(configs: BoundaryConfig[], visible: boolean): void {
@@ -922,6 +1172,19 @@ export class AdminBoundaryService {
         },
       },
     };
+  }
+
+  private getActiveSirapRegionLabel(sirapRegionId: string): string {
+    const labels: Record<string, string> = {
+      amazonia: 'SIRAP Amazonía',
+      'andes-nororientales': 'SIRAP Andes Nororientales',
+      'andes-occidentales': 'SIRAP Andes Occidentales',
+      caribe: 'SIRAP Caribe',
+      'eje-cafetero': 'SIRAP Eje Cafetero',
+      orinoquia: 'SIRAP Orinoquía',
+      pacifico: 'SIRAP Pacífico',
+    };
+    return labels[sirapRegionId] ?? 'SIRAP';
   }
 
   private hexToRgba(hexColor: string): BoundaryStyle['color'] {

@@ -225,12 +225,154 @@
                       id="right-sidebar-v3-overview-goals-widget-target-rule"
                       class="mt-1 mb-0 text-xs leading-4 text-slate-700"
                     >
-                      {{ getGoalsTargetRuleLabel() }}
+                      @if (isSirapPacketOverview()) {
+                        {{ 'analysis.overview.goalsWidget.sirap.sourceCue' | translate }}
+                      } @else {
+                        {{ getGoalsTargetRuleLabel() }}
+                      }
                     </p>
                   </div>
+                  @if (isSirapPacketOverview()) {
+                    <span
+                      id="right-sidebar-v3-overview-sirap-certified-badge"
+                      class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-extrabold tracking-[0.06em] text-emerald-800 uppercase"
+                    >
+                      {{ 'analysis.overview.goalsWidget.sirap.certifiedBadge' | translate }}
+                    </span>
+                  }
                 </div>
 
-                @if (isGoalsLoading()) {
+                @if (isSirapPacketOverview()) {
+                  <div id="right-sidebar-v3-overview-sirap-summary" class="grid gap-3">
+                    @if (sirapOverviewTargetMetric(); as targetMetric) {
+                      <article
+                        id="right-sidebar-v3-overview-sirap-target-result"
+                        class="grid gap-1.5 rounded-md border border-emerald-200 bg-white/80 p-2.5"
+                      >
+                        <div
+                          id="right-sidebar-v3-overview-sirap-target-result-header"
+                          class="flex items-baseline justify-between gap-3"
+                        >
+                          <span
+                            id="right-sidebar-v3-overview-sirap-target-result-label"
+                            class="text-xs font-semibold text-slate-800"
+                          >
+                            {{ 'analysis.overview.goalsWidget.sirap.targetResult' | translate }}
+                          </span>
+                          <strong
+                            id="right-sidebar-v3-overview-sirap-target-result-value"
+                            class="text-sm font-extrabold tabular-nums text-emerald-800"
+                          >
+                            {{ getGoalsPercentLabel(targetMetric.value) }}
+                          </strong>
+                        </div>
+                        <div
+                          id="right-sidebar-v3-overview-sirap-target-result-bar"
+                          class="h-2 overflow-hidden rounded-full bg-emerald-100"
+                          role="progressbar"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          [attr.aria-valuenow]="targetMetric.value"
+                          [attr.aria-label]="getGoalsPercentLabel(targetMetric.value)"
+                        >
+                          <span
+                            id="right-sidebar-v3-overview-sirap-target-result-fill"
+                            class="block h-full rounded-full bg-emerald-600"
+                            [style.width.%]="getGoalsProgressBarWidth(targetMetric.value)"
+                          ></span>
+                        </div>
+                      </article>
+                    }
+
+                    @if (sirapOverviewEcosystemMetrics().length > 0) {
+                      <section
+                        id="right-sidebar-v3-overview-sirap-ecosystem-coverage"
+                        class="grid gap-1.5"
+                      >
+                        <h5
+                          id="right-sidebar-v3-overview-sirap-ecosystem-coverage-title"
+                          class="m-0 text-[11px] font-extrabold tracking-[0.06em] text-slate-600 uppercase"
+                        >
+                          {{
+                            'analysis.overview.goalsWidget.sirap.ecosystemCoverageTitle' | translate
+                          }}
+                        </h5>
+                        @for (metric of sirapOverviewEcosystemMetrics(); track metric.id) {
+                          <div
+                            [id]="'right-sidebar-v3-overview-sirap-ecosystem-' + metric.id"
+                            class="flex items-baseline justify-between gap-3 border-b border-slate-100 py-1 text-xs"
+                          >
+                            <span
+                              [id]="'right-sidebar-v3-overview-sirap-ecosystem-label-' + metric.id"
+                              class="text-slate-700"
+                            >
+                              {{ metric.labelKey | translate }}
+                            </span>
+                            <strong
+                              [id]="'right-sidebar-v3-overview-sirap-ecosystem-value-' + metric.id"
+                              class="font-extrabold tabular-nums text-slate-900"
+                            >
+                              {{ metric.value }}
+                            </strong>
+                          </div>
+                        }
+                      </section>
+                    }
+
+                    @if (sirapOverviewSpeciesMetrics().length > 0) {
+                      <section id="right-sidebar-v3-overview-sirap-species" class="grid gap-1.5">
+                        <h5
+                          id="right-sidebar-v3-overview-sirap-species-title"
+                          class="m-0 text-[11px] font-extrabold tracking-[0.06em] text-slate-600 uppercase"
+                        >
+                          {{ 'analysis.overview.goalsWidget.sirap.speciesTitle' | translate }}
+                        </h5>
+                        @for (metric of sirapOverviewSpeciesMetrics(); track metric.id) {
+                          <div
+                            [id]="'right-sidebar-v3-overview-sirap-species-' + metric.id"
+                            class="flex items-baseline justify-between gap-3 border-b border-slate-100 py-1 text-xs"
+                          >
+                            <span
+                              [id]="'right-sidebar-v3-overview-sirap-species-label-' + metric.id"
+                              class="text-slate-700"
+                            >
+                              {{ metric.labelKey | translate }}
+                            </span>
+                            <strong
+                              [id]="'right-sidebar-v3-overview-sirap-species-value-' + metric.id"
+                              class="font-extrabold tabular-nums text-slate-900"
+                            >
+                              {{ metric.value }}
+                            </strong>
+                          </div>
+                        }
+                      </section>
+                    }
+
+                    <details
+                      id="right-sidebar-v3-overview-sirap-details-availability"
+                      class="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2"
+                    >
+                      <summary
+                        id="right-sidebar-v3-overview-sirap-details-availability-summary"
+                        class="cursor-pointer text-xs font-semibold text-slate-700"
+                      >
+                        {{
+                          'analysis.overview.goalsWidget.sirap.detailsAvailabilityTitle' | translate
+                        }}
+                      </summary>
+                      <p
+                        id="right-sidebar-v3-overview-sirap-details-availability-description"
+                        class="mt-1.5 mb-0 text-xs leading-4 text-slate-600"
+                      >
+                        {{
+                          'analysis.overview.goalsWidget.sirap.detailsAvailabilityDescription'
+                            | translate
+                        }}
+                      </p>
+                    </details>
+                  </div>
+                } @else if (isGoalsLoading()) {
                   <div
                     id="right-sidebar-v3-overview-goals-widget-loading"
                     class="rounded-md bg-white/75 p-2.5 text-xs text-slate-500"
@@ -1845,6 +1987,14 @@
                         >
                           {{ 'analysis.aoi.stats.speciesChartAxisLabel' | translate }}
                         </p>
+                        @if (isSirapAoiSelected()) {
+                          <p
+                            id="aoi-sirap-biodiversity-context"
+                            class="m-0 mb-1 ml-19 text-start text-[11px] leading-[1.3] text-slate-500"
+                          >
+                            {{ 'analysis.aoi.sirapAggregate.speciesContext' | translate }}
+                          </p>
+                        }
                         @for (entry of aoiBiodiversityBars(); track entry.id) {
                           @if (!isCustomAoiSelected() || entry.count !== null) {
                             <div
@@ -2090,173 +2240,216 @@
                     id="aoi-body-ecosystems-inner"
                     class="collapse-motion-inner aoi-section-body"
                   >
-                    <p id="aoi-mec-source" class="aoi-ecosystem-source">
-                      {{ getMecSourceKey() | translate }}
-                    </p>
-                    <label id="aoi-mec-breakdown-label" class="aoi-mec-select-label">
-                      <span id="aoi-mec-breakdown-label-text">{{
-                        'analysis.aoi.mec.breakdownLabel' | translate
-                      }}</span>
-                      <select
-                        id="aoi-mec-breakdown-select"
-                        class="aoi-mec-select max-md:min-h-11"
-                        [value]="selectedMecBreakdownId()"
-                        (change)="selectMecBreakdown($event)"
-                      >
-                        @for (breakdown of mecBreakdowns; track breakdown.id) {
-                          <option [id]="'aoi-mec-option-' + breakdown.id" [value]="breakdown.id">
-                            {{ breakdown.labelKey | translate }} ({{
-                              getMecCategoryCount(breakdown)
-                            }})
-                          </option>
-                        }
-                      </select>
-                    </label>
-
-                    @if (shouldShowMecStatus(selectedMecBreakdown())) {
-                      <div
-                        id="aoi-mec-unavailable-state"
-                        class="aoi-mec-unavailable"
-                        [attr.role]="getMecStatusRole()"
-                        aria-live="polite"
-                      >
-                        <strong id="aoi-mec-unavailable-title">{{
-                          getMecStatusTitleKey(selectedMecBreakdown()) | translate
-                        }}</strong>
-                        <span id="aoi-mec-unavailable-description">{{
-                          getMecStatusDescriptionKey(selectedMecBreakdown()) | translate
-                        }}</span>
-                      </div>
-                    }
-
-                    @if (shouldShowMecPreview(selectedMecBreakdown())) {
-                      <div
-                        id="aoi-mec-preview-shell"
-                        class="mt-3 overflow-hidden rounded-[7px] border border-slate-200 bg-white"
-                      >
-                        <div id="aoi-mec-chart-row" class="aoi-mec-chart-row">
-                          @if (selectedMecBreakdown().mode === 'donut') {
+                    @if (isSirapAoiSelected() && hasSirapAggregateEcosystemMetrics()) {
+                      <div id="aoi-sirap-ecosystem-aggregates" class="flex flex-col gap-2">
+                        <p
+                          id="aoi-sirap-ecosystem-aggregates-description"
+                          class="m-0 text-xs leading-5 text-slate-600"
+                        >
+                          {{ 'analysis.aoi.sirapAggregate.ecosystemContext' | translate }}
+                        </p>
+                        <div
+                          id="aoi-sirap-ecosystem-aggregates-list"
+                          class="overflow-hidden rounded-[7px] border border-slate-200 bg-white"
+                        >
+                          @for (entry of sirapAggregateEcosystemMetrics(); track entry.id) {
                             <div
-                              id="aoi-mec-donut"
-                              class="aoi-mec-donut"
-                              [style.background]="mecDonutGradient()"
-                              role="img"
-                              [attr.aria-label]="'analysis.aoi.mec.previewAria' | translate"
+                              [id]="'aoi-sirap-ecosystem-aggregate-' + entry.id"
+                              class="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 last:border-b-0"
                             >
-                              <span id="aoi-mec-donut-hole" class="aoi-mec-donut-hole">
-                                <strong id="aoi-mec-donut-value">{{
-                                  getMecPreviewAreaValue()
-                                }}</strong>
-                                <span id="aoi-mec-donut-label">{{
-                                  getMecPreviewAreaLabelKey() | translate
-                                }}</span>
+                              <span
+                                [id]="'aoi-sirap-ecosystem-aggregate-label-' + entry.id"
+                                class="text-xs text-slate-700"
+                              >
+                                {{ entry.labelKey | translate }}
+                              </span>
+                              <span
+                                [id]="'aoi-sirap-ecosystem-aggregate-value-' + entry.id"
+                                class="text-right text-xs font-semibold tabular-nums text-slate-800"
+                              >
+                                {{ getSirapAggregateEcosystemValue(entry.metric) }}
                               </span>
                             </div>
-                            <div id="aoi-mec-donut-legend" class="aoi-mec-donut-legend">
-                              @for (
-                                item of mecPreviewItems();
-                                track item.label;
-                                let index = $index
-                              ) {
-                                <div
-                                  [id]="'aoi-mec-legend-item-' + index"
-                                  class="aoi-mec-legend-item"
-                                >
-                                  <span
-                                    [id]="'aoi-mec-legend-swatch-' + index"
-                                    class="aoi-mec-legend-swatch"
-                                    [style.background-color]="item.color || '#cbd5e1'"
-                                  ></span>
-                                  <span [id]="'aoi-mec-legend-label-' + index">{{
-                                    item.label
-                                  }}</span>
-                                  <strong [id]="'aoi-mec-legend-value-' + index">{{
-                                    formatMecPreviewPercent(item.percent)
-                                  }}</strong>
-                                </div>
-                              }
-                            </div>
-                          } @else {
-                            <div id="aoi-mec-preview-bars" class="aoi-mec-preview-bars">
-                              @for (
-                                item of mecPreviewItems();
-                                track item.label;
-                                let index = $index
-                              ) {
-                                <div [id]="'aoi-mec-bar-row-' + index" class="aoi-mec-bar-row">
-                                  <span
-                                    [id]="'aoi-mec-bar-label-' + index"
-                                    class="aoi-mec-bar-label"
-                                    [title]="item.label"
-                                    >{{ item.label }}</span
-                                  >
-                                  <span
-                                    [id]="'aoi-mec-bar-track-' + index"
-                                    class="aoi-mec-bar-track"
-                                  >
-                                    <span
-                                      [id]="'aoi-mec-bar-fill-' + index"
-                                      class="aoi-mec-bar-fill"
-                                      [style.width.%]="
-                                        ((item.percent || 0) / getMecPreviewMaximum()) * 100
-                                      "
-                                    ></span>
-                                  </span>
-                                  <strong [id]="'aoi-mec-bar-value-' + index">{{
-                                    formatMecPreviewPercent(item.percent)
-                                  }}</strong>
-                                </div>
-                              }
-                            </div>
+                            @if (getSirapAggregateEcosystemStatusKey(entry.metric); as statusKey) {
+                              <p
+                                [id]="'aoi-sirap-ecosystem-aggregate-status-' + entry.id"
+                                class="-mt-1 border-b border-slate-100 px-3 pb-2 text-[11px] leading-4 text-slate-500 last:border-b-0"
+                              >
+                                {{ statusKey | translate }}
+                              </p>
+                            }
                           }
                         </div>
+                      </div>
+                    } @else {
+                      <p id="aoi-mec-source" class="aoi-ecosystem-source">
+                        {{ getMecSourceKey() | translate }}
+                      </p>
+                      <label id="aoi-mec-breakdown-label" class="aoi-mec-select-label">
+                        <span id="aoi-mec-breakdown-label-text">{{
+                          'analysis.aoi.mec.breakdownLabel' | translate
+                        }}</span>
+                        <select
+                          id="aoi-mec-breakdown-select"
+                          class="aoi-mec-select max-md:min-h-11"
+                          [value]="selectedMecBreakdownId()"
+                          (change)="selectMecBreakdown($event)"
+                        >
+                          @for (breakdown of mecBreakdowns; track breakdown.id) {
+                            <option [id]="'aoi-mec-option-' + breakdown.id" [value]="breakdown.id">
+                              {{ breakdown.labelKey | translate }} ({{
+                                getMecCategoryCount(breakdown)
+                              }})
+                            </option>
+                          }
+                        </select>
+                      </label>
 
-                        @if (supportsMecDrilldown()) {
-                          <div id="aoi-mec-preview-count-row" class="aoi-mec-preview-count-row">
-                            <span id="aoi-mec-preview-count-label">{{
-                              'analysis.aoi.mec.showing'
-                                | translate
-                                  : {
-                                      shown: mecPreviewItems().length,
-                                      total: getMecCategoryCount(selectedMecBreakdown()),
-                                      type: (selectedMecBreakdown().pluralLabelKey | translate),
-                                    }
-                            }}</span>
-                            <span id="aoi-mec-preview-remaining-label">{{
-                              'analysis.aoi.mec.more'
-                                | translate
-                                  : {
-                                      count:
-                                        getMecCategoryCount(selectedMecBreakdown()) -
-                                        mecPreviewItems().length,
-                                    }
-                            }}</span>
+                      @if (shouldShowMecStatus(selectedMecBreakdown())) {
+                        <div
+                          id="aoi-mec-unavailable-state"
+                          class="aoi-mec-unavailable"
+                          [attr.role]="getMecStatusRole()"
+                          aria-live="polite"
+                        >
+                          <strong id="aoi-mec-unavailable-title">{{
+                            getMecStatusTitleKey(selectedMecBreakdown()) | translate
+                          }}</strong>
+                          <span id="aoi-mec-unavailable-description">{{
+                            getMecStatusDescriptionKey(selectedMecBreakdown()) | translate
+                          }}</span>
+                        </div>
+                      }
+
+                      @if (shouldShowMecPreview(selectedMecBreakdown())) {
+                        <div
+                          id="aoi-mec-preview-shell"
+                          class="mt-3 overflow-hidden rounded-[7px] border border-slate-200 bg-white"
+                        >
+                          <div id="aoi-mec-chart-row" class="aoi-mec-chart-row">
+                            @if (selectedMecBreakdown().mode === 'donut') {
+                              <div
+                                id="aoi-mec-donut"
+                                class="aoi-mec-donut"
+                                [style.background]="mecDonutGradient()"
+                                role="img"
+                                [attr.aria-label]="'analysis.aoi.mec.previewAria' | translate"
+                              >
+                                <span id="aoi-mec-donut-hole" class="aoi-mec-donut-hole">
+                                  <strong id="aoi-mec-donut-value">{{
+                                    getMecPreviewAreaValue()
+                                  }}</strong>
+                                  <span id="aoi-mec-donut-label">{{
+                                    getMecPreviewAreaLabelKey() | translate
+                                  }}</span>
+                                </span>
+                              </div>
+                              <div id="aoi-mec-donut-legend" class="aoi-mec-donut-legend">
+                                @for (
+                                  item of mecPreviewItems();
+                                  track item.label;
+                                  let index = $index
+                                ) {
+                                  <div
+                                    [id]="'aoi-mec-legend-item-' + index"
+                                    class="aoi-mec-legend-item"
+                                  >
+                                    <span
+                                      [id]="'aoi-mec-legend-swatch-' + index"
+                                      class="aoi-mec-legend-swatch"
+                                      [style.background-color]="item.color || '#cbd5e1'"
+                                    ></span>
+                                    <span [id]="'aoi-mec-legend-label-' + index">{{
+                                      item.label
+                                    }}</span>
+                                    <strong [id]="'aoi-mec-legend-value-' + index">{{
+                                      formatMecPreviewPercent(item.percent)
+                                    }}</strong>
+                                  </div>
+                                }
+                              </div>
+                            } @else {
+                              <div id="aoi-mec-preview-bars" class="aoi-mec-preview-bars">
+                                @for (
+                                  item of mecPreviewItems();
+                                  track item.label;
+                                  let index = $index
+                                ) {
+                                  <div [id]="'aoi-mec-bar-row-' + index" class="aoi-mec-bar-row">
+                                    <span
+                                      [id]="'aoi-mec-bar-label-' + index"
+                                      class="aoi-mec-bar-label"
+                                      [title]="item.label"
+                                      >{{ item.label }}</span
+                                    >
+                                    <span
+                                      [id]="'aoi-mec-bar-track-' + index"
+                                      class="aoi-mec-bar-track"
+                                    >
+                                      <span
+                                        [id]="'aoi-mec-bar-fill-' + index"
+                                        class="aoi-mec-bar-fill"
+                                        [style.width.%]="
+                                          ((item.percent || 0) / getMecPreviewMaximum()) * 100
+                                        "
+                                      ></span>
+                                    </span>
+                                    <strong [id]="'aoi-mec-bar-value-' + index">{{
+                                      formatMecPreviewPercent(item.percent)
+                                    }}</strong>
+                                  </div>
+                                }
+                              </div>
+                            }
                           </div>
-                          <button
-                            id="aoi-mec-open-modal-button"
-                            type="button"
-                            class="aoi-mec-open-modal"
-                            aria-haspopup="dialog"
-                            [attr.aria-expanded]="mecModalOpen()"
-                            (click)="openMecModal()"
-                          >
-                            <span id="aoi-mec-open-modal-copy">
-                              <strong id="aoi-mec-open-modal-label">{{
-                                'analysis.aoi.mec.exploreAll'
+
+                          @if (supportsMecDrilldown()) {
+                            <div id="aoi-mec-preview-count-row" class="aoi-mec-preview-count-row">
+                              <span id="aoi-mec-preview-count-label">{{
+                                'analysis.aoi.mec.showing'
                                   | translate
                                     : {
-                                        count: getMecCategoryCount(selectedMecBreakdown()),
+                                        shown: mecPreviewItems().length,
+                                        total: getMecCategoryCount(selectedMecBreakdown()),
                                         type: (selectedMecBreakdown().pluralLabelKey | translate),
                                       }
-                              }}</strong>
-                              <span id="aoi-mec-open-modal-description">{{
-                                'analysis.aoi.mec.searchCompare' | translate
                               }}</span>
-                            </span>
-                            <span id="aoi-mec-open-modal-icon" aria-hidden="true">→</span>
-                          </button>
-                        }
-                      </div>
+                              <span id="aoi-mec-preview-remaining-label">{{
+                                'analysis.aoi.mec.more'
+                                  | translate
+                                    : {
+                                        count:
+                                          getMecCategoryCount(selectedMecBreakdown()) -
+                                          mecPreviewItems().length,
+                                      }
+                              }}</span>
+                            </div>
+                            <button
+                              id="aoi-mec-open-modal-button"
+                              type="button"
+                              class="aoi-mec-open-modal"
+                              aria-haspopup="dialog"
+                              [attr.aria-expanded]="mecModalOpen()"
+                              (click)="openMecModal()"
+                            >
+                              <span id="aoi-mec-open-modal-copy">
+                                <strong id="aoi-mec-open-modal-label">{{
+                                  'analysis.aoi.mec.exploreAll'
+                                    | translate
+                                      : {
+                                          count: getMecCategoryCount(selectedMecBreakdown()),
+                                          type: (selectedMecBreakdown().pluralLabelKey | translate),
+                                        }
+                                }}</strong>
+                                <span id="aoi-mec-open-modal-description">{{
+                                  'analysis.aoi.mec.searchCompare' | translate
+                                }}</span>
+                              </span>
+                              <span id="aoi-mec-open-modal-icon" aria-hidden="true">→</span>
+                            </button>
+                          }
+                        </div>
+                      }
                     }
                   </div>
                 </div>
@@ -2670,30 +2863,12 @@
                               <span
                                 [id]="'aoi-bar-fill-' + bar.id"
                                 class="aoi-bar-fill"
-                                [style.width.%]="
-                                  getAoiMetricPercent(
-                                    bar.id === 'forest'
-                                      ? 'land_use_forest_pct'
-                                      : bar.id === 'agriculture'
-                                        ? 'land_use_agriculture_pct'
-                                        : 'land_use_other_pct',
-                                    bar.percent
-                                  )
-                                "
+                                [style.width.%]="getAoiMetricPercent(bar.metricId, bar.percent)"
                                 [style.background-color]="bar.color"
                               ></span>
                             </div>
                             <span [id]="'aoi-bar-val-' + bar.id" class="aoi-bar-val">
-                              {{
-                                getAoiMetricValue(
-                                  bar.id === 'forest'
-                                    ? 'land_use_forest_pct'
-                                    : bar.id === 'agriculture'
-                                      ? 'land_use_agriculture_pct'
-                                      : 'land_use_other_pct',
-                                  bar.percent + '%'
-                                )
-                              }}
+                              {{ getAoiMetricValue(bar.metricId, bar.percent + '%') }}
                             </span>
                           </div>
                         }
@@ -3268,9 +3443,13 @@
                 <article
                   id="right-sidebar-comparison-candidate-card"
                   class="c2-summary-card"
+                  role="button"
+                  tabindex="0"
                   [class.c2-summary-card-candidate-selected]="comparisonSolution()"
                   [class.c2-summary-card-candidate-empty]="!comparisonSolution()"
                   (click)="selectComparisonCandidateFromCard()"
+                  (keydown.enter)="selectComparisonCandidateFromCard()"
+                  (keydown.space)="selectComparisonCandidateFromCard(); $event.preventDefault()"
                 >
                   <div id="right-sidebar-comparison-candidate-top" class="c2-summary-top">
                     <p id="right-sidebar-comparison-candidate-label" class="c2-summary-label">

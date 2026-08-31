@@ -269,6 +269,28 @@
         "taxaBreakdown": "Grupos de especies incluidos",
         "viewBreakdown": "Ver desglose de elementos",
         "noTargetsSet": "Ningún ámbito de conservación fue seleccionado explícitamente como meta en este escenario.",
+        "sirap": {
+          "certifiedBadge": "Cobertura SIRAP certificada",
+          "sourceCue": "Paquete regional suministrado",
+          "targetResult": "Resultado de metas del paquete",
+          "ecosystemCoverageTitle": "Cobertura de ecosistemas en esta solución SIRAP",
+          "speciesTitle": "Especies representadas en esta solución SIRAP",
+          "ecosystems": {
+            "iavh": "Total IAvH",
+            "paramo": "Páramo",
+            "dryForest": "Bosque seco tropical",
+            "wetlands": "Humedales"
+          },
+          "species": {
+            "mammals": "Mamíferos",
+            "birds": "Aves",
+            "amphibians": "Anfibios",
+            "reptiles": "Reptiles",
+            "plants": "Plantas"
+          },
+          "detailsAvailabilityTitle": "Disponibilidad de detalles",
+          "detailsAvailabilityDescription": "Los desgloses detallados de metas, MEC y por especie no están disponibles para este lote regional. Los valores de cobertura mostrados arriba siguen siendo resultados suministrados por el paquete."
+        },
         "additionalOutcomesHeading": "Resultados adicionales",
         "additionalOutcomesDescription": "Cobertura medida en ámbitos que este escenario no seleccionó como meta. Los porcentajes son puntos de referencia ilustrativos de cobertura del rango, no metas configuradas.",
         "strategicRasterDerivedMethod": "Cobertura poshoc derivada de rásteres; los puntos de 17% y 30% son ilustrativos, no metas configuradas del optimizador.",
@@ -663,6 +685,16 @@
         "dryForest": "Bosque seco",
         "wetlands": "Humedales",
         "mangroves": "Manglares"
+      },
+      "sirapAggregate": {
+        "speciesContext": "Especies modeladas con intersección positiva del rango del paquete regional en el área prioritaria seleccionada dentro de este AOI. Los conteos son de especies, no de cumplimiento de metas.",
+        "ecosystemContext": "Superposición del área prioritaria seleccionada del paquete regional. Son áreas agregadas, no un desglose MEC, composición ecosistémica ni estado de metas.",
+        "iavh": "Clases de ecosistemas IAvH",
+        "paramo": "Páramo",
+        "dryForest": "Bosque seco tropical",
+        "wetlands": "Humedales",
+        "blocked": "Esta métrica de superposición está bloqueada en el paquete regional.",
+        "unavailable": "Esta métrica de superposición no está disponible en el paquete regional."
       },
       "strategic": {
         "description": "Proporción del área candidata de este AOI que se superpone con cada capa de ecosistema estratégico.",
@@ -1088,10 +1120,21 @@
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",
           "andesOccidentales": "SIRAP Andes Occidentales",
+          "ejeCafetero": "SIRAP Eje Cafetero",
           "andesNororientales": "SIRAP Andes Nororientales",
           "orinoquia": "SIRAP Orinoquía",
           "amazonia": "SIRAP Amazonía"
         }
+      },
+      "sirapCertified": {
+        "title": "Escenarios regionales certificados",
+        "help": "Estos escenarios fueron suministrados y certificados por el equipo científico para la región SIRAP seleccionada. Elija uno para verlo en el mapa.",
+        "selectRegion": "Elija arriba una región SIRAP autorizada para ver sus escenarios certificados.",
+        "searchLabel": "Buscar escenarios certificados",
+        "searchPlaceholder": "Buscar por nombre o ID del escenario",
+        "listLabel": "Escenarios certificados disponibles",
+        "selectScenario": "— Seleccionar un escenario certificado —",
+        "noResults": "Ningún escenario certificado coincide con la búsqueda."
       },
       "loading": "Buscando escenario…",
       "stepPrefixes": {

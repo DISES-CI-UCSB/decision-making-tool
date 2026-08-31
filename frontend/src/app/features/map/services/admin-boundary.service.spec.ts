@@ -8,6 +8,7 @@ import {
   UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE,
   type AOI,
   type AoiType,
+  type Solution,
 } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import {
@@ -20,6 +21,7 @@ describe('AdminBoundaryService', () => {
   let selectedAOI: ReturnType<typeof signal<AOI | null>>;
   let appState: {
     selectedAOI$: typeof selectedAOI;
+    activeSolution$: ReturnType<typeof signal<Solution | null>>;
     selectAOI: ReturnType<typeof vi.fn>;
     clearAOI: ReturnType<typeof vi.fn>;
     setRightSidebarMode: ReturnType<typeof vi.fn>;
@@ -77,6 +79,7 @@ describe('AdminBoundaryService', () => {
     selectedAOI = signal<AOI | null>(null);
     appState = {
       selectedAOI$: selectedAOI,
+      activeSolution$: signal<Solution | null>(null),
       selectAOI: vi.fn((aoi: AOI) => selectedAOI.set(aoi)),
       clearAOI: vi.fn(() => selectedAOI.set(null)),
       setRightSidebarMode: vi.fn(),
@@ -167,6 +170,143 @@ describe('AdminBoundaryService', () => {
         }),
       }),
     );
+  });
+
+  it('de-emphasizes the Colombia outline only while an active SIRAP solution is loaded', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    appState.activeSolution$.set(activeSirapSolution('caribe'));
+    TestBed.tick();
+
+    expect(boundaryRenderer(service, 'admin_country_outline')).toEqual(
+      expect.objectContaining({
+        symbol: expect.objectContaining({
+          outline: expect.objectContaining({
+            color: [107, 114, 128, 130],
+            width: 0.8,
+          }),
+        }),
+      }),
+    );
+
+    appState.activeSolution$.set(activeNationalSolution());
+    TestBed.tick();
+
+    expect(boundaryRenderer(service, 'admin_country_outline')).toEqual(
+      expect.objectContaining({
+        symbol: expect.objectContaining({
+          outline: expect.objectContaining({
+            color: [107, 114, 128, 235],
+            width: 1.6,
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('creates a named, non-selectable boundary for the active SIRAP region', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const map = {
+      add: vi.fn(),
+      remove: vi.fn(),
+      reorder: vi.fn(),
+      layers: { length: 4 },
+    };
+    const view = { whenLayerView: vi.fn().mockResolvedValue({}) };
+    Object.assign(service as unknown as Record<string, unknown>, { map, view });
+    appState.activeSolution$.set(activeSirapSolution('caribe'));
+    TestBed.tick();
+
+    const activeConfig = (
+      service as unknown as { activeSirapBoundaryConfig: Record<string, unknown> | null }
+    ).activeSirapBoundaryConfig;
+    expect(activeConfig).toEqual(
+      expect.objectContaining({
+        definitionExpression: "sirap_id = 'territorial_territorial_caribe_6'",
+        layerKey: 'active_sirap',
+        selectable: false,
+        title: 'SIRAP Caribe',
+      }),
+    );
+    expect(map.add).toHaveBeenCalledOnce();
+  });
+
+  it('keeps a dedicated active boundary when the generic thematic layer is visible', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const thematicLayer: { id: string; visible: boolean; renderer?: unknown } = {
+      id: 'aoi-siraps-thematic-colombia',
+      visible: true,
+    };
+    const map = {
+      add: vi.fn(),
+      remove: vi.fn(),
+      reorder: vi.fn(),
+      layers: { length: 4 },
+    };
+    const view = { whenLayerView: vi.fn().mockResolvedValue({}) };
+    Object.assign(service as unknown as Record<string, unknown>, {
+      map,
+      view,
+      boundaryLayers: [thematicLayer],
+    });
+    appState.activeSolution$.set(activeSirapSolution('eje-cafetero'));
+    TestBed.tick();
+
+    expect(map.add).toHaveBeenCalledOnce();
+    expect(thematicLayer.renderer).toBeUndefined();
+  });
+
+  it('does not select the active SIRAP boundary as an AOI', async () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const polygon = multipartPolygon();
+    const layer = { id: 'aoi-active-sirap-boundary', visible: true };
+    const view = {
+      hitTest: vi.fn().mockResolvedValue({
+        results: [
+          {
+            type: 'graphic',
+            graphic: {
+              layer,
+              attributes: {
+                sirap_id: 'territorial_territorial_caribe_6',
+                sirap_name: 'Territorial Caribe',
+              },
+              geometry: polygon,
+            },
+          },
+        ],
+      }),
+      goTo: vi.fn().mockResolvedValue(undefined),
+    };
+    Object.assign(service as unknown as Record<string, unknown>, {
+      activeSirapBoundaryLayer: layer,
+      activeSirapBoundaryConfig: {
+        id: 'aoi-active-sirap-boundary',
+        layerKey: 'siraps_territorial_updated',
+        type: 'sirap',
+        sourceType: 'geojson',
+        url: 'https://example.com/siraps.geojson',
+        idFields: ['sirap_id'],
+        nameFields: ['sirap_name'],
+        sirapRegionId: 'caribe',
+        sirapBoundaryId: 'territorial_territorial_caribe_6',
+        selectable: false,
+      },
+    });
+
+    await (
+      service as unknown as {
+        handleMapClick(
+          mapView: never,
+          mapPoint: Point,
+          screenX: number,
+          screenY: number,
+        ): Promise<void>;
+      }
+    ).handleMapClick(view as never, new Point({ x: 5, y: 5 }), 100, 100);
+
+    expect(view.hitTest).not.toHaveBeenCalled();
+    expect(selectedAOI()).toBeNull();
+    expect(appState.setRightSidebarMode).toHaveBeenCalledWith('overview');
   });
 
   it('uses the immutable visual-only outline without changing AOI boundary sources', () => {
@@ -615,4 +755,31 @@ function multipartPolygon(): Polygon {
       ],
     ],
   });
+}
+
+function activeSirapSolution(sirapId: string): Solution {
+  return {
+    id: `solution-${sirapId}`,
+    name: `SIRAP ${sirapId}`,
+    description: '',
+    matchPercentage: 100,
+    geometryUrl: '',
+    metadata: {
+      solutionId: `solution-${sirapId}`,
+      scope: 'sirap',
+      sirapId,
+    },
+    metrics: [],
+  };
+}
+
+function activeNationalSolution(): Solution {
+  return {
+    ...activeSirapSolution('caribe'),
+    metadata: {
+      solutionId: 'solution-national',
+      scope: 'nacional',
+      sirapId: null,
+    },
+  };
 }

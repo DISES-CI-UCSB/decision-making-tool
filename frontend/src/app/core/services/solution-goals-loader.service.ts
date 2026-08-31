@@ -10,6 +10,7 @@ import {
   PRECOMPUTED_METRIC_URL_KEYS,
 } from './cached-metrics.utils';
 import { SolutionCatalogService } from './solution-catalog.service';
+import { normalizeSolutionToken } from '@core/models/solution-matching.utils';
 
 @Injectable({ providedIn: 'root' })
 export class SolutionGoalsLoaderService {
@@ -28,6 +29,11 @@ export class SolutionGoalsLoaderService {
     );
     if (precomputedUrl) {
       return precomputedUrl;
+    }
+    // SIRAP packets deliberately publish only their regular metrics sidecar.
+    // Do not infer a legacy goals artifact that the packet contract omits.
+    if (normalizeSolutionToken(solution.scope) === 'sirap') {
+      return null;
     }
 
     const blobHost = deriveBlobHostFromUrl(solution.displayUrl);

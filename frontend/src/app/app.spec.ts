@@ -1,3 +1,4 @@
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import {
@@ -5,9 +6,11 @@ import {
   provideTranslateService,
   TranslateNoOpLoader,
 } from '@ngx-translate/core';
+import Point from '@arcgis/core/geometry/Point';
 import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
+import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { App } from './app';
 
@@ -22,6 +25,7 @@ describe('App', () => {
           loader: provideTranslateLoader(TranslateNoOpLoader),
         }),
         provideRouter([]),
+        provideNoopAnimations(),
       ],
     }).compileComponents();
   });
@@ -123,7 +127,114 @@ describe('App', () => {
     expect(appState.rightSidebarMode$()).toBe('overview');
     expect(showSolutionSpy).toHaveBeenCalledWith(solution.id, { syncAppState: false });
   });
+
+  it('renders an active SIRAP boundary as non-interactive finder context', async () => {
+    const fixture = TestBed.createComponent(App);
+    const component = fixture.componentInstance;
+    const appState = TestBed.inject(AppStateService);
+    const solutionCatalog = TestBed.inject(SolutionCatalogService);
+    const solutionLayer = TestBed.inject(SolutionLayerService);
+    const adminBoundaries = TestBed.inject(AdminBoundaryService);
+    const map = createMapMock();
+    const view = createMapViewMock();
+    const solution = buildSirapManifestSolution();
+    const switchedSolution = buildSirapManifestSolution('orinoquia');
+    vi.spyOn(solutionCatalog, 'getById').mockImplementation((id) =>
+      id === switchedSolution.id ? switchedSolution : solution,
+    );
+    vi.spyOn(solutionLayer, 'showSolution').mockResolvedValue(undefined);
+
+    adminBoundaries.initialize(map as never, view as never);
+    (
+      component as unknown as {
+        onSolutionApplied: (match: { solutionId: string }) => void;
+      }
+    ).onSolutionApplied({ solutionId: solution.id });
+    TestBed.tick();
+
+    const activeBoundary = map.layers.find((layer) => layer.id === 'aoi-active-sirap-boundary') as {
+      definitionExpression?: string;
+      renderer?: { symbol?: { outline?: { width?: number } } };
+    };
+    const countryOutline = map.layers.find(
+      (layer) => layer.id === 'aoi-country-outline-colombia',
+    ) as { renderer?: { symbol?: { outline?: { width?: number } } } };
+
+    expect(appState.activeSolution$()?.metadata).toMatchObject({
+      scope: 'sirap',
+      sirapId: 'eje-cafetero',
+    });
+    expect(activeBoundary.definitionExpression).toBe("sirap_id = 'thematic_eje_cafetero_1'");
+    expect(activeBoundary.renderer?.symbol?.outline?.width).toBe(3);
+    expect(countryOutline.renderer?.symbol?.outline?.width).toBe(0.8);
+    expect(map.layers.indexOf(activeBoundary as { id: string })).toBeGreaterThan(
+      map.layers.indexOf(countryOutline as { id: string }),
+    );
+
+    (
+      component as unknown as {
+        onSolutionApplied: (match: { solutionId: string }) => void;
+      }
+    ).onSolutionApplied({ solutionId: switchedSolution.id });
+    TestBed.tick();
+
+    const switchedBoundary = map.layers.find(
+      (layer) => layer.id === 'aoi-active-sirap-boundary',
+    ) as { definitionExpression?: string };
+    expect(switchedBoundary).not.toBe(activeBoundary);
+    expect(switchedBoundary.definitionExpression).toBe(
+      "sirap_id = 'territorial_territorial_orinoquia_7'",
+    );
+
+    view.handlers.get('click')?.({
+      mapPoint: new Point({ x: -75.5, y: 4.5 }),
+      x: 100,
+      y: 100,
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(view.hitTest).not.toHaveBeenCalled();
+    expect(appState.selectedAOI$()).toBeNull();
+    expect(appState.rightSidebarMode$()).toBe('overview');
+  });
 });
+
+function createMapMock() {
+  const layers: { id: string }[] = [];
+  return {
+    layers,
+    add: vi.fn((layer: { id: string }) => layers.push(layer)),
+    addMany: vi.fn((newLayers: { id: string }[]) => layers.push(...newLayers)),
+    remove: vi.fn((layer: { id: string }) => {
+      const index = layers.indexOf(layer);
+      if (index >= 0) layers.splice(index, 1);
+    }),
+    reorder: vi.fn((layer: { id: string }, index: number) => {
+      const currentIndex = layers.indexOf(layer);
+      if (currentIndex >= 0) layers.splice(currentIndex, 1);
+      layers.splice(index, 0, layer);
+    }),
+  };
+}
+
+function createMapViewMock() {
+  const handlers = new Map<string, (event: unknown) => void>();
+  return {
+    handlers,
+    popupEnabled: true,
+    highlights: [],
+    allLayerViews: [],
+    container: document.createElement('div'),
+    whenLayerView: vi.fn().mockResolvedValue({}),
+    on: vi.fn((eventName: string, handler: (event: unknown) => void) => {
+      handlers.set(eventName, handler);
+      return { remove: vi.fn() };
+    }),
+    hitTest: vi.fn(),
+    goTo: vi.fn().mockResolvedValue(undefined),
+  };
+}
 
 function buildManifestSolution(): CatalogSolution {
   return {
@@ -165,5 +276,22 @@ function buildManifestSolution(): CatalogSolution {
     nSelected: 387656,
     totalCost: 0,
     pctTargetsMet: 100,
+  };
+}
+
+function buildSirapManifestSolution(
+  sirapId: 'eje-cafetero' | 'orinoquia' = 'eje-cafetero',
+): CatalogSolution {
+  const base = buildManifestSolution();
+  return {
+    ...base,
+    id: `${sirapId}-sirap-solution`,
+    name: `${sirapId} SIRAP solution`,
+    scope: 'sirap',
+    sirapId,
+    finderInputs: {
+      ...base.finderInputs,
+      scope: 'sirap',
+    },
   };
 }

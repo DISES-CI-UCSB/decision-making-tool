@@ -327,6 +327,7 @@ export const LEGEND_BOUNDARY_STYLES: Record<
   AdminBoundaryLayerKey,
   { lineStyle: 'solid' | 'dashed'; lineWidth: number; color: string }
 > = {
+  active_sirap: { lineStyle: 'solid', lineWidth: 3, color: '#000000' },
   siraps: { lineStyle: 'dashed', lineWidth: 1.25, color: '#111827' },
   siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
   siraps_territorial_updated: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },

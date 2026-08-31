@@ -56,6 +56,50 @@ describe('AOI cached metrics utilities', () => {
     expect(resolveCachedAoiMetrics(sirapDocument, aoi)).toEqual([bogotaMetric]);
   });
 
+  it('resolves a regional packet from its declared singular SIRAP primary scope', () => {
+    const aoi = {
+      ...buildSirapAoi('siraps', 'aoi-siraps-combined-colombia'),
+      id: 'sirap:eje-cafetero',
+      name: 'SIRAP Eje Cafetero',
+    };
+    const sirapDocument: CachedSolutionMetricsDocument = {
+      solutionId: 'regional-solution',
+      generatedAt: '2026-08-29T00:00:00.000Z',
+      primaryGeography: { level: 'sirap', scopeId: 'eje-cafetero' },
+      geographies: {
+        sirap: {
+          'eje-cafetero': { name: 'SIRAP Eje Cafetero', metrics: [bogotaMetric] },
+        },
+      },
+    };
+
+    expect(resolveCachedAoiMetrics(sirapDocument, aoi)).toEqual([bogotaMetric]);
+  });
+
+  it('does not resolve a singular SIRAP scope for a mismatched or undeclared primary geography', () => {
+    const aoi = {
+      ...buildSirapAoi('siraps', 'aoi-siraps-combined-colombia'),
+      id: 'sirap:eje-cafetero',
+      name: 'SIRAP Eje Cafetero',
+    };
+    const document = buildSirapPrimaryDocument('orinoquia', bogotaMetric);
+
+    expect(resolveCachedAoiMetrics(document, aoi)).toEqual([]);
+    expect(resolveCachedAoiMetrics({ ...document, primaryGeography: undefined }, aoi)).toEqual([]);
+  });
+
+  it('does not resolve a singular SIRAP primary scope for a component selection', () => {
+    const aoi = {
+      ...buildSirapAoi('siraps', 'aoi-siraps-combined-colombia'),
+      id: 'sirap:eje-cafetero',
+      boundaryGeometrySelection: 'component' as const,
+    };
+
+    expect(
+      resolveCachedAoiMetrics(buildSirapPrimaryDocument('eje-cafetero', bogotaMetric), aoi),
+    ).toEqual([]);
+  });
+
   it('rejects cached SIRAP metrics from the outdated territorial source', () => {
     const aoi = buildSirapAoi('siraps_territorial', 'aoi-siraps-territorial-colombia');
 
@@ -95,6 +139,22 @@ function buildSirapDocument(metric: MetricValue): CachedSolutionMetricsDocument 
           name: 'Territorial Amazonia',
           metrics: [metric],
         },
+      },
+    },
+  };
+}
+
+function buildSirapPrimaryDocument(
+  scopeId: string,
+  metric: MetricValue,
+): CachedSolutionMetricsDocument {
+  return {
+    solutionId: 'regional-solution',
+    generatedAt: '2026-08-29T00:00:00.000Z',
+    primaryGeography: { level: 'sirap', scopeId },
+    geographies: {
+      sirap: {
+        [scopeId]: { metrics: [metric] },
       },
     },
   };
