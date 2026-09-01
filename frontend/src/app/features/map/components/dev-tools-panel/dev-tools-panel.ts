@@ -459,7 +459,7 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 id="dev-tools-info-icon-preview-hint"
                 class="mt-0.5 text-[10px] leading-4 text-slate-500"
               >
-                Heroicons information-circle SVG in the proposed light-blue treatment.
+                Heroicons information-circle SVG in the proposed neutral-gray treatment.
               </p>
               <div
                 id="dev-tools-info-icon-preview-options"

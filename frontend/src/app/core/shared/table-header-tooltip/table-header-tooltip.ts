@@ -28,6 +28,7 @@ type TooltipAlignment = 'start' | 'center' | 'end';
       >
         <app-info-icon
           [rootId]="idBase() + '-help-icon'"
+          placement="control"
           colorClass="text-slate-400"
         />
       </button>

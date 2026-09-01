@@ -733,7 +733,8 @@
 .v3-unavailable-help {
   position: relative;
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
+  margin-left: 2px;
 }
 
 .v3-unavailable-help:hover,
@@ -804,7 +805,8 @@
 .v3-methodology-help {
   position: relative;
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
+  margin-left: 2px;
 }
 
 .v3-methodology-help:hover,
@@ -1947,7 +1949,7 @@
 
 .aoi-stat-unit {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 4px;
   font-size: 10px;
   color: var(--color-subtext);
@@ -1957,7 +1959,7 @@
 .aoi-unit-help {
   position: relative;
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
 }
 
 .aoi-unit-help:hover,

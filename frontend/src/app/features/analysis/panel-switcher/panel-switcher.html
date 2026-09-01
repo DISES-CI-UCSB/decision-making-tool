@@ -261,8 +261,7 @@
                                 [id]="'right-sidebar-v3-overview-goals-domain-label-' + domain.id"
                                 class="font-semibold"
                               >
-                                {{ domain.labelKey | translate }}
-                                <span
+                                {{ domain.labelKey | translate }}<span
                                   [id]="'right-sidebar-v3-overview-goals-domain-help-' + domain.id"
                                   class="v3-methodology-help"
                                   (mouseenter)="showGoalsTooltip($event, domain.id)"
