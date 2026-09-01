@@ -183,6 +183,33 @@
   transform: translateY(0);
 }
 
+/*
+  A scrolling container clips descendants regardless of their z-index. Let the
+  target card overflow only while one of its inline tooltips is active, then
+  elevate the card above adjacent workflow columns.
+*/
+.finder-targets-card:has(.finder-target-tooltip:hover),
+.finder-targets-card:has(.finder-target-tooltip:focus-within) {
+  position: relative;
+  z-index: 20;
+  overflow: visible;
+}
+
+.finder-target-tooltip:hover,
+.finder-target-tooltip:focus-within {
+  /*
+    These wrappers also receive Tailwind's static z-20 utility. Override it
+    decisively while active so a later target card and its info trigger cannot
+    paint above the open tooltip.
+  */
+  z-index: 1000 !important;
+}
+
+.finder-target-tooltip:hover [role='tooltip'],
+.finder-target-tooltip:focus-within [role='tooltip'] {
+  z-index: 1000 !important;
+}
+
 /* Keep 17% / 30% numerals optically centered by cap height. */
 .finder-target-level-choice-button {
   display: inline-flex;
