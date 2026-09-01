@@ -815,7 +815,9 @@
       "landUseLabels": {
         "forest": "Bosques y áreas seminaturales",
         "agriculture": "Agricultura",
-        "other": "Otros",
+        "artificialSurfaces": "Territorios artificializados",
+        "wetlands": "Áreas húmedas",
+        "waterBodies": "Superficies de agua",
         "scenarioAreaWithinAoi": "% del área del escenario dentro del AOI",
         "withinAoi": "% dentro del AOI",
         "withinAoiUnavailable": "La composición del uso del suelo en todo el AOI aún no está disponible."

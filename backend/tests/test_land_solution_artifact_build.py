@@ -267,6 +267,37 @@ def test_v3_parity_contract_selects_mesa_runtime_inputs() -> None:
     } == expected_urls
 
 
+def test_runtime_artifact_preserves_each_corine_level_1_land_use_class() -> None:
+    layers = {
+        layer.layer_id: layer
+        for layer in builder.build_layer_specs({}, "land-solution")
+        if layer.layer_id.startswith("coberturas_")
+    }
+
+    expected_land_use_layers = {
+        "coberturas_artificial_surfaces": (
+            1,
+            "land_use_artificial_surfaces_pct",
+        ),
+        "coberturas_agricultural_areas": (
+            2,
+            "land_use_agricultural_areas_pct",
+        ),
+        "coberturas_forests_and_semi_natural_areas": (
+            3,
+            "land_use_forests_and_semi_natural_areas_pct",
+        ),
+        "coberturas_wetlands": (4, "land_use_wetlands_pct"),
+        "coberturas_water_bodies": (5, "land_use_water_bodies_pct"),
+    }
+
+    assert set(layers) == set(expected_land_use_layers)
+    for layer_id, (selected_value, metric_id) in expected_land_use_layers.items():
+        layer = layers[layer_id]
+        assert layer.rendering["selectedValue"] == selected_value
+        assert layer.metric_ids == (metric_id,)
+
+
 def test_v3_target_bundle_is_extracted_from_release_goals(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

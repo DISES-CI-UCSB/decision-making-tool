@@ -2670,30 +2670,12 @@
                               <span
                                 [id]="'aoi-bar-fill-' + bar.id"
                                 class="aoi-bar-fill"
-                                [style.width.%]="
-                                  getAoiMetricPercent(
-                                    bar.id === 'forest'
-                                      ? 'land_use_forest_pct'
-                                      : bar.id === 'agriculture'
-                                        ? 'land_use_agriculture_pct'
-                                        : 'land_use_other_pct',
-                                    bar.percent
-                                  )
-                                "
+                                [style.width.%]="getAoiMetricPercent(bar.metricId, bar.percent)"
                                 [style.background-color]="bar.color"
                               ></span>
                             </div>
                             <span [id]="'aoi-bar-val-' + bar.id" class="aoi-bar-val">
-                              {{
-                                getAoiMetricValue(
-                                  bar.id === 'forest'
-                                    ? 'land_use_forest_pct'
-                                    : bar.id === 'agriculture'
-                                      ? 'land_use_agriculture_pct'
-                                      : 'land_use_other_pct',
-                                  bar.percent + '%'
-                                )
-                              }}
+                              {{ getAoiMetricValue(bar.metricId, bar.percent + '%') }}
                             </span>
                           </div>
                         }
@@ -3270,7 +3252,11 @@
                   class="c2-summary-card"
                   [class.c2-summary-card-candidate-selected]="comparisonSolution()"
                   [class.c2-summary-card-candidate-empty]="!comparisonSolution()"
+                  role="button"
+                  tabindex="0"
                   (click)="selectComparisonCandidateFromCard()"
+                  (keydown.enter)="selectComparisonCandidateFromCard()"
+                  (keydown.space)="selectComparisonCandidateFromCard()"
                 >
                   <div id="right-sidebar-comparison-candidate-top" class="c2-summary-top">
                     <p id="right-sidebar-comparison-candidate-label" class="c2-summary-label">

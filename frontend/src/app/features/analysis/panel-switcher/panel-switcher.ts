@@ -310,6 +310,7 @@ interface AoiBiodiversityBar {
 
 interface AoiLandUseBar {
   id: string;
+  metricId: CustomPolygonMetricId;
   label: string;
   percent: number;
   color: string;
@@ -539,12 +540,40 @@ export class PanelSwitcherComponent {
   ];
   private readonly aoiLandUseBaseBars: readonly {
     id: string;
+    metricId: CustomPolygonMetricId;
     labelKey: string;
     percent: number;
   }[] = [
-    { id: 'forest', labelKey: 'analysis.aoi.landUseLabels.forest', percent: 60 },
-    { id: 'agriculture', labelKey: 'analysis.aoi.landUseLabels.agriculture', percent: 25 },
-    { id: 'other-land', labelKey: 'analysis.aoi.landUseLabels.other', percent: 15 },
+    {
+      id: 'forest',
+      metricId: 'land_use_forests_and_semi_natural_areas_pct',
+      labelKey: 'analysis.aoi.landUseLabels.forest',
+      percent: 60,
+    },
+    {
+      id: 'agriculture',
+      metricId: 'land_use_agricultural_areas_pct',
+      labelKey: 'analysis.aoi.landUseLabels.agriculture',
+      percent: 25,
+    },
+    {
+      id: 'artificial-surfaces',
+      metricId: 'land_use_artificial_surfaces_pct',
+      labelKey: 'analysis.aoi.landUseLabels.artificialSurfaces',
+      percent: 8,
+    },
+    {
+      id: 'wetlands',
+      metricId: 'land_use_wetlands_pct',
+      labelKey: 'analysis.aoi.landUseLabels.wetlands',
+      percent: 4,
+    },
+    {
+      id: 'water-bodies',
+      metricId: 'land_use_water_bodies_pct',
+      labelKey: 'analysis.aoi.landUseLabels.waterBodies',
+      percent: 3,
+    },
   ];
   private readonly appState = inject(AppStateService);
   private readonly appLocale = inject(AppLocaleService);
@@ -1111,6 +1140,7 @@ export class PanelSwitcherComponent {
       const slot = index === 0 ? greenSlot : (alternateSlots[index - 1] ?? 0);
       return {
         id: bar.id,
+        metricId: bar.metricId,
         label: this.localizedText(bar.labelKey),
         percent: bar.percent,
         color: palette[slot] ?? fallbackColor,
