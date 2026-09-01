@@ -2567,7 +2567,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     const copy = this.ecosystemsCopy();
     const language = this.activeLanguage();
     const ecosystemInfo = {
-      en: 'This map layer is a simplified display of the Ecosystems target used in the prioritizr run. The model targets 429 detailed Humboldt/IAvH biome-region classes from Colombia’s official MEC 2024 ecosystem data; each class combines a broad biome family with a biodiversity region, for example “Hidrobioma Alto Caquetá.” To keep the map readable, DISES groups those detailed classes into 8 broad biome families in the sidebar display.',
+      en: 'This map layer is a simplified display of IDEAM’s 2024 continental, coastal, and marine ecosystems (MEC) of Colombia. While the model targets the 429 distinct IAvH biome-region classes in the dataset, this layer displays the less detailed major biomes (“gran bioma”).',
       es: 'Esta capa del mapa es una visualización simplificada de la meta Ecosistemas usada en la ejecución de prioritizr. El modelo usa 429 clases detalladas de bioma-región de Humboldt/IAvH del mapa oficial de ecosistemas MEC 2024 de Colombia; cada clase combina una gran familia de bioma con una región de biodiversidad, por ejemplo “Hidrobioma Alto Caquetá”. Para que el mapa sea legible, DISES agrupa esas clases detalladas en 8 grandes familias de biomas en la barra lateral.',
     };
     const strategicInfo = {
