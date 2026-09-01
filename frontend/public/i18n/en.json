@@ -268,13 +268,39 @@
         "species": "Species",
         "taxaBreakdown": "Included species groups",
         "viewBreakdown": "View breakdown",
+        "viewAdditionalCoverage": "View additional coverage",
         "noTargetsSet": "No conservation domain was explicitly targeted in this scenario.",
         "sirap": {
-          "certifiedBadge": "Certified SIRAP coverage",
-          "sourceCue": "Supplied regional packet",
-          "targetResult": "Packet target result",
-          "ecosystemCoverageTitle": "Ecosystem coverage in this SIRAP solution",
-          "speciesTitle": "Species represented in this SIRAP solution",
+          "targetProgressTitle": "Selected target progress",
+          "targetProgressUnavailable": "Authoritative target progress is unavailable for this regional scenario.",
+          "targetLabel": "Target {{percent}}",
+          "achievedLabel": "Achieved {{percent}}",
+          "targets": {
+            "strategic-ecosystems": "Strategic ecosystems",
+            "dry-forest": "Tropical dry forest",
+            "eje-wetlands": "Eje Cafetero wetlands",
+            "congriales": "Congriales",
+            "savannas": "Savannas"
+          },
+          "targetModes": {
+            "inheritsStrategic": "Inherits the strategic ecosystems target.",
+            "pairedWithStrategic": "Paired with the strategic ecosystems target."
+          },
+          "features": {
+            "paramos": "Páramos",
+            "humedales": "Wetlands",
+            "bosque-seco": "Tropical dry forest",
+            "ec-wetlands": "Eje Cafetero wetlands",
+            "congriales": "Congriales",
+            "savannas": "Savannas"
+          },
+          "status": {
+            "met": "Target met",
+            "shortfall": "{{percent}} shortfall"
+          },
+          "additionalOutcomesDescription": "Other measured ecosystem and species coverage. These results are not target attainment.",
+          "ecosystemCoverageTitle": "Ecosystem coverage",
+          "speciesTitle": "Species represented",
           "ecosystems": {
             "iavh": "IAvH total",
             "paramo": "Páramo",
@@ -287,9 +313,7 @@
             "amphibians": "Amphibians",
             "reptiles": "Reptiles",
             "plants": "Plants"
-          },
-          "detailsAvailabilityTitle": "Details availability",
-          "detailsAvailabilityDescription": "Detailed goal, MEC, and per-species breakouts are unavailable for this regional batch. The coverage values shown above remain supplied packet results."
+          }
         },
         "additionalOutcomesHeading": "Additional outcomes",
         "additionalOutcomesDescription": "Measured coverage in domains that were not targeted by this scenario. The percentages are illustrative range-coverage checkpoints, not configured targets.",
@@ -310,6 +334,8 @@
           "nationalStrategicEcosystemsTitle": "National strategic ecosystems coverage breakdown",
           "nationalEcosystemsTitle": "National ecosystems coverage breakdown",
           "nationalSpeciesTitle": "National species coverage breakdown",
+          "sirapEcosystemsTitle": "SIRAP ecosystem coverage breakdown",
+          "sirapSpeciesTitle": "SIRAP species coverage breakdown",
           "speciesCoverageTitle": "Species coverage breakdown",
           "targetedKicker": "Target progress",
           "additionalKicker": "Additional outcome",
@@ -319,14 +345,14 @@
           "speciesReferenceAdditionalDescription": "These compact-metric counts show post-hoc species outcomes at illustrative 17% and 30% range-coverage checkpoints. They are reference outcomes, not configured solver targets, and are kept separate from goals/v4 target-status rows.",
           "speciesReferenceBreakdown": "Species-group reference outcomes",
           "ecosystemTargetedDescription": "These classification views describe the same national MEC ecosystem map. Existing and candidate conservation-area coverage are area shares; total coverage is compared with the configured target. Coarser classifications are area-based coverage rollups, not separate Prioritizr feature records.",
-          "ecosystemAdditionalDescription": "These classification views describe the same national MEC ecosystem map. Existing and candidate conservation-area coverage are area shares; total coverage is compared with the illustrative 17% and 30% checkpoints. Coarser classifications are area-based coverage rollups, not separate Prioritizr feature records.",
+          "ecosystemAdditionalDescription": "These classification views describe the IAvH MEC ecosystem map within the planning geography. Pre-existing and additional conservation coverage are area shares; total coverage is shown as a measured outcome, not solver-target attainment. Coarser classifications are area-based coverage rollups, not separate Prioritizr feature records.",
           "ecosystemClassificationGroup": "Ecosystem classification group",
           "preparing": "Preparing feature breakdown...",
           "speciesLoading": "Loading the full species coverage dataset...",
           "speciesLoadError": "The species coverage dataset could not be loaded. Try again.",
           "customSpeciesUnavailable": "Full species coverage is not available for custom drawn areas.",
-          "classificationsLoading": "Loading national ecosystem classifications...",
-          "classificationsLoadError": "The additional national ecosystem classifications could not be loaded. The available feature data is still shown below.",
+          "classificationsLoading": "Loading ecosystem classifications...",
+          "classificationsLoadError": "The additional ecosystem classifications could not be loaded. The available feature data is still shown below.",
           "retry": "Retry",
           "classificationUnavailable": "This classification is not available for this scenario.",
           "configuredTarget": "Configured target",
@@ -952,7 +978,7 @@
         "colombiaEndemics": "Colombia endemics",
         "nationalSpeciesTotal": "% of National Species Total",
         "nationalSpeciesTotalDesc": "Share of Colombia's total species found in this AOI",
-        "totalCarbonBiomass": "Total Carbon Biomass",
+        "totalCarbonBiomass": "Total Carbon Biomass Conserved",
         "nationalCarbon": "% of National Carbon",
         "nationalCarbonDesc": "Of Colombian stocks",
         "aboveGroundCarbon": "Above + Belowground Biomass Carbon",
@@ -1140,7 +1166,7 @@
         "included": "Included",
         "notSelected": "Not selected",
         "sourceLabel": "Source: certified SIRAP scenario catalog",
-        "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-29-v2/catalog.json",
+        "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-31-v3/catalog.json",
         "step1": {
           "label": "Conservation targets",
           "help": "Choose the regional features and target levels to conserve. Only combinations available in the certified catalog can be selected.",

@@ -448,6 +448,26 @@ def resolve_national_target(solution: dict[str, Any]) -> dict[str, Any]:
         raise ManifestError(
             f"Solution {solution.get('id')!r} has no finderInputs target metadata."
         )
+    if solution.get("scope") == "sirap":
+        structured = finder_inputs.get("structuredTargets")
+        if not isinstance(structured, dict):
+            raise ManifestError(
+                f"SIRAP solution {solution.get('id')!r} lacks structured target metadata."
+            )
+        return {
+            "applicability": "not-applicable-regional-post-hoc",
+            "targetPercent": None,
+            "source": "solution.finderInputs.structuredTargets",
+            "statusStorage": "not-evaluated",
+            "interpretation": (
+                "MEC ecosystem coverage is an additional regional outcome, "
+                "not SIRAP solver-target attainment."
+            ),
+            "solverTargetFeatureSet": finder_inputs.get("targetFeatureSet"),
+            "solverTargetFeatureIds": list(
+                finder_inputs.get("targetFeatureIds") or []
+            ),
+        }
     raw_target = finder_inputs.get("targetPercent")
     if isinstance(raw_target, bool):
         raw_target = None
@@ -1550,7 +1570,10 @@ def build_mec_document(
         "rows": rows,
     }
     if geography_level == "national":
-        document["nationalCoverageBenchmark"] = national_target
+        if national_target["applicability"] == "national-only":
+            document["nationalCoverageBenchmark"] = national_target
+        else:
+            document["coverageOutcomeContext"] = national_target
     if solution_catalog_binding is not None:
         document["solutionCatalogBinding"] = solution_catalog_binding
     return document

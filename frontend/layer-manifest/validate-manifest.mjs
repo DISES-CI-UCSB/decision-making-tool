@@ -128,12 +128,24 @@ function assertSolutionPrecomputedMetricUrls(value, label, solution) {
 
   for (const [key, urlOrMap] of Object.entries(value)) {
     assertString(key, `${label} key`);
-    if (
-      key === 'mecByGeography' ||
-      key === 'mecV2ByGeography' ||
-      key === 'speciesGoalsByGeography'
-    ) {
-      assertMecGeographyUrls(urlOrMap, `${label}.${key}`);
+    if (key === 'mecByGeography' || key === 'mecV2ByGeography') {
+      assertGeographyUrls(urlOrMap, `${label}.${key}`, MEC_GEOGRAPHY_LEVELS);
+      const domain =
+        solution.domain === 'marine' ||
+        solution.finderInputs?.domain === 'marine' ||
+        solution.scope === 'marine' ||
+        solution.blobPath?.startsWith('solutions/marine/')
+          ? 'marine'
+          : 'land';
+      assert(domain === 'land', `${label}.${key} is only valid for land solutions`);
+      continue;
+    }
+    if (key === 'speciesGoalsByGeography') {
+      assertGeographyUrls(
+        urlOrMap,
+        `${label}.${key}`,
+        solution.scope === 'sirap' ? SIRAP_SPECIES_GEOGRAPHY_LEVELS : MEC_GEOGRAPHY_LEVELS,
+      );
       const domain =
         solution.domain === 'marine' ||
         solution.finderInputs?.domain === 'marine' ||
@@ -149,13 +161,13 @@ function assertSolutionPrecomputedMetricUrls(value, label, solution) {
   }
 }
 
-function assertMecGeographyUrls(value, label) {
+function assertGeographyUrls(value, label, expectedLevels) {
   assert(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
   const keys = Object.keys(value);
   assert(
-    keys.length === MEC_GEOGRAPHY_LEVELS.length &&
-      MEC_GEOGRAPHY_LEVELS.every((level) => keys.includes(level)),
-    `${label} must contain exactly: ${MEC_GEOGRAPHY_LEVELS.join(', ')}`,
+    keys.length === expectedLevels.length &&
+      expectedLevels.every((level) => keys.includes(level)),
+    `${label} must contain exactly: ${expectedLevels.join(', ')}`,
   );
   assertUrlMap(value, label);
 }
@@ -205,6 +217,7 @@ const MEC_GEOGRAPHY_LEVELS = [
   'runaps',
   'omecs',
 ];
+const SIRAP_SPECIES_GEOGRAPHY_LEVELS = ['siraps', 'departments', 'municipalities'];
 const CATEGORY_ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 const CATEGORY_PATH_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)?$/;
 const COLOR_DEFAULT_FIELDS = ['selectedColor', 'startColor', 'endColor'];
@@ -604,10 +617,26 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
       assertRequiredReleaseMetricUrls(solution, manifest.releaseId, allowOriginRelative);
       assert(!('mecByGeography' in urls), `${solution.id} must omit MEC v1 in release mode`);
       if (solution.scope === 'sirap') {
-        assert(!('goals' in urls), `${solution.id} must omit unsupported SIRAP goals`);
-        assert(!('mecV2ByGeography' in urls), `${solution.id} must omit unsupported SIRAP MEC`);
+        assertGeographyUrls(
+          urls.mecV2ByGeography,
+          `${solution.id}.mecV2ByGeography`,
+          MEC_GEOGRAPHY_LEVELS,
+        );
+        assertString(
+          urls.speciesGoalsCatalog,
+          `${solution.id}.speciesGoalsCatalog`,
+        );
+        assertGeographyUrls(
+          urls.speciesGoalsByGeography,
+          `${solution.id}.speciesGoalsByGeography`,
+          SIRAP_SPECIES_GEOGRAPHY_LEVELS,
+        );
       } else {
-        assertMecGeographyUrls(urls.mecV2ByGeography, `${solution.id}.mecV2ByGeography`);
+        assertGeographyUrls(
+          urls.mecV2ByGeography,
+          `${solution.id}.mecV2ByGeography`,
+          MEC_GEOGRAPHY_LEVELS,
+        );
       }
       assertReleaseMetricUrls(solution, manifest.releaseId, allowOriginRelative);
     }
@@ -638,7 +667,7 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
 
 function assertRequiredReleaseMetricUrls(solution, releaseId, allowOriginRelative = false) {
   const urls = solution.precomputedMetricUrls ?? {};
-  const keys = solution.scope === 'sirap' ? ['cache', 'compactCache'] : ['goals', 'cache', 'compactCache'];
+  const keys = ['goals', 'cache', 'compactCache'];
   for (const key of keys) {
     assertReleaseMetricUrl(
       urls[key],

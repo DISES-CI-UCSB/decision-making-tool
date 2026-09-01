@@ -342,6 +342,23 @@ interface SirapOverviewMetricEntry {
   value: string;
 }
 
+interface SirapOverviewTargetFeature {
+  id: string;
+  label: string;
+  achievedPercent: number;
+  targetPercent: number;
+  shortfallPercent: number;
+  met: boolean;
+}
+
+interface SirapOverviewTargetGroup {
+  id: string;
+  label: string;
+  targetPercent: number;
+  targetMode: string;
+  features: SirapOverviewTargetFeature[];
+}
+
 type CustomAoiMetricRequestMode = 'fast' | 'species';
 
 type MecUnavailableReason =
@@ -672,21 +689,75 @@ export class PanelSwitcherComponent {
    * its loaded primary geography explicitly declare that scope. Selected AOIs are intentionally
    * not part of this decision.
    */
+  protected readonly isSirapScopedSolution = computed(() => {
+    const catalogSolution = this.findActiveCatalogSolution(this.activeSolution());
+    return (
+      normalizeSolutionToken(catalogSolution?.scope ?? '') === 'sirap' ||
+      normalizeSolutionToken(catalogSolution?.finderInputs?.scope ?? '') === 'sirap'
+    );
+  });
   protected readonly isSirapPacketOverview = computed(() => {
     const solution = this.activeSolution();
     const catalogSolution = this.findActiveCatalogSolution(solution);
     const primaryGeography = this.cachedMetricsDocument()?.primaryGeography;
     return (
-      catalogSolution?.scope === 'sirap' &&
+      this.isSirapScopedSolution() &&
       primaryGeography?.level === 'sirap' &&
-      Boolean(primaryGeography.scopeId)
+      Boolean(primaryGeography.scopeId) &&
+      (!catalogSolution?.sirapId || primaryGeography.scopeId === catalogSolution.sirapId)
     );
   });
-  protected readonly sirapOverviewTargetMetric = computed<MetricValue | null>(() => {
-    const metric = this.isSirapPacketOverview()
-      ? this.findSirapOverviewMetric('conservation_goals_met')
-      : null;
-    return isDisplayableMetricValue(metric) && metric.status === 'ready' ? metric : null;
+  protected readonly sirapOverviewTargetGroups = computed<SirapOverviewTargetGroup[]>(() => {
+    if (!this.isSirapScopedSolution()) {
+      return [];
+    }
+    const document = this.solutionGoalsDocument();
+    const catalogSolution = this.findActiveCatalogSolution(this.activeSolution());
+    if (
+      !document?.regionalTargetGroups ||
+      document.solutionId !== catalogSolution?.id ||
+      document.targetContext.sirap?.regionId !== catalogSolution.sirapId
+    ) {
+      return [];
+    }
+
+    return document.regionalTargetGroups.flatMap((group) => {
+      const features = group.features.flatMap((feature) => {
+        const { relativeHeld, relativeTarget, relativeShortfall } = feature;
+        if (
+          typeof relativeHeld !== 'number' ||
+          !Number.isFinite(relativeHeld) ||
+          typeof relativeTarget !== 'number' ||
+          !Number.isFinite(relativeTarget) ||
+          typeof relativeShortfall !== 'number' ||
+          !Number.isFinite(relativeShortfall) ||
+          typeof feature.met !== 'boolean'
+        ) {
+          return [];
+        }
+        return [
+          {
+            id: feature.featureId,
+            label: this.sirapTargetFeatureLabel(feature.featureId, feature.featureName),
+            achievedPercent: relativeHeld * 100,
+            targetPercent: relativeTarget * 100,
+            shortfallPercent: relativeShortfall * 100,
+            met: feature.met,
+          },
+        ];
+      });
+      return features.length
+        ? [
+            {
+              id: group.id,
+              label: this.localizedText(`analysis.overview.goalsWidget.sirap.targets.${group.id}`),
+              targetPercent: group.targetPercent,
+              targetMode: group.targetMode,
+              features,
+            },
+          ]
+        : [];
+    });
   });
   protected readonly sirapOverviewEcosystemMetrics = computed<SirapOverviewMetricEntry[]>(() =>
     this.buildSirapOverviewMetricEntries([
@@ -729,25 +800,17 @@ export class PanelSwitcherComponent {
       ['plants', 'species_richness_plants', 'analysis.overview.goalsWidget.sirap.species.plants'],
     ]),
   );
-  /**
-   * Goal files are intentionally absent from regional packet releases. Wait until the primary
-   * geography is known before loading, then suppress that request for authoritative SIRAP packets.
-   */
+  /** SIRAP goal summaries load only from an explicit regional release URL. */
   private readonly goalsDocumentSolutionId = computed<string | null>(() => {
     const solutionId = this.activeSolutionId();
     const catalogSolution = this.findActiveCatalogSolution(this.activeSolution());
     if (!solutionId || !catalogSolution) {
       return solutionId;
     }
-    if (catalogSolution.scope !== 'sirap') {
+    if (!this.isSirapScopedSolution()) {
       return solutionId;
     }
-
-    const document = this.cachedMetricsDocument();
-    if (document?.solutionId !== solutionId) {
-      return null;
-    }
-    return this.isSirapPacketOverview() ? null : solutionId;
+    return typeof catalogSolution.precomputedMetricUrls?.goals === 'string' ? solutionId : null;
   });
   protected readonly overviewGoalsDomains = computed<OverviewGoalsDomainEntry[]>(() =>
     this.buildOverviewGoalsDomains(),
@@ -822,7 +885,10 @@ export class PanelSwitcherComponent {
 
     // Summary-goals rows are the canonical IAvH target universe. MEC remains
     // supporting classification data until a Mesa-compatible sidecar is wired.
-    if (domain.featureType === 'ecosystems' && this.goalsModalEcosystemBreakdownId() !== 'iavh') {
+    if (
+      domain.featureType === 'ecosystems' &&
+      (!domain.targeted || this.goalsModalEcosystemBreakdownId() !== 'iavh')
+    ) {
       const mecRows = this.goalsModalEcosystemRowsByView().get(
         this.goalsModalEcosystemBreakdown().view,
       );
@@ -1142,7 +1208,7 @@ export class PanelSwitcherComponent {
   );
   protected readonly iavhConsideredInRun = computed(() => {
     const scenario = this.findActiveCatalogSolution(this.activeSolution());
-    return scenario?.finderInputs && scenario.inputLayerIds
+    return !this.isSirapScopedSolution() && scenario?.finderInputs && scenario.inputLayerIds
       ? getSolutionTargetTypes(scenario, { inferFromName: true }).has('ecosystems')
       : false;
   });
@@ -1334,7 +1400,7 @@ export class PanelSwitcherComponent {
       )
       .subscribe((document) => {
         this.cachedMetricsDocument.set(document);
-        this.overviewSections.set(this.buildOverviewSections(nationalMetrics(document)));
+        this.overviewSections.set(this.buildOverviewSections(this.overviewMetrics(document)));
       });
 
     toObservable(this.goalsDocumentSolutionId)
@@ -1818,6 +1884,39 @@ export class PanelSwitcherComponent {
     return this.appendUnit(this.formatNumber(pctMet, this.metricNumberFormatMode(), 0, 1), '%');
   }
 
+  protected getSirapTargetModeLabel(targetMode: string): string | null {
+    const keyByMode: Record<string, string> = {
+      'inherits-strategic': 'analysis.overview.goalsWidget.sirap.targetModes.inheritsStrategic',
+      'paired-with-strategic':
+        'analysis.overview.goalsWidget.sirap.targetModes.pairedWithStrategic',
+    };
+    const key = keyByMode[targetMode];
+    return key ? this.localizedText(key) : null;
+  }
+
+  protected getSirapTargetStatusLabel(feature: SirapOverviewTargetFeature): string {
+    if (feature.met) {
+      return this.localizedText('analysis.overview.goalsWidget.sirap.status.met');
+    }
+    return this.translate.instant('analysis.overview.goalsWidget.sirap.status.shortfall', {
+      percent: this.getGoalsPercentLabel(feature.shortfallPercent),
+    });
+  }
+
+  private sirapTargetFeatureLabel(featureId: string, fallback: string): string {
+    const knownFeatureIds = new Set([
+      'paramos',
+      'humedales',
+      'bosque-seco',
+      'ec-wetlands',
+      'congriales',
+      'savannas',
+    ]);
+    return knownFeatureIds.has(featureId)
+      ? this.localizedText(`analysis.overview.goalsWidget.sirap.features.${featureId}`)
+      : fallback;
+  }
+
   protected getGoalsTargetRuleLabel(): string {
     const document = this.solutionGoalsDocument();
     if (!document) {
@@ -1895,6 +1994,8 @@ export class PanelSwitcherComponent {
     const speciesTotalCount =
       speciesReference?.totalCount ?? document.summary.byType.species.totalSpeciesCount;
     const ecosystemSummary = summarizeEcosystemGoals(document.features.ecosystems);
+    const ecosystemTotalCount =
+      ecosystemSummary.totalCount || (this.hasSirapMecCoverageBreakdown() ? 1 : 0);
 
     const entries: OverviewGoalsDomainEntry[] = [
       {
@@ -1929,7 +2030,7 @@ export class PanelSwitcherComponent {
           document.targetContext.relativeTargetsByType['ecosystems'],
         ),
         metCount: ecosystemSummary.metCount,
-        totalCount: ecosystemSummary.totalCount,
+        totalCount: ecosystemTotalCount,
         pctMet: ecosystemSummary.pctMet,
         reached17Count: ecosystemSummary.reached17Count,
         reached30Count: ecosystemSummary.reached30Count,
@@ -2264,6 +2365,10 @@ export class PanelSwitcherComponent {
   } | null {
     const aoi = this.selectedAoi();
     if (!aoi) {
+      const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
+      if (this.isSirapScopedSolution() && sirapId) {
+        return { geographyLevel: 'siraps', scopeId: sirapId };
+      }
       return { geographyLevel: 'national', scopeId: 'colombia' };
     }
     if (!isMetricCompatibleAoiSource(aoi)) {
@@ -2318,12 +2423,18 @@ export class PanelSwitcherComponent {
   }
 
   protected getGoalsModalTitleKey(): string {
+    const sirapPrimary = this.isSirapScopedSolution() && this.selectedAoi() === null;
     switch (this.goalsModalDomain()?.featureType) {
       case 'strategicEcosystems':
         return 'analysis.overview.goalsWidget.modal.nationalStrategicEcosystemsTitle';
       case 'ecosystems':
-        return 'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle';
+        return sirapPrimary
+          ? 'analysis.overview.goalsWidget.modal.sirapEcosystemsTitle'
+          : 'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle';
       case 'species':
+        if (sirapPrimary) {
+          return 'analysis.overview.goalsWidget.modal.sirapSpeciesTitle';
+        }
         return this.isNationalGoalsModal()
           ? 'analysis.overview.goalsWidget.modal.nationalSpeciesTitle'
           : 'analysis.overview.goalsWidget.modal.speciesCoverageTitle';
@@ -2384,8 +2495,10 @@ export class PanelSwitcherComponent {
     this.goalsModalEcosystemMecDocument.set(null);
     this.goalsModalEcosystemMecLoading.set(true);
     this.goalsModalEcosystemMecLoadFailed.set(false);
+    const geographyLevel: GeographyLevel =
+      this.isSirapScopedSolution() && this.selectedAoi() === null ? 'siraps' : 'national';
     this.mecMetrics
-      .loadMecMetrics(solutionId, 'national')
+      .loadMecMetrics(solutionId, geographyLevel)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result) => {
         if (this.goalsModalEcosystemMecSolutionId !== solutionId) {
@@ -3973,6 +4086,20 @@ export class PanelSwitcherComponent {
     );
   }
 
+  protected hasSirapSpeciesCoverageBreakdown(): boolean {
+    const urls = this.findActiveCatalogSolution(this.activeSolution())?.precomputedMetricUrls;
+    return Boolean(
+      this.isSirapScopedSolution() &&
+        urls?.speciesGoalsCatalog &&
+        urls.speciesGoalsByGeography?.siraps,
+    );
+  }
+
+  protected hasSirapMecCoverageBreakdown(): boolean {
+    const urls = this.findActiveCatalogSolution(this.activeSolution())?.precomputedMetricUrls;
+    return Boolean(this.isSirapScopedSolution() && urls?.mecV2ByGeography?.siraps);
+  }
+
   private getScenarioFromSolution(solution: Solution | null): CatalogSolution | null {
     return this.findActiveCatalogSolution(solution);
   }
@@ -4414,6 +4541,22 @@ export class PanelSwitcherComponent {
     );
     const planningDomain = this.isMarineSolution() ? 'marine' : 'land';
     return resolveOverviewMetric(metricsById, metricId, planningDomain) ?? null;
+  }
+
+  private overviewMetrics(document: CachedSolutionMetricsDocument | null): MetricValue[] {
+    if (!this.isSirapScopedSolution()) {
+      return nationalMetrics(document);
+    }
+    const catalogSolution = this.findActiveCatalogSolution(this.activeSolution());
+    const primaryGeography = document?.primaryGeography;
+    if (
+      primaryGeography?.level !== 'sirap' ||
+      !primaryGeography.scopeId ||
+      (catalogSolution?.sirapId && primaryGeography.scopeId !== catalogSolution.sirapId)
+    ) {
+      return [];
+    }
+    return document?.geographies.sirap?.[primaryGeography.scopeId]?.metrics ?? [];
   }
 
   private buildSirapOverviewMetricEntries(

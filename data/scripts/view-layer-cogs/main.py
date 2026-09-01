@@ -246,6 +246,16 @@ VIEW_LAYERS = {
             display_nodata=-9999.0,
         ),
         ViewLayer(
+            layer_id="human_footprint_2030",
+            source_url=(
+                "https://aagibolq28slyfof.public.blob.vercel-storage.com/"
+                "inputs/costs/human_footprint_2030.tif"
+            ),
+            output_name="human_footprint_2030.epsg9377.cog.tif",
+            grid_behavior="land-template",
+            display_nodata=-9999.0,
+        ),
+        ViewLayer(
             layer_id="hhm",
             source_url=(
                 "https://aagibolq28slyfof.public.blob.vercel-storage.com/"

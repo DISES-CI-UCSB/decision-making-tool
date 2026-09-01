@@ -16,15 +16,18 @@ export const MEC_GEOGRAPHY_LEVELS = Object.freeze([
   'runaps',
   'omecs',
 ]);
+export const SIRAP_SPECIES_GEOGRAPHY_LEVELS = Object.freeze([
+  'siraps',
+  'departments',
+  'municipalities',
+]);
 
 /**
- * SIRAP packets certify regular metrics only. They intentionally do not publish
- * MEC artifacts: those would otherwise claim unsupported national, RUNAP, OMEC,
- * or SIRAP-polygon coverage. Keep this rule beside URL construction so a runtime
- * manifest cannot advertise an artifact the release assembler must reject.
+ * Land solutions publish MEC observations for every supported reporting geography.
+ * For SIRAP-targeted solutions these remain additional outcomes, not solver targets.
  */
 export function mecGeographyLevelsForSolution({ domain = 'land', scope = null } = {}) {
-  if (domain !== 'land' || scope === 'sirap') {
+  if (domain !== 'land') {
     return [];
   }
   return MEC_GEOGRAPHY_LEVELS;
@@ -62,6 +65,8 @@ export function createSolutionPrecomputedMetricUrls(
   } = existingUrls;
 
   const releaseId = options.releaseId ?? null;
+  const speciesGeographyLevels =
+    options.scope === 'sirap' ? SIRAP_SPECIES_GEOGRAPHY_LEVELS : MEC_GEOGRAPHY_LEVELS;
   const mecGeographyLevels = mecGeographyLevelsForSolution({ domain, scope: options.scope });
   const releaseRoot = releaseId ? `${RELEASE_CONTRACT.prefixRoot}/${releaseId}` : null;
   const releaseArtifactBaseUrl = options.releaseArtifactBaseUrl ?? PUBLIC_BLOB_HOST;
@@ -77,25 +82,31 @@ export function createSolutionPrecomputedMetricUrls(
   const speciesGoalsUrls =
     releaseRoot &&
     domain === 'land' &&
-    hasValidatedSpeciesGoalsInventory(options.speciesGoalsInventory, solutionId, releaseId)
+    hasValidatedSpeciesGoalsInventory(
+      options.speciesGoalsInventory,
+      solutionId,
+      releaseId,
+      speciesGeographyLevels,
+    )
       ? createSpeciesGoalsUrls(
           safeSolutionId,
           releaseRoot,
           options.speciesGoalsBaseUrl ?? PUBLIC_BLOB_HOST,
-          { includeTargetOverlay: options.includeSpeciesGoalsTargetOverlay !== false },
+          {
+            geographyLevels: speciesGeographyLevels,
+            includeTargetOverlay:
+              options.scope !== 'sirap' &&
+              options.includeSpeciesGoalsTargetOverlay !== false,
+          },
         )
       : null;
 
   return {
     ...preservedUrls,
-    ...(options.scope === 'sirap'
-      ? {}
-      : {
-          goals: artifactUrl(
-            releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
-            `${goalsDirectory}/${safeSolutionId}.goals.json`,
-          ),
-        }),
+    goals: artifactUrl(
+      releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
+      `${goalsDirectory}/${safeSolutionId}.goals.json`,
+    ),
     ...(releaseRoot
       ? {
           cache: artifactUrl(
@@ -129,7 +140,12 @@ export function createSolutionPrecomputedMetricUrls(
   };
 }
 
-function hasValidatedSpeciesGoalsInventory(inventory, solutionId, releaseId) {
+function hasValidatedSpeciesGoalsInventory(
+  inventory,
+  solutionId,
+  releaseId,
+  expectedLevels,
+) {
   return (
     inventory?.format === 'species-goals-release-inventory-v1' &&
     inventory.validated === true &&
@@ -137,8 +153,8 @@ function hasValidatedSpeciesGoalsInventory(inventory, solutionId, releaseId) {
     inventory.releaseId === releaseId &&
     inventory.catalogValidated === true &&
     Array.isArray(inventory.validatedGeographyLevels) &&
-    inventory.validatedGeographyLevels.length === MEC_GEOGRAPHY_LEVELS.length &&
-    MEC_GEOGRAPHY_LEVELS.every(
+    inventory.validatedGeographyLevels.length === expectedLevels.length &&
+    expectedLevels.every(
       (level, index) => inventory.validatedGeographyLevels[index] === level,
     )
   );
@@ -148,7 +164,10 @@ export function createSpeciesGoalsUrls(
   safeSolutionId,
   releaseRoot,
   baseUrl = PUBLIC_BLOB_HOST,
-  { includeTargetOverlay = true } = {},
+  {
+    geographyLevels = MEC_GEOGRAPHY_LEVELS,
+    includeTargetOverlay = true,
+  } = {},
 ) {
   const catalogDirectory = `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsCatalogDirectory}`;
   const compactDirectory = `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsCompactDirectory}`;
@@ -163,7 +182,7 @@ export function createSpeciesGoalsUrls(
         }
       : {}),
     speciesGoalsByGeography: Object.fromEntries(
-      MEC_GEOGRAPHY_LEVELS.map((level) => [
+      geographyLevels.map((level) => [
         level,
         artifactUrl(
           baseUrl,

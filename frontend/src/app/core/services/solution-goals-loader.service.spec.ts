@@ -80,4 +80,35 @@ describe('SolutionGoalsLoaderService', () => {
     await expect(firstValueFrom(service.loadGoals(catalogSolution.id))).resolves.toBeNull();
     httpMock.expectNone(() => true);
   });
+
+  it('loads only the manifest-provided regional goal summary for SIRAP', async () => {
+    const goalsUrl = 'https://example.com/releases/sirap-v3/goals/cache/orinoquia.goals.json';
+    catalogSolution = {
+      id: 'sirap-orinoquia',
+      scope: 'sirap',
+      displayUrl: 'https://example.com/releases/sirap-v3/solutions/orinoquia.tif',
+      precomputedMetricUrls: { goals: goalsUrl },
+    } as unknown as CatalogSolution;
+
+    const resultPromise = firstValueFrom(service.loadGoals(catalogSolution.id));
+    const document = {
+      format: 'conservation-goals-v1',
+      solutionId: catalogSolution.id,
+    } as SolutionGoalsDocument;
+    httpMock.expectOne(goalsUrl).flush(document);
+
+    await expect(resultPromise).resolves.toEqual(document);
+  });
+
+  it('does not infer national goals when finder inputs identify a SIRAP scope', () => {
+    catalogSolution = {
+      id: 'legacy-sirap-entry',
+      scope: 'national',
+      displayUrl: 'https://example.com/solutions/legacy-sirap.tif',
+      finderInputs: { scope: 'sirap' },
+    } as unknown as CatalogSolution;
+
+    expect(service.buildGoalsUrl(catalogSolution.id)).toBeNull();
+    httpMock.expectNone(() => true);
+  });
 });

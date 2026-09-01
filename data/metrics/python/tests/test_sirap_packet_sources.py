@@ -73,6 +73,12 @@ def manifest() -> ResolvedManifest:
             "wetlands": {
                 "id": "wetlands",
                 "displayUrl": "https://national.test/wetlands.tif",
+                "sparseSource": {
+                    "sourceUrl": "https://national.test/wetlands.tif",
+                    "sourceSha256": "e" * 64,
+                    "url": "https://national.test/wetlands.sparse.gz",
+                    "sha256": "f" * 64,
+                },
             }
         },
         national_solutions=[],
@@ -93,42 +99,42 @@ def test_sirap_missing_layer_fails_closed_without_national_fallback(
         resolve_solution_layer(manifest, _sirap_solution(), "carbon")
 
 
+def test_sirap_sparse_binding_cannot_use_global_manifest_source(
+    manifest: ResolvedManifest,
+):
+    solution = _sirap_solution()
+    binding = pipeline._layer_sparse_binding(
+        manifest,
+        solution,
+        "wetlands",
+        solution["regionalInputPacket"]["layers"]["wetlands"]["url"],
+    )
+
+    assert binding.source_url == "https://packets.test/humedales_EC.tif"
+    assert binding.source_sha256 == "c" * 64
+    assert binding.sparse_url is None
+    assert binding.sparse_sha256 is None
+
+
 def test_national_solution_keeps_manifest_layer_resolution(manifest: ResolvedManifest):
     binding = resolve_solution_layer(manifest, {"id": "national"}, "wetlands")
 
     assert binding["displayUrl"] == "https://national.test/wetlands.tif"
 
 
-def test_sirap_known_missing_inputs_are_explicitly_blocked():
-    overrides = pipeline._sirap_missing_input_metric_overrides()
+def test_sirap_reporting_exclusions_are_explicitly_not_applicable():
+    overrides = pipeline._sirap_status_metric_overrides()
 
-    expected_ids = {
-        "species_groups_protected",
-        "threatened_species_secured",
+    assert set(overrides) == {
         "carbon_storage_biomass",
-        "agricultural_area",
         "national_contribution",
-        "threatened_species_count",
-        "species_pct_of_national",
         "mangrove_coverage",
-        "carbon_biomass_total",
         "soil_organic_carbon",
         "carbon_pct_of_national",
-        "land_use_forests_and_semi_natural_areas_pct",
-        "land_use_agricultural_areas_pct",
-        "land_use_artificial_surfaces_pct",
-        "land_use_wetlands_pct",
-        "land_use_water_bodies_pct",
-        "national_parks_pct",
     }
-
-    assert set(overrides) == expected_ids
-    assert all(metric["status"] == "blocked" for metric in overrides.values())
+    assert all(metric["status"] == "not_applicable" for metric in overrides.values())
     assert all(metric["value"] is None for metric in overrides.values())
-    assert all(
-        metric["source"] == "regionalInputPacket.missingInputAuthority"
-        for metric in overrides.values()
-    )
+    assert all(metric["source"] == "n/a" for metric in overrides.values())
     assert all(metric["notes"] for metric in overrides.values())
 
 
@@ -290,7 +296,8 @@ def test_packet_smsp_counts_declared_class_and_leaves_missing_class_absent(tmp_p
     ]
 
 
-def test_packet_smsp_fans_out_scope_presence_and_coverage(tmp_path):
+def test_packet_smsp_fans_out_scope_presence_and_coverage(tmp_path, monkeypatch):
+    monkeypatch.setattr("sirap_packet._SPECIES_CELL_CHUNK_SIZE", 1)
     raster = raster_from_fixture(
         {
             "shape": [2, 2],
@@ -324,6 +331,12 @@ def test_packet_smsp_fans_out_scope_presence_and_coverage(tmp_path):
     )
     matrix = tmp_path / "mammals.smsp.gz"
     matrix.write_bytes(encoded)
+    lookup = tmp_path / "species.csv"
+    lookup.write_text(
+        "scientific_name,class,iucn_status,range_km2\n"
+        "Test species,Mammalia,EN,2\n",
+        encoding="utf-8",
+    )
     binding = {
         "taxonomicClass": "Mammalia",
         "format": "smsp-v1",
@@ -345,15 +358,42 @@ def test_packet_smsp_fans_out_scope_presence_and_coverage(tmp_path):
         estimated_peak_build_bytes=owners.nbytes,
         flat=owners,
     )
+    recorded = []
+
+    class DetailSink:
+        def record_national(self, species, selected_area_m2, total_area_m2, **kwargs):
+            recorded.append(
+                ("national", species.scientific_name, selected_area_m2, total_area_m2)
+            )
+
+        def record_sub_level(
+            self, species, level, selected_per_boundary, total_per_boundary, **kwargs
+        ):
+            recorded.append(
+                (
+                    level,
+                    species.scientific_name,
+                    selected_per_boundary.tolist(),
+                    total_per_boundary.tolist(),
+                )
+            )
 
     accumulator, _ = regional_species_accumulator(
-        [binding],
+        {
+            "matrices": [binding],
+            "metadataLookup": {
+                "url": lookup.as_uri(),
+                "sha256": hashlib.sha256(lookup.read_bytes()).hexdigest(),
+            },
+            "nationalDenominator": {"nonFishCount": 1},
+        },
         raster,
         "a" * 64,
         {"departments": boundary_index},
         tmp_path / "cache",
         force=False,
         target_policy=SpeciesTargetPolicy("scalar", 50.0, {}, None),
+        detail_sink=DetailSink(),
     )
 
     assert accumulator.national.by_bucket["mammals"] == 1
@@ -361,6 +401,10 @@ def test_packet_smsp_fans_out_scope_presence_and_coverage(tmp_path):
     assert accumulator.sub["departments"][1].by_bucket["mammals"] == 0
     assert accumulator.sub["departments"][0].threatened_secured == 1
     assert accumulator.sub["departments"][0].coverage_by_bucket["mammals"].met == 1
+    assert [row[:2] for row in recorded] == [
+        ("national", "Test species"),
+        ("departments", "Test species"),
+    ]
 
 
 def test_packet_smsp_rejects_checksum_mismatch(tmp_path):

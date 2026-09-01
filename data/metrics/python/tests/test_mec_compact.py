@@ -588,6 +588,28 @@ def test_national_target_requires_authoritative_17_or_30_finder_metadata():
         )
 
 
+def test_sirap_mec_is_a_post_hoc_outcome_without_target_attainment():
+    context = resolve_national_target(
+        {
+            "id": "eje",
+            "scope": "sirap",
+            "finderInputs": {
+                "targetPercent": None,
+                "targetFeatureSet": "sirap:eje-cafetero:step-1",
+                "targetFeatureIds": ["strategic-ecosystems"],
+                "structuredTargets": {
+                    "format": "solution-target-metadata-v1",
+                    "strategicEcosystems": [],
+                },
+            },
+        }
+    )
+
+    assert context["targetPercent"] is None
+    assert context["statusStorage"] == "not-evaluated"
+    assert context["applicability"] == "not-applicable-regional-post-hoc"
+
+
 def test_composite_taxonomy_emits_all_views_and_preserves_unicode_and_tipo():
     taxonomy = _composite_taxonomy()
 

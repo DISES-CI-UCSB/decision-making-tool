@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import csv
+import re
 from dataclasses import dataclass
+from itertools import chain, groupby
 from pathlib import Path
 from typing import Any
 
@@ -16,12 +18,15 @@ from boundaries.boundary_topology import (
     prepare_sparse_boundary_weighted_channels,
 )
 from calculators.species import SpeciesAccumulator
+from calculators.species import SpeciesDetailSink
 from local_io import CachedDownload, DownloadError, cached_download
 from raster_metrics import SolutionRaster
-from sparse.format import SparseFormatError, decode_species_matrix_bytes
-from species_data import SpeciesRecord, compute_pool_sizes
+from sparse.format import SparseFormatError, iter_species_matrix_chunks
+from species_data import SpeciesRecord, compute_pool_sizes, load_species_records
 from species_target_policy import SpeciesTargetPolicy
 from species_taxonomy import class_bucket, normalize_class_name
+
+_SPECIES_CELL_CHUNK_SIZE = 1_000_000
 
 
 @dataclass(frozen=True)
@@ -96,22 +101,34 @@ def regional_species_richness(
                 "the packet grid."
             )
         download = download_pinned(binding, cache_dir, force=force)
-        decoded = decode_species_matrix_bytes(download.path.read_bytes())
-        if not _matrix_matches_packet_grid(decoded.grid, decoded.grid_raw, raster):
-            raise SparseFormatError(
-                f"Species matrix {binding['taxonomicClass']!r} grid differs from "
-                "the SIRAP solution grid."
-            )
         declared_class = normalize_class_name(binding["taxonomicClass"])
-        for species in decoded.entries:
-            if normalize_class_name(species.csv_class) != declared_class:
+        grid_validated = False
+        species_has_overlap = False
+        species_bucket = None
+        for species, grid, grid_raw in iter_species_matrix_chunks(
+            download.path,
+            max_cells=_SPECIES_CELL_CHUNK_SIZE,
+        ):
+            if not grid_validated:
+                if not _matrix_matches_packet_grid(grid, grid_raw, raster):
+                    raise SparseFormatError(
+                        f"Species matrix {binding['taxonomicClass']!r} grid differs "
+                        "from the SIRAP solution grid."
+                    )
+                grid_validated = True
+            if species.first and normalize_class_name(species.csv_class) != declared_class:
                 raise SparseFormatError(
                     f"SMSP entry class {species.csv_class!r} does not match packet "
                     f"binding {binding['taxonomicClass']!r}."
                 )
-            bucket = class_bucket(species.csv_class)
-            if bucket is not None and np.any(selected[species.cell_ids]):
-                counts[bucket] += 1
+            if species.first:
+                species_bucket = class_bucket(species.csv_class)
+                species_has_overlap = False
+            species_has_overlap = species_has_overlap or bool(
+                np.any(selected[species.cell_ids])
+            )
+            if species.last and species_bucket is not None and species_has_overlap:
+                counts[species_bucket] += 1
         provenance.append(
             {
                 "taxonomicClass": binding["taxonomicClass"],
@@ -123,7 +140,7 @@ def regional_species_richness(
 
 
 def regional_species_accumulator(
-    matrices: list[dict[str, Any]],
+    species_binding: dict[str, Any],
     raster: SolutionRaster,
     packet_grid_sha256: str,
     boundary_indexes: dict[str, AnyBoundaryIndex],
@@ -131,6 +148,7 @@ def regional_species_accumulator(
     *,
     force: bool,
     target_policy: SpeciesTargetPolicy,
+    detail_sink: SpeciesDetailSink | None = None,
 ) -> tuple[SpeciesAccumulator, list[dict[str, str]]]:
     """Compute packet SMSP species metrics for the primary and nested scopes.
 
@@ -138,9 +156,52 @@ def regional_species_accumulator(
     weight as the species-range denominator, preserving the regular pipeline's
     per-scope coverage rule without accessing national species sources.
     """
-    decoded_matrices: list[tuple[dict[str, Any], Any]] = []
-    records: list[SpeciesRecord] = []
+    matrices = species_binding["matrices"]
+    metadata_download = download_pinned(
+        species_binding["metadataLookup"],
+        cache_dir,
+        force=force,
+    )
+    national_records = load_species_records(metadata_download.path)
+    expected_denominator = species_binding["nationalDenominator"]["nonFishCount"]
+    if len(national_records) != expected_denominator:
+        raise ValueError(
+            "National species denominator mismatch: "
+            f"packet declares {expected_denominator}, lookup contains "
+            f"{len(national_records)} non-fish species."
+        )
+    national_by_name: dict[str, list[SpeciesRecord]] = {}
+    for record in national_records:
+        national_by_name.setdefault(
+            normalize_species_name(record.scientific_name), []
+        ).append(record)
+    duplicate_national_names = {
+        name: candidates
+        for name, candidates in national_by_name.items()
+        if len(candidates) != 1
+    }
+    if duplicate_national_names:
+        raise ValueError(
+            "National species lookup contains ambiguous normalized names: "
+            f"{sorted(duplicate_national_names)[:8]}."
+        )
+
+    regional_names: set[str] = set()
     provenance: list[dict[str, str]] = []
+    pool_sizes = compute_pool_sizes(national_records)
+    accumulator = SpeciesAccumulator(
+        target_pct=target_policy.scalar_target_pct,
+        pool_sizes=pool_sizes,
+        target_policy=target_policy,
+        detail_sink=detail_sink,
+    )
+    accumulator.init_sub(
+        {level: index.num_boundaries for level, index in boundary_indexes.items()}
+    )
+    selected = raster.selected_mask.ravel()
+    pre_existing = raster.pre_existing_mask.ravel()
+    new_prioritizr = raster.new_prioritizr_mask.ravel()
+    area_m2 = raster.pixel_area_km2_per_row * 1_000_000.0
     for binding in matrices:
         if binding["gridSha256"] != packet_grid_sha256:
             raise ValueError(
@@ -148,30 +209,66 @@ def regional_species_accumulator(
                 "the packet grid."
             )
         download = download_pinned(binding, cache_dir, force=force)
-        decoded = decode_species_matrix_bytes(download.path.read_bytes())
-        if not _matrix_matches_packet_grid(decoded.grid, decoded.grid_raw, raster):
-            raise SparseFormatError(
-                f"Species matrix {binding['taxonomicClass']!r} grid differs from "
-                "the SIRAP solution grid."
-            )
         declared_class = normalize_class_name(binding["taxonomicClass"])
-        for entry in decoded.entries:
-            if normalize_class_name(entry.csv_class) != declared_class:
+        grid_validated = False
+        numbered_chunks = _number_species_chunks(
+            iter_species_matrix_chunks(
+                download.path,
+                max_cells=_SPECIES_CELL_CHUNK_SIZE,
+            )
+        )
+        for _, grouped in groupby(numbered_chunks, key=lambda item: item[0]):
+            items = (item for _, item in grouped)
+            first_entry, grid, grid_raw = next(items)
+            entries = chain(((first_entry, grid, grid_raw),), items)
+            if not grid_validated:
+                if not _matrix_matches_packet_grid(grid, grid_raw, raster):
+                    raise SparseFormatError(
+                        f"Species matrix {binding['taxonomicClass']!r} grid differs "
+                        "from the SIRAP solution grid."
+                    )
+                grid_validated = True
+            if normalize_class_name(first_entry.csv_class) != declared_class:
                 raise SparseFormatError(
-                    f"SMSP entry class {entry.csv_class!r} does not match packet "
+                    f"SMSP entry class {first_entry.csv_class!r} does not match packet "
                     f"binding {binding['taxonomicClass']!r}."
                 )
-            records.append(
-                SpeciesRecord(
-                    scientific_name=entry.name,
-                    csv_class=entry.csv_class,
-                    iucn_status=entry.iucn,
-                    range_km2=None,
-                    bucket=class_bucket(entry.csv_class),
-                    threatened=entry.iucn.strip().upper() in {"CR", "EN", "VU"},
+            normalized_name = normalize_species_name(first_entry.name)
+            if normalized_name in regional_names:
+                raise ValueError(
+                    "Regional species matrices contain duplicate name "
+                    f"{first_entry.name!r}."
                 )
+            regional_names.add(normalized_name)
+            candidates = national_by_name.get(normalized_name, [])
+            if len(candidates) != 1:
+                raise ValueError(
+                    f"Regional species {first_entry.name!r} has {len(candidates)} "
+                    "matches in the pinned national lookup."
+                )
+            record = candidates[0]
+            if normalize_class_name(record.csv_class) != declared_class:
+                raise ValueError(
+                    f"Regional species {first_entry.name!r} class "
+                    f"{first_entry.csv_class!r} "
+                    f"does not match national class {record.csv_class!r}."
+                )
+            has_cells = _record_species_in_chunks(
+                accumulator=accumulator,
+                record=record,
+                species_name=first_entry.name,
+                cell_chunks=(entry.cell_ids for entry, _, _ in entries),
+                raster_width=raster.fingerprint.width,
+                area_m2=area_m2,
+                selected=selected,
+                pre_existing=pre_existing,
+                new_prioritizr=new_prioritizr,
+                boundary_indexes=boundary_indexes,
             )
-        decoded_matrices.append((binding, decoded))
+            accumulator.species_processed += 1
+            accumulator.species_aligned += 1
+            if has_cells:
+                accumulator.species_with_range += 1
         provenance.append(
             {
                 "taxonomicClass": binding["taxonomicClass"],
@@ -180,59 +277,111 @@ def regional_species_accumulator(
             }
         )
 
-    pool_sizes = compute_pool_sizes(records)
-    accumulator = SpeciesAccumulator(
-        target_pct=target_policy.scalar_target_pct,
-        pool_sizes=pool_sizes,
-        target_policy=target_policy,
-        species_expected=len(records),
+    accumulator.species_expected = len(regional_names)
+    provenance.append(
+        {
+            "taxonomicClass": "national-metadata",
+            "url": metadata_download.url,
+            "sha256": metadata_download.sha256,
+        }
     )
-    accumulator.init_sub(
-        {level: index.num_boundaries for level, index in boundary_indexes.items()}
-    )
-    selected = raster.selected_mask.ravel()
-    area_m2 = raster.pixel_area_km2_per_row * 1_000_000.0
-
-    record_index = 0
-    for _, decoded in decoded_matrices:
-        for entry in decoded.entries:
-            record = records[record_index]
-            record_index += 1
-            cell_ids = np.asarray(entry.cell_ids, dtype=np.intp)
-            if cell_ids.size and (cell_ids.min() < 0 or cell_ids.max() >= selected.size):
-                raise SparseFormatError(
-                    f"SMSP entry {entry.name!r} contains an out-of-grid cell index."
-                )
-            weights = area_m2[cell_ids // raster.fingerprint.width]
-            selected_weights = weights[selected[cell_ids]]
-            accumulator.record_species_national(
-                record,
-                float(selected_weights.sum()),
-                float(weights.sum()),
-            )
-            prepared = prepare_sparse_boundary_weighted_channels(
-                cell_ids,
-                weights,
-                selected=selected[cell_ids],
-                pre_existing=np.zeros(cell_ids.size, dtype=np.bool_),
-                new_prioritizr=np.zeros(cell_ids.size, dtype=np.bool_),
-                num_pixels=selected.size,
-            )
-            for level, index in boundary_indexes.items():
-                channels = aggregate_prepared_sparse_boundary_weighted_sums(
-                    index, prepared
-                )
-                accumulator.record_species_sub_level(
-                    record,
-                    level,
-                    channels.selected,
-                    channels.total,
-                )
-            accumulator.species_processed += 1
-            accumulator.species_aligned += 1
-            if cell_ids.size:
-                accumulator.species_with_range += 1
     return accumulator, provenance
+
+
+def normalize_species_name(value: str) -> str:
+    """Normalize only formatting differences; never infer taxonomic synonyms."""
+    return re.sub(r"\s+", " ", value.replace("_", " ").strip().lower())
+
+
+def _record_species_in_chunks(
+    *,
+    accumulator: SpeciesAccumulator,
+    record: SpeciesRecord,
+    species_name: str,
+    cell_chunks,
+    raster_width: int,
+    area_m2: np.ndarray,
+    selected: np.ndarray,
+    pre_existing: np.ndarray,
+    new_prioritizr: np.ndarray,
+    boundary_indexes: dict[str, AnyBoundaryIndex],
+) -> bool:
+    national = np.zeros(4, dtype=np.float64)
+    has_cells = False
+    per_level = {
+        level: [
+            np.zeros(index.num_boundaries, dtype=np.float64)
+            for _ in range(4)
+        ]
+        for level, index in boundary_indexes.items()
+    }
+    for cells in cell_chunks:
+        cells = np.asarray(cells, dtype=np.intp)
+        if cells.size and (cells.min() < 0 or cells.max() >= selected.size):
+            raise SparseFormatError(
+                f"SMSP entry {species_name!r} contains an out-of-grid cell index."
+            )
+        has_cells = has_cells or bool(cells.size)
+        weights = area_m2[cells // raster_width]
+        selected_cells = selected[cells]
+        pre_existing_cells = pre_existing[cells]
+        new_prioritizr_cells = new_prioritizr[cells]
+        national += (
+            float(weights.sum()),
+            float(weights[selected_cells].sum()),
+            float(weights[pre_existing_cells].sum()),
+            float(weights[new_prioritizr_cells].sum()),
+        )
+        prepared = prepare_sparse_boundary_weighted_channels(
+            cells,
+            weights,
+            selected=selected_cells,
+            pre_existing=pre_existing_cells,
+            new_prioritizr=new_prioritizr_cells,
+            num_pixels=selected.size,
+        )
+        for level, index in boundary_indexes.items():
+            channels = aggregate_prepared_sparse_boundary_weighted_sums(
+                index, prepared
+            )
+            for total, values in zip(
+                per_level[level],
+                (
+                    channels.total,
+                    channels.selected,
+                    channels.pre_existing,
+                    channels.new_prioritizr,
+                ),
+                strict=True,
+            ):
+                total += values
+
+    accumulator.record_species_national(
+        record,
+        national[1],
+        national[0],
+        pre_existing_range_area_m2=national[2],
+        new_prioritizr_range_area_m2=national[3],
+    )
+    for level, (total, selected_area, pre_existing_area, new_area) in per_level.items():
+        accumulator.record_species_sub_level(
+            record,
+            level,
+            selected_area,
+            total,
+            pre_existing_per_boundary=pre_existing_area,
+            new_prioritizr_per_boundary=new_area,
+        )
+    return has_cells
+
+
+def _number_species_chunks(chunks):
+    species_index = -1
+    for item in chunks:
+        chunk = item[0]
+        if chunk.first:
+            species_index += 1
+        yield species_index, item
 
 
 def _matrix_matches_solution(matrix: Any, raster: SolutionRaster) -> bool:

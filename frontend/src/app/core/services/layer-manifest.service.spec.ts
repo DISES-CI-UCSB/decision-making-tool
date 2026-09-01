@@ -72,6 +72,8 @@ function sirapManifest(solutions: RuntimeSolutionManifestEntry[]): RuntimeSirapM
     publicBlobHost: 'https://example.test',
     expectedSolutionCount: solutions.length,
     expectedRegularArtifactCount: solutions.length * 2,
+    expectedGoalSummaryArtifactCount: solutions.length,
+    expectedSourceSummaryArtifactCount: solutions.length,
     solutions,
   };
 }

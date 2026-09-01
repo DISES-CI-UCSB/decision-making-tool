@@ -25,6 +25,7 @@ from sparse import (
     decode_species_matrix_bytes,
     encode_sparse_artifact,
     encode_species_matrix,
+    iter_species_matrix_chunks,
 )
 from sparse.format import (
     SparseFormatError,
@@ -319,6 +320,36 @@ def test_species_matrix_roundtrip():
         assert entry.csv_class == "Mammalia"
         assert entry.metadata.width == width
         assert entry.metadata.height == height
+
+
+def test_species_matrix_streams_bounded_delta_chunks(tmp_path):
+    cells = np.array([2, 5, 9, 10, 100, 105, 120], dtype=np.uint32)
+    encoded = encode_species_matrix(
+        [
+            SpeciesMatrixEntry(
+                name="Sp_chunked",
+                iucn="VU",
+                csv_class="Mammalia",
+                cell_ids=cells,
+                metadata=_make_meta(width=16, height=12, count=len(cells)),
+            )
+        ]
+    )
+    path = tmp_path / "chunked.smsp.gz"
+    path.write_bytes(encoded)
+
+    chunks = [
+        chunk
+        for chunk, _, _ in iter_species_matrix_chunks(path, max_cells=3)
+    ]
+
+    assert [chunk.cell_ids.size for chunk in chunks] == [3, 3, 1]
+    assert chunks[0].first is True
+    assert chunks[-1].last is True
+    np.testing.assert_array_equal(
+        np.concatenate([chunk.cell_ids for chunk in chunks]),
+        cells,
+    )
 
 
 def test_species_matrix_rejects_inconsistent_grid():

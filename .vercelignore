@@ -1,0 +1,15 @@
+.git
+.venv
+.venv-species-display-cogs
+backend
+development-artifacts
+docs
+legacy-r-shiny-app
+frontend/node_modules
+frontend/dist
+frontend/.angular
+data/archive
+data/cog
+data/inputs
+data/metrics
+data/scripts

@@ -268,13 +268,39 @@
         "species": "Especies",
         "taxaBreakdown": "Grupos de especies incluidos",
         "viewBreakdown": "Ver desglose de elementos",
+        "viewAdditionalCoverage": "Ver cobertura adicional",
         "noTargetsSet": "Ningún ámbito de conservación fue seleccionado explícitamente como meta en este escenario.",
         "sirap": {
-          "certifiedBadge": "Cobertura SIRAP certificada",
-          "sourceCue": "Paquete regional suministrado",
-          "targetResult": "Resultado de metas del paquete",
-          "ecosystemCoverageTitle": "Cobertura de ecosistemas en esta solución SIRAP",
-          "speciesTitle": "Especies representadas en esta solución SIRAP",
+          "targetProgressTitle": "Avance de las metas seleccionadas",
+          "targetProgressUnavailable": "El avance autoritativo de las metas no está disponible para este escenario regional.",
+          "targetLabel": "Meta {{percent}}",
+          "achievedLabel": "Alcanzado {{percent}}",
+          "targets": {
+            "strategic-ecosystems": "Ecosistemas estratégicos",
+            "dry-forest": "Bosque seco tropical",
+            "eje-wetlands": "Humedales del Eje Cafetero",
+            "congriales": "Congriales",
+            "savannas": "Sabanas"
+          },
+          "targetModes": {
+            "inheritsStrategic": "Hereda la meta de ecosistemas estratégicos.",
+            "pairedWithStrategic": "Vinculada con la meta de ecosistemas estratégicos."
+          },
+          "features": {
+            "paramos": "Páramos",
+            "humedales": "Humedales",
+            "bosque-seco": "Bosque seco tropical",
+            "ec-wetlands": "Humedales del Eje Cafetero",
+            "congriales": "Congriales",
+            "savannas": "Sabanas"
+          },
+          "status": {
+            "met": "Meta alcanzada",
+            "shortfall": "Déficit de {{percent}}"
+          },
+          "additionalOutcomesDescription": "Otra cobertura medida de ecosistemas y especies. Estos resultados no representan el cumplimiento de metas.",
+          "ecosystemCoverageTitle": "Cobertura de ecosistemas",
+          "speciesTitle": "Especies representadas",
           "ecosystems": {
             "iavh": "Total IAvH",
             "paramo": "Páramo",
@@ -287,9 +313,7 @@
             "amphibians": "Anfibios",
             "reptiles": "Reptiles",
             "plants": "Plantas"
-          },
-          "detailsAvailabilityTitle": "Disponibilidad de detalles",
-          "detailsAvailabilityDescription": "Los desgloses detallados de metas, MEC y por especie no están disponibles para este lote regional. Los valores de cobertura mostrados arriba siguen siendo resultados suministrados por el paquete."
+          }
         },
         "additionalOutcomesHeading": "Resultados adicionales",
         "additionalOutcomesDescription": "Cobertura medida en ámbitos que este escenario no seleccionó como meta. Los porcentajes son puntos de referencia ilustrativos de cobertura del rango, no metas configuradas.",
@@ -310,6 +334,8 @@
           "nationalStrategicEcosystemsTitle": "Desglose de cobertura nacional de ecosistemas estratégicos",
           "nationalEcosystemsTitle": "Desglose de cobertura nacional de ecosistemas",
           "nationalSpeciesTitle": "Desglose de cobertura nacional de especies",
+          "sirapEcosystemsTitle": "Desglose de cobertura de ecosistemas del SIRAP",
+          "sirapSpeciesTitle": "Desglose de cobertura de especies del SIRAP",
           "speciesCoverageTitle": "Desglose de cobertura de especies",
           "targetedKicker": "Avance de metas",
           "additionalKicker": "Resultado adicional",
@@ -319,14 +345,14 @@
           "speciesReferenceAdditionalDescription": "Estos conteos de métricas compactas muestran resultados poshoc de especies en puntos ilustrativos de cobertura de rango del 17% y 30%. Son resultados de referencia, no metas configuradas del optimizador, y se mantienen separados de las filas de estado de metas de goals/v4.",
           "speciesReferenceBreakdown": "Resultados de referencia por grupo de especies",
           "ecosystemTargetedDescription": "Estas vistas de clasificación describen el mismo mapa nacional de ecosistemas MEC. La cobertura preexistente y la nueva cobertura del escenario son porcentajes de área; la cobertura total se compara con la meta configurada. Las clasificaciones más generales son agregaciones de cobertura por área, no elementos separados de Prioritizr.",
-          "ecosystemAdditionalDescription": "Estas vistas de clasificación describen el mismo mapa nacional de ecosistemas MEC. La cobertura preexistente y la nueva cobertura del escenario son porcentajes de área; la cobertura total se compara con los puntos ilustrativos de 17% y 30%. Las clasificaciones más generales son agregaciones de cobertura por área, no elementos separados de Prioritizr.",
+          "ecosystemAdditionalDescription": "Estas vistas de clasificación describen el mapa de ecosistemas MEC del IAvH dentro de la geografía de planificación. La cobertura de conservación preexistente y adicional son porcentajes de área; la cobertura total se presenta como un resultado medido, no como cumplimiento de metas del optimizador. Las clasificaciones más generales son agregaciones de cobertura por área, no elementos separados de Prioritizr.",
           "ecosystemClassificationGroup": "Grupo de clasificación de ecosistemas",
           "preparing": "Preparando el desglose de elementos...",
           "speciesLoading": "Cargando el conjunto completo de cobertura de especies...",
           "speciesLoadError": "No se pudo cargar el conjunto de cobertura de especies. Inténtalo de nuevo.",
           "customSpeciesUnavailable": "La cobertura completa de especies no está disponible para áreas dibujadas.",
-          "classificationsLoading": "Cargando clasificaciones nacionales de ecosistemas...",
-          "classificationsLoadError": "No se pudieron cargar las clasificaciones nacionales adicionales de ecosistemas. Los datos disponibles de los elementos se muestran a continuación.",
+          "classificationsLoading": "Cargando clasificaciones de ecosistemas...",
+          "classificationsLoadError": "No se pudieron cargar las clasificaciones adicionales de ecosistemas. Los datos disponibles de los elementos se muestran a continuación.",
           "retry": "Reintentar",
           "classificationUnavailable": "Esta clasificación no está disponible para este escenario.",
           "configuredTarget": "Meta configurada",
@@ -869,7 +895,7 @@
         "colombiaEndemics": "Endémicas de Colombia",
         "nationalSpeciesTotal": "% del total nacional de especies",
         "nationalSpeciesTotalDesc": "Proporción de las especies totales de Colombia encontradas en este AOI",
-        "totalCarbonBiomass": "Biomasa total de carbono",
+        "totalCarbonBiomass": "Biomasa total de carbono conservada",
         "nationalCarbon": "% del carbono nacional",
         "nationalCarbonDesc": "De las reservas colombianas",
         "aboveGroundCarbon": "Carbono de biomasa aérea y subterránea",
@@ -1140,7 +1166,7 @@
         "included": "Incluido",
         "notSelected": "Sin seleccionar",
         "sourceLabel": "Fuente: catálogo certificado de escenarios SIRAP",
-        "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-29-v2/catalog.json",
+        "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-31-v3/catalog.json",
         "step1": {
           "label": "Metas de conservación",
           "help": "Elija los elementos regionales y sus niveles de meta. Solo se pueden seleccionar combinaciones disponibles en el catálogo certificado.",

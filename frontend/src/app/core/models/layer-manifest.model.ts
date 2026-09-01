@@ -103,6 +103,8 @@ export interface RuntimeSirapManifest {
   publicBlobHost: string;
   expectedSolutionCount: number;
   expectedRegularArtifactCount: number;
+  expectedGoalSummaryArtifactCount: number;
+  expectedSourceSummaryArtifactCount: number;
   solutions: RuntimeSolutionManifestEntry[];
 }
 
@@ -237,6 +239,15 @@ export interface RuntimeSolutionMecGeographyUrls {
   omecs: string;
 }
 
+export interface RuntimeSolutionSpeciesGeographyUrls {
+  national?: string;
+  departments?: string;
+  municipalities?: string;
+  siraps?: string;
+  runaps?: string;
+  omecs?: string;
+}
+
 export interface RuntimeSolutionPrecomputedMetricUrls {
   compactCache?: string;
   compact?: string;
@@ -252,9 +263,13 @@ export interface RuntimeSolutionPrecomputedMetricUrls {
   speciesGoalsCatalog?: string;
   /** Shared release-wide configured-species target maps keyed by solution. */
   speciesGoalsTargetOverlay?: string;
-  /** Per-solution national/predefined-AOI species coverage shards. */
-  speciesGoalsByGeography?: RuntimeSolutionMecGeographyUrls;
-  [key: string]: string | RuntimeSolutionMecGeographyUrls | undefined;
+  /** Per-solution target-geography and predefined-AOI species coverage shards. */
+  speciesGoalsByGeography?: RuntimeSolutionSpeciesGeographyUrls;
+  [key: string]:
+    | string
+    | RuntimeSolutionMecGeographyUrls
+    | RuntimeSolutionSpeciesGeographyUrls
+    | undefined;
 }
 
 export interface RuntimeSolutionManifestEntry {

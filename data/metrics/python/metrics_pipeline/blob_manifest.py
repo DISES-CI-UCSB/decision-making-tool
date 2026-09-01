@@ -25,7 +25,46 @@ class ManifestError(RuntimeError):
     pass
 
 
-_SIRAP_PACKET_FORMAT = "sirap-metric-input-packet-v1"
+_SIRAP_PACKET_FORMAT = "sirap-metric-input-packet-v2"
+_SIRAP_LAYER_POLICIES = {
+    "ecosistemas_IAVH_2024": ("categorical", "nearest"),
+    "biomasa": ("fraction_or_density", "average"),
+    "recarga_agua": ("binary", "nearest"),
+    "coberturas_agriculture": ("categorical", "nearest"),
+    "coberturas_artificial_surfaces": ("categorical", "nearest"),
+    "coberturas_agricultural_areas": ("categorical", "nearest"),
+    "coberturas_forests_and_semi_natural_areas": ("categorical", "nearest"),
+    "coberturas_wetlands": ("categorical", "nearest"),
+    "coberturas_water_bodies": ("categorical", "nearest"),
+    "paramos": ("categorical", "nearest"),
+    "bosque_seco": ("binary", "nearest"),
+    "wetlands": ("categorical", "nearest"),
+    "resguardos": ("binary", "nearest"),
+    "comunidades": ("binary", "nearest"),
+    "runap_protegidas": ("categorical", "nearest"),
+    "runap_parques": ("categorical", "nearest"),
+}
+_SIRAP_REQUIRED_LAYER_IDS = frozenset(_SIRAP_LAYER_POLICIES)
+_SIRAP_LEGEND_LAYER_IDS = frozenset(
+    {
+        "coberturas_agriculture",
+        "coberturas_artificial_surfaces",
+        "coberturas_agricultural_areas",
+        "coberturas_forests_and_semi_natural_areas",
+        "coberturas_wetlands",
+        "coberturas_water_bodies",
+        "runap_parques",
+    }
+)
+_SIRAP_SELECTED_VALUES = {
+    "coberturas_artificial_surfaces": 1,
+    "coberturas_agriculture": 2,
+    "coberturas_agricultural_areas": 2,
+    "coberturas_forests_and_semi_natural_areas": 3,
+    "coberturas_wetlands": 4,
+    "coberturas_water_bodies": 5,
+    "runap_parques": 3,
+}
 
 
 def is_sirap_solution(solution: dict[str, Any]) -> bool:
@@ -102,6 +141,12 @@ def _validate_sirap_packet(solution: dict[str, Any]) -> None:
             f"SIRAP solution {solution_id!r} regionalInputPacket requires "
             "a non-empty 'layers' map."
         )
+    missing_layers = _SIRAP_REQUIRED_LAYER_IDS - set(layers)
+    if missing_layers:
+        raise ManifestError(
+            f"SIRAP solution {solution_id!r} regionalInputPacket is missing "
+            f"required approved layer bindings: {sorted(missing_layers)}."
+        )
     for layer_id, layer in layers.items():
         if not isinstance(layer_id, str) or not layer_id or not isinstance(layer, dict):
             raise ManifestError(
@@ -110,16 +155,125 @@ def _validate_sirap_packet(solution: dict[str, Any]) -> None:
             )
         _require_packet_string(layer, "url", solution_id=solution_id)
         _require_sha256(layer, "sha256", solution_id=solution_id)
+        expected_policy = _SIRAP_LAYER_POLICIES.get(layer_id)
+        if expected_policy is None:
+            raise ManifestError(
+                f"SIRAP solution {solution_id!r} has unapproved packet layer "
+                f"{layer_id!r}."
+            )
+        provenance = layer.get("provenance")
+        if not isinstance(provenance, dict):
+            raise ManifestError(
+                f"SIRAP solution {solution_id!r} packet layer {layer_id!r} "
+                "requires provenance."
+            )
+        provenance_kind = provenance.get("kind")
+        source_scope = provenance.get("sourceScope")
+        if provenance_kind not in {
+            "regional-authoritative-v1",
+            "approved-national-reference-v1",
+        }:
+            raise ManifestError(
+                f"SIRAP solution {solution_id!r} packet layer {layer_id!r} "
+                "has an unapproved provenance kind."
+            )
+        for field in ("sourceScope", "authority", "artifactId"):
+            _require_packet_string(provenance, field, solution_id=solution_id)
+        expected_source_scope = (
+            "national"
+            if provenance_kind == "approved-national-reference-v1"
+            else "regional"
+        )
+        if source_scope != expected_source_scope:
+            raise ManifestError(
+                f"SIRAP solution {solution_id!r} packet layer {layer_id!r} "
+                "provenance kind and sourceScope disagree."
+            )
+        if provenance.get("approvedForRegionId") != region_id:
+            raise ManifestError(
+                f"SIRAP solution {solution_id!r} packet layer {layer_id!r} "
+                "is not explicitly approved for its region."
+            )
+        alignment = layer.get("alignment")
+        if not isinstance(alignment, dict):
+            raise ManifestError(
+                f"SIRAP solution {solution_id!r} packet layer {layer_id!r} "
+                "requires an alignment contract."
+            )
+        expected_class, expected_resampling = expected_policy
+        if (
+            alignment.get("layerClass") != expected_class
+            or alignment.get("resampling") != expected_resampling
+            or alignment.get("targetGridSha256") != grid["sha256"]
+        ):
+            raise ManifestError(
+                f"SIRAP solution {solution_id!r} packet layer {layer_id!r} "
+                "alignment contract does not match the approved layer policy "
+                "and regional grid."
+            )
+        if layer_id in _SIRAP_LEGEND_LAYER_IDS:
+            legend = layer.get("legend")
+            if not isinstance(legend, dict):
+                raise ManifestError(
+                    f"SIRAP solution {solution_id!r} packet layer {layer_id!r} "
+                    "requires a pinned legend."
+                )
+            _require_packet_string(legend, "url", solution_id=solution_id)
+            _require_sha256(legend, "sha256", solution_id=solution_id)
+            if not isinstance(legend.get("classMap"), dict):
+                raise ManifestError(
+                    f"SIRAP solution {solution_id!r} packet layer {layer_id!r} "
+                    "requires legend.classMap."
+                )
+            selected_value = _SIRAP_SELECTED_VALUES[layer_id]
+            rendering = layer.get("rendering")
+            if (
+                not isinstance(rendering, dict)
+                or rendering.get("valueType") != "binary"
+                or rendering.get("selectedValue") != selected_value
+                or str(selected_value) not in legend["classMap"]
+            ):
+                raise ManifestError(
+                    f"SIRAP solution {solution_id!r} packet layer {layer_id!r} "
+                    f"must select approved category {selected_value} from its legend."
+                )
 
     species = packet.get("species")
     if not isinstance(species, dict):
         raise ManifestError(
             f"SIRAP solution {solution_id!r} regionalInputPacket requires 'species'."
         )
-    if species.get("universePolicy") != "regional-summary":
+    if species.get("universePolicy") != "regional-matrices-national-metadata":
         raise ManifestError(
             f"SIRAP solution {solution_id!r} regionalInputPacket species "
-            "universePolicy must be 'regional-summary'."
+            "universePolicy must be 'regional-matrices-national-metadata'."
+        )
+    metadata_lookup = species.get("metadataLookup")
+    if not isinstance(metadata_lookup, dict):
+        raise ManifestError(
+            f"SIRAP solution {solution_id!r} regionalInputPacket species "
+            "requires metadataLookup."
+        )
+    for field in ("url", "schema"):
+        _require_packet_string(metadata_lookup, field, solution_id=solution_id)
+    metadata_sha256 = _require_sha256(
+        metadata_lookup, "sha256", solution_id=solution_id
+    )
+    denominator = species.get("nationalDenominator")
+    if (
+        not isinstance(denominator, dict)
+        or denominator.get("nonFishCount") != 8300
+        or denominator.get("excludedClasses") != ["Actinopteri"]
+        or denominator.get("lookupSha256") != metadata_sha256
+    ):
+        raise ManifestError(
+            f"SIRAP solution {solution_id!r} regionalInputPacket species "
+            "requires the approved 8,300-species national denominator."
+        )
+    if species.get("joinPolicy") != "normalized-formatting-only-fail-closed-v1":
+        raise ManifestError(
+            f"SIRAP solution {solution_id!r} regionalInputPacket species "
+            "requires the approved fail-closed name join policy."
         )
     matrices = species.get("matrices")
     if not isinstance(matrices, list) or not matrices:

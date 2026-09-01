@@ -2,6 +2,7 @@ import {
   createSolutionDisplayCogUrl,
   createSolutionPrecomputedMetricUrls,
   MEC_GEOGRAPHY_LEVELS,
+  SIRAP_SPECIES_GEOGRAPHY_LEVELS,
   mecGeographyLevelsForSolution,
 } from './metric-urls.mjs';
 import { applyAuthoritativeLayerSemantics } from './authoritative-layer-semantics.mjs';
@@ -223,7 +224,12 @@ function hasCompleteMecV2Inventory(inventory, solutionId) {
   );
 }
 
-function hasCompleteSpeciesGoalsInventory(inventory, solutionId, releaseId) {
+function hasCompleteSpeciesGoalsInventory(
+  inventory,
+  solutionId,
+  releaseId,
+  expectedLevels,
+) {
   return (
     inventory?.format === 'species-goals-release-inventory-v1' &&
     inventory.validated === true &&
@@ -231,8 +237,8 @@ function hasCompleteSpeciesGoalsInventory(inventory, solutionId, releaseId) {
     inventory.releaseId === releaseId &&
     inventory.catalogValidated === true &&
     Array.isArray(inventory.validatedGeographyLevels) &&
-    inventory.validatedGeographyLevels.length === MEC_GEOGRAPHY_LEVELS.length &&
-    MEC_GEOGRAPHY_LEVELS.every(
+    inventory.validatedGeographyLevels.length === expectedLevels.length &&
+    expectedLevels.every(
       (level, index) => inventory.validatedGeographyLevels[index] === level,
     )
   );
@@ -244,10 +250,17 @@ export function supportsAoiCoverageMetricsV2({
   speciesGoalsInventory,
   releaseId,
 }) {
+  const expectedSpeciesLevels =
+    solution.scope === 'sirap' ? SIRAP_SPECIES_GEOGRAPHY_LEVELS : MEC_GEOGRAPHY_LEVELS;
   return (
     runtimeSolutionDomain(solution) === 'land' &&
     hasCompleteMecV2Inventory(releaseArtifactInventory, solution.id) &&
-    hasCompleteSpeciesGoalsInventory(speciesGoalsInventory, solution.id, releaseId)
+    hasCompleteSpeciesGoalsInventory(
+      speciesGoalsInventory,
+      solution.id,
+      releaseId,
+      expectedSpeciesLevels,
+    )
   );
 }
 
@@ -326,6 +339,13 @@ export function buildRuntimeReleaseManifest({
   }
   if (aoiCoveragePreviewSolutionId !== null) {
     const inventorySolutionIds = Object.keys(speciesGoalsInventory.solutions);
+    const previewSolution = preflightManifest.solutions.find(
+      (solution) => solution.id === aoiCoveragePreviewSolutionId,
+    );
+    const previewSpeciesLevels =
+      previewSolution?.scope === 'sirap'
+        ? SIRAP_SPECIES_GEOGRAPHY_LEVELS
+        : MEC_GEOGRAPHY_LEVELS;
     assert(
       inventorySolutionIds.length === 1 && inventorySolutionIds[0] === aoiCoveragePreviewSolutionId,
       `species goals release inventory must contain only preview solution "${aoiCoveragePreviewSolutionId}"`,
@@ -335,6 +355,7 @@ export function buildRuntimeReleaseManifest({
         speciesGoalsInventory.solutions[aoiCoveragePreviewSolutionId],
         aoiCoveragePreviewSolutionId,
         catalog.releaseId,
+        previewSpeciesLevels,
       ),
       `species goals release inventory is incomplete for preview solution "${aoiCoveragePreviewSolutionId}"`,
     );

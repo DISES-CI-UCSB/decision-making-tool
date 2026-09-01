@@ -9,6 +9,7 @@ import {
   Output,
   SimpleChanges,
   ViewChild,
+  signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -44,9 +45,9 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   @ViewChild('panelElement') private readonly panelElement?: ElementRef<HTMLElement>;
   @ViewChild('dialogElement') private readonly dialogElement?: ElementRef<HTMLDialogElement>;
 
-  protected isRendered = false;
-  protected isActive = false;
-  protected isDialogOpen = false;
+  protected readonly isRendered = signal(false);
+  protected readonly isActive = signal(false);
+  protected readonly isDialogOpen = signal(false);
 
   private openTimer: ReturnType<typeof setTimeout> | null = null;
   private closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -71,7 +72,7 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
         dialog.removeAttribute('open');
       }
     }
-    this.isDialogOpen = false;
+    this.isDialogOpen.set(false);
     this.unlockBodyScroll();
     this.restorePreviousFocus();
   }
@@ -129,12 +130,12 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
     this.clearOpenTimer();
     this.clearCloseTimer();
 
-    if (!this.isRendered) {
+    if (!this.isRendered()) {
       this.previouslyFocusedElement =
         typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
           ? document.activeElement
           : null;
-      this.isRendered = true;
+      this.isRendered.set(true);
     }
 
     this.openTimer = setTimeout(() => {
@@ -145,9 +146,9 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
         } else {
           dialog.setAttribute('open', '');
         }
-        this.isDialogOpen = true;
+        this.isDialogOpen.set(true);
       }
-      this.isActive = true;
+      this.isActive.set(true);
       this.lockBodyScroll();
       this.focusInitialElement();
       this.openTimer = null;
@@ -156,7 +157,7 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
 
   private closeModal(): void {
     this.clearOpenTimer();
-    this.isActive = false;
+    this.isActive.set(false);
     this.clearCloseTimer();
 
     this.closeTimer = setTimeout(() => {
@@ -168,8 +169,8 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
           dialog.removeAttribute('open');
         }
       }
-      this.isDialogOpen = false;
-      this.isRendered = false;
+      this.isDialogOpen.set(false);
+      this.isRendered.set(false);
       this.unlockBodyScroll();
       this.restorePreviousFocus();
     }, MODAL_TRANSITION_MS);

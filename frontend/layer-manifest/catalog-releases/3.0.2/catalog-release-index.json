@@ -1,0 +1,19 @@
+{
+  "format": "runtime-catalog-release-v1",
+  "catalogVersion": "3.0.2",
+  "releaseId": "catalog-v3-0-2-20260901",
+  "generatedAt": "2026-09-01T01:15:00Z",
+  "expectedSolutionCount": 228,
+  "batches": [
+    {
+      "id": "national",
+      "manifestUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json",
+      "expectedSolutionCount": 172
+    },
+    {
+      "id": "sirap-2026-08-31-v3",
+      "manifestUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-31-v3/manifest.json",
+      "expectedSolutionCount": 56
+    }
+  ]
+}

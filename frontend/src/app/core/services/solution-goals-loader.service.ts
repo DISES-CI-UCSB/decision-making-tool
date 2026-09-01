@@ -30,9 +30,12 @@ export class SolutionGoalsLoaderService {
     if (precomputedUrl) {
       return precomputedUrl;
     }
-    // SIRAP packets deliberately publish only their regular metrics sidecar.
-    // Do not infer a legacy goals artifact that the packet contract omits.
-    if (normalizeSolutionToken(solution.scope) === 'sirap') {
+    // SIRAP releases must explicitly publish their regional goal summary.
+    // Never infer the legacy national goals path for a SIRAP solution.
+    if (
+      normalizeSolutionToken(solution.scope) === 'sirap' ||
+      normalizeSolutionToken(solution.finderInputs?.scope ?? '') === 'sirap'
+    ) {
       return null;
     }
 

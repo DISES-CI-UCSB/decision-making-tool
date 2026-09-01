@@ -18,6 +18,7 @@ from .format import (
     decode_species_matrix_bytes,
     encode_sparse_artifact,
     encode_species_matrix,
+    iter_species_matrix_chunks,
 )
 
 __all__ = [
@@ -33,4 +34,5 @@ __all__ = [
     "decode_species_matrix_bytes",
     "encode_sparse_artifact",
     "encode_species_matrix",
+    "iter_species_matrix_chunks",
 ]
