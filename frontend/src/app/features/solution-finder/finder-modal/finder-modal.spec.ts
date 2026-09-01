@@ -576,8 +576,8 @@ describe('FinderModalComponent', () => {
     expect(rationaleToggle?.getAttribute('aria-label')).toContain(
       'solutionControls.finder.step1.targetLevelRationaleToggle',
     );
-    expect(rationaleToggle?.classList.contains('tooltip-info-icon-glyph')).toBe(true);
-    expect(rationaleToggle?.textContent?.trim()).toBe('i');
+    expect(rationaleToggle?.querySelector('app-info-icon')).not.toBeNull();
+    expect(rationaleToggle?.querySelector('app-info-icon svg')).not.toBeNull();
     expect(rationaleTooltip?.getAttribute('role')).toBe('tooltip');
     expect(rationale?.textContent).toContain('solutionControls.finder.step1.targetLevelRationale');
     expect(aichiSource?.textContent).toContain(

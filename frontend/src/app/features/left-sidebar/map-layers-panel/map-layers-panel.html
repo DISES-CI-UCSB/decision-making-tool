@@ -919,15 +919,13 @@
                             aria-controls="map-layers-ecosystem-info-modal"
                             (click)="openEcosystemInfoModal($event)"
                           >
-                            <span
-                              [id]="
+                            <app-info-icon
+                              [rootId]="
                                 'map-layers-selected-layer-row-ecosystem-classification-info-icon-' +
                                 selected.id
                               "
-                              class="map-layers-info-icon-glyph"
-                              aria-hidden="true"
-                              >?</span
-                            >
+                              colorClass="text-slate-400"
+                            />
                           </button>
                         } @else {
                           <span
@@ -1225,12 +1223,10 @@
                                   (click)="toggleLayerInfoPopover($event, abGroup.id, row.id)"
                                   (keydown.escape)="closeLayerInfoPopover()"
                                 >
-                                  <span
-                                    [id]="'map-layers-boundary-info-icon-' + row.id"
-                                    class="map-layers-info-icon-glyph tooltip-info-icon-glyph"
-                                    aria-hidden="true"
-                                    >i</span
-                                  >
+                                  <app-info-icon
+                                    [rootId]="'map-layers-boundary-info-icon-' + row.id"
+                                    colorClass="text-slate-400"
+                                  />
                                 </button>
                                 @if (isLayerInfoPopoverOpen(abGroup.id, row.id)) {
                                   <div
@@ -1637,14 +1633,12 @@
                                     "
                                     (keydown.escape)="closeLayerInfoPopover()"
                                   >
-                                    <span
-                                      [id]="
+                                    <app-info-icon
+                                      [rootId]="
                                         'map-layers-layer-row-info-icon-' + group.id + '-' + row.id
                                       "
-                                      class="map-layers-info-icon-glyph tooltip-info-icon-glyph"
-                                      aria-hidden="true"
-                                      >i</span
-                                    >
+                                      colorClass="text-slate-400"
+                                    />
                                   </button>
                                   @if (
                                     !isEcosystemClassificationRow(row.id) &&
@@ -2251,14 +2245,12 @@
                                     (click)="toggleLayerInfoPopover($event, group.id, row.id)"
                                     (keydown.escape)="closeLayerInfoPopover()"
                                   >
-                                    <span
-                                      [id]="
+                                    <app-info-icon
+                                      [rootId]="
                                         'map-layers-layer-row-info-icon-' + group.id + '-' + row.id
                                       "
-                                      class="map-layers-info-icon-glyph tooltip-info-icon-glyph"
-                                      aria-hidden="true"
-                                      >i</span
-                                    >
+                                      colorClass="text-slate-400"
+                                    />
                                   </button>
                                   @if (isLayerInfoPopoverOpen(group.id, row.id)) {
                                     <div

@@ -52,6 +52,7 @@ import {
   VECTOR_OVERLAY_LAYER_IDS,
 } from '@features/map/services/manifest-raster-layer.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 import { useOverlayScrollbar } from '@core/shared/overlay-scrollbar/use-overlay-scrollbar';
 import { catchError, map, of, switchMap } from 'rxjs';
 import {
@@ -255,7 +256,7 @@ interface EcosystemLayerMetadata {
 @Component({
   selector: 'app-map-layers-panel',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, ColorPickerDirective],
+  imports: [CommonModule, InfoIconComponent, TranslatePipe, ColorPickerDirective],
   templateUrl: './map-layers-panel.html',
   styleUrl: './map-layers-panel.scss',
   animations: [

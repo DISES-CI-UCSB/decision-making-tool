@@ -68,6 +68,7 @@ import {
 } from '@core/services/strategic-ecosystem-outcomes.utils';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { FEATURE_FLAGS } from '@feature-flags';
+import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
 import { TableHeaderTooltipComponent } from '@core/shared/table-header-tooltip/table-header-tooltip';
 import type { EcosystemClassificationView } from '@features/left-sidebar/map-layers-panel/map-layers-panel-ecosystem.config';
@@ -476,6 +477,7 @@ const COMPACT_MEC_COLUMN_HEADINGS = [
   imports: [
     TranslatePipe,
     NgTemplateOutlet,
+    InfoIconComponent,
     ModalShellComponent,
     TableHeaderTooltipComponent,
     ScrollingModule,

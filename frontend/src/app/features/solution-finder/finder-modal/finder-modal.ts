@@ -30,6 +30,7 @@ import type {
   SavedSolutionScenario,
   SolutionFinderContext,
 } from '@core/services/app-state.service';
+import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 import { AppStateService } from '@core/services/app-state.service';
 import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
@@ -82,7 +83,7 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
 @Component({
   selector: 'app-finder-modal',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, InfoIconComponent, TranslatePipe],
   templateUrl: './finder-modal.html',
   styleUrl: './finder-modal.scss',
 })
