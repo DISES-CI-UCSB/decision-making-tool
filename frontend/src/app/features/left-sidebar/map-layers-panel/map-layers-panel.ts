@@ -560,6 +560,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           this.layerManifestService.preloadSpeciesManifest(speciesManifestUrl);
         }
         this.syncPrimarySolutionOverlay(solution?.name ?? null);
+        this.syncActiveSirapBoundaryRow();
       });
     });
 
@@ -644,6 +645,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         : sourceGroups;
       untracked(() => {
         this.syncLocaleSensitiveSidebarLabels();
+        this.syncActiveSirapBoundaryRow();
         this.applyManifestSidebarGroups(manifestGroups);
       });
     });
@@ -988,17 +990,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         switchMap((manifest) =>
           this.loadSpeciesTaxonomyLookup().pipe(
             map(({ taxonomyByScientificName, excludedScientificNames }) =>
-              this.withSpeciesTaxonomy(
-                manifest,
-                taxonomyByScientificName,
-                excludedScientificNames,
-              ),
+              this.withSpeciesTaxonomy(manifest, taxonomyByScientificName, excludedScientificNames),
             ),
-            catchError(() =>
-              of(
-                this.withSpeciesTaxonomy(manifest, new Map(), new Set()),
-              ),
-            ),
+            catchError(() => of(this.withSpeciesTaxonomy(manifest, new Map(), new Set()))),
           ),
         ),
         catchError(() => of<RuntimeSpeciesManifest>({ layers: [] })),
@@ -1030,9 +1024,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     excludedScientificNames: Set<string>,
   ): RuntimeSpeciesManifest {
     const layers = manifest.layers
-      .filter(
-        (layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames),
-      )
+      .filter((layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames))
       .map((layer) => {
         if (layer.taxonId?.trim() && layer.taxonLabel?.trim()) {
           return layer;
@@ -1049,9 +1041,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           taxonLabel: taxonomy.taxonLabel,
         };
       })
-      .filter(
-        (layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames),
-      );
+      .filter((layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames));
 
     return {
       ...manifest,
@@ -4161,7 +4151,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         false,
       ),
     );
+    const activeSirapRow = this.activeSirapBoundaryRow();
     const adminBoundaryRows = [
+      ...(activeSirapRow ? [activeSirapRow] : []),
       ...sirapRows,
       this.boundaryRow(
         'admin_country_outline',
@@ -4373,6 +4365,66 @@ export class MapLayersPanelComponent implements OnDestroy {
       hasColorControl: false,
       mapSync: { type: 'admin-boundary', boundaryType, boundaryLayerKey },
     };
+  }
+
+  private activeSirapBoundaryRow(): LayerControlRow | null {
+    const activeSolution = this.appState.activeSolution$();
+    const sirapId = activeSolution?.metadata?.['sirapId'];
+    if (activeSolution?.metadata?.['scope'] !== 'sirap' || typeof sirapId !== 'string') {
+      return null;
+    }
+
+    const regionNameKeys: Record<string, string> = {
+      amazonia: 'finder.scopeBar.regions.amazonia',
+      'andes-nororientales': 'finder.scopeBar.regions.andesNororientales',
+      'andes-occidentales': 'finder.scopeBar.regions.andesOccidentales',
+      caribe: 'finder.scopeBar.regions.caribe',
+      'eje-cafetero': 'finder.scopeBar.regions.ejeCafetero',
+      orinoquia: 'finder.scopeBar.regions.orinoquia',
+      pacifico: 'finder.scopeBar.regions.pacifico',
+    };
+    const name = this.localizedTextOrFallback(regionNameKeys[sirapId] ?? '', 'SIRAP');
+    return {
+      ...this.boundaryRow('active_sirap', 'sirap', name, true, true),
+      borderColor: '#000000',
+      borderWidth: 3,
+      hasStyleControls: true,
+      hasColorControl: true,
+    };
+  }
+
+  private syncActiveSirapBoundaryRow(): void {
+    const activeRow = this.activeSirapBoundaryRow();
+    this.groups.update((groups) =>
+      groups.map((group) => {
+        if (group.id !== 'group-admin-boundaries') {
+          return group;
+        }
+        const rows = group.rows.filter((row) => row.id !== 'boundary-active_sirap');
+        const nextRows = activeRow ? [activeRow, ...rows] : rows;
+        return { ...group, rows: nextRows, countLabel: this.toLayerCountLabel(nextRows.length) };
+      }),
+    );
+    this.selectedLayerOrder.update((order) => {
+      const withoutActive = order.filter((id) => id !== 'boundary-active_sirap');
+      if (!activeRow) {
+        return this.normalizeSelectedLayerOrder(withoutActive);
+      }
+      const contextualRows = [
+        BASELINE_SOLUTION_OVERLAY_ID,
+        'boundary-active_sirap',
+        'boundary-admin_country_outline',
+      ];
+      return this.normalizeSelectedLayerOrder([
+        ...contextualRows.filter(
+          (id) => id === BASELINE_SOLUTION_OVERLAY_ID || withoutActive.includes(id),
+        ),
+        ...withoutActive.filter((id) => !contextualRows.includes(id)),
+      ]);
+    });
+    if (activeRow) {
+      this.syncRowToMap(activeRow);
+    }
   }
 
   private syncLocaleSensitiveSidebarLabels(): void {

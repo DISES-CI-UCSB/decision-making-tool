@@ -11,7 +11,11 @@ import {
   inject,
 } from '@angular/core';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
-import { isSirapRegionId, type SirapRegionId } from '@core/models/sirap-access.model';
+import {
+  AVAILABLE_SIRAP_REGION_IDS,
+  isSirapRegionId,
+  type SirapRegionId,
+} from '@core/models/sirap-access.model';
 import {
   getSolutionIncludeFlags,
   getSolutionHumanFootprintYear,
@@ -45,6 +49,19 @@ interface SirapRegionOption {
   id: SirapRegionId;
   labelKey: string;
   departments: string;
+}
+
+type SirapStrategicTarget = 17 | 30 | 50 | 100;
+type SirapDryForestMode = 'inherit' | 'separate-100';
+type SirapWetlandsTarget = 70 | 100;
+type SirapSavannasTarget = 17 | 30;
+
+interface SirapTargetTuple {
+  id: string;
+  strategic: SirapStrategicTarget;
+  dryForest?: SirapDryForestMode;
+  wetlands?: SirapWetlandsTarget;
+  savannas?: SirapSavannasTarget;
 }
 
 interface SourceLinkOption {
@@ -188,6 +205,12 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   protected selectedDomain: PlanningDomain = 'land';
   protected selectedScope: 'nacional' | 'sirap' = 'nacional';
   protected selectedSirapRegion: SirapRegionId | null = null;
+  protected sirapStrategicTarget: SirapStrategicTarget | null = null;
+  protected sirapDryForestMode: SirapDryForestMode | null = null;
+  protected sirapWetlandsTarget: SirapWetlandsTarget | null = null;
+  protected sirapSavannasTarget: SirapSavannasTarget | null = null;
+  protected sirapIncludeOmecs = false;
+  protected sirapCostYear: HumanFootprintYear = 2022;
 
   protected readonly sirapRegions: readonly SirapRegionOption[] = [
     {
@@ -204,7 +227,132 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   protected accessibleSirapRegions(): readonly SirapRegionOption[] {
     const accessibleIds = this.appState.accessibleSirapIds();
-    return this.sirapRegions.filter((region) => accessibleIds.includes(region.id));
+    return this.sirapRegions.filter(
+      (region) =>
+        AVAILABLE_SIRAP_REGION_IDS.includes(region.id) && accessibleIds.includes(region.id),
+    );
+  }
+
+  protected isSirapSelection(): boolean {
+    return this.selectedDomain === 'land' && this.selectedScope === 'sirap';
+  }
+
+  protected certifiedSirapSolutions(): SolutionMatch[] {
+    if (!this.selectedSirapRegion) {
+      return [];
+    }
+
+    return this.solutionCatalog
+      .getAll()
+      .filter((solution) => this.userCanAccessSolution(solution))
+      .filter(
+        (solution) =>
+          this.getSolutionDomain(solution) === 'land' &&
+          normalizeSolutionToken(solution.finderInputs.scope || solution.scope) === 'sirap' &&
+          solution.sirapId === this.selectedSirapRegion,
+      )
+      .map((solution) => this.toSolutionMatch(solution));
+  }
+
+  protected sirapTargetTuples(): SirapTargetTuple[] {
+    const tuples = new Map<string, SirapTargetTuple>();
+    for (const solution of this.certifiedSirapCatalogSolutions()) {
+      const tuple = this.parseSirapTargetTuple(solution);
+      if (tuple) {
+        tuples.set(tuple.id, tuple);
+      }
+    }
+    return [...tuples.values()];
+  }
+
+  protected selectSirapStrategicTarget(target: SirapStrategicTarget): void {
+    const matchingTuples = this.sirapTargetTuples().filter((tuple) => tuple.strategic === target);
+    if (matchingTuples.length === 0) {
+      return;
+    }
+    this.sirapStrategicTarget = target;
+    if (this.selectedSirapRegion === 'eje-cafetero') {
+      const currentTuple = matchingTuples.find(
+        (tuple) =>
+          tuple.dryForest === this.sirapDryForestMode &&
+          tuple.wetlands === this.sirapWetlandsTarget,
+      );
+      const nextTuple = currentTuple ?? matchingTuples[0];
+      this.sirapDryForestMode = nextTuple.dryForest ?? null;
+      this.sirapWetlandsTarget = nextTuple.wetlands ?? null;
+    } else if (this.selectedSirapRegion === 'orinoquia') {
+      const currentTuple = matchingTuples.find(
+        (tuple) => tuple.savannas === this.sirapSavannasTarget,
+      );
+      this.sirapSavannasTarget = (currentTuple ?? matchingTuples[0]).savannas ?? null;
+    }
+    this.runMatching();
+  }
+
+  protected isSirapStrategicTargetAvailable(target: SirapStrategicTarget): boolean {
+    return this.sirapTargetTuples().some((tuple) => tuple.strategic === target);
+  }
+
+  protected selectSirapDryForestMode(mode: SirapDryForestMode): void {
+    if (
+      this.selectedSirapRegion !== 'eje-cafetero' ||
+      !this.sirapStrategicTarget ||
+      !this.sirapTargetTuples().some(
+        (tuple) => tuple.strategic === this.sirapStrategicTarget && tuple.dryForest === mode,
+      )
+    ) {
+      return;
+    }
+    this.sirapDryForestMode = mode;
+    const matchingTuples = this.sirapTargetTuples().filter(
+      (tuple) => tuple.strategic === this.sirapStrategicTarget && tuple.dryForest === mode,
+    );
+    if (!matchingTuples.some((tuple) => tuple.wetlands === this.sirapWetlandsTarget)) {
+      this.sirapWetlandsTarget = matchingTuples[0]?.wetlands ?? null;
+    }
+    this.runMatching();
+  }
+
+  protected selectSirapWetlandsTarget(target: SirapWetlandsTarget): void {
+    if (
+      this.selectedSirapRegion !== 'eje-cafetero' ||
+      !this.sirapStrategicTarget ||
+      !this.sirapDryForestMode ||
+      !this.sirapTargetTuples().some(
+        (tuple) =>
+          tuple.strategic === this.sirapStrategicTarget &&
+          tuple.dryForest === this.sirapDryForestMode &&
+          tuple.wetlands === target,
+      )
+    ) {
+      return;
+    }
+    this.sirapWetlandsTarget = target;
+    this.runMatching();
+  }
+
+  protected selectSirapSavannasTarget(target: SirapSavannasTarget): void {
+    if (
+      this.selectedSirapRegion !== 'orinoquia' ||
+      !this.sirapStrategicTarget ||
+      !this.sirapTargetTuples().some(
+        (tuple) => tuple.strategic === this.sirapStrategicTarget && tuple.savannas === target,
+      )
+    ) {
+      return;
+    }
+    this.sirapSavannasTarget = target;
+    this.runMatching();
+  }
+
+  protected toggleSirapIncludeOmecs(): void {
+    this.sirapIncludeOmecs = !this.sirapIncludeOmecs;
+    this.runMatching();
+  }
+
+  protected selectSirapCostYear(year: HumanFootprintYear): void {
+    this.sirapCostYear = year;
+    this.runMatching();
   }
 
   /** Step 1 */
@@ -400,6 +548,11 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   protected runMatching(): void {
     this.clearLoadingTimer();
 
+    if (this.isSirapSelection()) {
+      this.runCertifiedSirapSelection();
+      return;
+    }
+
     if (!this.canRunMatching()) {
       this.clearResults();
       return;
@@ -426,15 +579,20 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     if (scope === this.selectedScope) return;
     this.selectedScope = scope;
     this.selectedSirapRegion = null;
+    this.clearSirapSelections();
     this.clearSelections({ remember: true });
+    this.runMatching();
   }
 
   protected selectSirapRegion(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     const accessibleIds = this.appState.accessibleSirapIds();
     this.selectedSirapRegion =
-      isSirapRegionId(value) && accessibleIds.includes(value) ? value : null;
+      this.isFinderSupportedSirapRegion(value) && accessibleIds.includes(value) ? value : null;
+    this.clearSirapSelections();
+    this.initializeSirapDefaults();
     this.clearSelections({ remember: true });
+    this.runMatching();
   }
 
   protected updateSavedScenarioSearchQuery(query: string): void {
@@ -493,6 +651,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   protected resetSelections(): void {
     this.clearSelections({ remember: false });
+    this.clearSirapSelections();
     this.marineTargetPercent = 30;
     this.marineIncludeOmecs = false;
     this.appState.clearFinderSelectionMemory();
@@ -568,8 +727,9 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   protected canApplySolution(): boolean {
     return (
       this.matchState === 'ready' &&
-      this.matchResults.length === 1 &&
       this.selectedMatchId !== null &&
+      this.selectedMatch !== null &&
+      this.isSelectedMatchCurrentAndAccessible() &&
       !this.isSelectedMatchBaselineSolution()
     );
   }
@@ -606,6 +766,191 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   private clearResultsIfNeeded(): void {
     this.runMatching();
+  }
+
+  private runCertifiedSirapSelection(): void {
+    this.clearResults();
+    if (!this.selectedSirapRegion || !this.isSirapStep1Complete()) {
+      return;
+    }
+
+    this.matchResults = this.certifiedSirapCatalogSolutions()
+      .filter((solution) => {
+        const tuple = this.parseSirapTargetTuple(solution);
+        const basename = this.sirapSolutionBasename(solution);
+        return (
+          tuple !== null &&
+          this.sirapTupleMatchesSelection(tuple) &&
+          this.solutionIncludesSirapOmecs(basename) === this.sirapIncludeOmecs &&
+          this.solutionSirapCostYear(basename) === this.sirapCostYear
+        );
+      })
+      .map((solution) => this.toSolutionMatch(solution));
+    this.selectedMatchId = this.matchResults.length === 1 ? this.matchResults[0].id : null;
+    this.selectedMatch = this.matchResults.length === 1 ? this.matchResults[0] : null;
+    this.matchState = 'ready';
+  }
+
+  private clearSirapSelections(): void {
+    this.sirapStrategicTarget = null;
+    this.sirapDryForestMode = null;
+    this.sirapWetlandsTarget = null;
+    this.sirapSavannasTarget = null;
+    this.sirapIncludeOmecs = false;
+    this.sirapCostYear = 2022;
+  }
+
+  private initializeSirapDefaults(): void {
+    if (this.selectedSirapRegion === 'eje-cafetero') {
+      this.sirapStrategicTarget = 17;
+      this.sirapDryForestMode = 'inherit';
+      this.sirapWetlandsTarget = 70;
+    } else if (this.selectedSirapRegion === 'orinoquia') {
+      this.sirapStrategicTarget = 17;
+      this.sirapSavannasTarget = 17;
+    }
+  }
+
+  private solutionIncludesSirapOmecs(solutionName: string): boolean {
+    return /(?:^|\+)OMEC(?:_|$)/.test(solutionName);
+  }
+
+  private solutionSirapCostYear(solutionName: string): HumanFootprintYear | null {
+    const match = /_IHEH(2022|2030)(?:\.tif)?$/i.exec(solutionName);
+    return match ? (Number(match[1]) as HumanFootprintYear) : null;
+  }
+
+  protected isSirapStep1Complete(): boolean {
+    if (this.selectedSirapRegion === 'eje-cafetero') {
+      return (
+        this.sirapStrategicTarget !== null &&
+        this.sirapDryForestMode !== null &&
+        this.sirapWetlandsTarget !== null &&
+        this.sirapTargetTuples().some((tuple) => this.sirapTupleMatchesSelection(tuple))
+      );
+    }
+    if (this.selectedSirapRegion === 'orinoquia') {
+      return (
+        this.sirapStrategicTarget !== null &&
+        this.sirapSavannasTarget !== null &&
+        this.sirapTargetTuples().some((tuple) => this.sirapTupleMatchesSelection(tuple))
+      );
+    }
+    return false;
+  }
+
+  protected isSirapDryForestModeAvailable(mode: SirapDryForestMode): boolean {
+    return (
+      this.sirapStrategicTarget !== null &&
+      this.sirapTargetTuples().some(
+        (tuple) => tuple.strategic === this.sirapStrategicTarget && tuple.dryForest === mode,
+      )
+    );
+  }
+
+  protected isSirapWetlandsTargetAvailable(target: SirapWetlandsTarget): boolean {
+    return (
+      this.sirapStrategicTarget !== null &&
+      this.sirapDryForestMode !== null &&
+      this.sirapTargetTuples().some(
+        (tuple) =>
+          tuple.strategic === this.sirapStrategicTarget &&
+          tuple.dryForest === this.sirapDryForestMode &&
+          tuple.wetlands === target,
+      )
+    );
+  }
+
+  private certifiedSirapCatalogSolutions(): CatalogSolution[] {
+    if (!this.selectedSirapRegion) {
+      return [];
+    }
+    return this.solutionCatalog
+      .getAll()
+      .filter((solution) => this.userCanAccessSolution(solution))
+      .filter(
+        (solution) =>
+          this.getSolutionDomain(solution) === 'land' &&
+          normalizeSolutionToken(solution.finderInputs.scope || solution.scope) === 'sirap' &&
+          solution.sirapId === this.selectedSirapRegion,
+      );
+  }
+
+  private parseSirapTargetTuple(solution: CatalogSolution): SirapTargetTuple | null {
+    const basename = this.sirapSolutionBasename(solution);
+    const targetPart = basename.split('_IHEH')[0];
+    const strategic = this.sirapTokenValue(targetPart, 'Estr');
+    if (![17, 30, 50, 100].includes(strategic ?? -1)) {
+      return null;
+    }
+
+    if (solution.sirapId === 'eje-cafetero') {
+      const dryForest = this.sirapTokenValue(targetPart, 'Bs');
+      const wetlands = this.sirapTokenValue(targetPart, 'HuEC');
+      const tuple: SirapTargetTuple = {
+        id: [strategic, dryForest === 100 ? 'separate-100' : 'inherit', wetlands].join(':'),
+        strategic: strategic as SirapStrategicTarget,
+        dryForest: dryForest === 100 ? 'separate-100' : 'inherit',
+        wetlands: wetlands as SirapWetlandsTarget,
+      };
+      return this.isCertifiedEjeTuple(tuple) ? tuple : null;
+    }
+
+    if (solution.sirapId === 'orinoquia') {
+      const congriales = this.sirapTokenValue(targetPart, 'Cong');
+      const savannas = this.sirapTokenValue(targetPart, 'Sab');
+      const tuple: SirapTargetTuple = {
+        id: [strategic, savannas].join(':'),
+        strategic: strategic as SirapStrategicTarget,
+        savannas: savannas as SirapSavannasTarget,
+      };
+      return congriales === strategic && this.isCertifiedOrinoquiaTuple(tuple) ? tuple : null;
+    }
+    return null;
+  }
+
+  private sirapSolutionBasename(solution: CatalogSolution): string {
+    const candidate = solution.filename || solution.name;
+    return (
+      candidate
+        .split('/')
+        .pop()
+        ?.replace(/\.tif$/i, '') ?? solution.name
+    );
+  }
+
+  private sirapTokenValue(value: string, token: string): number | null {
+    const match = new RegExp(`(?:^|\\+)${token}(\\d+)(?:\\+|_|$)`).exec(value);
+    return match ? Number(match[1]) : null;
+  }
+
+  private isCertifiedEjeTuple(tuple: SirapTargetTuple): boolean {
+    const allowed = new Set([
+      '17:separate-100:70',
+      '17:separate-100:100',
+      '17:inherit:70',
+      '17:inherit:100',
+      '30:separate-100:70',
+      '30:separate-100:100',
+      '30:inherit:70',
+      '30:inherit:100',
+      '50:inherit:100',
+      '100:inherit:70',
+    ]);
+    return allowed.has(tuple.id);
+  }
+
+  private isCertifiedOrinoquiaTuple(tuple: SirapTargetTuple): boolean {
+    return new Set(['17:17', '17:30', '30:17', '30:30']).has(tuple.id);
+  }
+
+  private sirapTupleMatchesSelection(tuple: SirapTargetTuple): boolean {
+    if (tuple.strategic !== this.sirapStrategicTarget) {
+      return false;
+    }
+    return this.selectedSirapRegion === 'eje-cafetero'
+      ? tuple.dryForest === this.sirapDryForestMode && tuple.wetlands === this.sirapWetlandsTarget
+      : tuple.savannas === this.sirapSavannasTarget;
   }
 
   private restoreRememberedSelections(): void {
@@ -663,9 +1008,27 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     const normalizedScope = normalizeSolutionToken(solution.finderInputs.scope || solution.scope);
     this.selectedScope = normalizedScope === 'sirap' ? 'sirap' : 'nacional';
     this.selectedSirapRegion =
-      this.selectedScope === 'sirap' && this.isSirapRegionId(solution.sirapId)
+      this.selectedScope === 'sirap' && this.isFinderSupportedSirapRegion(solution.sirapId)
         ? solution.sirapId
         : null;
+
+    if (this.selectedScope === 'sirap') {
+      this.clearSirapSelections();
+      this.selectedSirapRegion = this.isFinderSupportedSirapRegion(solution.sirapId)
+        ? solution.sirapId
+        : null;
+      const tuple = this.parseSirapTargetTuple(solution);
+      if (tuple) {
+        this.sirapStrategicTarget = tuple.strategic;
+        this.sirapDryForestMode = tuple.dryForest ?? null;
+        this.sirapWetlandsTarget = tuple.wetlands ?? null;
+        this.sirapSavannasTarget = tuple.savannas ?? null;
+      }
+      const basename = this.sirapSolutionBasename(solution);
+      this.sirapIncludeOmecs = this.solutionIncludesSirapOmecs(basename);
+      this.sirapCostYear = this.solutionSirapCostYear(basename) ?? 2022;
+      return;
+    }
 
     this.selectedTargetTypeIds = this.targetTypeOptions
       .map((option) => option.id)
@@ -717,10 +1080,15 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     const accessibleIds = this.appState.accessibleSirapIds();
     if (
       this.selectedScope === 'sirap' &&
-      (!this.selectedSirapRegion || !accessibleIds.includes(this.selectedSirapRegion))
+      (!this.selectedSirapRegion ||
+        !accessibleIds.includes(this.selectedSirapRegion) ||
+        !this.isFinderSupportedSirapRegion(this.selectedSirapRegion))
     ) {
       this.selectedScope = 'nacional';
       this.selectedSirapRegion = null;
+    }
+    if (this.selectedScope === 'sirap') {
+      this.initializeSirapDefaults();
     }
 
     if (!this.selectedTargetTypeIds.includes('ecosystems')) {
@@ -758,6 +1126,10 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     return isSirapRegionId(value);
   }
 
+  private isFinderSupportedSirapRegion(value: unknown): value is SirapRegionId {
+    return isSirapRegionId(value) && AVAILABLE_SIRAP_REGION_IDS.includes(value);
+  }
+
   private toTargetLevelsByType(
     levels: FinderSelectionMemory['targetLevelByType'],
   ): TargetLevelsByType {
@@ -785,6 +1157,14 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
     if (this.selectedDomain === 'marine') {
       return this.marineSolutionMatchesSelection(solution);
+    }
+
+    if (this.isSirapSelection()) {
+      return (
+        normalizeSolutionToken(solution.finderInputs.scope || solution.scope) === 'sirap' &&
+        solution.sirapId === this.selectedSirapRegion &&
+        this.userCanAccessSolution(solution)
+      );
     }
 
     if (!this.solutionScopeMatchesSelection(solution)) {
@@ -948,6 +1328,21 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   private toSolutionMatchId(solutionId: string): string {
     return `solution-${solutionId.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  }
+
+  private isSelectedMatchCurrentAndAccessible(): boolean {
+    const selectedMatch = this.selectedMatch;
+    if (!selectedMatch) {
+      return false;
+    }
+
+    if (!this.isSirapSelection()) {
+      return true;
+    }
+
+    return this.certifiedSirapSolutions().some(
+      (candidate) => candidate.solutionId === selectedMatch.solutionId,
+    );
   }
 
   private clearLoadingTimer(): void {

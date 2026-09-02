@@ -177,13 +177,21 @@ describe('species goals contracts', () => {
     expect(selectSpeciesTargetOverlay(overlay, 'untargeted')).toBeNull();
   });
 
-  it('rejects semantic flag tamper and stale releases', () => {
+  it('rejects semantic flag tamper and stale catalog binding', () => {
     const tampered = compact();
     tampered.rows[0][7] &= ~SPECIES_GOALS_FLAGS.met30;
     expect(isSpeciesGoalsCompactDocument(tampered)).toBe(false);
 
     const stale = compact();
-    stale.provenance.releaseId = 'stale-release';
+    stale.provenance.catalogSha256 = 'b'.repeat(64);
     expect(() => hydrateSpeciesGoals(catalog, stale, '05')).toThrow(/stale/);
+  });
+
+  it('hydrates when catalog and compact provenance releaseIds differ', () => {
+    const sharedCatalog = { ...catalog, provenance: { ...catalog.provenance, releaseId: 'prior-release' } };
+    const currentCompact = compact();
+    currentCompact.provenance.releaseId = 'current-release';
+
+    expect(() => hydrateSpeciesGoals(sharedCatalog, currentCompact, '05')).not.toThrow();
   });
 });

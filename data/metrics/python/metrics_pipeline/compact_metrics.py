@@ -349,6 +349,8 @@ def to_compact_document(doc: dict[str, Any]) -> dict[str, Any]:
         "notesCatalog": notes_catalog.values,
         "geographies": geographies,
     }
+    if "primaryGeography" in doc:
+        compact_document["primaryGeography"] = doc["primaryGeography"]
     if PROVENANCE_KEY in doc:
         compact_document[PROVENANCE_KEY] = doc[PROVENANCE_KEY]
         compact_document["metricsProvenanceSha256"] = hashlib.sha256(
@@ -413,6 +415,8 @@ def to_verbose_document(doc: dict[str, Any]) -> dict[str, Any]:
         "generatedAt": doc.get("generatedAt"),
         "geographies": geographies,
     }
+    if "primaryGeography" in doc:
+        verbose_document["primaryGeography"] = doc["primaryGeography"]
     if PROVENANCE_KEY in doc:
         verbose_document[PROVENANCE_KEY] = doc[PROVENANCE_KEY]
     for field in (

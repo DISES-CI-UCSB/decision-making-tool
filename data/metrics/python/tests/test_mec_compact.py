@@ -492,6 +492,63 @@ def test_ecosystem_denominator_is_solution_independent_and_ignores_valid_mask():
     )
 
 
+def test_sirap_document_clips_reporting_scope_to_solution_support():
+    scope = np.ones((2, 2), dtype=bool)
+    raster = _raster(
+        np.array([[True, False], [False, False]]),
+        pre_existing=np.array([[True, False], [False, False]]),
+        new_prioritizr=np.zeros((2, 2), dtype=bool),
+        valid=np.array([[True, False], [False, False]]),
+    )
+    document = build_mec_document(
+        solution_id="sirap-solution",
+        geography_level="national",
+        scopes=[("colombia", "Colombia", scope)],
+        raster=raster,
+        ecosystem_values=np.array([[1.0, 2.0], [1.0, 2.0]]),
+        taxonomy=_taxonomy(),
+        mec_raster_source="mec.tif",
+        mec_raster_sha256="a" * 64,
+        crosswalk_source="crosswalk.csv",
+        crosswalk_sha256="b" * 64,
+        classification_summary_source="summary.json",
+        provenance_source=None,
+        provenance_sha256=None,
+        solution_raster_source="solution.tif",
+        solution_raster_sha256="c" * 64,
+        observed_biome_ids={1, 2},
+        boundary_provenance={"departments": {"sourceFingerprint": "boundary-test"}},
+        national_target=resolve_national_target(
+            {
+                "id": "sirap-solution",
+                "scope": "sirap",
+                "finderInputs": {
+                    "structuredTargets": {},
+                    "targetFeatureSet": "strategic_ecosystems",
+                    "targetFeatureIds": ["paramos"],
+                },
+            }
+        ),
+        generation_signature=_signature(),
+        aligned_mec_identity={
+            "cacheKey": "1" * 64,
+            "sourceSha256": "a" * 64,
+            "alignedSha256": "2" * 64,
+            "targetGridSha256": "3" * 64,
+            "policySha256": "4" * 64,
+        },
+        generated_at="2026-09-01T00:00:00Z",
+        restrict_scopes_to_solution_support=True,
+    )
+
+    assert (
+        document["reportingScope"]
+        == "boundary-intersection-with-solution-valid-support"
+    )
+    assert document["scopeStats"]["0"]["scopeAreaKm2"] == 1.0
+    assert {row[1] for row in document["rows"]} == {0, 8}
+
+
 def test_class_shares_sum_to_classified_over_scope_share():
     ecosystem_values = np.array([[1.0, 2.0], [1.0, np.nan]])
     scope = np.ones((2, 2), dtype=bool)
@@ -586,6 +643,28 @@ def test_national_target_requires_authoritative_17_or_30_finder_metadata():
         resolve_national_target(
             {"id": "bad", "finderInputs": {"targetPercent": 25}}
         )
+
+
+def test_sirap_mec_is_a_post_hoc_outcome_without_target_attainment():
+    context = resolve_national_target(
+        {
+            "id": "eje",
+            "scope": "sirap",
+            "finderInputs": {
+                "targetPercent": None,
+                "targetFeatureSet": "sirap:eje-cafetero:step-1",
+                "targetFeatureIds": ["strategic-ecosystems"],
+                "structuredTargets": {
+                    "format": "solution-target-metadata-v1",
+                    "strategicEcosystems": [],
+                },
+            },
+        }
+    )
+
+    assert context["targetPercent"] is None
+    assert context["statusStorage"] == "not-evaluated"
+    assert context["applicability"] == "not-applicable-regional-post-hoc"
 
 
 def test_composite_taxonomy_emits_all_views_and_preserves_unicode_and_tipo():
@@ -1028,7 +1107,7 @@ def test_resume_requires_matching_versioned_taxonomy_config_and_sources(
     )
 
     monkeypatch.setattr(
-        mec_compact, "MEC_GENERATOR_CONFIG_VERSION", "mec-generator-config-v7"
+        mec_compact, "MEC_GENERATOR_CONFIG_VERSION", "mec-generator-config-v8"
     )
     assert not _artifact_is_resumable(
         artifact_path,

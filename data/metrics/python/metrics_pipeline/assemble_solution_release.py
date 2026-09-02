@@ -156,8 +156,11 @@ def _blob_path(
 def _expected_keys(catalog: SolutionCatalog) -> list[tuple[str, str, str | None]]:
     keys: list[tuple[str, str, str | None]] = []
     for entry in catalog.solutions:
-        for component in ("regularVerbose", "regularCompact", "goals"):
+        for component in ("regularVerbose", "regularCompact"):
             keys.append((component, entry.solution_id, None))
+        if entry.scope == "sirap":
+            continue
+        keys.append(("goals", entry.solution_id, None))
         if entry.domain == "land":
             keys.extend(
                 ("mecV2", entry.solution_id, level)
@@ -707,10 +710,8 @@ def _write_release_metadata(
         for component in COMPONENTS
     }
     expected_component_counts = {
-        "regularVerbose": catalog.expected_total_count,
-        "regularCompact": catalog.expected_total_count,
-        "goals": catalog.expected_total_count,
-        "mecV2": catalog.expected_land_count * len(GEOGRAPHY_LEVELS),
+        component: sum(key[0] == component for key in _expected_keys(catalog))
+        for component in COMPONENTS
     }
     inventory_content = (
         json.dumps(inventory, indent=2, sort_keys=True) + "\n"

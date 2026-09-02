@@ -65,28 +65,15 @@ VALID_METRIC_STATUSES = (
     "not_applicable",
     "empty",
 )
-SIRAP_MISSING_INPUT_METRIC_IDS = frozenset(
+SIRAP_NOT_APPLICABLE_METRIC_IDS = frozenset(
     {
-        "species_groups_protected",
-        "threatened_species_secured",
         "carbon_storage_biomass",
-        "agricultural_area",
         "national_contribution",
-        "threatened_species_count",
-        "species_pct_of_national",
         "mangrove_coverage",
-        "carbon_biomass_total",
         "soil_organic_carbon",
         "carbon_pct_of_national",
-        "land_use_forests_and_semi_natural_areas_pct",
-        "land_use_agricultural_areas_pct",
-        "land_use_artificial_surfaces_pct",
-        "land_use_wetlands_pct",
-        "land_use_water_bodies_pct",
-        "national_parks_pct",
     }
 )
-SIRAP_MISSING_INPUT_SOURCE = "regionalInputPacket.missingInputAuthority"
 _SHA256_LENGTH = 64
 _UNSET = object()
 
@@ -933,21 +920,26 @@ def regular_artifact_completeness_issues(
                         "without zero-support scope evidence"
                     )
                     continue
-                if regional_packet and definition.metric_id in SIRAP_MISSING_INPUT_METRIC_IDS:
+                if (
+                    regional_packet
+                    and definition.metric_id in SIRAP_NOT_APPLICABLE_METRIC_IDS
+                ):
                     if (
-                        status != "blocked"
+                        status != "not_applicable"
                         or value is not None
-                        or metric.get("source") != SIRAP_MISSING_INPUT_SOURCE
+                        or metric.get("source") != "n/a"
                     ):
                         issues.append(
-                            f"{level}/{scope_id}/{definition.metric_id} must be blocked "
-                            "with regionalInputPacket.missingInputAuthority"
+                            f"{level}/{scope_id}/{definition.metric_id} must be "
+                            "not_applicable for SIRAP"
                         )
+                    continue
                 structurally_not_applicable = (
                     domain not in definition.applicable_domains
                     or (
                         level == "national"
                         and definition.kind == "aoi_percent"
+                        and not regional_packet
                     )
                     or (
                         level != "national"
@@ -982,7 +974,12 @@ def regular_artifact_completeness_issues(
                     dual_reference_metric
                     and (
                         metric.get("source")
-                        != "manifest:finderInputs.structuredTargets"
+                        != (
+                            "regionalInputPacket.species+"
+                            "manifest:finderInputs.structuredTargets"
+                            if regional_packet
+                            else "manifest:finderInputs.structuredTargets"
+                        )
                         or metric.get("value") is not None
                         or not _valid_dual_threshold_outcomes(metric, definition)
                     )

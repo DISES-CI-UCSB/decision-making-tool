@@ -16,6 +16,22 @@ export const MEC_GEOGRAPHY_LEVELS = Object.freeze([
   'runaps',
   'omecs',
 ]);
+export const SIRAP_SPECIES_GEOGRAPHY_LEVELS = Object.freeze([
+  'siraps',
+  'departments',
+  'municipalities',
+]);
+
+/**
+ * Land solutions publish MEC observations for every supported reporting geography.
+ * For SIRAP-targeted solutions these remain additional outcomes, not solver targets.
+ */
+export function mecGeographyLevelsForSolution({ domain = 'land', scope = null } = {}) {
+  if (domain !== 'land') {
+    return [];
+  }
+  return MEC_GEOGRAPHY_LEVELS;
+}
 
 export function createPrecomputedMetricUrls(layerId, roleInMetricCalculation) {
   if (roleInMetricCalculation === 'none') {
@@ -49,6 +65,9 @@ export function createSolutionPrecomputedMetricUrls(
   } = existingUrls;
 
   const releaseId = options.releaseId ?? null;
+  const speciesGeographyLevels =
+    options.scope === 'sirap' ? SIRAP_SPECIES_GEOGRAPHY_LEVELS : MEC_GEOGRAPHY_LEVELS;
+  const mecGeographyLevels = mecGeographyLevelsForSolution({ domain, scope: options.scope });
   const releaseRoot = releaseId ? `${RELEASE_CONTRACT.prefixRoot}/${releaseId}` : null;
   const releaseArtifactBaseUrl = options.releaseArtifactBaseUrl ?? PUBLIC_BLOB_HOST;
   const goalsDirectory = releaseRoot
@@ -63,12 +82,22 @@ export function createSolutionPrecomputedMetricUrls(
   const speciesGoalsUrls =
     releaseRoot &&
     domain === 'land' &&
-    hasValidatedSpeciesGoalsInventory(options.speciesGoalsInventory, solutionId, releaseId)
+    hasValidatedSpeciesGoalsInventory(
+      options.speciesGoalsInventory,
+      solutionId,
+      releaseId,
+      speciesGeographyLevels,
+    )
       ? createSpeciesGoalsUrls(
           safeSolutionId,
           releaseRoot,
           options.speciesGoalsBaseUrl ?? PUBLIC_BLOB_HOST,
-          { includeTargetOverlay: options.includeSpeciesGoalsTargetOverlay !== false },
+          {
+            geographyLevels: speciesGeographyLevels,
+            includeTargetOverlay:
+              options.scope !== 'sirap' &&
+              options.includeSpeciesGoalsTargetOverlay !== false,
+          },
         )
       : null;
 
@@ -95,18 +124,28 @@ export function createSolutionPrecomputedMetricUrls(
           ...(!releaseRoot
             ? { mecByGeography: createMecUrls(safeSolutionId, SOLUTION_MEC_CACHE_BLOB_DIRECTORY) }
             : {}),
-          mecV2ByGeography: createMecUrls(
-            safeSolutionId,
-            mecV2Directory,
-            releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
-          ),
+          ...(mecGeographyLevels.length > 0
+            ? {
+                mecV2ByGeography: createMecUrls(
+                  safeSolutionId,
+                  mecV2Directory,
+                  releaseRoot ? releaseArtifactBaseUrl : PUBLIC_BLOB_HOST,
+                  mecGeographyLevels,
+                ),
+              }
+            : {}),
           ...(speciesGoalsUrls ?? {}),
         }
       : {}),
   };
 }
 
-function hasValidatedSpeciesGoalsInventory(inventory, solutionId, releaseId) {
+function hasValidatedSpeciesGoalsInventory(
+  inventory,
+  solutionId,
+  releaseId,
+  expectedLevels,
+) {
   return (
     inventory?.format === 'species-goals-release-inventory-v1' &&
     inventory.validated === true &&
@@ -114,8 +153,8 @@ function hasValidatedSpeciesGoalsInventory(inventory, solutionId, releaseId) {
     inventory.releaseId === releaseId &&
     inventory.catalogValidated === true &&
     Array.isArray(inventory.validatedGeographyLevels) &&
-    inventory.validatedGeographyLevels.length === MEC_GEOGRAPHY_LEVELS.length &&
-    MEC_GEOGRAPHY_LEVELS.every(
+    inventory.validatedGeographyLevels.length === expectedLevels.length &&
+    expectedLevels.every(
       (level, index) => inventory.validatedGeographyLevels[index] === level,
     )
   );
@@ -125,7 +164,10 @@ export function createSpeciesGoalsUrls(
   safeSolutionId,
   releaseRoot,
   baseUrl = PUBLIC_BLOB_HOST,
-  { includeTargetOverlay = true } = {},
+  {
+    geographyLevels = MEC_GEOGRAPHY_LEVELS,
+    includeTargetOverlay = true,
+  } = {},
 ) {
   const catalogDirectory = `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsCatalogDirectory}`;
   const compactDirectory = `${releaseRoot}/${RELEASE_CONTRACT.speciesGoalsCompactDirectory}`;
@@ -140,7 +182,7 @@ export function createSpeciesGoalsUrls(
         }
       : {}),
     speciesGoalsByGeography: Object.fromEntries(
-      MEC_GEOGRAPHY_LEVELS.map((level) => [
+      geographyLevels.map((level) => [
         level,
         artifactUrl(
           baseUrl,
@@ -185,9 +227,14 @@ export function createReleaseBoundaryUrls(releaseId) {
   };
 }
 
-function createMecUrls(safeSolutionId, directory, baseUrl = PUBLIC_BLOB_HOST) {
+function createMecUrls(
+  safeSolutionId,
+  directory,
+  baseUrl = PUBLIC_BLOB_HOST,
+  geographyLevels = MEC_GEOGRAPHY_LEVELS,
+) {
   return Object.fromEntries(
-    MEC_GEOGRAPHY_LEVELS.map((level) => [
+    geographyLevels.map((level) => [
       level,
       artifactUrl(baseUrl, `${directory}/${safeSolutionId}/${level}.mec.compact.json`),
     ]),

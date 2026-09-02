@@ -2,6 +2,7 @@ export type SirapRegionId =
   | 'caribe'
   | 'pacifico'
   | 'andes-occidentales'
+  | 'eje-cafetero'
   | 'andes-nororientales'
   | 'orinoquia'
   | 'amazonia'
@@ -16,6 +17,7 @@ export const SIRAP_REGIONS: readonly SirapRegion[] = [
   { id: 'caribe', label: 'SIRAP Caribe' },
   { id: 'pacifico', label: 'SIRAP Pacífico' },
   { id: 'andes-occidentales', label: 'SIRAP Andes Occidentales' },
+  { id: 'eje-cafetero', label: 'SIRAP Eje Cafetero' },
   { id: 'andes-nororientales', label: 'SIRAP Andes Nororientales' },
   { id: 'orinoquia', label: 'SIRAP Orinoquía' },
   { id: 'amazonia', label: 'SIRAP Amazonía' },
@@ -32,6 +34,9 @@ export const SIRAP_ACCESS_REGIONS: readonly SirapRegion[] = [
 export const SIRAP_ACCESS_REGION_IDS: readonly SirapRegionId[] = SIRAP_ACCESS_REGIONS.map(
   (region) => region.id,
 );
+
+/** SIRAP regions with published scenarios and metrics in the current product release. */
+export const AVAILABLE_SIRAP_REGION_IDS: readonly SirapRegionId[] = SIRAP_ACCESS_REGION_IDS;
 
 export type SirapAccessRequestStatus = 'pending' | 'approved' | 'denied';
 

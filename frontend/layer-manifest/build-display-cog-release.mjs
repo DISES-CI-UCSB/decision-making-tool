@@ -50,6 +50,7 @@ const RICHNESS_LAYER_DETAILS = {
 };
 const COG_GRADIENT_RANGE_OVERRIDES = {
   human_footprint_2022: { noDataValue: -9999 },
+  human_footprint_2030: { minValue: 0, maxValue: 100, noDataValue: -9999 },
   hhm: { noDataValue: -9999 },
   // The source layer previously derived this range during client-side loading.
   // ImageryTileLayer needs it in the manifest, so retain those source bounds.
@@ -190,6 +191,45 @@ function addRichnessLayers(manifest, staticCogUrls) {
   }
 }
 
+function addHumanFootprint2030Layer(manifest) {
+  const category = manifest.categories.find((entry) => entry.id === 'socioeconomic');
+  if (!category) throw new Error('base manifest is missing socioeconomic category');
+
+  if (!manifest.layers.some((layer) => layer.id === 'human_footprint_2030')) {
+    manifest.layers.push({
+      id: 'human_footprint_2030',
+      spanishLabel: 'Índice de Huella Espacial Humana 2030',
+      englishLabel: 'Human Footprint 2030',
+      description: 'Projected human pressure in 2030; higher values indicate greater anticipated pressure.',
+      tooltip: 'Shows projected human footprint intensity for future solution review.',
+      dataRole: 'cost_layer',
+      category: 'socioeconomic',
+      roleInMetricCalculation: 'none',
+      displayUrl: `${PUBLIC_BLOB_HOST}/inputs/costs/human_footprint_2030.tif`,
+      metadataUrl: null,
+      compressedDataForLiveMetricsUrl: null,
+      precomputedMetricUrls: {},
+      rendering: {
+        valueType: 'continuous',
+        renderMode: 'gradient',
+        startColor: '#fee2e3',
+        endColor: '#991b21',
+        minValue: 0,
+        maxValue: 100,
+        noDataValue: -9999,
+      },
+    });
+  }
+
+  category.layerIds = category.layerIds.filter((layerId) => layerId !== 'human_footprint_2030');
+  const humanFootprint2022Index = category.layerIds.indexOf('human_footprint_2022');
+  category.layerIds.splice(
+    humanFootprint2022Index >= 0 ? humanFootprint2022Index + 1 : category.layerIds.length,
+    0,
+    'human_footprint_2030',
+  );
+}
+
 function buildDisplayOnlyCatalog(manifest) {
   const solutions = manifest.solutions
     .map((solution) => ({
@@ -272,6 +312,7 @@ export async function buildDisplayCogRelease({
     };
   });
   addRichnessLayers(manifest, staticCogUrls);
+  addHumanFootprint2030Layer(manifest);
   const speciesManifest = {
     version,
     generatedAt: manifest.generatedAt,

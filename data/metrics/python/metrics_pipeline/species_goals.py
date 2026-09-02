@@ -294,6 +294,7 @@ class SpeciesGoalsPipeline:
         provenance: dict[str, Any],
         spool_dir: Path,
         active_levels: set[str] | None = None,
+        primary_geography_level: GeographyLevel = "national",
     ) -> None:
         self.catalog = validate_catalog(catalog)
         self.solution_id = solution_id
@@ -302,6 +303,11 @@ class SpeciesGoalsPipeline:
         self.active_levels = (
             set(GEOGRAPHY_LEVELS) if active_levels is None else active_levels
         )
+        if primary_geography_level not in GEOGRAPHY_LEVELS:
+            raise SpeciesGoalsContractError(
+                f"unsupported primary geography level {primary_geography_level!r}"
+            )
+        self.primary_geography_level = primary_geography_level
         self._index_by_name = {
             row[1]: index for index, row in enumerate(self.catalog["rows"])
         }
@@ -340,7 +346,7 @@ class SpeciesGoalsPipeline:
         pre_existing_area_m2: float = 0.0,
         new_prioritizr_area_m2: float | None = None,
     ) -> None:
-        if "national" not in self.active_levels:
+        if self.primary_geography_level not in self.active_levels:
             return
         index = self._species_index(species)
         observation = self._observation(
@@ -352,7 +358,7 @@ class SpeciesGoalsPipeline:
             if new_prioritizr_area_m2 is None
             else new_prioritizr_area_m2,
         )
-        self._insert("national", 0, index, observation)
+        self._insert(self.primary_geography_level, 0, index, observation)
 
     def record_sub_level(
         self,
@@ -419,11 +425,11 @@ class SpeciesGoalsPipeline:
             raise SpeciesGoalsContractError("national chunk arrays differ")
 
         rows: list[tuple[Any, ...]] = []
-        if "national" in self.active_levels:
+        if self.primary_geography_level in self.active_levels:
             for row_index, species in enumerate(species_records):
                 rows.append(
                     (
-                        "national",
+                        self.primary_geography_level,
                         0,
                         self._species_index(species),
                         *self._observation(
@@ -1076,12 +1082,18 @@ def write_release_inventory(
     release_id: str,
     catalog: dict[str, Any],
     expected_provenance_by_solution: dict[str, dict[str, Any]],
+    expected_levels_by_solution: dict[str, tuple[str, ...]] | None = None,
 ) -> dict[str, Any]:
-    """Write manifest opt-in evidence only for complete six-shard solutions."""
+    """Write opt-in evidence only for solutions with every expected shard."""
 
     validate_catalog(catalog)
     solutions: dict[str, Any] = {}
     for solution_id, provenance in sorted(expected_provenance_by_solution.items()):
+        expected_levels = (
+            expected_levels_by_solution.get(solution_id, GEOGRAPHY_LEVELS)
+            if expected_levels_by_solution is not None
+            else GEOGRAPHY_LEVELS
+        )
         if all(
             partition_is_resumable(
                 compact_partition_path(output_root, solution_id, level),
@@ -1091,7 +1103,7 @@ def write_release_inventory(
                 expected_catalog_sha256=catalog["catalogSha256"],
                 expected_provenance=provenance,
             )
-            for level in GEOGRAPHY_LEVELS
+            for level in expected_levels
         ):
             solutions[solution_id] = {
                 "format": "species-goals-release-inventory-v1",
@@ -1099,7 +1111,7 @@ def write_release_inventory(
                 "solutionId": solution_id,
                 "releaseId": release_id,
                 "catalogValidated": True,
-                "validatedGeographyLevels": list(GEOGRAPHY_LEVELS),
+                "validatedGeographyLevels": list(expected_levels),
             }
     document = {
         "format": "species-goals-release-inventory-index-v1",

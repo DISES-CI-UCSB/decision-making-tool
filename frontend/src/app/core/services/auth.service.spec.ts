@@ -125,7 +125,7 @@ describe('AuthService', () => {
     expect(appState.accessibleSirapIds()).toEqual(['orinoquia']);
   });
 
-  it('gives legacy super admins access to every SIRAP', async () => {
+  it('gives legacy super admins access to every available SIRAP', async () => {
     firebase.auth.currentUser = { uid: 'legacy-admin-uid' };
     firebase.userDocs.set('legacy-admin-uid', {
       status: 'active',
@@ -138,6 +138,7 @@ describe('AuthService', () => {
 
     expect(appState.userIsSuperAdmin$()).toBe(true);
     expect(appState.accessibleSirapIds()).toHaveLength(2);
+    expect(appState.accessibleSirapIds()).toEqual(['orinoquia', 'eje-cafetero']);
   });
 
   it('reacts to SIRAP grants without requiring another login', () => {

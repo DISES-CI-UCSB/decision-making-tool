@@ -10,6 +10,7 @@ import {
   PRECOMPUTED_METRIC_URL_KEYS,
 } from './cached-metrics.utils';
 import { SolutionCatalogService } from './solution-catalog.service';
+import { normalizeSolutionToken } from '@core/models/solution-matching.utils';
 
 @Injectable({ providedIn: 'root' })
 export class SolutionGoalsLoaderService {
@@ -28,6 +29,14 @@ export class SolutionGoalsLoaderService {
     );
     if (precomputedUrl) {
       return precomputedUrl;
+    }
+    // SIRAP releases must explicitly publish their regional goal summary.
+    // Never infer the legacy national goals path for a SIRAP solution.
+    if (
+      normalizeSolutionToken(solution.scope) === 'sirap' ||
+      normalizeSolutionToken(solution.finderInputs?.scope ?? '') === 'sirap'
+    ) {
+      return null;
     }
 
     const blobHost = deriveBlobHostFromUrl(solution.displayUrl);

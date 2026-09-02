@@ -45,6 +45,8 @@ export const environment = {
   },
   googleClientId: ${toTsString(readOptionalEnv('GOOGLE_CLIENT_ID'))},
   manifestBlobUrl: ${toTsString(readOptionalEnv('MANIFEST_BLOB_URL'))},
+  catalogReleaseIndexBlobUrl: ${toTsString(readOptionalEnv('CATALOG_RELEASE_INDEX_BLOB_URL'))},
+  sirapManifestBlobUrl: ${toTsString(readOptionalEnv('SIRAP_MANIFEST_BLOB_URL'))},
   blobAssetProxyPath: ${toTsString(readOptionalEnv('BLOB_ASSET_PROXY_PATH'))},
   solutionCapabilityOverrides: {},
   metricsApiBaseUrl: ${toTsString(readOptionalEnv('METRICS_API_BASE_URL') || '/metrics-api')},

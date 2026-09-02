@@ -628,6 +628,7 @@ export class SolutionLayerService {
       metadata: {
         solutionId: loaded.solution.id,
         scope: loaded.solution.scope,
+        sirapId: loaded.solution.sirapId,
         rasterFile: loaded.solution.filename,
         displayCogUrl: loaded.solution.displayCogUrl ?? null,
         metadataUrl: loaded.solution.metadataUrl,

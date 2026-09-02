@@ -9,20 +9,20 @@
   >
     <span
       id="solution-finder-modal-domain-label"
-      class="text-xs font-semibold uppercase tracking-widest text-slate-500"
+      class="w-52 shrink-0 text-xs font-semibold uppercase tracking-widest text-slate-500"
     >
       {{ 'solutionControls.finder.domain.label' | translate }}
     </span>
     <div
       id="solution-finder-modal-domain-segments"
-      class="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+      class="flex w-55 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
       role="radiogroup"
       [attr.aria-label]="'solutionControls.finder.domain.label' | translate"
     >
       <button
         id="solution-finder-modal-domain-land-button"
         type="button"
-        class="finder-scope-segment rounded-md px-4 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        class="finder-scope-segment flex-1 rounded-md px-4 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
         [class.bg-sky-600]="selectedDomain === 'land'"
         [class.text-white]="selectedDomain === 'land'"
         [class.shadow-sm]="selectedDomain === 'land'"
@@ -39,7 +39,7 @@
       <button
         id="solution-finder-modal-domain-marine-button"
         type="button"
-        class="finder-scope-segment rounded-md px-4 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        class="finder-scope-segment flex-1 rounded-md px-4 py-2 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
         [class.bg-sky-600]="selectedDomain === 'marine'"
         [class.text-white]="selectedDomain === 'marine'"
         [class.shadow-sm]="selectedDomain === 'marine'"
@@ -63,20 +63,20 @@
     >
       <span
         id="solution-finder-modal-scope-bar-label"
-        class="text-xs font-semibold uppercase tracking-widest text-slate-500"
+        class="w-52 shrink-0 text-xs font-semibold uppercase tracking-widest text-slate-500"
       >
         {{ 'solutionControls.finder.scopeBar.label' | translate }}
       </span>
       <div
         id="solution-finder-modal-scope-bar-segments"
-        class="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+        class="flex w-55 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
         role="radiogroup"
         [attr.aria-label]="'solutionControls.finder.scopeBar.label' | translate"
       >
         <button
           id="solution-finder-modal-scope-btn-nacional"
           type="button"
-          class="finder-scope-segment rounded-md px-2.5 py-1.5 text-sm font-semibold outline-none focus:outline-none focus-visible:outline-none"
+          class="finder-scope-segment flex-1 rounded-md px-2.5 py-1.5 text-sm font-semibold outline-none focus:outline-none focus-visible:outline-none"
           [class.bg-sky-600]="selectedScope === 'nacional'"
           [class.text-white]="selectedScope === 'nacional'"
           [class.shadow-sm]="selectedScope === 'nacional'"
@@ -96,7 +96,7 @@
         <button
           id="solution-finder-modal-scope-btn-sirap"
           type="button"
-          class="finder-scope-segment rounded-md px-2.5 py-1.5 text-sm font-semibold outline-none focus:outline-none focus-visible:outline-none"
+          class="finder-scope-segment flex-1 rounded-md px-2.5 py-1.5 text-sm font-semibold outline-none focus:outline-none focus-visible:outline-none"
           [class.bg-sky-600]="selectedScope === 'sirap'"
           [class.text-white]="selectedScope === 'sirap'"
           [class.shadow-sm]="selectedScope === 'sirap'"
@@ -134,14 +134,6 @@
               </option>
             }
           </select>
-          @if (selectedSirapRegion) {
-            <span
-              id="solution-finder-modal-scope-bar-sirap-badge"
-              class="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700"
-            >
-              Demo regional data
-            </span>
-          }
         </div>
       }
     </div>
@@ -272,9 +264,9 @@
     <div
       id="solution-finder-modal-land-steps-grid"
       class="relative z-10 grid min-h-0 w-full gap-x-4 gap-y-3 lg:col-span-12 lg:grid-cols-3 lg:grid-rows-[auto_minmax(0,1fr)]"
-      [class.hidden]="selectedDomain !== 'land'"
-      [attr.inert]="selectedDomain !== 'land' ? '' : null"
-      [attr.aria-hidden]="selectedDomain !== 'land'"
+      [class.hidden]="selectedDomain !== 'land' || isSirapSelection()"
+      [attr.inert]="selectedDomain !== 'land' || isSirapSelection() ? '' : null"
+      [attr.aria-hidden]="selectedDomain !== 'land' || isSirapSelection()"
     >
       <div
         id="solution-finder-modal-step1-header-block"
@@ -441,7 +433,9 @@
                             'solution-finder-modal-step1-target-type-help-tooltip-' + option.id
                           "
                           (click)="$event.stopPropagation()"
-                        >i</button>
+                        >
+                          i
+                        </button>
                         <span
                           [id]="'solution-finder-modal-step1-target-type-help-tooltip-' + option.id"
                           role="tooltip"
@@ -576,7 +570,9 @@
                                   option.id
                                 "
                                 (click)="$event.stopPropagation()"
-                              >i</button>
+                              >
+                                i
+                              </button>
                               <span
                                 [id]="
                                   'solution-finder-modal-step1-target-level-rationale-tooltip-' +
@@ -1261,6 +1257,756 @@
         </div>
       </section>
     </div>
+    @if (isSirapSelection()) {
+      <div
+        id="solution-finder-modal-sirap-workflow"
+        class="relative z-10 grid min-h-0 w-full gap-x-4 gap-y-3 lg:col-span-12 lg:grid-cols-3 lg:grid-rows-[auto_minmax(0,1fr)]"
+      >
+        <div
+          id="solution-finder-modal-sirap-step1-header"
+          class="space-y-3 lg:col-start-1 lg:row-start-1"
+        >
+          <h4
+            id="solution-finder-modal-sirap-step1-heading"
+            class="finder-step-heading text-base text-slate-800"
+          >
+            <span id="solution-finder-modal-sirap-step1-prefix" class="finder-step-heading-prefix">
+              {{ 'solutionControls.finder.stepPrefixes.step1' | translate }}
+            </span>
+            <span id="solution-finder-modal-sirap-step1-label" class="finder-step-heading-label">
+              {{ 'solutionControls.finder.stepLabels.step1' | translate }}
+            </span>
+          </h4>
+          <p
+            id="solution-finder-modal-sirap-step1-help"
+            class="finder-step-intro finder-subtext-dark text-xs leading-snug"
+          >
+            {{ 'solutionControls.finder.sirapWorkflow.step1.help' | translate }}
+          </p>
+        </div>
+
+        <section
+          id="solution-finder-modal-sirap-step1-column"
+          class="relative min-h-0 lg:col-start-1 lg:row-start-2"
+          aria-labelledby="solution-finder-modal-sirap-step1-heading"
+        >
+          <article
+            id="solution-finder-modal-sirap-step1-card"
+            class="finder-modal-scrollbar h-full space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            @if (!selectedSirapRegion) {
+              <p
+                id="solution-finder-modal-sirap-target-region-required"
+                class="rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 text-xs font-semibold text-slate-600"
+              >
+                {{ 'solutionControls.finder.sirapWorkflow.step1.regionRequired' | translate }}
+              </p>
+            }
+
+            @if (selectedSirapRegion === 'eje-cafetero' || selectedSirapRegion === 'orinoquia') {
+              <div
+                id="solution-finder-modal-sirap-strategic-card"
+                class="rounded-md border px-3 py-2"
+                [class.finder-selected-card-border]="sirapStrategicTarget !== null"
+                [class.bg-sky-100]="sirapStrategicTarget !== null"
+                [class.border-slate-200]="sirapStrategicTarget === null"
+              >
+                <p
+                  id="solution-finder-modal-sirap-strategic-label"
+                  class="text-sm font-semibold text-slate-900"
+                >
+                  {{
+                    'solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsLabel'
+                      | translate
+                  }}
+                </p>
+                <p
+                  id="solution-finder-modal-sirap-strategic-help"
+                  class="finder-subtext-dark mt-1 text-xs leading-snug"
+                >
+                  {{
+                    'solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsHelp'
+                      | translate
+                  }}
+                </p>
+                <a
+                  id="solution-finder-modal-sirap-strategic-source"
+                  class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  [href]="'solutionControls.finder.sirapWorkflow.sourceUrl' | translate"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ 'solutionControls.finder.sirapWorkflow.sourceLabel' | translate }}</a
+                >
+                <div
+                  id="solution-finder-modal-sirap-strategic-target-level-panel"
+                  class="finder-target-level-panel finder-target-level-panel-visible rounded-md bg-white"
+                >
+                  <div
+                    id="solution-finder-modal-sirap-strategic-target-level-row"
+                    class="flex flex-wrap items-center justify-between gap-2"
+                  >
+                    <div
+                      id="solution-finder-modal-sirap-strategic-target-level-title"
+                      class="finder-subtext-dark relative text-[11px] font-semibold uppercase tracking-wide"
+                    >
+                      <span
+                        id="solution-finder-modal-sirap-strategic-target-level-label-row"
+                        class="inline-flex items-center gap-1"
+                      >
+                        <span
+                          id="solution-finder-modal-sirap-strategic-target-level-question"
+                          class="finder-target-coverage-question-label"
+                        >
+                          {{
+                            'solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsQuestion'
+                              | translate
+                          }}
+                        </span>
+                        <span
+                          id="solution-finder-modal-sirap-strategic-target-level-rationale"
+                          class="group relative z-20 inline-flex normal-case tracking-normal hover:z-100 focus-within:z-100"
+                        >
+                          <button
+                            id="solution-finder-modal-sirap-strategic-target-level-rationale-toggle"
+                            type="button"
+                            class="finder-layer-info-button tooltip-info-icon-glyph inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            [attr.aria-label]="
+                              'solutionControls.finder.sirapWorkflow.targets.strategicTargetRationaleToggle'
+                                | translate
+                            "
+                            aria-describedby="solution-finder-modal-sirap-strategic-target-level-rationale-tooltip"
+                          >
+                            i
+                          </button>
+                          <span
+                            id="solution-finder-modal-sirap-strategic-target-level-rationale-tooltip"
+                            role="tooltip"
+                            class="pointer-events-none absolute left-1/2 top-full z-100 mt-2 w-72 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
+                          >
+                            {{
+                              'solutionControls.finder.sirapWorkflow.targets.strategicTargetRationale'
+                                | translate
+                            }}
+                          </span>
+                        </span>
+                      </span>
+                    </div>
+                    <div
+                      id="solution-finder-modal-sirap-strategic-values"
+                      class="flex items-center gap-1"
+                      role="radiogroup"
+                      [attr.aria-label]="
+                        'solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsQuestion'
+                          | translate
+                      "
+                    >
+                      @for (target of [17, 30, 50, 100]; track target) {
+                        <button
+                          [id]="'solution-finder-modal-sirap-strategic-' + target"
+                          type="button"
+                          role="radio"
+                          class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed"
+                          [disabled]="!isSirapStrategicTargetAvailable($any(target))"
+                          [class.border-sky-600]="sirapStrategicTarget === target"
+                          [class.bg-sky-600]="sirapStrategicTarget === target"
+                          [class.text-white]="sirapStrategicTarget === target"
+                          [class.border-slate-200]="sirapStrategicTarget !== target"
+                          [class.bg-white]="sirapStrategicTarget !== target"
+                          [class.text-slate-700]="sirapStrategicTarget !== target"
+                          [attr.aria-checked]="sirapStrategicTarget === target"
+                          (click)="selectSirapStrategicTarget($any(target))"
+                        >
+                          <span
+                            [id]="'solution-finder-modal-sirap-strategic-' + target + '-label'"
+                            class="finder-target-level-choice-label-optical"
+                          >
+                            {{ target }}%
+                          </span>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              @if (selectedSirapRegion === 'eje-cafetero') {
+                <div
+                  id="solution-finder-modal-sirap-dry-forest-card"
+                  class="rounded-md border px-3 py-2"
+                  [class.finder-selected-card-border]="sirapDryForestMode !== null"
+                  [class.bg-sky-100]="sirapDryForestMode !== null"
+                  [class.border-slate-200]="sirapDryForestMode === null"
+                >
+                  <p
+                    id="solution-finder-modal-sirap-dry-forest-label"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ 'solutionControls.finder.sirapWorkflow.targets.dryForestLabel' | translate }}
+                  </p>
+                  <p
+                    id="solution-finder-modal-sirap-dry-forest-help"
+                    class="finder-subtext-dark mt-1 text-xs leading-snug"
+                  >
+                    {{ 'solutionControls.finder.sirapWorkflow.targets.dryForestHelp' | translate }}
+                  </p>
+                  <div
+                    id="solution-finder-modal-sirap-dry-forest-target-level-panel"
+                    class="finder-target-level-panel finder-target-level-panel-visible rounded-md bg-white"
+                  >
+                    <div
+                      id="solution-finder-modal-sirap-dry-forest-target-level-row"
+                      class="flex flex-wrap items-center justify-between gap-2"
+                    >
+                      <div
+                        id="solution-finder-modal-sirap-dry-forest-target-level-title"
+                        class="finder-subtext-dark relative text-[11px] font-semibold uppercase tracking-wide"
+                      >
+                        <span
+                          id="solution-finder-modal-sirap-dry-forest-target-level-label-row"
+                          class="inline-flex items-center gap-1"
+                        >
+                          <span
+                            id="solution-finder-modal-sirap-dry-forest-target-level-question"
+                            class="finder-target-coverage-question-label"
+                          >
+                          {{
+                            'solutionControls.finder.sirapWorkflow.targets.dryForestQuestion'
+                              | translate
+                          }}
+                        </span>
+                        <span
+                          id="solution-finder-modal-sirap-dry-forest-target-level-rationale"
+                          class="group relative z-20 inline-flex normal-case tracking-normal hover:z-100 focus-within:z-100"
+                        >
+                          <button
+                            id="solution-finder-modal-sirap-dry-forest-target-level-rationale-toggle"
+                            type="button"
+                            class="finder-layer-info-button tooltip-info-icon-glyph inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            [attr.aria-label]="
+                              'solutionControls.finder.sirapWorkflow.targets.dryForestRationaleToggle'
+                                | translate
+                            "
+                            aria-describedby="solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip"
+                          >
+                            i
+                          </button>
+                          <span
+                            id="solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip"
+                            role="tooltip"
+                            class="pointer-events-none absolute left-1/2 top-full z-100 mt-2 w-72 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
+                          >
+                            {{
+                              'solutionControls.finder.sirapWorkflow.targets.dryForestRationale'
+                                | translate
+                            }}
+                          </span>
+                        </span>
+                      </span>
+                    </div>
+                      <div
+                        id="solution-finder-modal-sirap-dry-forest-values"
+                        class="flex flex-wrap gap-1"
+                        role="radiogroup"
+                        [attr.aria-label]="
+                          'solutionControls.finder.sirapWorkflow.targets.dryForestQuestion'
+                            | translate
+                        "
+                      >
+                        <button
+                          id="solution-finder-modal-sirap-dry-forest-inherit"
+                          type="button"
+                          role="radio"
+                          class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition disabled:cursor-not-allowed"
+                          [disabled]="!isSirapDryForestModeAvailable('inherit')"
+                          [class.border-sky-600]="sirapDryForestMode === 'inherit'"
+                          [class.bg-sky-600]="sirapDryForestMode === 'inherit'"
+                          [class.text-white]="sirapDryForestMode === 'inherit'"
+                          [class.border-slate-200]="sirapDryForestMode !== 'inherit'"
+                          [class.bg-white]="sirapDryForestMode !== 'inherit'"
+                          [attr.aria-checked]="sirapDryForestMode === 'inherit'"
+                          (click)="selectSirapDryForestMode('inherit')"
+                        >
+                          {{
+                            'solutionControls.finder.sirapWorkflow.targets.inheritStrategic'
+                              | translate
+                          }}
+                        </button>
+                        <button
+                          id="solution-finder-modal-sirap-dry-forest-100"
+                          type="button"
+                          role="radio"
+                          class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition disabled:cursor-not-allowed"
+                          [disabled]="!isSirapDryForestModeAvailable('separate-100')"
+                          [class.border-sky-600]="sirapDryForestMode === 'separate-100'"
+                          [class.bg-sky-600]="sirapDryForestMode === 'separate-100'"
+                          [class.text-white]="sirapDryForestMode === 'separate-100'"
+                          [class.border-slate-200]="sirapDryForestMode !== 'separate-100'"
+                          [class.bg-white]="sirapDryForestMode !== 'separate-100'"
+                          [attr.aria-checked]="sirapDryForestMode === 'separate-100'"
+                          (click)="selectSirapDryForestMode('separate-100')"
+                        >
+                          {{
+                            'solutionControls.finder.sirapWorkflow.targets.separate100' | translate
+                          }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  id="solution-finder-modal-sirap-wetlands-card"
+                  class="rounded-md border px-3 py-2"
+                  [class.finder-selected-card-border]="sirapWetlandsTarget !== null"
+                  [class.bg-sky-100]="sirapWetlandsTarget !== null"
+                  [class.border-slate-200]="sirapWetlandsTarget === null"
+                >
+                  <p
+                    id="solution-finder-modal-sirap-wetlands-label"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{
+                      'solutionControls.finder.sirapWorkflow.targets.ejeWetlandsLabel' | translate
+                    }}
+                  </p>
+                  <p
+                    id="solution-finder-modal-sirap-wetlands-help"
+                    class="finder-subtext-dark mt-1 text-xs leading-snug"
+                  >
+                    {{
+                      'solutionControls.finder.sirapWorkflow.targets.ejeWetlandsHelp' | translate
+                    }}
+                  </p>
+                  <div
+                    id="solution-finder-modal-sirap-wetlands-target-level-panel"
+                    class="finder-target-level-panel finder-target-level-panel-visible rounded-md bg-white"
+                  >
+                    <div
+                      id="solution-finder-modal-sirap-wetlands-target-level-row"
+                      class="flex flex-wrap items-center justify-between gap-2"
+                    >
+                      <div
+                        id="solution-finder-modal-sirap-wetlands-target-level-title"
+                        class="finder-subtext-dark relative text-[11px] font-semibold uppercase tracking-wide"
+                      >
+                        <span
+                          id="solution-finder-modal-sirap-wetlands-target-level-label-row"
+                          class="inline-flex items-center gap-1"
+                        >
+                          <span
+                            id="solution-finder-modal-sirap-wetlands-target-level-question"
+                            class="finder-target-coverage-question-label"
+                          >
+                            {{
+                              'solutionControls.finder.sirapWorkflow.targets.ejeWetlandsQuestion'
+                                | translate
+                            }}
+                          </span>
+                        </span>
+                      </div>
+                      <div
+                        id="solution-finder-modal-sirap-wetlands-values"
+                        class="flex gap-1"
+                        role="radiogroup"
+                        [attr.aria-label]="
+                          'solutionControls.finder.sirapWorkflow.targets.ejeWetlandsQuestion'
+                            | translate
+                        "
+                      >
+                        @for (target of [70, 100]; track target) {
+                          <button
+                            [id]="'solution-finder-modal-sirap-wetlands-' + target"
+                            type="button"
+                            role="radio"
+                            class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition disabled:cursor-not-allowed"
+                            [disabled]="!isSirapWetlandsTargetAvailable($any(target))"
+                            [class.border-sky-600]="sirapWetlandsTarget === target"
+                            [class.bg-sky-600]="sirapWetlandsTarget === target"
+                            [class.text-white]="sirapWetlandsTarget === target"
+                            [class.border-slate-200]="sirapWetlandsTarget !== target"
+                            [class.bg-white]="sirapWetlandsTarget !== target"
+                            [attr.aria-checked]="sirapWetlandsTarget === target"
+                            (click)="selectSirapWetlandsTarget($any(target))"
+                          >
+                            {{ target }}%
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <div
+                  id="solution-finder-modal-sirap-congriales-card"
+                  class="rounded-md border px-3 py-2"
+                  [class.finder-selected-card-border]="sirapStrategicTarget !== null"
+                  [class.bg-sky-100]="sirapStrategicTarget !== null"
+                  [class.border-slate-200]="sirapStrategicTarget === null"
+                >
+                  <p
+                    id="solution-finder-modal-sirap-congriales-label"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{
+                      'solutionControls.finder.sirapWorkflow.targets.congrialesLabel' | translate
+                    }}
+                  </p>
+                  <p
+                    id="solution-finder-modal-sirap-congriales-help"
+                    class="finder-subtext-dark mt-1 text-xs leading-snug"
+                  >
+                    {{ 'solutionControls.finder.sirapWorkflow.targets.congrialesHelp' | translate }}
+                  </p>
+                  <div
+                    id="solution-finder-modal-sirap-congriales-values"
+                    class="mt-2 flex gap-1"
+                    aria-live="polite"
+                  >
+                    <span
+                      id="solution-finder-modal-sirap-congriales-paired-value"
+                      class="rounded-md border border-sky-300 bg-white px-2 py-1.5 text-xs font-semibold text-sky-900"
+                    >
+                      {{
+                        sirapStrategicTarget === null
+                          ? ('solutionControls.finder.sirapWorkflow.notSelected' | translate)
+                          : sirapStrategicTarget + '%'
+                      }}
+                    </span>
+                    <span
+                      id="solution-finder-modal-sirap-congriales-paired-badge"
+                      class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                    >
+                      {{ 'solutionControls.finder.sirapWorkflow.targets.paired' | translate }}
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  id="solution-finder-modal-sirap-savannas-card"
+                  class="rounded-md border px-3 py-2"
+                  [class.finder-selected-card-border]="sirapSavannasTarget !== null"
+                  [class.bg-sky-100]="sirapSavannasTarget !== null"
+                  [class.border-slate-200]="sirapSavannasTarget === null"
+                >
+                  <p
+                    id="solution-finder-modal-sirap-savannas-label"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ 'solutionControls.finder.sirapWorkflow.targets.savannasLabel' | translate }}
+                  </p>
+                  <p
+                    id="solution-finder-modal-sirap-savannas-help"
+                    class="finder-subtext-dark mt-1 text-xs leading-snug"
+                  >
+                    {{ 'solutionControls.finder.sirapWorkflow.targets.savannasHelp' | translate }}
+                  </p>
+                  <div
+                    id="solution-finder-modal-sirap-savannas-target-level-panel"
+                    class="finder-target-level-panel finder-target-level-panel-visible rounded-md bg-white"
+                  >
+                    <div
+                      id="solution-finder-modal-sirap-savannas-target-level-row"
+                      class="flex flex-wrap items-center justify-between gap-2"
+                    >
+                      <div
+                        id="solution-finder-modal-sirap-savannas-target-level-title"
+                        class="finder-subtext-dark relative text-[11px] font-semibold uppercase tracking-wide"
+                      >
+                        <span
+                          id="solution-finder-modal-sirap-savannas-target-level-label-row"
+                          class="inline-flex items-center gap-1"
+                        >
+                          <span
+                            id="solution-finder-modal-sirap-savannas-target-level-question"
+                            class="finder-target-coverage-question-label"
+                          >
+                            {{
+                              'solutionControls.finder.sirapWorkflow.targets.savannasQuestion'
+                                | translate
+                            }}
+                          </span>
+                        </span>
+                      </div>
+                      <div
+                        id="solution-finder-modal-sirap-savannas-values"
+                        class="flex gap-1"
+                        role="radiogroup"
+                        [attr.aria-label]="
+                          'solutionControls.finder.sirapWorkflow.targets.savannasQuestion'
+                            | translate
+                        "
+                      >
+                        @for (target of [17, 30]; track target) {
+                          <button
+                            [id]="'solution-finder-modal-sirap-savannas-' + target"
+                            type="button"
+                            role="radio"
+                            class="finder-control-button-padding finder-target-level-choice-button rounded-md border text-xs font-semibold transition disabled:cursor-not-allowed"
+                            [disabled]="sirapStrategicTarget === null"
+                            [class.border-sky-600]="sirapSavannasTarget === target"
+                            [class.bg-sky-600]="sirapSavannasTarget === target"
+                            [class.text-white]="sirapSavannasTarget === target"
+                            [class.border-slate-200]="sirapSavannasTarget !== target"
+                            [class.bg-white]="sirapSavannasTarget !== target"
+                            [attr.aria-checked]="sirapSavannasTarget === target"
+                            (click)="selectSirapSavannasTarget($any(target))"
+                          >
+                            {{ target }}%
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            }
+          </article>
+        </section>
+
+        <div
+          id="solution-finder-modal-sirap-step2-header"
+          class="space-y-3 lg:col-start-2 lg:row-start-1"
+        >
+          <h4
+            id="solution-finder-modal-sirap-step2-heading"
+            class="finder-step-heading text-base text-slate-800"
+          >
+            <span
+              id="solution-finder-modal-sirap-step2-prefix"
+              class="finder-step-heading-prefix"
+              >{{ 'solutionControls.finder.stepPrefixes.step2b' | translate }}</span
+            >
+            <span id="solution-finder-modal-sirap-step2-label" class="finder-step-heading-label">{{
+              'solutionControls.finder.stepLabels.step2b' | translate
+            }}</span>
+          </h4>
+          <p
+            id="solution-finder-modal-sirap-step2-help"
+            class="finder-step-intro finder-subtext-dark text-xs leading-snug"
+          >
+            {{ 'solutionControls.finder.sirapWorkflow.step3.help' | translate }}
+          </p>
+        </div>
+        <section
+          id="solution-finder-modal-sirap-step2-column"
+          class="relative min-h-0 lg:col-start-2 lg:row-start-2"
+          aria-labelledby="solution-finder-modal-sirap-step2-heading"
+        >
+          <div id="solution-finder-modal-sirap-step2-wrapper" class="relative h-full min-h-0">
+            <article
+              id="solution-finder-modal-sirap-step2-card"
+              class="finder-modal-scrollbar h-full overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+            >
+              <div
+                id="solution-finder-modal-sirap-iheh-card"
+                class="finder-selected-card-border rounded-md border bg-sky-100"
+              >
+                <div
+                  id="solution-finder-modal-sirap-iheh-copy"
+                  class="flex w-full items-center justify-between gap-3 rounded-t-md px-2 pt-2 text-left transition"
+                >
+                  <span id="solution-finder-modal-sirap-iheh-copy-text" class="min-w-0 flex-1">
+                    <span id="solution-finder-modal-sirap-iheh-title-row" class="block">
+                      <span
+                        id="solution-finder-modal-sirap-iheh-label"
+                        class="text-sm font-semibold text-slate-900"
+                      >
+                        {{ 'solutionControls.finder.step2b.humanFootprintLabel' | translate }}
+                      </span>
+                    </span>
+                    <span
+                      id="solution-finder-modal-sirap-iheh-help"
+                      class="finder-subtext-dark mt-1 block text-xs font-normal leading-snug"
+                    >
+                      {{ 'solutionControls.finder.step2b.humanFootprintHelp' | translate }}
+                    </span>
+                  </span>
+                  <span
+                    id="solution-finder-modal-sirap-iheh-required-badge"
+                    class="shrink-0 rounded-md border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-800"
+                  >
+                    {{ 'solutionControls.finder.step2b.requiredBadge' | translate }}
+                  </span>
+                </div>
+                <div
+                  id="solution-finder-modal-sirap-cost-year-group"
+                  class="mx-2 mt-3 grid grid-cols-2 gap-2"
+                  role="radiogroup"
+                  [attr.aria-label]="
+                    'solutionControls.finder.step2b.humanFootprintYearLabel' | translate
+                  "
+                >
+                  @for (year of [2022, 2030]; track year) {
+                    <button
+                      [id]="'solution-finder-modal-sirap-cost-year-' + year"
+                      type="button"
+                      role="radio"
+                      class="rounded-md border px-3 py-2 text-sm font-semibold transition"
+                      [class.border-sky-600]="sirapCostYear === year"
+                      [class.bg-sky-600]="sirapCostYear === year"
+                      [class.text-white]="sirapCostYear === year"
+                      [class.border-slate-200]="sirapCostYear !== year"
+                      [class.text-slate-700]="sirapCostYear !== year"
+                      [attr.aria-checked]="sirapCostYear === year"
+                      (click)="selectSirapCostYear($any(year))"
+                    >
+                      {{ year }}
+                    </button>
+                  }
+                </div>
+                <a
+                  id="solution-finder-modal-sirap-iheh-source"
+                  class="mx-2 mb-2 mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                  [href]="'solutionControls.finder.step2b.humanFootprintSourceUrl' | translate"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ 'solutionControls.finder.step2b.humanFootprintSourceLabel' | translate }}</a
+                >
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <div
+          id="solution-finder-modal-sirap-step3-header"
+          class="space-y-3 lg:col-start-3 lg:row-start-1"
+        >
+          <h4
+            id="solution-finder-modal-sirap-step3-heading"
+            class="finder-step-heading text-base text-slate-800"
+          >
+            <span
+              id="solution-finder-modal-sirap-step3-prefix"
+              class="finder-step-heading-prefix"
+              >{{ 'solutionControls.finder.stepPrefixes.step3' | translate }}</span
+            >
+            <span id="solution-finder-modal-sirap-step3-label" class="finder-step-heading-label">{{
+              'solutionControls.finder.stepLabels.step2a' | translate
+            }}</span>
+          </h4>
+          <p
+            id="solution-finder-modal-sirap-step3-help"
+            class="finder-step-intro finder-subtext-dark text-xs leading-snug"
+          >
+            {{ 'solutionControls.finder.sirapWorkflow.step2.help' | translate }}
+          </p>
+        </div>
+        <section
+          id="solution-finder-modal-sirap-step3-column"
+          class="relative min-h-0 lg:col-start-3 lg:row-start-2"
+          aria-labelledby="solution-finder-modal-sirap-step3-heading"
+        >
+          <div id="solution-finder-modal-sirap-step3-wrapper" class="relative h-full min-h-0">
+            <article
+              id="solution-finder-modal-sirap-step3-card"
+              class="finder-modal-scrollbar h-full space-y-3 overflow-y-auto rounded-md border border-slate-200 bg-white p-4 shadow-sm"
+            >
+              <div
+                id="solution-finder-modal-sirap-runap-setting"
+                class="flex items-center justify-between gap-3 rounded-md border border-sky-300 bg-sky-100 px-3 py-2"
+              >
+                <div id="solution-finder-modal-sirap-runap-copy" class="min-w-0 flex-1">
+                  <p
+                    id="solution-finder-modal-sirap-runap-setting-label"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysRunapLabel' | translate }}
+                  </p>
+                  <p
+                    id="solution-finder-modal-sirap-runap-help"
+                    class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                  >
+                    {{ 'solutionControls.finder.step2a.alwaysRunapHelp' | translate }}
+                  </p>
+                  <a
+                    id="solution-finder-modal-sirap-runap-source"
+                    class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                    [href]="'solutionControls.finder.step2a.alwaysRunapSourceUrl' | translate"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >{{ 'solutionControls.finder.step2a.alwaysRunapSourceLabel' | translate }}</a
+                  >
+                </div>
+                <span
+                  id="solution-finder-modal-sirap-runap-setting-value"
+                  class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md bg-sky-600 text-[11px] font-semibold text-white"
+                  ><span
+                    id="solution-finder-modal-sirap-runap-setting-value-label"
+                    class="finder-fixed-toggle-label"
+                    >{{ 'solutionControls.finder.step2a.alwaysOnChip' | translate }}</span
+                  ></span
+                >
+              </div>
+              <div
+                id="solution-finder-modal-sirap-omec-setting"
+                class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border px-3 py-2 text-left"
+                [class.finder-selected-card-border]="sirapIncludeOmecs"
+                [class.bg-sky-100]="sirapIncludeOmecs"
+                [class.border-slate-200]="!sirapIncludeOmecs"
+                [class.bg-white]="!sirapIncludeOmecs"
+                role="button"
+                tabindex="0"
+                [attr.aria-pressed]="sirapIncludeOmecs"
+                (click)="toggleSirapIncludeOmecs()"
+                (keydown.enter)="toggleSirapIncludeOmecs()"
+                (keydown.space)="$event.preventDefault(); toggleSirapIncludeOmecs()"
+              >
+                <div id="solution-finder-modal-sirap-omec-copy" class="min-w-0 flex-1">
+                  <p
+                    id="solution-finder-modal-sirap-omec-setting-label"
+                    class="text-sm font-semibold text-slate-900"
+                  >
+                    {{ 'solutionControls.finder.step2a.includeOmecsLabel' | translate }}
+                  </p>
+                  <p
+                    id="solution-finder-modal-sirap-omec-help"
+                    class="finder-subtext-dark mt-1 text-xs font-normal leading-snug"
+                  >
+                    {{ 'solutionControls.finder.step2a.includeOmecsHelp' | translate }}
+                  </p>
+                  <a
+                    id="solution-finder-modal-sirap-omec-source"
+                    class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                    [href]="'solutionControls.finder.step2a.includeOmecsSourceUrl' | translate"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    (click)="$event.stopPropagation()"
+                    (keydown.enter)="$event.stopPropagation()"
+                    (keydown.space)="$event.stopPropagation()"
+                    >{{ 'solutionControls.finder.step2a.includeOmecsSourceLabel' | translate }}</a
+                  >
+                </div>
+                <button
+                  id="solution-finder-modal-sirap-omec-setting-value"
+                  type="button"
+                  role="switch"
+                  class="finder-control-button-padding finder-fixed-toggle shrink-0 rounded-md text-[11px] font-semibold tabular-nums transition"
+                  [class.bg-sky-600]="sirapIncludeOmecs"
+                  [class.text-white]="sirapIncludeOmecs"
+                  [class.bg-slate-300]="!sirapIncludeOmecs"
+                  [class.text-slate-800]="!sirapIncludeOmecs"
+                  [attr.aria-checked]="sirapIncludeOmecs"
+                  [attr.aria-label]="'solutionControls.finder.step2a.includeOmecsLabel' | translate"
+                  (click)="$event.stopPropagation(); toggleSirapIncludeOmecs()"
+                >
+                  <span
+                    id="solution-finder-modal-sirap-omec-setting-value-label"
+                    class="finder-fixed-toggle-label"
+                  >
+                    {{
+                      (sirapIncludeOmecs
+                        ? 'solutionControls.finder.toggle.on'
+                        : 'solutionControls.finder.toggle.off'
+                      ) | translate
+                    }}
+                  </span>
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    }
 
     @if (selectedDomain === 'marine') {
       <div

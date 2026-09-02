@@ -153,6 +153,7 @@ export type GeographyLevel =
 
 export interface CachedSolutionMetricsGeographies {
   national?: Record<string, GeographyMetricsScope>;
+  sirap?: Record<string, GeographyMetricsScope>;
   departments?: Record<string, GeographyMetricsScope>;
   municipalities?: Record<string, GeographyMetricsScope>;
   siraps?: Record<string, GeographyMetricsScope>;
@@ -168,6 +169,11 @@ export interface CachedSolutionMetricsGeographies {
 export interface CachedSolutionMetricsDocument {
   solutionId: string;
   generatedAt: string;
+  /** Explicit primary scope for regional packet artifacts; otherwise Colombia. */
+  primaryGeography?: {
+    level: GeographyLevel | 'sirap';
+    scopeId: string;
+  };
   metricsProvenance?: {
     speciesTargetPolicy?: SpeciesTargetPolicyProvenance;
     [key: string]: unknown;
@@ -203,6 +209,7 @@ export interface CompactSolutionMetricsDocument {
   format: CompactMetricsFormat;
   solutionId: string;
   generatedAt: string;
+  primaryGeography?: CachedSolutionMetricsDocument['primaryGeography'];
   metricCatalog: CompactMetricCatalogEntry[];
   statusCatalog: MetricReadinessStatus[];
   sourceCatalog: string[];

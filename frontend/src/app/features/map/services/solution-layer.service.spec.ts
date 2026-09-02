@@ -112,6 +112,26 @@ describe('SolutionLayerService', () => {
     service.initialize(mapMock as never);
   });
 
+  it('retains the SIRAP region ID in active solution metadata', () => {
+    const loaded = createLoadedSolution('caribe-solution', {
+      scope: 'sirap',
+      sirapId: 'caribe',
+    });
+
+    const sidebarSolution = (
+      service as unknown as {
+        toSidebarSolution(value: LoadedSolution): {
+          metadata: Record<string, unknown>;
+        };
+      }
+    ).toSidebarSolution(loaded);
+
+    expect(sidebarSolution.metadata).toMatchObject({
+      scope: 'sirap',
+      sirapId: 'caribe',
+    });
+  });
+
   it('loads a single solution and syncs active solution state', async () => {
     const loaded = createLoadedSolution('baseline');
     loaderMock.loadSolution.mockResolvedValue(loaded);
@@ -430,12 +450,8 @@ describe('SolutionLayerService', () => {
         notes: null,
       }),
     );
-    expect(service.liveComparisonMetrics$()?.baselineNationalContributionPct).toBeCloseTo(
-      50,
-    );
-    expect(service.liveComparisonMetrics$()?.candidateNationalContributionPct).toBeCloseTo(
-      50,
-    );
+    expect(service.liveComparisonMetrics$()?.baselineNationalContributionPct).toBeCloseTo(50);
+    expect(service.liveComparisonMetrics$()?.candidateNationalContributionPct).toBeCloseTo(50);
   });
 
   it('marks live comparison metrics unavailable when solution grids differ', async () => {

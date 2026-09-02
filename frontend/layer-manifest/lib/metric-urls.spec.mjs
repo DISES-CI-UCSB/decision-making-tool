@@ -6,6 +6,7 @@ import {
   createSolutionPrecomputedMetricUrls,
   defaultReleaseId,
   MEC_GEOGRAPHY_LEVELS,
+  SIRAP_SPECIES_GEOGRAPHY_LEVELS,
 } from './metric-urls.mjs';
 
 const BLOB_HOST = 'https://aagibolq28slyfof.public.blob.vercel-storage.com';
@@ -73,6 +74,24 @@ describe('metric URL construction', () => {
     assert.strictEqual(result.mecV2ByGeography, undefined);
   });
 
+  it('advertises certified goals and MEC outcomes for SIRAP solutions', () => {
+    const result = createSolutionPrecomputedMetricUrls(
+      'sirap_eje_cafetero_example',
+      {
+        mecByGeography: { national: 'https://example.com/stale-mec.json' },
+        mecV2ByGeography: { national: 'https://example.com/stale-mec-v2.json' },
+      },
+      'land',
+      { releaseId: defaultReleaseId(), scope: 'sirap' },
+    );
+
+    assert.match(result.cache, /\/releases\/[^/]+\/regular\/verbose\//);
+    assert.match(result.compactCache, /\/releases\/[^/]+\/regular\/compact\//);
+    assert.match(result.goals, /\/releases\/[^/]+\/goals\//);
+    assert.strictEqual(result.mecByGeography, undefined);
+    assert.deepStrictEqual(Object.keys(result.mecV2ByGeography), MEC_GEOGRAPHY_LEVELS);
+  });
+
   it('constructs an atomic release map without advertising MEC v1', () => {
     const releaseId = defaultReleaseId();
     const result = createSolutionPrecomputedMetricUrls('land_solution', {}, 'land', { releaseId });
@@ -124,6 +143,28 @@ describe('metric URL construction', () => {
         ),
       );
     }
+  });
+
+  it('advertises only target-geography species shards for a SIRAP release', () => {
+    const releaseId = defaultReleaseId();
+    const result = createSolutionPrecomputedMetricUrls('sirap_eje', {}, 'land', {
+      releaseId,
+      scope: 'sirap',
+      speciesGoalsInventory: {
+        format: 'species-goals-release-inventory-v1',
+        validated: true,
+        solutionId: 'sirap_eje',
+        releaseId,
+        catalogValidated: true,
+        validatedGeographyLevels: SIRAP_SPECIES_GEOGRAPHY_LEVELS,
+      },
+    });
+
+    assert.deepStrictEqual(
+      Object.keys(result.speciesGoalsByGeography),
+      SIRAP_SPECIES_GEOGRAPHY_LEVELS,
+    );
+    assert.strictEqual(result.speciesGoalsTargetOverlay, undefined);
   });
 
   it('uses origin-relative species URLs when building a local preview', () => {

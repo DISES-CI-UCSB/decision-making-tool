@@ -11,8 +11,7 @@ from helpers import TEST_RASTER_SHA256, raster_from_fixture, scope_state
 from metric_definitions import computable_metrics, is_species_metric_kind
 from metrics_contract import (
     PROVENANCE_KEY,
-    SIRAP_MISSING_INPUT_METRIC_IDS,
-    SIRAP_MISSING_INPUT_SOURCE,
+    SIRAP_NOT_APPLICABLE_METRIC_IDS,
     build_metrics_provenance,
     regular_artifact_completeness_issues,
 )
@@ -118,18 +117,22 @@ def _issues(document, *, domain: str):
     )
 
 
-def _set_sirap_missing_metrics(document):
-    for scopes in document["geographies"].values():
+def _set_sirap_status_metrics(document):
+    for level, scopes in document["geographies"].items():
         for scope in scopes.values():
             if scope["scopeState"]["classification"] == "empty":
                 continue
             for metric in scope["metrics"]:
-                if metric["metricId"] in SIRAP_MISSING_INPUT_METRIC_IDS:
+                if metric["metricId"] in SIRAP_NOT_APPLICABLE_METRIC_IDS:
                     metric.update(
-                        status="blocked",
+                        status="not_applicable",
                         value=None,
-                        source=SIRAP_MISSING_INPUT_SOURCE,
+                        source="n/a",
                     )
+                elif level == "national" and metric["metricId"] == (
+                    "priority_area_pct_of_region"
+                ):
+                    metric.update(status="ready", value=25.0, source="raster:solution")
 
 
 def test_supported_ready_zero_and_proven_empty_null_are_release_complete():
@@ -177,9 +180,9 @@ def test_positive_supported_scope_rejects_nonterminal_failure_statuses(status):
     )
 
 
-def test_regional_packet_allows_explicit_unavailable_inputs():
+def test_regional_packet_enforces_explicit_reporting_exclusions():
     document = _document(domain="land")
-    _set_sirap_missing_metrics(document)
+    _set_sirap_status_metrics(document)
     document.pop("speciesCompleteness")
 
     assert regular_artifact_completeness_issues(
@@ -192,11 +195,11 @@ def test_regional_packet_allows_explicit_unavailable_inputs():
     metric = next(
         metric
         for metric in document["geographies"]["national"]["colombia"]["metrics"]
-        if metric["metricId"] == "species_pct_of_national"
+        if metric["metricId"] == "carbon_storage_biomass"
     )
-    metric.update(status="derivation_needed", source="regionalInputPacket.species")
+    metric.update(status="ready", value=1.0, source="raster:biomasa")
     assert any(
-        "species_pct_of_national must be blocked" in issue
+        "carbon_storage_biomass must be not_applicable for SIRAP" in issue
         for issue in regular_artifact_completeness_issues(
             document,
             national_only=False,
@@ -234,7 +237,7 @@ def test_sirap_summary_metric_is_not_applicable_for_all_nested_scopes():
             value=100.0,
             source="regionalInputPacket.authoritativeSummary",
         )
-    _set_sirap_missing_metrics(document)
+    _set_sirap_status_metrics(document)
 
     issues = regular_artifact_completeness_issues(
         document,

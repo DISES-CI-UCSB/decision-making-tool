@@ -47,8 +47,11 @@ export interface MecCoverageRow {
   ecosystemAreaKm2: number | null;
   ecosystemSharePercent?: number | null;
   nationalClassPercent?: number | null;
+  sirapClassPercent?: number | null;
   solutionCoverageKm2?: number | null;
   solutionCoveragePercent?: number | null;
+  remainingCoverageKm2?: number | null;
+  remainingCoveragePercent?: number | null;
   preExistingCoverageKm2: number | null;
   newPrioritizrCoverageKm2: number | null;
   preExistingPercent: number | null;
@@ -261,26 +264,45 @@ export function buildMecCoverageRows(
   document: MecCompactDocument,
   scopeIndex: number,
   view: MecViewId,
-  nationalDocument: MecCompactDocument | null = null,
+  referenceDocument: MecCompactDocument | null = null,
+  referenceKind: 'national' | 'sirap' = 'national',
+  nationalAreaKm2ByClass: ReadonlyMap<string, number> | null = null,
+  referenceScopeIndex = 0,
 ): MecCoverageRow[] {
-  return buildMecCoverageRowsByView(document, scopeIndex, nationalDocument).get(view) ?? [];
+  return (
+    buildMecCoverageRowsByView(
+      document,
+      scopeIndex,
+      referenceDocument,
+      referenceKind,
+      nationalAreaKm2ByClass,
+      referenceScopeIndex,
+    ).get(view) ?? []
+  );
 }
 
 export function buildMecCoverageRowsByView(
   document: MecCompactDocument,
   scopeIndex: number,
-  nationalDocument: MecCompactDocument | null = null,
+  referenceDocument: MecCompactDocument | null = null,
+  referenceKind: 'national' | 'sirap' = 'national',
+  nationalAreaKm2ByClass: ReadonlyMap<string, number> | null = null,
+  referenceScopeIndex = 0,
 ): ReadonlyMap<MecViewId, MecCoverageRow[]> {
   const unsupportedViews = new Set(document.viewSupport.unsupported.map((item) => item.view));
   const scopeAreaKm2 = isMecCompactV2Document(document)
     ? (document.scopeStats[String(scopeIndex)]?.scopeAreaKm2 ?? null)
     : null;
-  const nationalAreaByClassIndex =
+  const referenceAreaByClassIndex =
     isMecCompactV2Document(document) &&
-    nationalDocument &&
-    isMecCompactV2Document(nationalDocument) &&
-    nationalDocument.solutionId === document.solutionId
-      ? new Map(nationalDocument.rows.map((row) => [row[1], row[2]] as const))
+    referenceDocument &&
+    isMecCompactV2Document(referenceDocument) &&
+    referenceDocument.solutionId === document.solutionId
+      ? new Map(
+          referenceDocument.rows
+            .filter(([rowScopeIndex]) => rowScopeIndex === referenceScopeIndex)
+            .map((row) => [row[1], row[2]] as const),
+        )
       : new Map<number, number>();
   const rowsByView = new Map<MecViewId, MecCoverageRow[]>();
   document.viewCatalog.forEach(([view]) => {
@@ -304,13 +326,18 @@ export function buildMecCoverageRowsByView(
 
     const view = document.viewCatalog[classification[0]]?.[0];
     const viewRows = view ? rowsByView.get(view) : undefined;
-    if (!viewRows) {
+    if (!viewRows || (referenceKind === 'sirap' && ecosystemAreaKm2 <= 0)) {
       return;
     }
 
     const [, classId, label] = classification;
     const solutionCoverageKm2 = preExistingCoverageKm2 + newPrioritizrCoverageKm2;
-    const nationalAreaKm2 = nationalAreaByClassIndex.get(classIndex);
+    const referenceAreaKm2 = referenceAreaByClassIndex.get(classIndex);
+    const nationalAreaKm2 =
+      nationalAreaKm2ByClass?.get(mecAreaReferenceKey(view, label)) ??
+      (referenceKind === 'national' ? referenceAreaKm2 : undefined);
+    const sirapAreaKm2 = referenceKind === 'sirap' ? referenceAreaKm2 : undefined;
+    const remainingCoverageKm2 = Math.max(ecosystemAreaKm2 - solutionCoverageKm2, 0);
     viewRows.push({
       id: slugify(classId),
       label,
@@ -321,9 +348,16 @@ export function buildMecCoverageRowsByView(
         nationalAreaKm2 !== undefined && nationalAreaKm2 > 0
           ? (ecosystemAreaKm2 / nationalAreaKm2) * 100
           : null,
+      sirapClassPercent:
+        sirapAreaKm2 !== undefined && sirapAreaKm2 > 0
+          ? (ecosystemAreaKm2 / sirapAreaKm2) * 100
+          : null,
       solutionCoverageKm2,
       solutionCoveragePercent:
         ecosystemAreaKm2 > 0 ? (solutionCoverageKm2 / ecosystemAreaKm2) * 100 : null,
+      remainingCoverageKm2,
+      remainingCoveragePercent:
+        ecosystemAreaKm2 > 0 ? (remainingCoverageKm2 / ecosystemAreaKm2) * 100 : null,
       preExistingCoverageKm2,
       newPrioritizrCoverageKm2,
       preExistingPercent:
@@ -333,6 +367,10 @@ export function buildMecCoverageRowsByView(
     });
   });
   return rowsByView;
+}
+
+export function mecAreaReferenceKey(view: MecViewId, label: string): string {
+  return `${view}\u0000${label}`;
 }
 
 export function buildMecPreviewItems(

@@ -20,6 +20,8 @@ export const environment = {
   },
   googleClientId: '',
   manifestBlobUrl: '',
+  catalogReleaseIndexBlobUrl: '',
+  sirapManifestBlobUrl: '',
   blobAssetProxyPath: '',
   solutionCapabilityOverrides: {},
   metricsApiBaseUrl: '/metrics-api',

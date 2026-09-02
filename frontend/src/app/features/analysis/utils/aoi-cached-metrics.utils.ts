@@ -37,7 +37,28 @@ export function resolveCachedAoiMetrics(
     return [];
   }
 
-  const geographies = document.geographies[level] ?? {};
+  if (aoi.type === 'sirap') {
+    const legacyMetrics = resolveScopeMetrics(document.geographies.siraps ?? {}, aoi);
+    if (legacyMetrics.length > 0) {
+      return legacyMetrics;
+    }
+
+    const rawScopeId = extractRawAoiScopeId(aoi.id);
+    const primaryGeography = document.primaryGeography;
+    if (primaryGeography?.level !== 'sirap' || primaryGeography.scopeId !== rawScopeId) {
+      return [];
+    }
+
+    return document.geographies.sirap?.[rawScopeId]?.metrics ?? [];
+  }
+
+  return resolveScopeMetrics(document.geographies[level] ?? {}, aoi);
+}
+
+function resolveScopeMetrics(
+  geographies: NonNullable<CachedSolutionMetricsDocument['geographies'][GeographyLevel]>,
+  aoi: AOI,
+): MetricValue[] {
   const directCandidates = [extractRawAoiScopeId(aoi.id), aoi.name].filter(
     (candidate) => candidate.trim().length > 0,
   );

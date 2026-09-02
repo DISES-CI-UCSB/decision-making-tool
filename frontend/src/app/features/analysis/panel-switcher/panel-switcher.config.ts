@@ -61,9 +61,11 @@ export const CUSTOM_AOI_FAST_METRIC_IDS: CustomPolygonMetricId[] = [
   'soil_organic_carbon',
   'carbon_pct_of_national',
   'water_regulation_pct',
-  'land_use_forest_pct',
-  'land_use_agriculture_pct',
-  'land_use_other_pct',
+  'land_use_artificial_surfaces_pct',
+  'land_use_agricultural_areas_pct',
+  'land_use_forests_and_semi_natural_areas_pct',
+  'land_use_wetlands_pct',
+  'land_use_water_bodies_pct',
   'indigenous_reservations_area',
   'community_councils_area',
   'protected_area_runap_km2',
@@ -229,22 +231,34 @@ export const CUSTOM_AOI_METRIC_DEFINITIONS: Partial<
     labelKey: 'metrics.tier1.water_regulation_pct',
     formatHint: 'percent',
   },
-  land_use_forest_pct: {
-    metricId: 'land_use_forest_pct',
+  land_use_artificial_surfaces_pct: {
+    metricId: 'land_use_artificial_surfaces_pct',
     unit: '%',
-    labelKey: 'metrics.tier1.land_use_forest_pct',
+    labelKey: 'metrics.tier1.land_use_artificial_surfaces_pct',
     formatHint: 'percent',
   },
-  land_use_agriculture_pct: {
-    metricId: 'land_use_agriculture_pct',
+  land_use_agricultural_areas_pct: {
+    metricId: 'land_use_agricultural_areas_pct',
     unit: '%',
-    labelKey: 'metrics.tier1.land_use_agriculture_pct',
+    labelKey: 'metrics.tier1.land_use_agricultural_areas_pct',
     formatHint: 'percent',
   },
-  land_use_other_pct: {
-    metricId: 'land_use_other_pct',
+  land_use_forests_and_semi_natural_areas_pct: {
+    metricId: 'land_use_forests_and_semi_natural_areas_pct',
     unit: '%',
-    labelKey: 'metrics.tier1.land_use_other_pct',
+    labelKey: 'metrics.tier1.land_use_forests_and_semi_natural_areas_pct',
+    formatHint: 'percent',
+  },
+  land_use_wetlands_pct: {
+    metricId: 'land_use_wetlands_pct',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_wetlands_pct',
+    formatHint: 'percent',
+  },
+  land_use_water_bodies_pct: {
+    metricId: 'land_use_water_bodies_pct',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_water_bodies_pct',
     formatHint: 'percent',
   },
   indigenous_reservations_area: {

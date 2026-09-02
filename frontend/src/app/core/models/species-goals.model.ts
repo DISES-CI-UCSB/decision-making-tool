@@ -355,10 +355,7 @@ export function hydrateSpeciesGoals(
   if (catalog.catalogSha256 !== compact.catalogSha256) {
     throw new Error('Species goals catalog provenance does not match the sidecar.');
   }
-  if (
-    catalog.provenance.releaseId !== compact.provenance.releaseId ||
-    compact.provenance.catalogSha256 !== catalog.catalogSha256
-  ) {
+  if (compact.provenance.catalogSha256 !== catalog.catalogSha256) {
     throw new Error('Species goals release provenance is stale.');
   }
   const scopeIndex = compact.scopeCatalog.findIndex(([id]) => id === scopeId);

@@ -4,9 +4,11 @@ import {
   MEC_COMPACT_V1_FORMAT,
   MEC_COMPACT_V2_FORMAT,
   isMecCompactDocument,
+  isMecNationalDenominatorDocument,
   type GeographyLevel,
   type MecCompactDocument,
   type MecCompactFormat,
+  type MecNationalDenominatorDocument,
 } from '@core/models';
 import { Observable, catchError, map, of, shareReplay } from 'rxjs';
 
@@ -14,6 +16,10 @@ import { SolutionCatalogService } from './solution-catalog.service';
 
 export type MecMetricsLoadResult =
   | { status: 'loaded'; document: MecCompactDocument; format: MecCompactFormat }
+  | { status: 'unavailable'; document: null }
+  | { status: 'error'; document: null; error: 'http' | 'invalid-document' };
+export type MecNationalDenominatorLoadResult =
+  | { status: 'loaded'; document: MecNationalDenominatorDocument }
   | { status: 'unavailable'; document: null }
   | { status: 'error'; document: null; error: 'http' | 'invalid-document' };
 
@@ -27,6 +33,7 @@ export class MecMetricsLoaderService {
   private readonly http = inject(HttpClient);
   private readonly catalog = inject(SolutionCatalogService);
   private readonly cache = new Map<string, Observable<MecMetricsLoadResult>>();
+  private readonly denominatorCache = new Map<string, Observable<MecNationalDenominatorLoadResult>>();
 
   resolveMecUrls(solutionId: string, geographyLevel: GeographyLevel): MecUrlCandidates {
     const urls = this.catalog.getById(solutionId)?.precomputedMetricUrls;
@@ -90,6 +97,27 @@ export class MecMetricsLoaderService {
           )
     ).pipe(shareReplay({ bufferSize: 1, refCount: false }));
     this.cache.set(cacheKey, request);
+    return request;
+  }
+
+  loadNationalDenominator(solutionId: string): Observable<MecNationalDenominatorLoadResult> {
+    const url = this.nonEmptyUrl(
+      this.catalog.getById(solutionId)?.precomputedMetricUrls?.mecNationalDenominator,
+    );
+    if (!url) return of({ status: 'unavailable', document: null });
+    const cached = this.denominatorCache.get(url);
+    if (cached) return cached;
+    const request = this.http.get<unknown>(url).pipe(
+      map((document): MecNationalDenominatorLoadResult => {
+        if (!isMecNationalDenominatorDocument(document)) {
+          return { status: 'error', document: null, error: 'invalid-document' };
+        }
+        return { status: 'loaded', document };
+      }),
+      catchError(() => of<MecNationalDenominatorLoadResult>({ status: 'error', document: null, error: 'http' })),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.denominatorCache.set(url, request);
     return request;
   }
 

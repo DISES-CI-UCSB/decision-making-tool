@@ -268,7 +268,53 @@
         "species": "Species",
         "taxaBreakdown": "Included species groups",
         "viewBreakdown": "View breakdown",
+        "viewAdditionalCoverage": "View additional coverage",
         "noTargetsSet": "No conservation domain was explicitly targeted in this scenario.",
+        "sirap": {
+          "targetProgressTitle": "Selected target progress",
+          "targetProgressUnavailable": "Authoritative target progress is unavailable for this regional scenario.",
+          "targetLabel": "Target {{percent}}",
+          "achievedLabel": "Achieved {{percent}}",
+          "targets": {
+            "strategic-ecosystems": "Strategic ecosystems",
+            "dry-forest": "Tropical dry forest",
+            "eje-wetlands": "Eje Cafetero wetlands",
+            "congriales": "Congriales",
+            "savannas": "Savannas"
+          },
+          "targetModes": {
+            "inheritsStrategic": "Inherits the strategic ecosystems target.",
+            "pairedWithStrategic": "Paired with the strategic ecosystems target."
+          },
+          "features": {
+            "paramos": "Páramos",
+            "humedales": "Wetlands",
+            "bosque-seco": "Tropical dry forest",
+            "ec-wetlands": "Eje Cafetero wetlands",
+            "congriales": "Congriales",
+            "savannas": "Savannas"
+          },
+          "status": {
+            "met": "Target met",
+            "shortfall": "{{percent}} shortfall"
+          },
+          "additionalOutcomesDescription": "Other measured ecosystem and species coverage. These results are not target attainment.",
+          "ecosystemCoverageTitle": "Ecosystem coverage",
+          "speciesTitle": "Species represented",
+          "ecosystems": {
+            "iavh": "IAvH total",
+            "paramo": "Páramo",
+            "dryForest": "Tropical dry forest",
+            "wetlands": "Wetlands"
+          },
+          "species": {
+            "mammals": "Mammals",
+            "birds": "Birds",
+            "amphibians": "Amphibians",
+            "reptiles": "Reptiles",
+            "plants": "Plants"
+          }
+        },
         "additionalOutcomesHeading": "Additional outcomes",
         "additionalOutcomesDescription": "Measured coverage in domains that were not targeted by this scenario. The percentages are illustrative range-coverage checkpoints, not configured targets.",
         "strategicRasterDerivedMethod": "Post-hoc, raster-derived coverage; the 17% and 30% checkpoints are illustrative, not configured solver targets.",
@@ -288,6 +334,8 @@
           "nationalStrategicEcosystemsTitle": "National strategic ecosystems coverage breakdown",
           "nationalEcosystemsTitle": "National ecosystems coverage breakdown",
           "nationalSpeciesTitle": "National species coverage breakdown",
+          "sirapEcosystemsTitle": "SIRAP ecosystem coverage breakdown",
+          "sirapSpeciesTitle": "SIRAP species coverage breakdown",
           "speciesCoverageTitle": "Species coverage breakdown",
           "targetedKicker": "Target progress",
           "additionalKicker": "Additional outcome",
@@ -297,14 +345,14 @@
           "speciesReferenceAdditionalDescription": "These compact-metric counts show post-hoc species outcomes at illustrative 17% and 30% range-coverage checkpoints. They are reference outcomes, not configured solver targets, and are kept separate from goals/v4 target-status rows.",
           "speciesReferenceBreakdown": "Species-group reference outcomes",
           "ecosystemTargetedDescription": "These classification views describe the same national MEC ecosystem map. Existing and candidate conservation-area coverage are area shares; total coverage is compared with the configured target. Coarser classifications are area-based coverage rollups, not separate Prioritizr feature records.",
-          "ecosystemAdditionalDescription": "These classification views describe the same national MEC ecosystem map. Existing and candidate conservation-area coverage are area shares; total coverage is compared with the illustrative 17% and 30% checkpoints. Coarser classifications are area-based coverage rollups, not separate Prioritizr feature records.",
+          "ecosystemAdditionalDescription": "These classification views describe the IAvH MEC ecosystem map within the planning geography. Pre-existing and additional conservation coverage are area shares; total coverage is shown as a measured outcome, not solver-target attainment. Coarser classifications are area-based coverage rollups, not separate Prioritizr feature records.",
           "ecosystemClassificationGroup": "Ecosystem classification group",
           "preparing": "Preparing feature breakdown...",
           "speciesLoading": "Loading the full species coverage dataset...",
           "speciesLoadError": "The species coverage dataset could not be loaded. Try again.",
           "customSpeciesUnavailable": "Full species coverage is not available for custom drawn areas.",
-          "classificationsLoading": "Loading national ecosystem classifications...",
-          "classificationsLoadError": "The additional national ecosystem classifications could not be loaded. The available feature data is still shown below.",
+          "classificationsLoading": "Loading ecosystem classifications...",
+          "classificationsLoadError": "The additional ecosystem classifications could not be loaded. The available feature data is still shown below.",
           "retry": "Retry",
           "classificationUnavailable": "This classification is not available for this scenario.",
           "configuredTarget": "Configured target",
@@ -342,7 +390,19 @@
           "nationalNewSolutionCoverage": "Candidate conservation-area coverage of ecosystem area",
           "nationalTotalCoverage": "Total scenario coverage of ecosystem area",
           "nationalModeledRange": "National modeled range",
+          "sirapModeledRange": "Modeled range within this SIRAP",
+          "ofNationalModeledRange": "{{percent}} of national modeled range",
           "nationalEcosystemTypeArea": "National ecosystem type area",
+          "sirapEcosystemTypeArea": "Ecosystem extent within this SIRAP",
+          "sirapContextGroup": "SIRAP ecosystem context",
+          "sirapEcosystemNationalShare": "Share of ecosystem type’s national area in this SIRAP",
+          "sirapEcosystemAreaShare": "Share of total SIRAP area that is this ecosystem type",
+          "sirapSpecies": {
+            "rangeInAoi": "Species modeled range in this SIRAP",
+            "preExistingCoverage": "Pre-existing conservation coverage in this SIRAP",
+            "newCoverage": "Newly prioritized conservation coverage in this SIRAP",
+            "solutionCoverage": "Total scenario coverage in this SIRAP"
+          },
           "solutionCoverageGroup": "Scenario coverage",
           "nationalPreExistingCoverageShort": "Pre-existing",
           "nationalNewSolutionCoverageShort": "Candidate",
@@ -360,13 +420,27 @@
             "status": "Does the scenario coverage meet the configured target for this species?",
             "checkpoints": "Has scenario coverage reached the 17% and 30% reference levels for this species?",
             "nationalModeledRange": "How many square kilometers of this species’ modeled range are aligned within Colombia and used as the denominator for these coverage percentages?",
+            "sirapModeledRange": "How many square kilometers of this species’ modeled range occur within this SIRAP, and what share of its national modeled range is that?",
             "nationalSpeciesPreExistingCoverage": "What percentage and area of this species’ national modeled range are within existing conservation areas?",
             "nationalSpeciesNewSolutionCoverage": "What percentage and area of this species’ national modeled range are within candidate conservation areas?",
             "nationalSpeciesTotalCoverage": "What percentage and area of this species’ national modeled range are covered by the complete scenario?",
+            "sirapSpeciesPreExistingCoverage": "What percentage and area of this species’ modeled range within the SIRAP are within existing conservation areas?",
+            "sirapSpeciesNewSolutionCoverage": "What percentage and area of this species’ modeled range within the SIRAP are within candidate conservation areas?",
+            "sirapSpeciesTotalCoverage": "What percentage and area of this species’ modeled range within the SIRAP are covered by the complete scenario?",
+            "sirapSpeciesRangeInAoi": "How many square kilometers of this species’ national modeled range occur inside this SIRAP, and what share of the national modeled range is that?",
+            "sirapSpeciesPreExistingCoverage": "What percentage and area of this species’ modeled range inside this SIRAP are within pre-existing conservation areas?",
+            "sirapSpeciesNewCoverage": "What percentage and area of this species’ modeled range inside this SIRAP were newly prioritized for conservation?",
+            "sirapSpeciesSolutionCoverage": "What percentage and area of this species’ modeled range inside this SIRAP are covered by the complete scenario?",
             "nationalEcosystemTypeArea": "How many square kilometers of this ecosystem type are mapped nationally?",
+            "sirapEcosystemTypeArea": "How many square kilometers of this ecosystem type are mapped within this SIRAP?",
+            "sirapEcosystemNationalShare": "This Colombia-wide ecosystem reference is not included in the current SIRAP release, so this national-share value is unavailable.",
+            "sirapEcosystemAreaShare": "What percentage of this SIRAP’s valid reporting area is this ecosystem type?",
             "nationalPreExistingCoverage": "What percentage and area of this ecosystem is within existing conservation areas nationally?",
             "nationalNewSolutionCoverage": "What percentage and area of this ecosystem is within candidate conservation areas nationally?",
             "nationalTotalCoverage": "What percentage and area of this ecosystem is covered by the scenario nationally?",
+            "sirapPreExistingCoverage": "What percentage and area of this ecosystem within the SIRAP are within existing conservation areas?",
+            "sirapNewSolutionCoverage": "What percentage and area of this ecosystem within the SIRAP are within candidate conservation areas?",
+            "sirapTotalCoverage": "What percentage and area of this ecosystem within the SIRAP are covered by the complete scenario?",
             "nationalTarget": "What national coverage target was configured for this ecosystem?",
             "nationalStatus": "Does the national scenario coverage meet the configured target for this ecosystem?",
             "nationalCheckpoints": "Has national scenario coverage reached the 17% and 30% reference levels for this ecosystem?"
@@ -684,17 +758,21 @@
           "aoiPresence": "AOI presence",
           "coverageOfRangeInsideAoi": "Species range coverage in AOI",
           "rangeInAoi": "Species range in AOI",
+          "rangeInSirapAoi": "Species range in AOI · national and SIRAP context",
           "solutionCoverage": "Total scenario coverage of species range in AOI",
           "preExistingCoverage": "Existing conservation-area coverage of species range in AOI",
           "newCoverage": "Candidate conservation-area coverage of species range in AOI",
           "columnQuestions": {
             "species": "Which modeled species range does this row describe?",
             "rangeInAoi": "How much of the species’ modeled national range falls inside the AOI?",
+            "rangeInSirapAoi": "How much of the species’ modeled range falls inside the AOI–SIRAP intersection, as a share of both its national range and its range within this SIRAP?",
             "solutionCoverage": "What percentage of the species’ modeled range inside the AOI is covered by the scenario?",
             "preExistingCoverage": "What percentage of the species’ modeled range inside the AOI is within existing conservation areas?",
             "newCoverage": "What percentage of the species’ modeled range inside the AOI was newly selected by the prioritization analysis?"
           },
           "ofNationalModeledRange": "Percentage of the species’ national modeled range",
+          "ofSirapModeledRange": "{{percent}} of range within this SIRAP",
+          "remainingCoverage": "{{percent}} remains uncovered",
           "ofSpeciesRangeInsideAoi": "Percentage of this species’ modeled range inside the AOI",
           "ofMesaCellsInsideAoi": "Percentage of occupied planning cells inside the AOI held by the scenario",
           "mesaCellCount": "{{held}} of {{total}} planning cells",
@@ -746,6 +824,16 @@
         "dryForest": "Dry Forest",
         "wetlands": "Wetlands",
         "mangroves": "Mangroves"
+      },
+      "sirapAggregate": {
+        "speciesContext": "Modeled species with positive regional packet range intersection in the selected priority area within this AOI. Counts are species counts, not target achievement.",
+        "ecosystemContext": "Selected priority-area overlap from the regional packet. These are aggregate areas, not a MEC breakdown, ecosystem composition, or target status.",
+        "iavh": "IAvH ecosystem classes",
+        "paramo": "Páramo",
+        "dryForest": "Tropical dry forest",
+        "wetlands": "Wetlands",
+        "blocked": "This overlap metric is blocked in the regional packet.",
+        "unavailable": "This overlap metric is not available in the regional packet."
       },
       "strategic": {
         "description": "Share of this AOI's candidate area overlapping each strategic ecosystem layer.",
@@ -851,6 +939,7 @@
           "totalCoverage": "Total scenario coverage of ecosystem type in AOI",
           "preExistingCoverage": "Existing conservation-area coverage of ecosystem area in AOI",
           "newCoverage": "Candidate conservation-area coverage of ecosystem area in AOI",
+          "remainingCoverage": "{{percent}} remains uncovered",
           "columnQuestions": {
             "category": "Which mapped ecosystem classification does this row describe?",
             "areaInsideAoi": "How many square kilometers of this ecosystem type occur inside the AOI?",
@@ -859,6 +948,14 @@
             "totalCoverage": "What percentage of this ecosystem type’s area inside the AOI is covered by the scenario?",
             "preExistingCoverage": "What percentage of this ecosystem type’s area inside the AOI is within existing conservation areas?",
             "newCoverage": "What percentage of this ecosystem type’s area inside the AOI was newly selected by the prioritization analysis?"
+          },
+          "sirap": {
+            "extentContext": "National and SIRAP extent represented in AOI",
+            "ofNationalExtent": "of national extent",
+            "ofSirapExtent": "of extent within this SIRAP",
+            "columnQuestions": {
+              "extentContext": "What percentage of this ecosystem type’s national extent and its extent within this SIRAP occur inside the AOI–SIRAP intersection?"
+            }
           },
           "customMesa": {
             "availableArea": "1 km ecosystem planning cells in AOI",
@@ -920,7 +1017,7 @@
         "colombiaEndemics": "Colombia endemics",
         "nationalSpeciesTotal": "% of National Species Total",
         "nationalSpeciesTotalDesc": "Share of Colombia's total species found in this AOI",
-        "totalCarbonBiomass": "Total Carbon Biomass",
+        "totalCarbonBiomass": "Total Carbon Biomass Conserved",
         "nationalCarbon": "% of National Carbon",
         "nationalCarbonDesc": "Of Colombian stocks",
         "aboveGroundCarbon": "Above + Belowground Biomass Carbon",
@@ -1088,10 +1185,70 @@
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",
           "andesOccidentales": "SIRAP Andes Occidentales",
+          "ejeCafetero": "SIRAP Eje Cafetero",
           "andesNororientales": "SIRAP Andes Nororientales",
           "orinoquia": "SIRAP Orinoquía",
           "ejeCafetero": "SIRAP Eje Cafetero",
           "amazonia": "SIRAP Amazonía"
+        }
+      },
+      "sirapCertified": {
+        "title": "Certified regional scenarios",
+        "help": "These supplied scenarios were certified by the science team for the selected SIRAP region. Choose one to view it on the map.",
+        "selectRegion": "Choose an authorized SIRAP region above to see its certified scenarios.",
+        "searchLabel": "Search certified scenarios",
+        "searchPlaceholder": "Search by scenario name or ID",
+        "listLabel": "Available certified scenarios",
+        "selectScenario": "— Select a certified scenario —",
+        "noResults": "No certified scenarios match this search."
+      },
+      "sirapWorkflow": {
+        "included": "Included",
+        "notSelected": "Not selected",
+        "sourceLabel": "Source: certified SIRAP scenario catalog",
+        "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-31-v3/catalog.json",
+        "step1": {
+          "label": "Conservation targets",
+          "help": "Choose the regional features and target levels to conserve. Only combinations available in the certified catalog can be selected.",
+          "regionRequired": "Select a SIRAP above to view its certified targets."
+        },
+        "step2": {
+          "label": "Conservation settings",
+          "help": "Choose which areas the tool should treat as existing conservation areas. RUNAP is always included; OMECs are optional.",
+          "omecsLabel": "Include OMECs"
+        },
+        "step3": {
+          "label": "Cost / planning units",
+          "help": "Choose the certified IHEH cost and planning-unit vector the tool should use when identifying candidate areas.",
+          "ihehLabel": "Human Footprint",
+          "ihehHelp": "Select the certified IHEH2022 or IHEH2030 planning-unit cost vector. No additional scientific interpretation of the 2030 option is assumed here."
+        },
+        "lock": {
+          "selectRegion": "Select an authorized SIRAP region to begin Step 1.",
+          "completeTargets": "Complete the certified Step 1 target choices to unlock this step."
+        },
+        "targets": {
+          "strategicEcosystemsLabel": "Strategic ecosystems",
+          "strategicEcosystemsHelp": "Sets the relative solver target for the region’s strategic-ecosystem features.",
+          "strategicEcosystemsQuestion": "What proportion of each strategic ecosystem would you like to conserve?",
+          "strategicTargetRationaleToggle": "Why these values?",
+          "strategicTargetRationale": "These target levels come from the certified scenario catalog for the selected SIRAP. Values that are not available for that region are disabled.",
+          "dryForestLabel": "Dry forest",
+          "dryForestHelp": "Dry forest is always included. It can inherit the strategic-ecosystems target as part of that feature matrix, or be separated and assigned a 100% target.",
+          "dryForestQuestion": "How should the dry forest target be set?",
+          "dryForestRationaleToggle": "Why are these the available dry forest choices?",
+          "dryForestRationale": "The certified catalog includes dry forest either within the strategic-ecosystems target or as a separate feature with a 100% target. Choices unavailable for the current strategic target are disabled.",
+          "inheritStrategic": "Inherit strategic target",
+          "separate100": "Separate 100%",
+          "ejeWetlandsLabel": "Eje Cafetero wetlands",
+          "ejeWetlandsHelp": "Sets the relative solver target for the Eje-specific wetlands feature.",
+          "ejeWetlandsQuestion": "What proportion of Eje Cafetero wetlands would you like to conserve?",
+          "congrialesLabel": "Congriales",
+          "congrialesHelp": "Congriales is a supplied model feature. Its certified target is paired with the same strategic-ecosystems target.",
+          "paired": "Paired",
+          "savannasLabel": "Savannas",
+          "savannasHelp": "Sets the relative solver target for the supplied Orinoquía savannas feature.",
+          "savannasQuestion": "What proportion of Orinoquía savannas would you like to conserve?"
         }
       },
       "loading": "Finding scenario…",
