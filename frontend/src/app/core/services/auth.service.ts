@@ -2,7 +2,7 @@ import { Injectable, OnDestroy, inject } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
-import { readSirapRegionIds, type SirapRegionId, UserTier } from '@core/models';
+import { readSirapAccessRegionIds, type SirapRegionId, UserTier } from '@core/models';
 import { type Unsubscribe, type User } from 'firebase/auth';
 import { type DocumentData } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
@@ -133,13 +133,13 @@ export class AuthService implements OnDestroy {
     const isActive = userData['status'] === 'active';
     const isSuperAdmin = isActive && this.readIsSuperAdmin(userData);
     const administeredSirapIds = isActive
-      ? readSirapRegionIds(userData['administeredSirapIds'])
+      ? readSirapAccessRegionIds(userData['administeredSirapIds'])
       : [];
     return {
       tier: this.readUserTier(userData),
       isAdmin: isSuperAdmin || administeredSirapIds.length > 0,
       isSuperAdmin,
-      allowedSirapIds: isActive ? readSirapRegionIds(userData['allowedSirapIds']) : [],
+      allowedSirapIds: isActive ? readSirapAccessRegionIds(userData['allowedSirapIds']) : [],
       administeredSirapIds,
     };
   }
