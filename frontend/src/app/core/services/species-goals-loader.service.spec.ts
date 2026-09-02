@@ -102,6 +102,58 @@ describe('SpeciesGoalsLoaderService', () => {
     ]);
   });
 
+  it('hydrates when catalog provenance releaseId differs from compact release', async () => {
+    const priorRelease = 'sirap-2026-09-01-v5';
+    const currentRelease = 'sirap-2026-09-02-v6';
+    const priorCatalogUrl = `/releases/${priorRelease}/species-goals/catalog/v1/catalog.json`;
+    const currentCompactUrl =
+      `/releases/${currentRelease}/species-goals/compact/v1/fixture/` +
+      'departments.species-goals.compact.json';
+    catalogSolution = {
+      id: 'fixture',
+      precomputedMetricUrls: {
+        speciesGoalsCatalog: priorCatalogUrl,
+        speciesGoalsByGeography: { departments: currentCompactUrl },
+      },
+    } as CatalogSolution;
+
+    const catalogDoc = catalog();
+    catalogDoc.provenance.releaseId = priorRelease;
+    const compactDoc = compact();
+    compactDoc.provenance.releaseId = currentRelease;
+    const catalogText = JSON.stringify(catalogDoc);
+    const compactText = JSON.stringify(compactDoc);
+    const catalogSha256 = await sha256(catalogText);
+    const compactSha256 = await sha256(compactText);
+    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '50'));
+
+    http.expectOne(`${priorCatalogUrl}.complete.json`).flush({
+      format: 'species-goals-catalog-completion-v1',
+      status: 'complete',
+      releaseId: currentRelease,
+      catalogSha256: SHA,
+      artifactSha256: catalogSha256,
+    });
+    http.expectOne(`${currentCompactUrl}.complete.json`).flush({
+      format: 'species-goals-completion-v1',
+      status: 'complete',
+      solutionId: 'fixture',
+      geographyLevel: 'departments',
+      catalogSha256: SHA,
+      artifactSha256: compactSha256,
+      provenance: { releaseId: currentRelease },
+    });
+    http.expectOne(priorCatalogUrl).flush(catalogText);
+    http.expectOne(currentCompactUrl).flush(compactText);
+
+    expect(await resultPromise).toEqual([
+      expect.objectContaining({
+        id: 'species-1',
+        solution_covered_in_aoi_pct: 40,
+      }),
+    ]);
+  });
+
   it('fails closed when an artifact checksum is tampered', async () => {
     const catalogText = JSON.stringify(catalog());
     const compactText = JSON.stringify(compact());

@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import warnings
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
@@ -50,6 +51,14 @@ def validate_species_goals_release_artifacts(
     )
     catalog_path = root / catalog_item["path"]
     catalog = validate_catalog(read_json(catalog_path))
+    catalog_provenance_release_id = catalog["provenance"]["releaseId"]
+    if catalog_provenance_release_id != release_id:
+        warnings.warn(
+            "Species goals catalog provenance releaseId "
+            f"{catalog_provenance_release_id!r} differs from release "
+            f"{release_id!r}; binding on catalogSha256 is expected.",
+            stacklevel=2,
+        )
     catalog_completion_item = next(
         item
         for item in completion_artifacts
