@@ -5,7 +5,7 @@ from calculator_registry import (
     weighted_percent_calculator,
     weighted_sum_calculator,
 )
-from metric_definitions import computable_metrics
+from metric_definitions import METRIC_CATALOG, computable_metrics
 
 
 def test_every_layer_metric_has_a_registered_calculator():
@@ -29,6 +29,22 @@ def test_every_layer_metric_has_a_registered_calculator():
             missing.append(definition.metric_id)
 
     assert missing == []
+
+
+def test_corine_level_1_definitions_use_authoritative_class_ids():
+    expected_class_ids = {
+        "land_use_artificial_surfaces_pct": 1,
+        "land_use_agricultural_areas_pct": 2,
+        "land_use_forests_and_semi_natural_areas_pct": 3,
+        "land_use_wetlands_pct": 4,
+        "land_use_water_bodies_pct": 5,
+    }
+    definitions = {definition.metric_id: definition for definition in METRIC_CATALOG}
+
+    assert {
+        metric_id: definitions[metric_id].off_manifest_rendering["selectedValue"]
+        for metric_id in expected_class_ids
+    } == expected_class_ids
 
 
 def test_metric_specific_weighted_calculators_are_registered():

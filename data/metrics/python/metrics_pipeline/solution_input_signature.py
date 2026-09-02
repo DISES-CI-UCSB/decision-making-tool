@@ -6,7 +6,7 @@ import hashlib
 import json
 from typing import Any
 
-from blob_manifest import ResolvedManifest
+from blob_manifest import ResolvedManifest, regional_packet_identity
 from metrics_contract import signature_generation_config
 from solution_catalog import SolutionCatalogEntry
 
@@ -56,6 +56,7 @@ def build_solution_input_signature(
             layer_id: manifest.layers_by_id[layer_id]
             for layer_id in sorted(manifest.layers_by_id)
         },
+        "regionalInputPacket": regional_packet_identity(solution),
         "sourceIdentity": source_identity,
         "metricsContract": provenance_contract,
     }

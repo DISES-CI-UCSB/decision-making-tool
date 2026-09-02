@@ -196,36 +196,14 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   protected readonly sirapRegions: readonly SirapRegionOption[] = [
     {
-      id: 'caribe',
-      labelKey: 'solutionControls.finder.scopeBar.regions.caribe',
-      departments:
-        'La Guajira, Cesar, Magdalena, Atlántico, Córdoba, Sucre, Bolívar, San Andrés y Providencia',
-    },
-    {
-      id: 'pacifico',
-      labelKey: 'solutionControls.finder.scopeBar.regions.pacifico',
-      departments: 'Chocó, Cauca, Nariño, Valle del Cauca',
-    },
-    {
-      id: 'andes-occidentales',
-      labelKey: 'solutionControls.finder.scopeBar.regions.andesOccidentales',
-      departments:
-        'Antioquia, Caldas, Cauca, Huila, Nariño, Quindío, Risaralda, Tolima, Valle del Cauca',
-    },
-    {
-      id: 'andes-nororientales',
-      labelKey: 'solutionControls.finder.scopeBar.regions.andesNororientales',
-      departments: 'Santander, Norte de Santander, Boyacá, Cundinamarca',
-    },
-    {
       id: 'orinoquia',
       labelKey: 'solutionControls.finder.scopeBar.regions.orinoquia',
       departments: 'Arauca, Meta, Vichada, Casanare',
     },
     {
-      id: 'amazonia',
-      labelKey: 'solutionControls.finder.scopeBar.regions.amazonia',
-      departments: 'Guainía, Guaviare, Vaupés, Putumayo, Amazonas, Caquetá',
+      id: 'eje-cafetero',
+      labelKey: 'solutionControls.finder.scopeBar.regions.ejeCafetero',
+      departments: 'Caldas, Quindío and Risaralda',
     },
   ];
 

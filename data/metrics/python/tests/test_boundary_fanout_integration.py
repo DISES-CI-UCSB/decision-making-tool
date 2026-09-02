@@ -154,6 +154,7 @@ def test_grouped_main_metrics_match_independent_overlapping_masks(monkeypatch, t
             definitions,
             grouped,
             boundary_index,
+            solution,
             _manifest(),
         )
         actual = pipeline._build_metrics(

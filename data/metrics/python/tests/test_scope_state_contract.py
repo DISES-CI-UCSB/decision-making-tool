@@ -11,6 +11,8 @@ from helpers import TEST_RASTER_SHA256, raster_from_fixture, scope_state
 from metric_definitions import computable_metrics, is_species_metric_kind
 from metrics_contract import (
     PROVENANCE_KEY,
+    SIRAP_MISSING_INPUT_METRIC_IDS,
+    SIRAP_MISSING_INPUT_SOURCE,
     build_metrics_provenance,
     regular_artifact_completeness_issues,
 )
@@ -116,6 +118,20 @@ def _issues(document, *, domain: str):
     )
 
 
+def _set_sirap_missing_metrics(document):
+    for scopes in document["geographies"].values():
+        for scope in scopes.values():
+            if scope["scopeState"]["classification"] == "empty":
+                continue
+            for metric in scope["metrics"]:
+                if metric["metricId"] in SIRAP_MISSING_INPUT_METRIC_IDS:
+                    metric.update(
+                        status="blocked",
+                        value=None,
+                        source=SIRAP_MISSING_INPUT_SOURCE,
+                    )
+
+
 def test_supported_ready_zero_and_proven_empty_null_are_release_complete():
     document = _document()
 
@@ -158,6 +174,92 @@ def test_positive_supported_scope_rejects_nonterminal_failure_statuses(status):
     assert any(
         f"{metric['metricId']} must be ready" in issue
         for issue in _issues(document, domain="marine")
+    )
+
+
+def test_regional_packet_allows_explicit_unavailable_inputs():
+    document = _document(domain="land")
+    _set_sirap_missing_metrics(document)
+    document.pop("speciesCompleteness")
+
+    assert regular_artifact_completeness_issues(
+        document,
+        national_only=False,
+        domain="land",
+        regional_packet=True,
+    ) == []
+
+    metric = next(
+        metric
+        for metric in document["geographies"]["national"]["colombia"]["metrics"]
+        if metric["metricId"] == "species_pct_of_national"
+    )
+    metric.update(status="derivation_needed", source="regionalInputPacket.species")
+    assert any(
+        "species_pct_of_national must be blocked" in issue
+        for issue in regular_artifact_completeness_issues(
+            document,
+            national_only=False,
+            domain="land",
+            regional_packet=True,
+        )
+    )
+
+
+def test_sirap_summary_metric_is_not_applicable_for_all_nested_scopes():
+    document = _document(domain="land", empty_department=False)
+    departments = document["geographies"]["departments"]
+    prototype = departments["05"]
+    for index in range(390):
+        scope_id = f"test-{index}"
+        scope = deepcopy(prototype)
+        scope["scopeState"] = scope_state("departments", scope_id)
+        departments[scope_id] = scope
+
+    nested_scopes = [
+        scope
+        for level, scopes in document["geographies"].items()
+        if level != "national"
+        for scope in scopes.values()
+    ]
+    assert len(nested_scopes) == 395
+    for scope in nested_scopes:
+        metric = next(
+            metric
+            for metric in scope["metrics"]
+            if metric["metricId"] == "conservation_goals_met"
+        )
+        metric.update(
+            status="ready",
+            value=100.0,
+            source="regionalInputPacket.authoritativeSummary",
+        )
+    _set_sirap_missing_metrics(document)
+
+    issues = regular_artifact_completeness_issues(
+        document,
+        national_only=False,
+        domain="land",
+        regional_packet=True,
+    )
+    assert len(issues) == 395
+    assert all("conservation_goals_met must be not_applicable" in issue for issue in issues)
+
+    for scope in nested_scopes:
+        next(
+            metric
+            for metric in scope["metrics"]
+            if metric["metricId"] == "conservation_goals_met"
+        ).update(status="not_applicable", value=None, source="n/a")
+
+    assert (
+        regular_artifact_completeness_issues(
+            document,
+            national_only=False,
+            domain="land",
+            regional_packet=True,
+        )
+        == []
     )
 
 

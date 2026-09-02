@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
-import { readSirapRegionIds, type SirapRegionId, UserTier } from '@core/models';
+import { readSirapAccessRegionIds, type SirapRegionId, UserTier } from '@core/models';
 import { SirapAccessService } from './sirap-access.service';
 import {
   addDoc,
@@ -80,6 +80,7 @@ export interface StoredPendingRequest {
 export interface LoginAttemptPayload {
   uid?: string;
   email: string;
+  displayName?: string;
   password?: string;
   provider: AuthProviderKind;
 }
@@ -173,12 +174,8 @@ export class AuthRequestService {
    */
   async attemptLogin(payload: LoginAttemptPayload): Promise<LoginAttemptResult> {
     if (payload.provider === 'google' && payload.uid && this.firebase.isEnabled) {
-      const approved = await this.getApprovedUser(payload.uid);
-      if (approved?.status === 'active') {
-        return 'active';
-      }
-      const pending = await this.getFirebasePendingRequest(payload.uid);
-      return pending ? 'pending' : 'invalid';
+      await this.ensureFirebaseBaseAccount(payload.uid, payload.email, payload.displayName ?? payload.email);
+      return 'active';
     }
 
     await this.wait();
@@ -298,23 +295,7 @@ export class AuthRequestService {
       requestedSirapIds: payload.requestedSirapIds,
     };
 
-    await setDoc(
-      doc(firestore, 'accessRequests', payload.uid),
-      {
-        uid: payload.uid,
-        email: payload.googleEmail,
-        displayName: payload.googleName,
-        avatarInitials: payload.googleAvatarInitials,
-        provider: 'google',
-        status: 'pending',
-        organization: payload.organization ?? null,
-        reason: payload.reason ?? null,
-        submittedAt,
-        requestedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
+    await this.ensureFirebaseBaseAccount(payload.uid, payload.googleEmail, payload.googleName);
     await this.sirapAccess.submitRequestsForIdentity(
       payload.uid,
       payload.googleEmail,
@@ -325,6 +306,44 @@ export class AuthRequestService {
     await this.createAdminNotification(pending);
     this.writePendingRequest(pending);
     return pending;
+  }
+
+  private async ensureFirebaseBaseAccount(
+    uid: string,
+    email: string,
+    displayName: string,
+  ): Promise<void> {
+    const firestore = this.firebase.firestore;
+    if (!firestore) {
+      throw new Error('Firestore is not configured.');
+    }
+    const userRef = doc(firestore, 'users', uid);
+    if (!(await getDoc(userRef)).exists()) {
+      await setDoc(userRef, {
+        uid,
+        email,
+        displayName,
+        status: 'active',
+        role: 'authorized_viewer',
+        tier: UserTier.DecisionMaker,
+        isAdmin: false,
+        isSuperAdmin: false,
+        allowedSirapIds: [],
+        administeredSirapIds: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+    const directoryRef = doc(firestore, 'userDirectory', uid);
+    if (!(await getDoc(directoryRef)).exists()) {
+      await setDoc(directoryRef, {
+        uid,
+        email,
+        displayName,
+        status: 'active',
+        updatedAt: serverTimestamp(),
+      });
+    }
   }
 
   private async getFirebasePendingRequest(uid: string): Promise<StoredPendingRequest | null> {
@@ -362,12 +381,12 @@ export class AuthRequestService {
       await addDoc(collection(firestore, 'mail'), {
         to: [recipient],
         message: {
-          subject: `Decision Making Tool access request: ${request.fullName}`,
+          subject: `Decision Making Tool SIRAP access request: ${request.fullName}`,
           text: [
-            `${request.fullName} (${request.email}) requested access to the Decision Making Tool.`,
+            `${request.fullName} (${request.email}) requested SIRAP access in the Decision Making Tool.`,
             request.organization ? `Organization: ${request.organization}` : null,
             request.reason ? `Reason: ${request.reason}` : null,
-            `Request document: accessRequests/${request.requestId}`,
+            `Review the request in the Admin console.`,
           ]
             .filter(Boolean)
             .join('\n'),
@@ -424,7 +443,7 @@ export class AuthRequestService {
       const parsed = JSON.parse(raw) as StoredPendingRequest;
       return {
         ...parsed,
-        requestedSirapIds: readSirapRegionIds(parsed.requestedSirapIds),
+        requestedSirapIds: readSirapAccessRegionIds(parsed.requestedSirapIds),
       };
     } catch {
       return null;

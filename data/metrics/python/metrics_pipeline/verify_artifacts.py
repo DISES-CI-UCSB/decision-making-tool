@@ -63,6 +63,9 @@ def verify_entry(
                 national_only=bool(config.get("nationalOnly")) if isinstance(config, dict) else False,
                 domain=domain,
                 skip_species=bool(config.get("speciesSkipped")) if isinstance(config, dict) else False,
+                regional_packet=bool(config.get("regionalPacket"))
+                if isinstance(config, dict)
+                else False,
             )
         except (IndexError, KeyError, TypeError, ValueError) as exc:
             contract_issues = [f"invalid regular metrics artifact: {exc}"]

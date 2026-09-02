@@ -9,15 +9,15 @@ describe('AdminAccessRequestsService user grants', () => {
       role: 'authorized_viewer',
       tier: 2,
       isAdmin: false,
-      allowedSirapIds: ['amazonia'],
+      allowedSirapIds: ['eje-cafetero'],
     });
 
-    expect(user.allowedSirapIds).toEqual(['amazonia']);
+    expect(user.allowedSirapIds).toEqual(['eje-cafetero']);
   });
 
   it('only accepts users whose authoritative grants overlap the regional scope', () => {
-    expect(hasSirapGrantOverlap(['caribe', 'amazonia'], ['caribe'])).toBe(true);
-    expect(hasSirapGrantOverlap(['amazonia'], ['caribe', 'pacifico'])).toBe(false);
+    expect(hasSirapGrantOverlap(['orinoquia', 'eje-cafetero'], ['orinoquia'])).toBe(true);
+    expect(hasSirapGrantOverlap(['eje-cafetero'], ['orinoquia'])).toBe(false);
   });
 
   it('preserves an isSuperAdmin-only account as an admin when parsing edits', () => {

@@ -14,7 +14,7 @@ from blob_manifest import (
     fetch_manifest,
 )
 from helpers import raster_from_fixture
-from solution_domain import solution_domain
+from solution_domain import normalize_domain, solution_domain
 
 
 def _solution(solution_id: str, scope: str, *, domain: str | None = None) -> dict:
@@ -27,6 +27,36 @@ def _solution(solution_id: str, scope: str, *, domain: str | None = None) -> dic
     }
     if domain is not None:
         solution["domain"] = domain
+    if scope == "sirap":
+        solution["sirapId"] = "orinoquia"
+        solution["regionalInputPacket"] = {
+            "format": "sirap-metric-input-packet-v1",
+            "regionId": "orinoquia",
+            "grid": {"sha256": "a" * 64},
+            "authoritativeSummary": {
+                "url": "https://example.test/orinoquia-summary.csv",
+                "sha256": "b" * 64,
+                "schema": "prioritizr-summary-v1",
+            },
+            "layers": {
+                "wetlands": {
+                    "url": "https://example.test/humedales-orinoquia.tif",
+                    "sha256": "c" * 64,
+                }
+            },
+            "species": {
+                "universePolicy": "regional-summary",
+                "matrices": [
+                    {
+                        "taxonomicClass": "Amphibia",
+                        "format": "smsp-v1",
+                        "url": "https://example.test/amphibia-orinoquia.smsp.gz",
+                        "sha256": "d" * 64,
+                        "gridSha256": "a" * 64,
+                    }
+                ],
+            },
+        }
     return solution
 
 
@@ -50,7 +80,7 @@ def _raster():
     )
 
 
-def test_manifest_batch_includes_land_and_marine_but_excludes_other_scopes():
+def test_manifest_batch_includes_national_sirap_and_marine_solutions():
     manifest = _manifest(
         [
         _solution("legacy-land", "nacional"),
@@ -62,17 +92,83 @@ def test_manifest_batch_includes_land_and_marine_but_excludes_other_scopes():
     assert [row["id"] for row in manifest.batch_solutions] == [
         "legacy-land",
         "marine",
+        "regional",
     ]
-    assert [row["id"] for row in manifest.national_solutions] == ["legacy-land"]
+    assert [row["id"] for row in manifest.national_solutions] == [
+        "legacy-land",
+        "regional",
+    ]
     assert [row["id"] for row in pipeline._select_solutions(manifest, None, None)] == [
         "legacy-land",
         "marine",
+        "regional",
     ]
 
 
 def test_manifest_rejects_unknown_batch_domain():
     with pytest.raises(ManifestError, match="Unknown solution domain"):
         _manifest([_solution("unknown", "nacional", domain="freshwater")])
+
+
+def test_manifest_requires_sirap_id_for_regional_solutions():
+    solution = _solution("regional", "sirap", domain="land")
+    solution.pop("sirapId")
+
+    with pytest.raises(ManifestError, match="sirapId"):
+        _manifest([solution])
+
+
+def test_manifest_requires_packet_bound_regional_sources():
+    solution = _solution("regional", "sirap", domain="land")
+    solution.pop("regionalInputPacket")
+
+    with pytest.raises(ManifestError, match="regionalInputPacket"):
+        _manifest([solution])
+
+
+def test_manifest_rejects_sirap_packet_with_mismatched_region():
+    solution = _solution("regional", "sirap", domain="land")
+    solution["regionalInputPacket"]["regionId"] = "eje-cafetero"
+
+    with pytest.raises(ManifestError, match="does not match sirapId"):
+        _manifest([solution])
+
+
+def test_sirap_is_a_scope_not_a_metric_domain():
+    with pytest.raises(ValueError, match="Unknown solution domain"):
+        normalize_domain("sirap")
+
+
+def test_sirap_execution_requires_grouped_boundary_fanout():
+    solution = _solution("regional", "sirap", domain="land")
+
+    with pytest.raises(ValueError, match="METRICS_BOUNDARY_FANOUT=grouped"):
+        pipeline._validate_sirap_execution_mode(
+            [solution],
+            national_only=False,
+            boundary_fanout_mode="legacy",
+        )
+
+
+def test_sirap_execution_rejects_national_only_mode():
+    solution = _solution("regional", "sirap", domain="land")
+
+    with pytest.raises(ValueError, match="--national-only"):
+        pipeline._validate_sirap_execution_mode(
+            [solution],
+            national_only=True,
+            boundary_fanout_mode="grouped",
+        )
+
+
+def test_sirap_execution_accepts_grouped_regional_mode():
+    solution = _solution("regional", "sirap", domain="land")
+
+    pipeline._validate_sirap_execution_mode(
+        [solution],
+        national_only=False,
+        boundary_fanout_mode="grouped",
+    )
 
 
 def test_fetch_manifest_supports_local_release_preflight(tmp_path: Path):
@@ -106,6 +202,7 @@ def test_fetch_manifest_supports_local_release_preflight(tmp_path: Path):
         ({"id": "land", "domain": "land"}, "land"),
         ({"id": "national", "domain": "nacional"}, "land"),
         ({"id": "terrestrial", "domain": "terrestrial"}, "land"),
+        ({"id": "sirap", "scope": "sirap"}, "land"),
         ({"id": "marine", "domain": "marine"}, "marine"),
     ],
 )
@@ -174,6 +271,7 @@ def test_marine_subnational_preload_skips_all_land_layers(tmp_path: Path):
 
     masks = pipeline._preload_layer_masks(
         _raster(),
+        manifest.batch_solutions[0],
         manifest,
         TrackingMasks(),
         tmp_path,
@@ -182,6 +280,7 @@ def test_marine_subnational_preload_skips_all_land_layers(tmp_path: Path):
     )
     values = pipeline._preload_layer_values(
         _raster(),
+        manifest.batch_solutions[0],
         manifest,
         TrackingValues(),
         tmp_path,

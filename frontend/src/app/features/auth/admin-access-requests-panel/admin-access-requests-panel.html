@@ -26,8 +26,29 @@
           Access management
         </h2>
         <p id="admin-access-panel-subtitle" class="mt-1 text-sm text-slate-500">
-          Review pending Firebase Auth requests, choose user tiers, and manage admin access.
+          Review SIRAP access requests and manage user permissions.
         </p>
+        <dl
+          id="admin-access-panel-administrator-status"
+          class="mt-3 grid gap-x-5 gap-y-1 text-xs text-slate-600 sm:grid-cols-2"
+        >
+          <div id="admin-access-panel-administrator-identity" class="min-w-0">
+            <dt id="admin-access-panel-administrator-identity-label" class="inline font-semibold text-slate-700">Signed in as:</dt>
+            <dd id="admin-access-panel-administrator-email" class="inline break-all"> {{ administratorEmail() }}</dd>
+          </div>
+          <div id="admin-access-panel-administrator-role">
+            <dt id="admin-access-panel-administrator-role-label" class="inline font-semibold text-slate-700">Role:</dt>
+            <dd id="admin-access-panel-administrator-role-value" class="inline"> {{ administratorRoleLabel() }}</dd>
+          </div>
+          <div id="admin-access-panel-administrator-data-access" class="min-w-0">
+            <dt id="admin-access-panel-administrator-data-access-label" class="inline font-semibold text-slate-700">SIRAP access:</dt>
+            <dd id="admin-access-panel-administrator-data-access-value" class="inline"> {{ administratorAccessLabel() }}</dd>
+          </div>
+          <div id="admin-access-panel-administrator-assignments" class="min-w-0">
+            <dt id="admin-access-panel-administrator-assignments-label" class="inline font-semibold text-slate-700">Administers:</dt>
+            <dd id="admin-access-panel-administrator-assignments-value" class="inline"> {{ administratorAssignmentsLabel() }}</dd>
+          </div>
+        </dl>
       </div>
 
       <div id="admin-access-panel-header-actions" class="flex shrink-0 items-center gap-2">
@@ -83,7 +104,31 @@
           Loading pending requests...
         </div>
       } @else {
-        @if (isSuperAdmin()) {
+        <nav
+          id="admin-access-panel-tabs"
+          class="mb-5 flex gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1"
+          aria-label="Access management views"
+        >
+          <button id="admin-access-panel-requests-tab" type="button"
+            class="min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold text-slate-600 transition"
+            [class.bg-white]="activeTab() === 'requests'" [class.text-slate-900]="activeTab() === 'requests'"
+            [attr.aria-selected]="activeTab() === 'requests'" aria-controls="admin-access-panel-sirap-requests-section" role="tab"
+            (keydown)="onTabKeydown($event, 'requests')"
+            (click)="selectTab('requests')">Pending SIRAP Requests</button>
+          <button id="admin-access-panel-access-tab" type="button"
+            class="min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold text-slate-600 transition"
+            [class.bg-white]="activeTab() === 'access'" [class.text-slate-900]="activeTab() === 'access'"
+            [attr.aria-selected]="activeTab() === 'access'" aria-controls="admin-access-panel-approved-sirap-section" role="tab"
+            (keydown)="onTabKeydown($event, 'access')"
+            (click)="selectTab('access')">Current SIRAP Access</button>
+          <button id="admin-access-panel-users-tab" type="button"
+            class="min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold text-slate-600 transition"
+            [class.bg-white]="activeTab() === 'users'" [class.text-slate-900]="activeTab() === 'users'"
+            [attr.aria-selected]="activeTab() === 'users'" aria-controls="admin-access-panel-users-section" role="tab"
+            (keydown)="onTabKeydown($event, 'users')"
+            (click)="selectTab('users')">Active Users</button>
+        </nav>
+        @if (false) {
           <section
             id="admin-access-panel-pending-section"
             class="overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
@@ -732,6 +777,7 @@
           </section>
         }
 
+        @if (activeTab() === 'requests') {
         <section
           id="admin-access-panel-sirap-requests-section"
           class="mt-8 overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
@@ -1070,7 +1116,9 @@
             </div>
           }
         </section>
+        }
 
+        @if (activeTab() === 'access') {
         <section
           id="admin-access-panel-approved-sirap-section"
           class="mt-8 overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
@@ -1436,8 +1484,9 @@
             </div>
           }
         </section>
+        }
 
-        @if (isSuperAdmin()) {
+        @if (activeTab() === 'users') {
           <section
             id="admin-access-panel-users-section"
             class="mt-8 overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
@@ -1669,6 +1718,7 @@
                             [id]="'admin-access-panel-user-row-' + user.uid"
                             class="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_minmax(240px,0.85fr)_auto_auto] lg:items-end"
                           >
+                            @if (isSuperAdmin()) {
                             <label
                               [id]="'admin-access-panel-user-tier-label-' + user.uid"
                               [attr.for]="'admin-access-panel-user-tier-select-' + user.uid"
@@ -1701,6 +1751,7 @@
                               />
                               Super admin
                             </label>
+                            }
 
                             <button
                               [id]="'admin-access-panel-user-save-button-' + user.uid"
@@ -1762,7 +1813,7 @@
                                       [checked]="
                                         userGrantFor(user).allowedSirapIds.includes(region.id)
                                       "
-                                      [disabled]="!!updatingUserUid()"
+                                [disabled]="!!updatingUserUid() || !canManageUserSirap(region.id)"
                                       (change)="toggleUserAllowedSirap(user, region.id)"
                                     />
                                     {{ region.label }}
@@ -1771,6 +1822,7 @@
                               </div>
                             </fieldset>
 
+                            @if (isSuperAdmin()) {
                             <fieldset
                               [id]="'admin-access-panel-user-administered-siraps-' + user.uid"
                               class="rounded-lg border border-slate-200 bg-slate-50 p-3"
@@ -1819,6 +1871,7 @@
                                 }
                               </div>
                             </fieldset>
+                            }
                           </div>
                         </div>
                       </article>

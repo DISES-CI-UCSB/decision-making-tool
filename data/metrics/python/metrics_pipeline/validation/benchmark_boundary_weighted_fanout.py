@@ -203,7 +203,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         prepared_layers: dict[str, PreparedWeightedLayer] = {}
         layer_access: list[dict[str, Any]] = []
         for layer_id in sorted({spec.layer_id for spec in specs}):
-            source_url = pipeline._resolve_layer_url(manifest, layer_id)
+            source_url = pipeline._resolve_layer_url(manifest, solution, layer_id)
             source = cached_download(source_url, args.cache_dir)
             aligned = alignment_cache.align(
                 source.path,

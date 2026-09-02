@@ -193,7 +193,7 @@ def evaluate_categorical_coverage(
     selected_mask: np.ndarray,
     feature_ids: Sequence[int],
     feature_names: Sequence[str],
-    relative_targets: float | Sequence[float],
+    relative_targets: float | None | Sequence[float | None],
     scope_mask: np.ndarray | None = None,
     evaluated: str | Sequence[str | None] | None = None,
     relative_shortfall_mode: RelativeShortfallMode = "target_difference",
@@ -209,7 +209,9 @@ def evaluate_categorical_coverage(
     )
     if len(feature_ids) != len(feature_names):
         raise ValueError("feature_ids and feature_names must have equal lengths.")
-    targets = _expand_values(relative_targets, len(feature_ids), "relative_targets")
+    targets = _expand_optional_values(
+        relative_targets, len(feature_ids), "relative_targets"
+    )
     evaluation_sources = _expand_optional_strings(evaluated, len(feature_ids))
 
     flat_values = values.ravel()
@@ -241,7 +243,7 @@ def evaluate_sparse_binary_coverage(
     *,
     features: SparseBinaryFeatureIndex,
     selected_mask: np.ndarray,
-    relative_targets: float | Sequence[float],
+    relative_targets: float | None | Sequence[float | None],
     scope_mask: np.ndarray | None = None,
     evaluated: str | Sequence[str | None] | None = None,
     relative_shortfall_mode: RelativeShortfallMode = "target_difference",
@@ -259,7 +261,9 @@ def evaluate_sparse_binary_coverage(
     if features.cell_ids.size and int(features.cell_ids.max()) >= selected.size:
         raise ValueError("Sparse feature cell ID is outside the planning grid.")
 
-    targets = _expand_values(relative_targets, features.feature_count, "relative_targets")
+    targets = _expand_optional_values(
+        relative_targets, features.feature_count, "relative_targets"
+    )
     evaluation_sources = _expand_optional_strings(evaluated, features.feature_count)
     rows: list[MesaCoverageRow] = []
     for index, feature in enumerate(features.feature_names):
@@ -661,6 +665,24 @@ def _expand_values(
     if isinstance(value, (int, float, np.integer, np.floating)):
         return [_finite_nonnegative(float(value), label)] * length
     values = [_finite_nonnegative(item, label) for item in value]
+    if len(values) != length:
+        raise ValueError(f"{label} must contain {length} values.")
+    return values
+
+
+def _expand_optional_values(
+    value: float | None | Sequence[float | None],
+    length: int,
+    label: str,
+) -> list[float | None]:
+    if value is None:
+        return [None] * length
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        return [_finite_nonnegative(float(value), label)] * length
+    values = [
+        None if item is None else _finite_nonnegative(item, label)
+        for item in value
+    ]
     if len(values) != length:
         raise ValueError(f"{label} must contain {length} values.")
     return values

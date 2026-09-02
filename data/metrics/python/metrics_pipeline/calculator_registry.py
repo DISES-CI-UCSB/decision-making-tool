@@ -33,9 +33,11 @@ _OVERLAP_PERCENT_BY_LAYER: dict[str, Calculator] = {
     "runap_parques": calc_protected.national_parks_percent_of_selected,
     "resguardos": calc_protected.indigenous_territory_percent_of_selected,
     "recarga_agua": calc_water.water_recharge_percent_of_selected,
-    "coberturas_forest": calc_land_cover.forest_pct,
-    "coberturas_agriculture": calc_land_cover.agriculture_pct,
-    "coberturas_other": calc_land_cover.other_land_use_pct,
+    "coberturas_artificial_surfaces": calc_land_cover.corine_level_1_pct,
+    "coberturas_agricultural_areas": calc_land_cover.corine_level_1_pct,
+    "coberturas_forests_and_semi_natural_areas": calc_land_cover.corine_level_1_pct,
+    "coberturas_wetlands": calc_land_cover.corine_level_1_pct,
+    "coberturas_water_bodies": calc_land_cover.corine_level_1_pct,
 }
 
 _CATEGORICAL_AREA_BY_METRIC_ID: dict[str, Calculator] = {

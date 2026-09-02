@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -30,3 +31,18 @@ def test_parity_contract_fails_closed_on_wrong_format(tmp_path: Path):
 
     with pytest.raises(CoverageParityContractError, match="format"):
         load_coverage_parity_contract(path)
+
+
+def test_regional_parity_contract_accepts_region_specific_inventories(tmp_path: Path):
+    document = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+    document["scientificAuthority"]["speciesUniversePolicy"] = "regional-summary"
+    document["scientificAuthority"]["regionId"] = "orinoquia"
+    document["ecosystems"]["featureCount"] = 93
+    document["species"]["summaryFeatureCount"] = 8_129
+    path = tmp_path / "regional-contract.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    contract = load_coverage_parity_contract(path)
+
+    assert contract.ecosystem_feature_count == 93
+    assert contract.species_feature_count == 8_129

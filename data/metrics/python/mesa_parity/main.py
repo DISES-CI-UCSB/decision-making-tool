@@ -122,7 +122,7 @@ def _evaluate_ecosystems(
         selected_mask=solution.selected_mask,
         feature_ids=[catalog[row["feature"]] for row in expected],
         feature_names=[row["feature"] for row in expected],
-        relative_targets=[float(row["relative_target"]) for row in expected],
+        relative_targets=[_parse_float(row["relative_target"]) for row in expected],
         evaluated=[row.get("evaluated") or None for row in expected],
     )
 
@@ -184,8 +184,14 @@ def _evaluate_species(
     solution_path: Path,
     template_path: Path,
     species_matrix_paths: list[Path],
+    species_classes: set[str] | None = None,
 ) -> list[MesaCoverageRow]:
-    expected = [row for row in summary_rows if row.get("feature_type") == "species"]
+    expected = [
+        row
+        for row in summary_rows
+        if row.get("feature_type") == "species"
+        and (species_classes is None or row.get("class") in species_classes)
+    ]
     expected_by_name = {row["feature"]: row for row in expected}
     if len(expected_by_name) != len(expected):
         raise ValueError("Summary contains duplicate species names.")
@@ -313,6 +319,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--ecosystem-raster", type=Path, required=True)
     parser.add_argument("--ecosystem-catalog", type=Path, required=True)
     parser.add_argument("--species-matrix", type=Path, action="append", default=[])
+    parser.add_argument(
+        "--species-class",
+        action="append",
+        default=[],
+        help="Restrict species parity to one or more summary classes (repeatable).",
+    )
     parser.add_argument("--report", type=Path, default=None)
     parser.add_argument("--include-computed", action="store_true")
     parser.add_argument(
@@ -360,12 +372,19 @@ def main() -> int:
 
     species_actual: list[MesaCoverageRow] = []
     if args.species_matrix:
-        species_expected = [row for row in summary if row.get("feature_type") == "species"]
+        species_classes = set(args.species_class) or None
+        species_expected = [
+            row
+            for row in summary
+            if row.get("feature_type") == "species"
+            and (species_classes is None or row.get("class") in species_classes)
+        ]
         species_actual = _evaluate_species(
             summary_rows=summary,
             solution_path=args.solution,
             template_path=args.template,
             species_matrix_paths=args.species_matrix,
+            species_classes=species_classes,
         )
         mismatches.extend(
             _compare_rows(

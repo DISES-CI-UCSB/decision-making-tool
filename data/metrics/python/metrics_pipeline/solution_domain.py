@@ -9,7 +9,8 @@ SolutionDomain = Literal["land", "marine"]
 
 _LAND_VALUES = frozenset({"land", "nacional", "national", "terrestrial"})
 _MARINE_VALUES = frozenset({"marine"})
-_BATCH_SCOPE_VALUES = _LAND_VALUES | _MARINE_VALUES | {""}
+_SIRAP_SCOPE_VALUES = frozenset({"sirap"})
+_BATCH_SCOPE_VALUES = _LAND_VALUES | _MARINE_VALUES | _SIRAP_SCOPE_VALUES | {""}
 
 
 class SolutionDomainError(ValueError):
@@ -17,7 +18,7 @@ class SolutionDomainError(ValueError):
 
 
 def normalize_domain(value: Any, *, default: SolutionDomain = "land") -> SolutionDomain:
-    """Map legacy land aliases and marine to the two supported metric domains."""
+    """Map land aliases and marine to the two supported metric domains."""
     normalized = str(value or "").strip().lower()
     if not normalized:
         return default
@@ -40,9 +41,13 @@ def solution_domain(solution: dict[str, Any]) -> SolutionDomain:
     )
     scope_text = str(raw_scope or "").strip().lower()
     scope = (
-        normalize_domain(raw_scope)
-        if scope_text and scope_text in _BATCH_SCOPE_VALUES
-        else None
+        "land"
+        if scope_text in _SIRAP_SCOPE_VALUES
+        else (
+            normalize_domain(raw_scope)
+            if scope_text and scope_text in _BATCH_SCOPE_VALUES
+            else None
+        )
     )
 
     if domain is not None and scope is not None and domain != scope:
@@ -61,7 +66,7 @@ def solution_domain(solution: dict[str, Any]) -> SolutionDomain:
 
 
 def is_batch_solution(solution: dict[str, Any]) -> bool:
-    """Return whether a manifest solution belongs to the land/marine batch."""
+    """Return whether a manifest solution belongs to a supported metric batch."""
     scope = str(solution.get("scope") or "").strip().lower()
     if scope not in _BATCH_SCOPE_VALUES:
         return False

@@ -34,12 +34,8 @@ service cloud.firestore {
 
     function isSirapId(value) {
       return value in [
-        'caribe',
-        'pacifico',
-        'andes-occidentales',
-        'andes-nororientales',
         'orinoquia',
-        'amazonia'
+        'eje-cafetero'
       ];
     }
 
@@ -47,12 +43,8 @@ service cloud.firestore {
       return value is list
         && value.size() <= 6
         && value.toSet().hasOnly([
-          'caribe',
-          'pacifico',
-          'andes-occidentales',
-          'andes-nororientales',
           'orinoquia',
-          'amazonia'
+          'eje-cafetero'
         ]);
     }
 
@@ -237,6 +229,33 @@ service cloud.firestore {
         && isOptionalString(request.resource.data, 'updatedBy');
     }
 
+    function validSelfProvisionedUser(uid) {
+      return request.resource.data.keys().hasOnly(userRecordFields())
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.displayName is string
+        && request.resource.data.status == 'active'
+        && request.resource.data.role == 'authorized_viewer'
+        && request.resource.data.tier == 2
+        && request.resource.data.isAdmin == false
+        && request.resource.data.isSuperAdmin == false
+        && request.resource.data.allowedSirapIds == []
+        && request.resource.data.administeredSirapIds == []
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validDirectoryRecord(uid) {
+      return request.resource.data.keys().hasOnly([
+          'uid', 'email', 'displayName', 'status', 'updatedAt'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.email is string
+        && request.resource.data.displayName is string
+        && request.resource.data.status == 'active'
+        && request.resource.data.updatedAt == request.time;
+    }
+
     function validSirapAdminUserUpdate() {
       return isSirapAdministrator()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -400,7 +419,8 @@ service cloud.firestore {
         || hasOverlappingSirapAccess(resource.data);
       allow list: if isSuperAdmin()
         || hasOverlappingSirapAccess(resource.data);
-      allow create: if isSuperAdmin() && validUserRecord(uid);
+      allow create: if (isSuperAdmin() && validUserRecord(uid))
+        || (isSelf(uid) && validSelfProvisionedUser(uid));
       allow update: if (isSuperAdmin() && validUserRecord(uid))
         || validSirapAdminUserUpdate();
       allow delete: if false;
@@ -424,6 +444,14 @@ service cloud.firestore {
           && request.resource.data.updatedAt is string;
         allow delete: if isSelf(uid);
       }
+    }
+
+    match /userDirectory/{uid} {
+      allow get: if isSelf(uid) || isSuperAdmin() || isSirapAdministrator();
+      allow list: if isSuperAdmin() || isSirapAdministrator();
+      allow create: if (isSelf(uid) || isSuperAdmin()) && validDirectoryRecord(uid);
+      allow update: if false;
+      allow delete: if false;
     }
 
     match /sirapAccessRequests/{requestId} {
