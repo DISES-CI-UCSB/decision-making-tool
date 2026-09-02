@@ -69,8 +69,11 @@ describe('AOI ecosystems utilities', () => {
         ecosystemAreaKm2: 10,
         ecosystemSharePercent: null,
         nationalClassPercent: null,
+        sirapClassPercent: null,
         solutionCoverageKm2: 4,
         solutionCoveragePercent: 40,
+        remainingCoverageKm2: 6,
+        remainingCoveragePercent: 60,
         preExistingCoverageKm2: 0,
         newPrioritizrCoverageKm2: 4,
         preExistingPercent: 0,
@@ -127,9 +130,64 @@ describe('AOI ecosystems utilities', () => {
       nationalClassPercent: 20,
       solutionCoverageKm2: 5,
       solutionCoveragePercent: 50,
+      remainingCoverageKm2: 5,
+      remainingCoveragePercent: 50,
       preExistingPercent: 20,
       newPrioritizrPercent: 30,
     });
+  });
+
+  it('keeps national and SIRAP extent contexts separate for regional AOIs', () => {
+    const document = buildV2MecDocument();
+    const sirapDocument: MecCompactV2Document = {
+      ...buildV2MecDocument(),
+      geographyLevel: 'national',
+      scopeCatalog: [['colombia', 'Colombia']],
+      rows: [[0, 0, 40, 10, 15]],
+    };
+    const nationalAreas = new Map([['broadEcosystem\u0000Forest', 100]]);
+
+    expect(
+      buildMecCoverageRows(document, 0, 'broadEcosystem', sirapDocument, 'sirap', nationalAreas)[0],
+    ).toMatchObject({
+      nationalClassPercent: 10,
+      sirapClassPercent: 25,
+    });
+  });
+
+  it('uses the active SIRAP scope and excludes zero-extent MEC rows', () => {
+    const document: MecCompactV2Document = {
+      ...buildV2MecDocument(),
+      classCatalog: [
+        [0, 'broadEcosystem:forest', 'Forest'],
+        [0, 'broadEcosystem:wetland', 'Wetland'],
+      ],
+      rows: [
+        [0, 0, 10, 2, 3],
+        [0, 1, 0, 0, 0],
+      ],
+    };
+    const sirapDocument: MecCompactV2Document = {
+      ...buildV2MecDocument(),
+      geographyLevel: 'siraps',
+      scopeCatalog: [
+        ['sirap-a', 'SIRAP A'],
+        ['sirap-b', 'SIRAP B'],
+      ],
+      rows: [
+        [0, 0, 40, 10, 15],
+        [1, 0, 25, 8, 10],
+      ],
+    };
+
+    expect(
+      buildMecCoverageRows(document, 0, 'broadEcosystem', sirapDocument, 'sirap', null, 1),
+    ).toEqual([
+      expect.objectContaining({
+        label: 'Forest',
+        sirapClassPercent: 40,
+      }),
+    ]);
   });
 
   it('uses Mesa rows exclusively when a custom AOI has an active solution', () => {

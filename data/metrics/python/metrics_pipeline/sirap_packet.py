@@ -201,6 +201,7 @@ def regional_species_accumulator(
     selected = raster.selected_mask.ravel()
     pre_existing = raster.pre_existing_mask.ravel()
     new_prioritizr = raster.new_prioritizr_mask.ravel()
+    solution_valid = raster.solution_data_valid_mask.ravel()
     area_m2 = raster.pixel_area_km2_per_row * 1_000_000.0
     for binding in matrices:
         if binding["gridSha256"] != packet_grid_sha256:
@@ -263,6 +264,7 @@ def regional_species_accumulator(
                 selected=selected,
                 pre_existing=pre_existing,
                 new_prioritizr=new_prioritizr,
+                solution_valid=solution_valid,
                 boundary_indexes=boundary_indexes,
             )
             accumulator.species_processed += 1
@@ -304,6 +306,7 @@ def _record_species_in_chunks(
     selected: np.ndarray,
     pre_existing: np.ndarray,
     new_prioritizr: np.ndarray,
+    solution_valid: np.ndarray,
     boundary_indexes: dict[str, AnyBoundaryIndex],
 ) -> bool:
     national = np.zeros(4, dtype=np.float64)
@@ -321,6 +324,7 @@ def _record_species_in_chunks(
             raise SparseFormatError(
                 f"SMSP entry {species_name!r} contains an out-of-grid cell index."
             )
+        cells = cells[solution_valid[cells]]
         has_cells = has_cells or bool(cells.size)
         weights = area_m2[cells // raster_width]
         selected_cells = selected[cells]

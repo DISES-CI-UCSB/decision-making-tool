@@ -303,7 +303,7 @@ def test_packet_smsp_fans_out_scope_presence_and_coverage(tmp_path, monkeypatch)
             "shape": [2, 2],
             "pixel_area_km2": 1,
             "selected": [[True, False], [False, True]],
-            "valid": [[True, True], [True, True]],
+            "valid": [[True, False], [True, True]],
         }
     )
     metadata = SparseMetadata(
@@ -405,6 +405,8 @@ def test_packet_smsp_fans_out_scope_presence_and_coverage(tmp_path, monkeypatch)
         ("national", "Test species"),
         ("departments", "Test species"),
     ]
+    assert recorded[0][2:] == (1_000_000.0, 1_000_000.0)
+    assert recorded[1][2:] == ([1_000_000.0, 0.0], [1_000_000.0, 0.0])
 
 
 def test_packet_smsp_rejects_checksum_mismatch(tmp_path):

@@ -390,7 +390,10 @@
           "nationalNewSolutionCoverage": "Cobertura recién priorizada del escenario del área del ecosistema",
           "nationalTotalCoverage": "Cobertura total del escenario del área del ecosistema",
           "nationalModeledRange": "Rango modelado nacional",
+          "sirapModeledRange": "Rango modelado dentro de este SIRAP",
+          "ofNationalModeledRange": "{{percent}} del rango modelado nacional",
           "nationalEcosystemTypeArea": "Área nacional del tipo de ecosistema",
+          "sirapEcosystemTypeArea": "Extensión del ecosistema dentro de este SIRAP",
           "solutionCoverageGroup": "Cobertura del escenario",
           "nationalPreExistingCoverageShort": "Preexistente",
           "nationalNewSolutionCoverageShort": "Recién priorizada",
@@ -408,13 +411,21 @@
             "status": "¿La cobertura del escenario alcanza la meta configurada para esta especie?",
             "checkpoints": "¿La cobertura del escenario alcanzó los niveles de referencia de 17% y 30% para esta especie?",
             "nationalModeledRange": "¿Cuántos kilómetros cuadrados del rango modelado de esta especie están alineados dentro de Colombia y se usan como denominador para estos porcentajes de cobertura?",
+            "sirapModeledRange": "¿Cuántos kilómetros cuadrados del rango modelado de esta especie se encuentran dentro de este SIRAP y qué proporción representan de su rango modelado nacional?",
             "nationalSpeciesPreExistingCoverage": "¿Qué porcentaje y área del rango modelado nacional de esta especie están cubiertos por áreas preexistentes del escenario?",
             "nationalSpeciesNewSolutionCoverage": "¿Qué porcentaje y área del rango modelado nacional de esta especie están cubiertos por áreas recién priorizadas del escenario?",
             "nationalSpeciesTotalCoverage": "¿Qué porcentaje y área del rango modelado nacional de esta especie están cubiertos por el escenario completa?",
+            "sirapSpeciesPreExistingCoverage": "¿Qué porcentaje y área del rango modelado de esta especie dentro del SIRAP están cubiertos por áreas de conservación existentes?",
+            "sirapSpeciesNewSolutionCoverage": "¿Qué porcentaje y área del rango modelado de esta especie dentro del SIRAP están cubiertos por áreas recién priorizadas?",
+            "sirapSpeciesTotalCoverage": "¿Qué porcentaje y área del rango modelado de esta especie dentro del SIRAP están cubiertos por el escenario completo?",
             "nationalEcosystemTypeArea": "¿Cuántos kilómetros cuadrados de este tipo de ecosistema están cartografiados a nivel nacional?",
+            "sirapEcosystemTypeArea": "¿Cuántos kilómetros cuadrados de este tipo de ecosistema están cartografiados dentro de este SIRAP?",
             "nationalPreExistingCoverage": "¿Qué porcentaje y área de este ecosistema está cubierto por áreas preexistentes del escenario a nivel nacional?",
             "nationalNewSolutionCoverage": "¿Qué porcentaje y área de este ecosistema está cubierto por áreas recién priorizadas del escenario a nivel nacional?",
             "nationalTotalCoverage": "¿Qué porcentaje y área de este ecosistema está cubierto por el escenario a nivel nacional?",
+            "sirapPreExistingCoverage": "¿Qué porcentaje y área de este ecosistema dentro del SIRAP están cubiertos por áreas de conservación existentes?",
+            "sirapNewSolutionCoverage": "¿Qué porcentaje y área de este ecosistema dentro del SIRAP están cubiertos por áreas recién priorizadas?",
+            "sirapTotalCoverage": "¿Qué porcentaje y área de este ecosistema dentro del SIRAP están cubiertos por el escenario completo?",
             "nationalTarget": "¿Qué meta de cobertura nacional se configuró para este ecosistema?",
             "nationalStatus": "¿La cobertura nacional del escenario alcanza la meta configurada para este ecosistema?",
             "nationalCheckpoints": "¿La cobertura nacional del escenario alcanzó los niveles de referencia de 17% y 30% para este ecosistema?"
@@ -649,17 +660,21 @@
           "aoiPresence": "Presencia en el AOI",
           "coverageOfRangeInsideAoi": "Cobertura del rango de especies en el AOI",
           "rangeInAoi": "Rango de la especie en el AOI",
+          "rangeInSirapAoi": "Rango en el AOI · contexto nacional y del SIRAP",
           "solutionCoverage": "Cobertura total del escenario del rango de la especie en el AOI",
           "preExistingCoverage": "Cobertura preexistente del escenario del rango de la especie en el AOI",
           "newCoverage": "Cobertura recién priorizada del rango de la especie en el AOI",
           "columnQuestions": {
             "species": "¿Qué rango modelado de especie describe esta fila?",
             "rangeInAoi": "¿Qué parte del rango nacional modelado de la especie se encuentra dentro del AOI?",
+            "rangeInSirapAoi": "¿Qué parte del rango modelado de la especie se encuentra en la intersección AOI–SIRAP, como proporción de su rango nacional y de su rango dentro de este SIRAP?",
             "solutionCoverage": "¿Qué porcentaje del rango modelado de la especie dentro del AOI está cubierto por el escenario?",
             "preExistingCoverage": "¿Qué porcentaje del rango modelado de la especie dentro del AOI se incorporó al escenario como cobertura preexistente?",
             "newCoverage": "¿Qué porcentaje del rango modelado de la especie dentro del AOI fue seleccionado por el nuevo análisis de priorización?"
           },
           "ofNationalModeledRange": "Porcentaje del rango modelado nacional de la especie",
+          "ofSirapModeledRange": "{{percent}} del rango dentro de este SIRAP",
+          "remainingCoverage": "{{percent}} permanece sin cobertura",
           "ofSpeciesRangeInsideAoi": "Porcentaje del rango modelado de esta especie dentro del AOI",
           "ofMesaCellsInsideAoi": "Porcentaje de celdas de planificación ocupadas dentro del AOI incluidas en el escenario",
           "mesaCellCount": "{{held}} de {{total}} celdas de planificación",
@@ -826,6 +841,7 @@
           "totalCoverage": "Cobertura total del escenario del tipo de ecosistema en el AOI",
           "preExistingCoverage": "Cobertura preexistente del escenario del área del ecosistema en el AOI",
           "newCoverage": "Cobertura recién priorizada del área del ecosistema en el AOI",
+          "remainingCoverage": "{{percent}} permanece sin cobertura",
           "columnQuestions": {
             "category": "¿Qué clasificación de ecosistema cartografiada describe esta fila?",
             "areaInsideAoi": "¿Cuántos kilómetros cuadrados de este tipo de ecosistema se encuentran dentro del AOI?",
@@ -834,6 +850,14 @@
             "totalCoverage": "¿Qué porcentaje del área de este tipo de ecosistema dentro del AOI está cubierto por el escenario?",
             "preExistingCoverage": "¿Qué porcentaje del área de este tipo de ecosistema dentro del AOI se incorporó al escenario como cobertura preexistente?",
             "newCoverage": "¿Qué porcentaje del área de este tipo de ecosistema dentro del AOI fue seleccionado por el nuevo análisis de priorización?"
+          },
+          "sirap": {
+            "extentContext": "Extensión nacional y del SIRAP representada en el AOI",
+            "ofNationalExtent": "de la extensión nacional",
+            "ofSirapExtent": "de la extensión dentro de este SIRAP",
+            "columnQuestions": {
+              "extentContext": "¿Qué porcentaje de la extensión nacional de este tipo de ecosistema y de su extensión dentro de este SIRAP se encuentra en la intersección AOI–SIRAP?"
+            }
           },
           "customMesa": {
             "availableArea": "Celdas de planificación de 1 km del ecosistema en el AOI",

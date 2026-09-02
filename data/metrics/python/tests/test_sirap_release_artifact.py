@@ -67,6 +67,7 @@ def test_runtime_solution_binds_only_explicit_sirap_goal_summary():
         "pctTargetsMet": 75,
         "coverageRowCount": 4,
     }
+    assert runtime["capabilities"] == {"aoiCoverageMetrics": "v2"}
     assert set(
         runtime["precomputedMetricUrls"]["speciesGoalsByGeography"]
     ) == {"siraps", "departments", "municipalities"}

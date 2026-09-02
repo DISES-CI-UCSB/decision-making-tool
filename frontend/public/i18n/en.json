@@ -390,7 +390,10 @@
           "nationalNewSolutionCoverage": "Candidate conservation-area coverage of ecosystem area",
           "nationalTotalCoverage": "Total scenario coverage of ecosystem area",
           "nationalModeledRange": "National modeled range",
+          "sirapModeledRange": "Modeled range within this SIRAP",
+          "ofNationalModeledRange": "{{percent}} of national modeled range",
           "nationalEcosystemTypeArea": "National ecosystem type area",
+          "sirapEcosystemTypeArea": "Ecosystem extent within this SIRAP",
           "solutionCoverageGroup": "Scenario coverage",
           "nationalPreExistingCoverageShort": "Pre-existing",
           "nationalNewSolutionCoverageShort": "Candidate",
@@ -408,13 +411,21 @@
             "status": "Does the scenario coverage meet the configured target for this species?",
             "checkpoints": "Has scenario coverage reached the 17% and 30% reference levels for this species?",
             "nationalModeledRange": "How many square kilometers of this species’ modeled range are aligned within Colombia and used as the denominator for these coverage percentages?",
+            "sirapModeledRange": "How many square kilometers of this species’ modeled range occur within this SIRAP, and what share of its national modeled range is that?",
             "nationalSpeciesPreExistingCoverage": "What percentage and area of this species’ national modeled range are within existing conservation areas?",
             "nationalSpeciesNewSolutionCoverage": "What percentage and area of this species’ national modeled range are within candidate conservation areas?",
             "nationalSpeciesTotalCoverage": "What percentage and area of this species’ national modeled range are covered by the complete scenario?",
+            "sirapSpeciesPreExistingCoverage": "What percentage and area of this species’ modeled range within the SIRAP are within existing conservation areas?",
+            "sirapSpeciesNewSolutionCoverage": "What percentage and area of this species’ modeled range within the SIRAP are within candidate conservation areas?",
+            "sirapSpeciesTotalCoverage": "What percentage and area of this species’ modeled range within the SIRAP are covered by the complete scenario?",
             "nationalEcosystemTypeArea": "How many square kilometers of this ecosystem type are mapped nationally?",
+            "sirapEcosystemTypeArea": "How many square kilometers of this ecosystem type are mapped within this SIRAP?",
             "nationalPreExistingCoverage": "What percentage and area of this ecosystem is within existing conservation areas nationally?",
             "nationalNewSolutionCoverage": "What percentage and area of this ecosystem is within candidate conservation areas nationally?",
             "nationalTotalCoverage": "What percentage and area of this ecosystem is covered by the scenario nationally?",
+            "sirapPreExistingCoverage": "What percentage and area of this ecosystem within the SIRAP are within existing conservation areas?",
+            "sirapNewSolutionCoverage": "What percentage and area of this ecosystem within the SIRAP are within candidate conservation areas?",
+            "sirapTotalCoverage": "What percentage and area of this ecosystem within the SIRAP are covered by the complete scenario?",
             "nationalTarget": "What national coverage target was configured for this ecosystem?",
             "nationalStatus": "Does the national scenario coverage meet the configured target for this ecosystem?",
             "nationalCheckpoints": "Has national scenario coverage reached the 17% and 30% reference levels for this ecosystem?"
@@ -732,17 +743,21 @@
           "aoiPresence": "AOI presence",
           "coverageOfRangeInsideAoi": "Species range coverage in AOI",
           "rangeInAoi": "Species range in AOI",
+          "rangeInSirapAoi": "Species range in AOI · national and SIRAP context",
           "solutionCoverage": "Total scenario coverage of species range in AOI",
           "preExistingCoverage": "Existing conservation-area coverage of species range in AOI",
           "newCoverage": "Candidate conservation-area coverage of species range in AOI",
           "columnQuestions": {
             "species": "Which modeled species range does this row describe?",
             "rangeInAoi": "How much of the species’ modeled national range falls inside the AOI?",
+            "rangeInSirapAoi": "How much of the species’ modeled range falls inside the AOI–SIRAP intersection, as a share of both its national range and its range within this SIRAP?",
             "solutionCoverage": "What percentage of the species’ modeled range inside the AOI is covered by the scenario?",
             "preExistingCoverage": "What percentage of the species’ modeled range inside the AOI is within existing conservation areas?",
             "newCoverage": "What percentage of the species’ modeled range inside the AOI was newly selected by the prioritization analysis?"
           },
           "ofNationalModeledRange": "Percentage of the species’ national modeled range",
+          "ofSirapModeledRange": "{{percent}} of range within this SIRAP",
+          "remainingCoverage": "{{percent}} remains uncovered",
           "ofSpeciesRangeInsideAoi": "Percentage of this species’ modeled range inside the AOI",
           "ofMesaCellsInsideAoi": "Percentage of occupied planning cells inside the AOI held by the scenario",
           "mesaCellCount": "{{held}} of {{total}} planning cells",
@@ -909,6 +924,7 @@
           "totalCoverage": "Total scenario coverage of ecosystem type in AOI",
           "preExistingCoverage": "Existing conservation-area coverage of ecosystem area in AOI",
           "newCoverage": "Candidate conservation-area coverage of ecosystem area in AOI",
+          "remainingCoverage": "{{percent}} remains uncovered",
           "columnQuestions": {
             "category": "Which mapped ecosystem classification does this row describe?",
             "areaInsideAoi": "How many square kilometers of this ecosystem type occur inside the AOI?",
@@ -917,6 +933,14 @@
             "totalCoverage": "What percentage of this ecosystem type’s area inside the AOI is covered by the scenario?",
             "preExistingCoverage": "What percentage of this ecosystem type’s area inside the AOI is within existing conservation areas?",
             "newCoverage": "What percentage of this ecosystem type’s area inside the AOI was newly selected by the prioritization analysis?"
+          },
+          "sirap": {
+            "extentContext": "National and SIRAP extent represented in AOI",
+            "ofNationalExtent": "of national extent",
+            "ofSirapExtent": "of extent within this SIRAP",
+            "columnQuestions": {
+              "extentContext": "What percentage of this ecosystem type’s national extent and its extent within this SIRAP occur inside the AOI–SIRAP intersection?"
+            }
           },
           "customMesa": {
             "availableArea": "1 km ecosystem planning cells in AOI",

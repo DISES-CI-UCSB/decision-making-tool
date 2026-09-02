@@ -306,7 +306,11 @@ def runtime_solution(
         "blobPath": blob_path(release_id, raster_path),
         "rasterSha256": entry["rasterSha256"],
         "generatedAt": solution.get("generatedAt"),
-        "capabilities": {},
+        "capabilities": (
+            {"aoiCoverageMetrics": "v2"}
+            if include_species_goals and include_mec
+            else {}
+        ),
         "precomputedMetricUrls": precomputed_urls,
         "finderInputs": {
             "domain": "land",

@@ -1874,11 +1874,7 @@ describe('PanelSwitcherComponent', () => {
     expect(solutionGoalsLoaderSpy.loadGoals).toHaveBeenCalledWith(solution.id);
 
     speciesCoverageButton.click();
-    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
-      solution.id,
-      'siraps',
-      'eje-cafetero',
-    );
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
 
     (
       fixture.componentInstance as unknown as {
@@ -2612,6 +2608,62 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#conservation-goals-modal-virtual-heading-checkpoints'),
     ).not.toBeNull();
+  });
+
+  it('uses SIRAP additional-coverage column order without changing national order', () => {
+    const nationalFixture = TestBed.createComponent(PanelSwitcherComponent);
+    nationalFixture.detectChanges();
+    const nationalComponent = nationalFixture.componentInstance as unknown as {
+      goalsModalCoverageMetrics(): { id: string }[];
+    };
+    expect(nationalComponent.goalsModalCoverageMetrics().map((metric) => metric.id)).toEqual([
+      'range-in-aoi',
+      'solution-coverage',
+      'pre-existing-coverage',
+      'new-coverage',
+    ]);
+
+    const solution = buildTestSolution();
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      scope: 'sirap',
+      sirapId: 'eje-cafetero',
+      capabilities: { aoiCoverageMetrics: 'v2' },
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    const sirapFixture = TestBed.createComponent(PanelSwitcherComponent);
+    sirapFixture.detectChanges();
+    const sirapComponent = sirapFixture.componentInstance as unknown as {
+      goalsModalCoverageMetrics(): { id: string }[];
+      toSpeciesGoalsModalRow(
+        record: HydratedSpeciesGoalsRecord,
+        rangeInSirapAreaKm2: number | null,
+      ): {
+        rangeInSirapPercent: number | null;
+        remainingRelativeHeld: number | null;
+      };
+    };
+    expect(sirapComponent.goalsModalCoverageMetrics().map((metric) => metric.id)).toEqual([
+      'range-in-aoi',
+      'pre-existing-coverage',
+      'new-coverage',
+      'solution-coverage',
+    ]);
+    expect(
+      sirapComponent.toSpeciesGoalsModalRow(
+        {
+          ...buildHydratedSpeciesRecords(buildGoalsDocument())[0]!,
+          range_in_aoi_area_km2: 10,
+          solution_covered_in_aoi_area_km2: 3,
+        },
+        40,
+      ),
+    ).toMatchObject({
+      rangeInSirapPercent: 0.25,
+      remainingRelativeHeld: 0.7,
+    });
+    nationalFixture.destroy();
+    sirapFixture.destroy();
   });
 
   it('bounds a large species breakdown with the virtual viewport', async () => {

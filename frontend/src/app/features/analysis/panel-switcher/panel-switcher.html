@@ -4744,8 +4744,16 @@
                     >
                       <app-table-header-tooltip
                         idBase="conservation-goals-modal-national-virtual-heading-range"
-                        labelKey="analysis.overview.goalsWidget.modal.nationalModeledRange"
-                        questionKey="analysis.overview.goalsWidget.modal.columnQuestions.nationalModeledRange"
+                        [labelKey]="
+                          isSirapPrimaryGoalsModal()
+                            ? 'analysis.overview.goalsWidget.modal.sirapModeledRange'
+                            : 'analysis.overview.goalsWidget.modal.nationalModeledRange'
+                        "
+                        [questionKey]="
+                          isSirapPrimaryGoalsModal()
+                            ? 'analysis.overview.goalsWidget.modal.columnQuestions.sirapModeledRange'
+                            : 'analysis.overview.goalsWidget.modal.columnQuestions.nationalModeledRange'
+                        "
                         align="end"
                       ></app-table-header-tooltip>
                     </span>
@@ -4822,16 +4830,19 @@
                           id: 'pre-existing-coverage',
                           label: 'nationalPreExistingCoverageShort',
                           question: 'nationalSpeciesPreExistingCoverage',
+                          sirapQuestion: 'sirapSpeciesPreExistingCoverage',
                         },
                         {
                           id: 'new-coverage',
                           label: 'nationalNewSolutionCoverageShort',
                           question: 'nationalSpeciesNewSolutionCoverage',
+                          sirapQuestion: 'sirapSpeciesNewSolutionCoverage',
                         },
                         {
                           id: 'total-coverage',
                           label: 'nationalTotalCoverageShort',
                           question: 'nationalSpeciesTotalCoverage',
+                          sirapQuestion: 'sirapSpeciesTotalCoverage',
                         },
                       ];
                       track heading.id
@@ -4848,7 +4859,7 @@
                           [labelKey]="'analysis.overview.goalsWidget.modal.' + heading.label"
                           [questionKey]="
                             'analysis.overview.goalsWidget.modal.columnQuestions.' +
-                            heading.question
+                            (isSirapPrimaryGoalsModal() ? heading.sirapQuestion : heading.question)
                           "
                           align="end"
                         ></app-table-header-tooltip>
@@ -4896,12 +4907,9 @@
                   </span>
                   @if (knownAoiCoverageMetricsV2()) {
                     @for (
-                      metricId of [
-                        'rangeInAoi',
-                        'solutionCoverage',
-                        'preExistingCoverage',
-                        'newCoverage',
-                      ];
+                      metricId of isSirapScopedSolution()
+                        ? ['rangeInAoi', 'preExistingCoverage', 'newCoverage', 'solutionCoverage']
+                        : ['rangeInAoi', 'solutionCoverage', 'preExistingCoverage', 'newCoverage'];
                       track metricId
                     ) {
                       <span
@@ -4911,9 +4919,15 @@
                       >
                         <app-table-header-tooltip
                           [idBase]="'conservation-goals-modal-virtual-heading-' + metricId"
-                          [labelKey]="'analysis.aoi.customProfile.species.' + metricId"
+                          [labelKey]="
+                            isSirapScopedSolution() && metricId === 'rangeInAoi'
+                              ? 'analysis.aoi.customProfile.species.rangeInSirapAoi'
+                              : 'analysis.aoi.customProfile.species.' + metricId
+                          "
                           [questionKey]="
-                            'analysis.aoi.customProfile.species.columnQuestions.' + metricId
+                            isSirapScopedSolution() && metricId === 'rangeInAoi'
+                              ? 'analysis.aoi.customProfile.species.columnQuestions.rangeInSirapAoi'
+                              : 'analysis.aoi.customProfile.species.columnQuestions.' + metricId
                           "
                         ></app-table-header-tooltip>
                       </span>
@@ -5043,6 +5057,18 @@
                         role="cell"
                       >
                         {{ formatMecEcosystemArea(row.rangeInAoiAreaKm2) }}
+                        @if (isSirapPrimaryGoalsModal()) {
+                          <span
+                            [id]="'conservation-goals-modal-national-range-context-' + rowIndex"
+                            class="text-[10px] text-slate-500"
+                          >
+                            {{
+                              'analysis.overview.goalsWidget.modal.ofNationalModeledRange'
+                                | translate
+                                  : { percent: formatGoalsModalPercent(row.rangeInAoiPercent) }
+                            }}
+                          </span>
+                        }
                       </span>
                       @for (metric of goalsModalNationalCoverageMetrics; track metric.id) {
                         <span
@@ -5097,10 +5123,24 @@
                           >
                             {{ formatMecEcosystemArea(row.solutionCoverageAreaKm2) }}
                           </span>
+                          @if (isSirapPrimaryGoalsModal() && row.remainingRelativeHeld !== null) {
+                            <span
+                              [id]="'conservation-goals-modal-remaining-' + rowIndex"
+                              class="text-[10px] text-slate-500"
+                            >
+                              {{
+                                'analysis.aoi.customProfile.species.remainingCoverage'
+                                  | translate
+                                    : {
+                                        percent: formatGoalsModalPercent(row.remainingRelativeHeld),
+                                      }
+                              }}
+                            </span>
+                          }
                         </span>
                       </span>
                     } @else if (knownAoiCoverageMetricsV2()) {
-                      @for (metric of goalsModalCoverageMetrics; track metric.id) {
+                      @for (metric of goalsModalCoverageMetrics(); track metric.id) {
                         <span
                           [id]="'conservation-goals-modal-' + metric.id + '-' + rowIndex"
                           class="grid content-center px-3 py-1 tabular-nums text-slate-700"
@@ -5118,6 +5158,42 @@
                           >
                             {{ formatMecEcosystemArea(row[metric.areaKey]) }}
                           </span>
+                          @if (
+                            isSirapScopedSolution() &&
+                            metric.id === 'range-in-aoi' &&
+                            row.rangeInSirapPercent !== null
+                          ) {
+                            <span
+                              [id]="'conservation-goals-modal-range-in-sirap-percent-' + rowIndex"
+                              class="text-[10px] text-slate-500"
+                            >
+                              {{
+                                'analysis.aoi.customProfile.species.ofSirapModeledRange'
+                                  | translate
+                                    : {
+                                        percent: formatGoalsModalPercent(row.rangeInSirapPercent),
+                                      }
+                              }}
+                            </span>
+                          }
+                          @if (
+                            isSirapScopedSolution() &&
+                            metric.id === 'solution-coverage' &&
+                            row.remainingRelativeHeld !== null
+                          ) {
+                            <span
+                              [id]="'conservation-goals-modal-remaining-' + rowIndex"
+                              class="text-[10px] text-slate-500"
+                            >
+                              {{
+                                'analysis.aoi.customProfile.species.remainingCoverage'
+                                  | translate
+                                    : {
+                                        percent: formatGoalsModalPercent(row.remainingRelativeHeld),
+                                      }
+                              }}
+                            </span>
+                          }
                         </span>
                       }
                     } @else {
@@ -5261,8 +5337,16 @@
                     >
                       <app-table-header-tooltip
                         idBase="conservation-goals-modal-heading-ecosystem-area"
-                        labelKey="analysis.overview.goalsWidget.modal.nationalEcosystemTypeArea"
-                        questionKey="analysis.overview.goalsWidget.modal.columnQuestions.nationalEcosystemTypeArea"
+                        [labelKey]="
+                          isSirapPrimaryGoalsModal()
+                            ? 'analysis.overview.goalsWidget.modal.sirapEcosystemTypeArea'
+                            : 'analysis.overview.goalsWidget.modal.nationalEcosystemTypeArea'
+                        "
+                        [questionKey]="
+                          isSirapPrimaryGoalsModal()
+                            ? 'analysis.overview.goalsWidget.modal.columnQuestions.sirapEcosystemTypeArea'
+                            : 'analysis.overview.goalsWidget.modal.columnQuestions.nationalEcosystemTypeArea'
+                        "
                         align="end"
                       ></app-table-header-tooltip>
                     </th>
@@ -5323,16 +5407,19 @@
                           id: 'pre-existing-coverage',
                           label: 'nationalPreExistingCoverageShort',
                           question: 'nationalPreExistingCoverage',
+                          sirapQuestion: 'sirapPreExistingCoverage',
                         },
                         {
                           id: 'new-coverage',
                           label: 'nationalNewSolutionCoverageShort',
                           question: 'nationalNewSolutionCoverage',
+                          sirapQuestion: 'sirapNewSolutionCoverage',
                         },
                         {
                           id: 'coverage',
                           label: 'nationalTotalCoverageShort',
                           question: 'nationalTotalCoverage',
+                          sirapQuestion: 'sirapTotalCoverage',
                         },
                       ];
                       track heading.id
@@ -5347,7 +5434,7 @@
                           [labelKey]="'analysis.overview.goalsWidget.modal.' + heading.label"
                           [questionKey]="
                             'analysis.overview.goalsWidget.modal.columnQuestions.' +
-                            heading.question
+                            (isSirapPrimaryGoalsModal() ? heading.sirapQuestion : heading.question)
                           "
                           align="end"
                         ></app-table-header-tooltip>
@@ -5515,6 +5602,20 @@
                           >
                             {{ formatMecEcosystemArea(row.solutionCoverageAreaKm2) }}
                           </span>
+                          @if (isSirapPrimaryGoalsModal() && row.remainingRelativeHeld !== null) {
+                            <span
+                              [id]="'conservation-goals-modal-ecosystem-remaining-' + $index"
+                              class="text-[10px] text-slate-500"
+                            >
+                              {{
+                                'analysis.aoi.mec.modal.remainingCoverage'
+                                  | translate
+                                    : {
+                                        percent: formatGoalsModalPercent(row.remainingRelativeHeld),
+                                      }
+                              }}
+                            </span>
+                          }
                         </span>
                       </div>
                     </td>
@@ -5953,8 +6054,16 @@
                   <th [id]="'aoi-mec-modal-heading-' + heading.id" class="top-[31px]" scope="col">
                     <app-table-header-tooltip
                       [idBase]="'aoi-mec-modal-heading-' + heading.id"
-                      [labelKey]="getMecModalCopyKey(heading.labelKey)"
-                      [questionKey]="getMecModalCopyKey(heading.questionKey)"
+                      [labelKey]="
+                        isSirapScopedSolution() && heading.id === 'national-share'
+                          ? 'analysis.aoi.mec.modal.sirap.extentContext'
+                          : getMecModalCopyKey(heading.labelKey)
+                      "
+                      [questionKey]="
+                        isSirapScopedSolution() && heading.id === 'national-share'
+                          ? 'analysis.aoi.mec.modal.sirap.columnQuestions.extentContext'
+                          : getMecModalCopyKey(heading.questionKey)
+                      "
                       [align]="heading.align"
                     ></app-table-header-tooltip>
                   </th>
@@ -6002,25 +6111,51 @@
                   <td
                     [id]="'aoi-mec-modal-national-share-' + row.id"
                     [attr.data-label]="
-                      getMecModalCopyKey('analysis.aoi.mec.modal.nationalExtentInsideAoi')
-                        | translate
+                      (isSirapScopedSolution()
+                        ? 'analysis.aoi.mec.modal.sirap.extentContext'
+                        : getMecModalCopyKey('analysis.aoi.mec.modal.nationalExtentInsideAoi')
+                      ) | translate
                     "
                   >
-                    <ng-container
-                      [ngTemplateOutlet]="customMecMeasure"
-                      [ngTemplateOutletContext]="{
-                        areaKm2: row.ecosystemAreaKm2,
-                        cellCount: row.mesaTotalInAoi ?? null,
-                        color: '#64748b',
-                        ecosystemLabel: row.label,
-                        idPrefix: 'aoi-mec-modal-national-share-' + row.id,
-                        labelKey: getMecModalCopyKey(
-                          'analysis.aoi.mec.modal.nationalExtentInsideAoi'
-                        ),
-                        percent: row.nationalClassPercent ?? null,
-                        zeroDenominator: row.mesaNationalTotal === 0,
-                      }"
-                    ></ng-container>
+                    @if (isSirapScopedSolution()) {
+                      <div
+                        [id]="'aoi-mec-modal-extent-context-' + row.id"
+                        class="grid gap-1 text-[10px]"
+                      >
+                        <span [id]="'aoi-mec-modal-national-context-' + row.id">
+                          <strong
+                            [id]="'aoi-mec-modal-national-context-value-' + row.id"
+                            class="text-xs"
+                            >{{ formatMecCoveragePercent(row.nationalClassPercent) }}</strong
+                          >
+                          {{ 'analysis.aoi.mec.modal.sirap.ofNationalExtent' | translate }}
+                        </span>
+                        <span [id]="'aoi-mec-modal-sirap-context-' + row.id">
+                          <strong
+                            [id]="'aoi-mec-modal-sirap-context-value-' + row.id"
+                            class="text-xs"
+                            >{{ formatMecCoveragePercent(row.sirapClassPercent) }}</strong
+                          >
+                          {{ 'analysis.aoi.mec.modal.sirap.ofSirapExtent' | translate }}
+                        </span>
+                      </div>
+                    } @else {
+                      <ng-container
+                        [ngTemplateOutlet]="customMecMeasure"
+                        [ngTemplateOutletContext]="{
+                          areaKm2: row.ecosystemAreaKm2,
+                          cellCount: row.mesaTotalInAoi ?? null,
+                          color: '#64748b',
+                          ecosystemLabel: row.label,
+                          idPrefix: 'aoi-mec-modal-national-share-' + row.id,
+                          labelKey: getMecModalCopyKey(
+                            'analysis.aoi.mec.modal.nationalExtentInsideAoi'
+                          ),
+                          percent: row.nationalClassPercent ?? null,
+                          zeroDenominator: row.mesaNationalTotal === 0,
+                        }"
+                      ></ng-container>
+                    }
                   </td>
                   <td
                     [id]="'aoi-mec-modal-aoi-share-' + row.id"
@@ -6063,6 +6198,20 @@
                           zeroDenominator: row.mesaTotalInAoi === 0,
                         }"
                       ></ng-container>
+                      @if (isSirapScopedSolution() && row.remainingCoveragePercent !== null) {
+                        <span
+                          [id]="'aoi-mec-modal-total-remaining-' + row.id"
+                          class="mt-1 block text-[10px] text-slate-500"
+                        >
+                          {{
+                            'analysis.aoi.mec.modal.remainingCoverage'
+                              | translate
+                                : {
+                                    percent: formatMecCoveragePercent(row.remainingCoveragePercent),
+                                  }
+                          }}
+                        </span>
+                      }
                     } @else {
                       {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
                     }
