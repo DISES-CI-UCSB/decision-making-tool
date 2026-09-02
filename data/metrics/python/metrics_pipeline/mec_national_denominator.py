@@ -87,8 +87,17 @@ def build_document(
         )
         for view_index in range(len(taxonomy.views))
     }
-    if any(total != classified_area for total in per_view_totals.values()):
-        raise AssertionError("Each MEC view must partition the classified national area.")
+    tolerance = max(
+        10 ** (-AREA_DECIMALS) * len(taxonomy.classes),
+        classified_area * 1e-10,
+    )
+    for view_index, view in enumerate(taxonomy.views):
+        view_area = per_view_totals[view_index]
+        if abs(view_area - classified_area) > tolerance:
+            raise AssertionError(
+                f"Ecosystem areas for view '{view.view_id}' sum to {view_area}, "
+                f"not classified area {classified_area}."
+            )
     return {
         "format": FORMAT,
         "releaseId": release_id,

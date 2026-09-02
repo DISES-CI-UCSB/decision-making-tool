@@ -447,6 +447,17 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 component="speciesGoalsCatalog",
             )
         )
+        artifacts.append(
+            copy_release_artifact(
+                source=catalogs[0].with_name(f"{catalogs[0].name}.complete.json"),
+                root=root,
+                relative_path=Path(
+                    "species-goals/catalog/v1/catalog.json.complete.json"
+                ),
+                release_id=args.release_id,
+                component="speciesGoalsCompletion",
+            )
+        )
     if mec_national_denominator is not None:
         denominator = read_json(mec_national_denominator)
         if denominator.get("format") != "mec-national-denominator-v1":
@@ -460,17 +471,6 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 relative_path=Path("mec/v2/national-denominator.mec.json"),
                 release_id=args.release_id,
                 component="mecNationalDenominator",
-            )
-        )
-        artifacts.append(
-            copy_release_artifact(
-                source=catalogs[0].with_name(f"{catalogs[0].name}.complete.json"),
-                root=root,
-                relative_path=Path(
-                    "species-goals/catalog/v1/catalog.json.complete.json"
-                ),
-                release_id=args.release_id,
-                component="speciesGoalsCompletion",
             )
         )
     by_id = {entry["solutionId"]: entry for entry in catalog_entries}
