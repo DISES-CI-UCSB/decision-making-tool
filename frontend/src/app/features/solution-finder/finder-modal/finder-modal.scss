@@ -143,11 +143,6 @@
   outline-offset: 1px;
 }
 
-.finder-inline-help:hover,
-.finder-inline-help:focus-within {
-  z-index: 1000 !important;
-}
-
 @supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
   .finder-fixed-toggle-label {
     text-box-trim: trim-both;
@@ -207,30 +202,51 @@
 }
 
 /*
-  A scrolling container clips descendants regardless of their z-index. Let the
-  target card overflow only while one of its inline tooltips is active, then
-  elevate the card above adjacent workflow columns.
+  Popover overlay tooltips render in the top layer (position: fixed) so they
+  never affect card width, scrollbars, or sibling column layout.
 */
-.finder-targets-card:has(.finder-target-tooltip:hover),
-.finder-targets-card:has(.finder-target-tooltip:focus-within) {
-  position: relative;
-  z-index: 20;
-  overflow: visible;
+.finder-tooltip-overlay {
+  position: fixed;
+  inset: auto;
+  z-index: 10001;
+  width: 20rem;
+  max-width: min(20rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.625;
+  box-shadow:
+    0 10px 15px -3px rgb(15 23 42 / 0.12),
+    0 4px 6px -4px rgb(15 23 42 / 0.08);
+  pointer-events: auto;
 }
 
-.finder-target-tooltip:hover,
-.finder-target-tooltip:focus-within {
-  /*
-    These wrappers also receive Tailwind's static z-20 utility. Override it
-    decisively while active so a later target card and its info trigger cannot
-    paint above the open tooltip.
-  */
-  z-index: 1000 !important;
+.finder-tooltip-overlay:popover-open {
+  z-index: 10001;
 }
 
-.finder-target-tooltip:hover [role='tooltip'],
-.finder-target-tooltip:focus-within [role='tooltip'] {
-  z-index: 1000 !important;
+.finder-tooltip-overlay::before {
+  content: '';
+  position: absolute;
+  top: -0.375rem;
+  left: var(--finder-tooltip-arrow-left, 0.75rem);
+  width: 0.75rem;
+  height: 0.75rem;
+  transform: rotate(45deg);
+  border-top: 1px solid #e2e8f0;
+  border-left: 1px solid #e2e8f0;
+  background-color: #ffffff;
+}
+
+.finder-tooltip-overlay.finder-tooltip-overlay-above::before {
+  top: auto;
+  bottom: -0.375rem;
+  transform: rotate(225deg);
 }
 
 /* Keep 17% / 30% numerals optically centered by cap height. */

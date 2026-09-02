@@ -1745,11 +1745,17 @@ export class PanelSwitcherComponent {
     this.appState.setRightSidebarMode(tab);
   }
 
-  protected showGoalsTooltip(event: Event, domainId: string): void {
+  protected showGoalsTooltip(
+    event: Event,
+    domainId: string,
+    context: 'target' | 'additional' = 'target',
+  ): void {
     const trigger = event.currentTarget as HTMLElement;
-    const tooltip = document.getElementById(
-      `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`,
-    );
+    const tooltipId =
+      context === 'additional'
+        ? `right-sidebar-v3-overview-goals-additional-domain-method-tooltip-${domainId}`
+        : `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`;
+    const tooltip = document.getElementById(tooltipId);
 
     if (!tooltip || typeof tooltip.showPopover !== 'function') {
       return;
@@ -1778,10 +1784,12 @@ export class PanelSwitcherComponent {
     tooltip.classList.toggle('v3-methodology-tooltip-above', opensAbove);
   }
 
-  protected hideGoalsTooltip(domainId: string): void {
-    const tooltip = document.getElementById(
-      `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`,
-    );
+  protected hideGoalsTooltip(domainId: string, context: 'target' | 'additional' = 'target'): void {
+    const tooltipId =
+      context === 'additional'
+        ? `right-sidebar-v3-overview-goals-additional-domain-method-tooltip-${domainId}`
+        : `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`;
+    const tooltip = document.getElementById(tooltipId);
 
     if (tooltip?.matches(':popover-open')) {
       tooltip.hidePopover();

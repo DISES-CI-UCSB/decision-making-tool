@@ -2458,6 +2458,24 @@ describe('PanelSwitcherComponent', () => {
         '#right-sidebar-v3-overview-goals-additional-domain-method-tooltip-strategic-ecosystems',
       )?.textContent,
     ).toContain('strategicRasterDerivedMethod');
+    const strategicLabel = compiled.querySelector(
+      '#right-sidebar-v3-overview-goals-additional-domain-label-strategic-ecosystems',
+    );
+    expect(strategicLabel?.childNodes[0]?.textContent?.trim()).toBe(
+      'analysis.overview.goalsWidget.strategicEcosystems',
+    );
+    expect(
+      compiled
+        .querySelector(
+          '#right-sidebar-v3-overview-goals-additional-domain-method-tooltip-strategic-ecosystems',
+        )
+        ?.classList.contains('v3-methodology-tooltip-overlay'),
+    ).toBe(true);
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-method-tooltip-strategic-ecosystems',
+      )?.getAttribute('popover'),
+    ).toBe('manual');
 
     (
       compiled.querySelector(

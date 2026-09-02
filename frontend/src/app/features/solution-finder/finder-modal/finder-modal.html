@@ -420,7 +420,29 @@
                         [id]="
                           'solution-finder-modal-step1-target-type-help-tooltip-wrap-' + option.id
                         "
-                        class="finder-inline-help finder-target-tooltip group relative z-20 hover:z-100 focus-within:z-100"
+                        class="finder-inline-help"
+                        (mouseenter)="
+                          showFinderTooltip(
+                            $event,
+                            'solution-finder-modal-step1-target-type-help-tooltip-' + option.id
+                          )
+                        "
+                        (mouseleave)="
+                          scheduleHideFinderTooltip(
+                            'solution-finder-modal-step1-target-type-help-tooltip-' + option.id
+                          )
+                        "
+                        (focusin)="
+                          showFinderTooltip(
+                            $event,
+                            'solution-finder-modal-step1-target-type-help-tooltip-' + option.id
+                          )
+                        "
+                        (focusout)="
+                          scheduleHideFinderTooltip(
+                            'solution-finder-modal-step1-target-type-help-tooltip-' + option.id
+                          )
+                        "
                       >
                         <button
                           [id]="
@@ -446,7 +468,14 @@
                         <span
                           [id]="'solution-finder-modal-step1-target-type-help-tooltip-' + option.id"
                           role="tooltip"
-                          class="pointer-events-auto absolute left-0 top-full z-100 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs font-normal leading-relaxed text-slate-100 opacity-0 shadow-xl transition-[opacity,transform] duration-150 ease-out translate-y-1 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 before:absolute before:-top-1.5 before:left-3 before:size-3 before:rotate-45 before:border-l before:border-t before:border-slate-700 before:bg-slate-900 before:content-['']"
+                          popover="manual"
+                          class="finder-tooltip-overlay"
+                          (mouseenter)="cancelHideFinderTooltip()"
+                          (mouseleave)="
+                            scheduleHideFinderTooltip(
+                              'solution-finder-modal-step1-target-type-help-tooltip-' + option.id
+                            )
+                          "
                         >
                           <span
                             [id]="
@@ -540,7 +569,33 @@
                               [id]="
                                 'solution-finder-modal-step1-target-level-rationale-' + option.id
                               "
-                              class="finder-inline-help finder-target-tooltip group relative z-20 normal-case tracking-normal hover:z-100 focus-within:z-100"
+                              class="finder-inline-help normal-case tracking-normal"
+                              (mouseenter)="
+                                showFinderTooltip(
+                                  $event,
+                                  'solution-finder-modal-step1-target-level-rationale-tooltip-' +
+                                    option.id
+                                )
+                              "
+                              (mouseleave)="
+                                scheduleHideFinderTooltip(
+                                  'solution-finder-modal-step1-target-level-rationale-tooltip-' +
+                                    option.id
+                                )
+                              "
+                              (focusin)="
+                                showFinderTooltip(
+                                  $event,
+                                  'solution-finder-modal-step1-target-level-rationale-tooltip-' +
+                                    option.id
+                                )
+                              "
+                              (focusout)="
+                                scheduleHideFinderTooltip(
+                                  'solution-finder-modal-step1-target-level-rationale-tooltip-' +
+                                    option.id
+                                )
+                              "
                             >
                               <button
                                 [id]="
@@ -573,7 +628,15 @@
                                   option.id
                                 "
                                 role="tooltip"
-                                class="pointer-events-auto absolute left-1/2 top-full z-100 mt-2 w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 translate-y-1 rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs font-normal leading-relaxed text-slate-100 opacity-0 shadow-xl transition-[opacity,transform] duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 before:absolute before:-top-1.5 before:left-1/2 before:size-3 before:-translate-x-1/2 before:rotate-45 before:border-l before:border-t before:border-slate-700 before:bg-slate-900 before:content-['']"
+                                popover="manual"
+                                class="finder-tooltip-overlay"
+                                (mouseenter)="cancelHideFinderTooltip()"
+                                (mouseleave)="
+                                  scheduleHideFinderTooltip(
+                                    'solution-finder-modal-step1-target-level-rationale-tooltip-' +
+                                      option.id
+                                  )
+                                "
                               >
                                 <span
                                   [id]="
@@ -598,7 +661,7 @@
                                       'solution-finder-modal-step1-target-level-rationale-aichi-source-' +
                                       option.id
                                     "
-                                    class="font-semibold text-sky-300 underline-offset-2 hover:text-sky-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                    class="font-semibold text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                                     [href]="
                                       'solutionControls.finder.step1.targetLevelAichiSourceUrl'
                                         | translate
@@ -628,7 +691,7 @@
                                       'solution-finder-modal-step1-target-level-rationale-kunming-source-' +
                                       option.id
                                     "
-                                    class="font-semibold text-sky-300 underline-offset-2 hover:text-sky-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                    class="font-semibold text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                                     [href]="
                                       'solutionControls.finder.step1.targetLevelKunmingSourceUrl'
                                         | translate

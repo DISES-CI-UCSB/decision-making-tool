@@ -195,6 +195,8 @@ describe('FinderModalComponent', () => {
       'solution-finder-modal-step1-target-type-help-tooltip-ecosystems',
     );
     expect(ecosystemsHelpTooltip?.getAttribute('role')).toBe('tooltip');
+    expect(ecosystemsHelpTooltip?.getAttribute('popover')).toBe('manual');
+    expect(ecosystemsHelpTooltip?.classList.contains('finder-tooltip-overlay')).toBe(true);
     expect(ecosystemsHelpTooltip?.textContent).toContain(
       'solutionControls.finder.step1.ecosystemsTechnicalHelp',
     );

@@ -382,6 +382,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   protected selectedMatch: SolutionMatch | null = null;
 
   private loadingTimer: ReturnType<typeof setTimeout> | null = null;
+  private finderTooltipHideTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.restoreRememberedSelections();
@@ -390,6 +391,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   ngOnDestroy(): void {
     this.clearLoadingTimer();
+    this.clearFinderTooltipHideTimer();
   }
 
   protected toggleTargetType(type: FinderTargetType): void {
@@ -682,6 +684,70 @@ export class FinderModalComponent implements OnDestroy, OnInit {
 
   protected requestClose(): void {
     this.closeRequested.emit();
+  }
+
+  protected showFinderTooltip(event: Event, tooltipId: string): void {
+    this.clearFinderTooltipHideTimer();
+
+    const host = event.currentTarget as HTMLElement;
+    const trigger = host.matches('button') ? host : (host.querySelector('button') ?? host);
+    const tooltip = document.getElementById(tooltipId);
+
+    if (!tooltip || typeof tooltip.showPopover !== 'function') {
+      return;
+    }
+
+    if (!tooltip.matches(':popover-open')) {
+      tooltip.showPopover();
+    }
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const viewportPadding = 16;
+    const gap = 8;
+    const triggerCenter = triggerRect.left + triggerRect.width / 2;
+    const left = Math.min(
+      window.innerWidth - tooltipRect.width - viewportPadding,
+      Math.max(viewportPadding, triggerRect.left),
+    );
+    const belowTop = triggerRect.bottom + gap;
+    const opensAbove = belowTop + tooltipRect.height > window.innerHeight - viewportPadding;
+    const top = opensAbove ? triggerRect.top - tooltipRect.height - gap : belowTop;
+    const arrowLeft = Math.min(tooltipRect.width - 12, Math.max(12, triggerCenter - left));
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${Math.max(viewportPadding, top)}px`;
+    tooltip.style.setProperty('--finder-tooltip-arrow-left', `${arrowLeft}px`);
+    tooltip.classList.toggle('finder-tooltip-overlay-above', opensAbove);
+  }
+
+  protected scheduleHideFinderTooltip(tooltipId: string): void {
+    this.clearFinderTooltipHideTimer();
+    this.finderTooltipHideTimer = setTimeout(() => {
+      this.finderTooltipHideTimer = null;
+      this.hideFinderTooltip(tooltipId);
+    }, 80);
+  }
+
+  protected cancelHideFinderTooltip(): void {
+    this.clearFinderTooltipHideTimer();
+  }
+
+  protected hideFinderTooltip(tooltipId: string): void {
+    const tooltip = document.getElementById(tooltipId);
+
+    if (tooltip?.matches(':popover-open')) {
+      tooltip.hidePopover();
+    }
+  }
+
+  private clearFinderTooltipHideTimer(): void {
+    if (!this.finderTooltipHideTimer) {
+      return;
+    }
+
+    clearTimeout(this.finderTooltipHideTimer);
+    this.finderTooltipHideTimer = null;
   }
 
   protected applySelectedSolution(): void {

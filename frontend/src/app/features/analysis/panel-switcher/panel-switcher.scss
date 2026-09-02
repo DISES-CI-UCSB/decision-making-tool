@@ -884,12 +884,17 @@
 .v3-methodology-tooltip-overlay {
   position: fixed;
   inset: auto;
+  z-index: 10001;
   max-width: min(280px, calc(100vw - 32px));
   margin: 0;
   opacity: 1;
   pointer-events: none;
   transform: none;
   visibility: visible;
+}
+
+.v3-methodology-tooltip-overlay:popover-open {
+  z-index: 10001;
 }
 
 .v3-methodology-tooltip-overlay::before {
