@@ -54,7 +54,10 @@ describe('PanelSwitcherComponent', () => {
     | 'getDetailedSpeciesCoverageJob'
     | 'cancelDetailedSpeciesCoverageJob'
   >;
-  let mecMetricsLoaderSpy: Pick<MecMetricsLoaderService, 'loadMecMetrics'>;
+  let mecMetricsLoaderSpy: Pick<
+    MecMetricsLoaderService,
+    'loadMecMetrics' | 'loadNationalDenominator'
+  >;
   let speciesGoalsLoaderSpy: Pick<SpeciesGoalsLoaderService, 'load'>;
   let solutionGoalsLoaderSpy: Pick<SolutionGoalsLoaderService, 'loadGoals'>;
   let httpClientSpy: { get: ReturnType<typeof vi.fn> };
@@ -111,6 +114,7 @@ describe('PanelSwitcherComponent', () => {
     };
     mecMetricsLoaderSpy = {
       loadMecMetrics: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
+      loadNationalDenominator: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
     };
     speciesGoalsLoaderSpy = {
       load: vi.fn(() => of(buildHydratedSpeciesRecords(goalsDocument))),
@@ -1793,6 +1797,18 @@ describe('PanelSwitcherComponent', () => {
         },
       },
     } as CatalogSolution);
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildV2MecDocument(solution.id, {
+          geographyLevel: 'siraps',
+          scopeId: 'eje-cafetero',
+          scopeName: 'Eje Cafetero',
+          boundaryProvenanceRef: 'siraps',
+        }),
+        format: 'mec-compact-v2',
+      }),
+    );
     appState.activeSolution$.set(solution);
     appState.clearAOI();
     appState.setRightSidebarMode('overview');
@@ -1874,6 +1890,9 @@ describe('PanelSwitcherComponent', () => {
     expect(solutionGoalsLoaderSpy.loadGoals).toHaveBeenCalledWith(solution.id);
 
     speciesCoverageButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
 
     (
@@ -1882,6 +1901,9 @@ describe('PanelSwitcherComponent', () => {
       }
     ).closeGoalsModal();
     ecosystemCoverageButton.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'siraps');
   });
 
@@ -2635,6 +2657,7 @@ describe('PanelSwitcherComponent', () => {
     sirapFixture.detectChanges();
     const sirapComponent = sirapFixture.componentInstance as unknown as {
       goalsModalCoverageMetrics(): { id: string }[];
+      goalsModalUsesExpandedCoverageLayout(): boolean;
       toSpeciesGoalsModalRow(
         record: HydratedSpeciesGoalsRecord,
         rangeInSirapAreaKm2: number | null,
@@ -2649,6 +2672,7 @@ describe('PanelSwitcherComponent', () => {
       'new-coverage',
       'solution-coverage',
     ]);
+    expect(sirapComponent.goalsModalUsesExpandedCoverageLayout()).toBe(true);
     expect(
       sirapComponent.toSpeciesGoalsModalRow(
         {

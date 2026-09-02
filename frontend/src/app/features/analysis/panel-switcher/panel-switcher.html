@@ -4701,12 +4701,12 @@
             <div
               id="conservation-goals-modal-virtual-table"
               class="min-w-180 text-left text-xs"
-              [class.min-w-[1100px]]="knownAoiCoverageMetricsV2()"
+              [class.min-w-[1100px]]="goalsModalUsesExpandedCoverageLayout()"
               [class.min-w-[1200px]]="isNationalGoalsModal()"
               role="table"
               [attr.aria-label]="'analysis.overview.goalsWidget.modal.featureDetails' | translate"
             >
-              @if (isNationalGoalsModal()) {
+              @if (isNationalGoalsModal() && !isSirapPrimaryGoalsModal()) {
                 <div
                   id="conservation-goals-modal-national-virtual-table-head"
                   class="sticky top-0 z-10 bg-white shadow-sm"
@@ -4880,16 +4880,16 @@
                   id="conservation-goals-modal-virtual-table-head"
                   class="grid bg-white shadow-sm"
                   [class.grid-cols-[minmax(15rem,1fr)_13rem_13rem_13rem_13rem_8rem_7rem]]="
-                    knownAoiCoverageMetricsV2() && domain.targeted
+                    goalsModalUsesExpandedCoverageLayout() && domain.targeted
                   "
                   [class.grid-cols-[minmax(15rem,1fr)_13rem_13rem_13rem_13rem_10rem]]="
-                    knownAoiCoverageMetricsV2() && !domain.targeted
+                    goalsModalUsesExpandedCoverageLayout() && !domain.targeted
                   "
                   [class.grid-cols-[minmax(15rem,1fr)_15rem_8rem_7rem]]="
-                    !knownAoiCoverageMetricsV2() && domain.targeted
+                    !goalsModalUsesExpandedCoverageLayout() && domain.targeted
                   "
                   [class.grid-cols-[minmax(15rem,1fr)_15rem_10rem]]="
-                    !knownAoiCoverageMetricsV2() && !domain.targeted
+                    !goalsModalUsesExpandedCoverageLayout() && !domain.targeted
                   "
                   role="row"
                 >
@@ -4905,7 +4905,7 @@
                       align="start"
                     ></app-table-header-tooltip>
                   </span>
-                  @if (knownAoiCoverageMetricsV2()) {
+                  @if (goalsModalUsesExpandedCoverageLayout()) {
                     @for (
                       metricId of isSirapScopedSolution()
                         ? ['rangeInAoi', 'preExistingCoverage', 'newCoverage', 'solutionCoverage']
@@ -4920,14 +4920,20 @@
                         <app-table-header-tooltip
                           [idBase]="'conservation-goals-modal-virtual-heading-' + metricId"
                           [labelKey]="
-                            isSirapScopedSolution() && metricId === 'rangeInAoi'
-                              ? 'analysis.aoi.customProfile.species.rangeInSirapAoi'
-                              : 'analysis.aoi.customProfile.species.' + metricId
+                            isSirapPrimaryGoalsModal()
+                              ? 'analysis.overview.goalsWidget.modal.sirapSpecies.' + metricId
+                              : isSirapScopedSolution() && metricId === 'rangeInAoi'
+                                ? 'analysis.aoi.customProfile.species.rangeInSirapAoi'
+                                : 'analysis.aoi.customProfile.species.' + metricId
                           "
                           [questionKey]="
-                            isSirapScopedSolution() && metricId === 'rangeInAoi'
-                              ? 'analysis.aoi.customProfile.species.columnQuestions.rangeInSirapAoi'
-                              : 'analysis.aoi.customProfile.species.columnQuestions.' + metricId
+                            isSirapPrimaryGoalsModal()
+                              ? 'analysis.overview.goalsWidget.modal.columnQuestions.sirapSpecies' +
+                                metricId.charAt(0).toUpperCase() +
+                                metricId.slice(1)
+                              : isSirapScopedSolution() && metricId === 'rangeInAoi'
+                                ? 'analysis.aoi.customProfile.species.columnQuestions.rangeInSirapAoi'
+                                : 'analysis.aoi.customProfile.species.columnQuestions.' + metricId
                           "
                         ></app-table-header-tooltip>
                       </span>
@@ -5007,22 +5013,30 @@
                     [id]="'conservation-goals-modal-row-' + rowIndex"
                     class="grid h-14.25 border-t border-slate-100"
                     [class.grid-cols-[minmax(15rem,1fr)_11rem_12rem_12rem_15rem_8rem_7rem]]="
-                      isNationalGoalsModal() && domain.targeted
+                      isNationalGoalsModal() && !isSirapPrimaryGoalsModal() && domain.targeted
                     "
                     [class.grid-cols-[minmax(15rem,1fr)_11rem_12rem_12rem_15rem_10rem]]="
-                      isNationalGoalsModal() && !domain.targeted
+                      isNationalGoalsModal() && !isSirapPrimaryGoalsModal() && !domain.targeted
                     "
                     [class.grid-cols-[minmax(15rem,1fr)_13rem_13rem_13rem_13rem_8rem_7rem]]="
-                      !isNationalGoalsModal() && knownAoiCoverageMetricsV2() && domain.targeted
+                      (!isNationalGoalsModal() || isSirapPrimaryGoalsModal()) &&
+                        goalsModalUsesExpandedCoverageLayout() &&
+                        domain.targeted
                     "
                     [class.grid-cols-[minmax(15rem,1fr)_13rem_13rem_13rem_13rem_10rem]]="
-                      !isNationalGoalsModal() && knownAoiCoverageMetricsV2() && !domain.targeted
+                      (!isNationalGoalsModal() || isSirapPrimaryGoalsModal()) &&
+                        goalsModalUsesExpandedCoverageLayout() &&
+                        !domain.targeted
                     "
                     [class.grid-cols-[minmax(15rem,1fr)_15rem_8rem_7rem]]="
-                      !isNationalGoalsModal() && !knownAoiCoverageMetricsV2() && domain.targeted
+                      !isNationalGoalsModal() &&
+                        !goalsModalUsesExpandedCoverageLayout() &&
+                        domain.targeted
                     "
                     [class.grid-cols-[minmax(15rem,1fr)_15rem_10rem]]="
-                      !isNationalGoalsModal() && !knownAoiCoverageMetricsV2() && !domain.targeted
+                      !isNationalGoalsModal() &&
+                        !goalsModalUsesExpandedCoverageLayout() &&
+                        !domain.targeted
                     "
                     role="row"
                   >
@@ -5050,7 +5064,7 @@
                         </span>
                       }
                     </span>
-                    @if (isNationalGoalsModal()) {
+                    @if (isNationalGoalsModal() && !isSirapPrimaryGoalsModal()) {
                       <span
                         [id]="'conservation-goals-modal-national-range-' + rowIndex"
                         class="grid content-center px-3 py-1 text-right tabular-nums text-slate-700"
@@ -5139,7 +5153,7 @@
                           }
                         </span>
                       </span>
-                    } @else if (knownAoiCoverageMetricsV2()) {
+                    } @else if (goalsModalUsesExpandedCoverageLayout()) {
                       @for (metric of goalsModalCoverageMetrics(); track metric.id) {
                         <span
                           [id]="'conservation-goals-modal-' + metric.id + '-' + rowIndex"
@@ -5329,27 +5343,30 @@
                         align="start"
                       ></app-table-header-tooltip>
                     </th>
-                    <th
-                      id="conservation-goals-modal-heading-ecosystem-area"
-                      class="px-3 py-2.5 text-right font-bold text-slate-600"
-                      rowspan="2"
-                      scope="col"
-                    >
-                      <app-table-header-tooltip
-                        idBase="conservation-goals-modal-heading-ecosystem-area"
-                        [labelKey]="
-                          isSirapPrimaryGoalsModal()
-                            ? 'analysis.overview.goalsWidget.modal.sirapEcosystemTypeArea'
-                            : 'analysis.overview.goalsWidget.modal.nationalEcosystemTypeArea'
-                        "
-                        [questionKey]="
-                          isSirapPrimaryGoalsModal()
-                            ? 'analysis.overview.goalsWidget.modal.columnQuestions.sirapEcosystemTypeArea'
-                            : 'analysis.overview.goalsWidget.modal.columnQuestions.nationalEcosystemTypeArea'
-                        "
-                        align="end"
-                      ></app-table-header-tooltip>
-                    </th>
+                    @if (isSirapPrimaryGoalsModal()) {
+                      <th
+                        id="conservation-goals-modal-heading-sirap-context-group"
+                        class="px-3 py-2.5 text-center font-bold text-slate-600"
+                        colspan="3"
+                        scope="colgroup"
+                      >
+                        {{ 'analysis.overview.goalsWidget.modal.sirapContextGroup' | translate }}
+                      </th>
+                    } @else {
+                      <th
+                        id="conservation-goals-modal-heading-ecosystem-area"
+                        class="px-3 py-2.5 text-right font-bold text-slate-600"
+                        rowspan="2"
+                        scope="col"
+                      >
+                        <app-table-header-tooltip
+                          idBase="conservation-goals-modal-heading-ecosystem-area"
+                          labelKey="analysis.overview.goalsWidget.modal.nationalEcosystemTypeArea"
+                          questionKey="analysis.overview.goalsWidget.modal.columnQuestions.nationalEcosystemTypeArea"
+                          align="end"
+                        ></app-table-header-tooltip>
+                      </th>
+                    }
                     <th
                       id="conservation-goals-modal-heading-coverage-group"
                       class="px-3 py-2.5 text-center font-bold text-slate-600"
@@ -5401,6 +5418,43 @@
                     }
                   </tr>
                   <tr id="conservation-goals-modal-ecosystem-heading-metrics-row">
+                    @if (isSirapPrimaryGoalsModal()) {
+                      @for (
+                        heading of [
+                          {
+                            id: 'ecosystem-area',
+                            label: 'sirapEcosystemTypeArea',
+                            question: 'sirapEcosystemTypeArea',
+                          },
+                          {
+                            id: 'national-share',
+                            label: 'sirapEcosystemNationalShare',
+                            question: 'sirapEcosystemNationalShare',
+                          },
+                          {
+                            id: 'sirap-share',
+                            label: 'sirapEcosystemAreaShare',
+                            question: 'sirapEcosystemAreaShare',
+                          },
+                        ];
+                        track heading.id
+                      ) {
+                        <th
+                          [id]="'conservation-goals-modal-heading-' + heading.id"
+                          class="px-3 py-2 text-right font-bold text-slate-600"
+                          scope="col"
+                        >
+                          <app-table-header-tooltip
+                            [idBase]="'conservation-goals-modal-heading-' + heading.id"
+                            [labelKey]="'analysis.overview.goalsWidget.modal.' + heading.label"
+                            [questionKey]="
+                              'analysis.overview.goalsWidget.modal.columnQuestions.' + heading.question
+                            "
+                            align="end"
+                          ></app-table-header-tooltip>
+                        </th>
+                      }
+                    }
                     @for (
                       heading of [
                         {
@@ -5531,6 +5585,20 @@
                       >
                         {{ formatMecEcosystemArea(row.ecosystemAreaKm2) }}
                       </td>
+                      @if (isSirapPrimaryGoalsModal()) {
+                        <td
+                          [id]="'conservation-goals-modal-ecosystem-national-share-' + $index"
+                          class="px-3 py-2.5 text-right tabular-nums text-slate-700"
+                        >
+                          {{ formatGoalsModalPercent(row.nationalEcosystemSharePercent) }}
+                        </td>
+                        <td
+                          [id]="'conservation-goals-modal-ecosystem-sirap-share-' + $index"
+                          class="px-3 py-2.5 text-right tabular-nums text-slate-700"
+                        >
+                          {{ formatGoalsModalPercent(row.ecosystemSharePercent) }}
+                        </td>
+                      }
                       <td
                         [id]="'conservation-goals-modal-pre-existing-coverage-' + $index"
                         class="px-3 py-2.5 text-right tabular-nums text-slate-700"
@@ -5570,25 +5638,10 @@
                       [id]="'conservation-goals-modal-coverage-' + $index"
                       class="w-60 px-3 py-2.5"
                     >
-                      <div
-                        [id]="'conservation-goals-modal-coverage-layout-' + $index"
-                        class="flex items-center gap-2"
-                      >
-                        <div
-                          [id]="'conservation-goals-modal-coverage-bar-' + $index"
-                          class="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-slate-200"
-                        >
-                          <span
-                            [id]="'conservation-goals-modal-coverage-fill-' + $index"
-                            class="block h-full rounded-full bg-emerald-500"
-                            [style.width.%]="
-                              getGoalsProgressBarWidth((row.relativeHeld ?? 0) * 100)
-                            "
-                          ></span>
-                        </div>
+                      @if (isSirapPrimaryGoalsModal()) {
                         <span
                           [id]="'conservation-goals-modal-coverage-values-' + $index"
-                          class="grid min-w-14 text-right tabular-nums text-slate-700"
+                          class="grid text-right tabular-nums text-slate-700"
                         >
                           <strong
                             [id]="'conservation-goals-modal-coverage-value-' + $index"
@@ -5602,22 +5655,43 @@
                           >
                             {{ formatMecEcosystemArea(row.solutionCoverageAreaKm2) }}
                           </span>
-                          @if (isSirapPrimaryGoalsModal() && row.remainingRelativeHeld !== null) {
+                        </span>
+                      } @else {
+                        <div
+                          [id]="'conservation-goals-modal-coverage-layout-' + $index"
+                          class="flex items-center gap-2"
+                        >
+                          <div
+                            [id]="'conservation-goals-modal-coverage-bar-' + $index"
+                            class="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-slate-200"
+                          >
                             <span
-                              [id]="'conservation-goals-modal-ecosystem-remaining-' + $index"
+                              [id]="'conservation-goals-modal-coverage-fill-' + $index"
+                              class="block h-full rounded-full bg-emerald-500"
+                              [style.width.%]="
+                                getGoalsProgressBarWidth((row.relativeHeld ?? 0) * 100)
+                              "
+                            ></span>
+                          </div>
+                          <span
+                            [id]="'conservation-goals-modal-coverage-values-' + $index"
+                            class="grid min-w-14 text-right tabular-nums text-slate-700"
+                          >
+                            <strong
+                              [id]="'conservation-goals-modal-coverage-value-' + $index"
+                              class="font-semibold"
+                            >
+                              {{ formatGoalsModalPercent(row.relativeHeld) }}
+                            </strong>
+                            <span
+                              [id]="'conservation-goals-modal-coverage-area-' + $index"
                               class="text-[10px] text-slate-500"
                             >
-                              {{
-                                'analysis.aoi.mec.modal.remainingCoverage'
-                                  | translate
-                                    : {
-                                        percent: formatGoalsModalPercent(row.remainingRelativeHeld),
-                                      }
-                              }}
+                              {{ formatMecEcosystemArea(row.solutionCoverageAreaKm2) }}
                             </span>
-                          }
-                        </span>
-                      </div>
+                          </span>
+                        </div>
+                      }
                     </td>
                     @if (domain.targeted) {
                       <td

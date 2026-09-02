@@ -102,6 +102,17 @@ export interface MecNationalCoverageBenchmark {
   [key: string]: unknown;
 }
 
+export interface MecNationalDenominatorDocument {
+  format: 'mec-national-denominator-v1';
+  releaseId: string;
+  units: 'km2';
+  sourceMode: 'composite';
+  viewCatalog: MecViewCatalogEntry[];
+  classCatalog: MecClassCatalogEntry[];
+  rowLayout: ['classIndex', 'nationalMecAreaKm2'];
+  rows: [classIndex: number, nationalMecAreaKm2: number][];
+}
+
 export interface MecNationalClassBenchmark {
   targetPercent: 17 | 30;
   targetAreaKm2: number;
@@ -384,6 +395,29 @@ export function isMecCompactDocument(value: unknown): value is MecCompactDocumen
 
 export function isMecCompactV2Document(value: MecCompactDocument): value is MecCompactV2Document {
   return value.format === MEC_COMPACT_V2_FORMAT;
+}
+
+export function isMecNationalDenominatorDocument(
+  value: unknown,
+): value is MecNationalDenominatorDocument {
+  if (!isRecord(value) || value['format'] !== 'mec-national-denominator-v1') return false;
+  return (
+    isNonEmptyString(value['releaseId']) &&
+    value['units'] === 'km2' &&
+    value['sourceMode'] === 'composite' &&
+    Array.isArray(value['viewCatalog']) &&
+    Array.isArray(value['classCatalog']) &&
+    hasExpectedLayout(value['rowLayout'], ['classIndex', 'nationalMecAreaKm2']) &&
+    Array.isArray(value['rows']) &&
+    value['rows'].every(
+      (row) =>
+        isCatalogTuple(row, 2) &&
+        Number.isInteger(row[0]) &&
+        (row[0] as number) >= 0 &&
+        (row[0] as number) < (value['classCatalog'] as unknown[]).length &&
+        isNonNegativeFiniteNumber(row[1]),
+    )
+  );
 }
 
 export function deriveMecNationalClassBenchmark(

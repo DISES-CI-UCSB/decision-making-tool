@@ -235,6 +235,7 @@ def runtime_solution(
     *,
     include_species_goals: bool = False,
     include_mec: bool = False,
+    mec_national_denominator: str | None = None,
 ) -> dict[str, Any]:
     solution_id = solution["id"]
     raster_path = Path("solutions/sirap") / solution["rasterFile"]
@@ -292,6 +293,8 @@ def runtime_solution(
                 "omecs",
             )
         }
+    if mec_national_denominator:
+        precomputed_urls["mecNationalDenominator"] = mec_national_denominator
     return {
         "id": solution_id,
         "name": goal_summary["solutionName"],
@@ -415,6 +418,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     runtime_solutions = []
     species_goals_roots = list(getattr(args, "species_goals_root", None) or [])
     mec_roots = list(getattr(args, "mec_root", None) or [])
+    mec_national_denominator = getattr(args, "mec_national_denominator", None)
+    if mec_national_denominator is not None and not mec_roots:
+        raise ValueError("--mec-national-denominator requires --mec-root")
     if species_goals_roots:
         catalogs = [
             path / "species-goals/catalog/v1/catalog.json"
@@ -439,6 +445,21 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 relative_path=Path("species-goals/catalog/v1/catalog.json"),
                 release_id=args.release_id,
                 component="speciesGoalsCatalog",
+            )
+        )
+    if mec_national_denominator is not None:
+        denominator = read_json(mec_national_denominator)
+        if denominator.get("format") != "mec-national-denominator-v1":
+            raise ValueError("MEC national denominator has an invalid format")
+        if denominator.get("releaseId") != args.release_id:
+            raise ValueError("MEC national denominator release ID is stale")
+        artifacts.append(
+            copy_release_artifact(
+                source=mec_national_denominator,
+                root=root,
+                relative_path=Path("mec/v2/national-denominator.mec.json"),
+                release_id=args.release_id,
+                component="mecNationalDenominator",
             )
         )
         artifacts.append(
@@ -631,6 +652,13 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 args.release_id,
                 include_species_goals=bool(species_goals_roots),
                 include_mec=bool(mec_roots),
+                mec_national_denominator=(
+                    immutable_url(
+                        blob_path(args.release_id, Path("mec/v2/national-denominator.mec.json"))
+                    )
+                    if mec_national_denominator is not None
+                    else None
+                ),
             )
         )
 
@@ -656,6 +684,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             else 0
         ),
         "expectedMecV2ArtifactCount": 56 * 6 if mec_roots else 0,
+        "expectedMecNationalDenominatorArtifactCount": 1 if mec_national_denominator else 0,
         "solutions": sorted(runtime_solutions, key=lambda solution: solution["id"]),
     }
     inventory = {
@@ -812,6 +841,13 @@ def validate(root: Path) -> dict[str, Any]:
             for item in mec_artifacts
         } != expected_mec:
             raise ValueError("SIRAP MEC v2 release coverage is incomplete")
+    denominator_artifacts = [
+        item for item in inventory["artifacts"] if item["component"] == "mecNationalDenominator"
+    ]
+    if len(denominator_artifacts) != manifest.get("expectedMecNationalDenominatorArtifactCount", 0):
+        raise ValueError("SIRAP MEC national denominator inventory is incomplete")
+    if denominator_artifacts and denominator_artifacts[0]["path"] != "mec/v2/national-denominator.mec.json":
+        raise ValueError("SIRAP MEC national denominator path is invalid")
     for item in inventory["artifacts"]:
         path = root / item["path"]
         if not path.is_file() or sha256_file(path) != item["sha256"]:
@@ -838,6 +874,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--packet-manifest", type=Path, action="append")
     parser.add_argument("--species-goals-root", type=Path, action="append")
     parser.add_argument("--mec-root", type=Path, action="append")
+    parser.add_argument("--mec-national-denominator", type=Path)
     parser.add_argument("--output-root", type=Path)
     parser.add_argument("--release-id", default=DEFAULT_RELEASE_ID)
     parser.add_argument("--catalog-version", default="1.0.0")
