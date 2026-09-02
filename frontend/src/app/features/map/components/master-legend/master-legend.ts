@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { getSolutionIncludedAreasLegendLabel } from '@core/models/solution-included-areas.utils';
+import { resolveSolutionDisplayLabel } from '@core/models/solution-display.utils';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -26,8 +27,6 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   @ViewChild('contentInner')
   private contentInnerRef?: ElementRef<HTMLDivElement>;
 
-  private readonly compactViewportMaxWidthPx = 1280;
-  private readonly onWindowResize = (): void => this.syncViewportMode();
   private resizeObserver: ResizeObserver | null = null;
   private readonly appLocaleService = inject(AppLocaleService);
   private readonly appState = inject(AppStateService);
@@ -37,7 +36,6 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   readonly collapsed = signal(false);
   readonly hasMeasuredContentHeight = signal(false);
   readonly expandedContentHeight = signal(640);
-  readonly isCompactViewport = signal(false);
   readonly loaded = computed(() => this.solutionLayer.loadedSolution$());
   readonly comparisonMode = this.appState.comparisonVisualizationMode$;
   readonly isComparing = computed(
@@ -46,18 +44,23 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
       this.appState.activeSolution$() !== null &&
       this.appState.comparisonSolution$() !== null,
   );
-  readonly activeScenarioName = computed(
-    () => this.appState.activeSolutionLabel$()?.trim() || this.appState.activeSolution$()?.name,
-  );
-  readonly baselineName = computed(
-    () =>
-      this.appState.activeSolutionLabel$()?.trim() ||
+  readonly activeScenarioName = computed(() =>
+    resolveSolutionDisplayLabel(
+      this.appState.activeSolutionLabel$(),
       this.localizedText('mapLayersPanel.activeSolutionLabel', 'Active Scenario'),
+    ),
   );
-  readonly candidateName = computed(
-    () =>
-      this.appState.comparisonSolutionLabel$()?.trim() ||
+  readonly baselineName = computed(() =>
+    resolveSolutionDisplayLabel(
+      this.appState.activeSolutionLabel$(),
+      this.localizedText('mapLayersPanel.activeSolutionLabel', 'Active Scenario'),
+    ),
+  );
+  readonly candidateName = computed(() =>
+    resolveSolutionDisplayLabel(
+      this.appState.comparisonSolutionLabel$(),
       this.localizedText('mapLegend.solutionBFallback', 'Scenario B'),
+    ),
   );
   readonly solutionColor = this.solutionLayer.solutionColor$;
   readonly existingProtectedColor = this.solutionLayer.existingProtectedColor$;
@@ -84,27 +87,18 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   readonly selectedLayerEntries = computed<MapLegendLayerEntry[]>(() =>
     this.appState.selectedLegendLayers$(),
   );
-  readonly shouldShowActiveSolutionName = computed(
-    () => this.isComparing() || this.isCompactViewport(),
-  );
 
   readonly hasLegendContent = computed(() => {
     return this.loaded() !== null || this.selectedLayerEntries().length > 0;
   });
 
   constructor() {
-    this.syncViewportMode();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', this.onWindowResize);
-    }
-
     effect(() => {
       this.loaded();
       this.selectedLayerEntries();
       this.isComparing();
       this.comparisonMode();
       this.showExistingProtectedCoverage();
-      this.shouldShowActiveSolutionName();
       this.collapsed();
 
       // Keep expanded height in sync even when ResizeObserver is unavailable.
@@ -118,9 +112,6 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', this.onWindowResize);
-    }
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
   }
@@ -133,14 +124,6 @@ export class MasterLegendComponent implements AfterViewInit, OnDestroy {
       }
       return next;
     });
-  }
-
-  private syncViewportMode(): void {
-    if (typeof window === 'undefined') {
-      this.isCompactViewport.set(false);
-      return;
-    }
-    this.isCompactViewport.set(window.innerWidth <= this.compactViewportMaxWidthPx);
   }
 
   private setupContentResizeObserver(): void {

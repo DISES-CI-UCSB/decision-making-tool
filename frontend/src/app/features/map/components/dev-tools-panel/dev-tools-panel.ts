@@ -22,12 +22,13 @@ import { SolutionCatalogService } from '@core/services/solution-catalog.service'
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { environment } from '../../../../../environments/environment';
+import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-overlay';
 
 @Component({
   selector: 'app-dev-tools-panel',
   standalone: true,
-  imports: [ManifestStyleEditorOverlayComponent],
+  imports: [InfoIconComponent, ManifestStyleEditorOverlayComponent],
   template: `
     <section id="dev-tools-root" class="relative pointer-events-auto z-20">
       <div id="dev-tools-toggle-row" class="flex items-center justify-end gap-2">
@@ -442,6 +443,41 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
               >
                 Right Sidebar - Overview
               </span>
+            </div>
+
+            <div
+              id="dev-tools-info-icon-preview-row"
+              class="mb-2 rounded-md border border-slate-200 bg-white px-2.5 py-2.5"
+            >
+              <p
+                id="dev-tools-info-icon-preview-label"
+                class="text-[11px] font-semibold text-slate-700"
+              >
+                Info icon preview
+              </p>
+              <p
+                id="dev-tools-info-icon-preview-hint"
+                class="mt-0.5 text-[10px] leading-4 text-slate-500"
+              >
+                Heroicons information-circle SVG in the proposed neutral-gray treatment.
+              </p>
+              <div id="dev-tools-info-icon-preview-options" class="mt-2.5 flex items-center">
+                <div
+                  id="dev-tools-info-icon-preview-svg"
+                  class="flex flex-col items-center gap-1.5"
+                >
+                  <app-info-icon
+                    rootId="dev-tools-info-icon-preview-svg-icon"
+                    colorClass="text-slate-400"
+                  />
+                  <span
+                    id="dev-tools-info-icon-preview-svg-label"
+                    class="text-[10px] text-slate-500"
+                  >
+                    Proposed SVG icon
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div

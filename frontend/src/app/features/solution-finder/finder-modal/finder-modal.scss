@@ -121,8 +121,31 @@
   padding: 0.25rem 0.5rem;
 }
 
-.finder-layer-info-button {
-  line-height: 1;
+.finder-inline-help {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  margin-left: 2px;
+}
+
+.finder-inline-help-trigger {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: help;
+  line-height: 0;
+}
+
+.finder-inline-help-trigger:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+.finder-inline-help:hover,
+.finder-inline-help:focus-within {
+  z-index: 1000 !important;
 }
 
 @supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
@@ -183,6 +206,33 @@
   transform: translateY(0);
 }
 
+/*
+  A scrolling container clips descendants regardless of their z-index. Let the
+  target card overflow only while one of its inline tooltips is active, then
+  elevate the card above adjacent workflow columns.
+*/
+.finder-targets-card:has(.finder-target-tooltip:hover),
+.finder-targets-card:has(.finder-target-tooltip:focus-within) {
+  position: relative;
+  z-index: 20;
+  overflow: visible;
+}
+
+.finder-target-tooltip:hover,
+.finder-target-tooltip:focus-within {
+  /*
+    These wrappers also receive Tailwind's static z-20 utility. Override it
+    decisively while active so a later target card and its info trigger cannot
+    paint above the open tooltip.
+  */
+  z-index: 1000 !important;
+}
+
+.finder-target-tooltip:hover [role='tooltip'],
+.finder-target-tooltip:focus-within [role='tooltip'] {
+  z-index: 1000 !important;
+}
+
 /* Keep 17% / 30% numerals optically centered by cap height. */
 .finder-target-level-choice-button {
   display: inline-flex;
@@ -209,8 +259,6 @@
 
 /* Sentence-case coverage questions in step 1 target-level panels. */
 .finder-target-coverage-question-label {
-  display: inline-block;
-  line-height: 1.375;
   letter-spacing: normal;
   text-transform: none;
 }

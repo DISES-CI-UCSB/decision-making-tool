@@ -2959,6 +2959,7 @@ describe('PanelSwitcherComponent', () => {
     const solution = buildTestSolution();
     goalsDocument = buildGoalsDocument();
     const mecDocument = buildFiveViewV2MecDocument(solution.id);
+    mecDocument.classCatalog[4] = [4, 'biomeRegion:andean-forest', 'Andean forest'];
     mecDocument.classCatalog.push([4, 'biomeRegion:taxonomy-only', 'Taxonomy-only ecosystem']);
     mecDocument.rows.push([0, mecDocument.classCatalog.length - 1, 0, 0, 0]);
     vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
@@ -3003,6 +3004,27 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#conservation-goals-modal-feature-name-0')?.textContent,
     ).toContain('Andean forest');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-area-0')?.textContent,
+    ).toContain('10 km²');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-0')?.textContent,
+    ).toContain('10');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-area-0')?.textContent,
+    ).toContain('1 km²');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-new-coverage-0')?.textContent,
+    ).toContain('30');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-new-coverage-area-0')?.textContent,
+    ).toContain('3 km²');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-coverage-value-0')?.textContent,
+    ).toContain('40');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-coverage-area-0')?.textContent,
+    ).toContain('4 km²');
     expect(compiled.textContent).not.toContain('Taxonomy-only ecosystem');
 
     (

@@ -69,6 +69,7 @@ import {
 } from '@core/services/strategic-ecosystem-outcomes.utils';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { FEATURE_FLAGS } from '@feature-flags';
+import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
 import { TableHeaderTooltipComponent } from '@core/shared/table-header-tooltip/table-header-tooltip';
 import type { EcosystemClassificationView } from '@features/left-sidebar/map-layers-panel/map-layers-panel-ecosystem.config';
@@ -151,6 +152,7 @@ import {
   MEC_BREAKDOWNS,
   resolveMecScopeSummary,
   resolveMecScopeIndex,
+  slugify,
   type MecBreakdownConfig,
   type MecBreakdownId,
   type MecCoverageRow,
@@ -515,6 +517,7 @@ const COMPACT_MEC_COLUMN_HEADINGS = [
   imports: [
     TranslatePipe,
     NgTemplateOutlet,
+    InfoIconComponent,
     ModalShellComponent,
     TableHeaderTooltipComponent,
     ScrollingModule,
@@ -642,7 +645,9 @@ export class PanelSwitcherComponent {
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly customAoiDrawStatus = this.appState.customAoiDrawStatus$;
   protected readonly activeScenarioName = computed(
-    () => this.appState.activeSolutionLabel$()?.trim() || this.activeSolution()?.name,
+    () =>
+      this.appState.activeSolutionLabel$()?.trim() ||
+      this.localizedText('mapLayersPanel.activeSolutionLabel'),
   );
   protected readonly comparisonBaselineName = computed(
     () =>
@@ -914,15 +919,13 @@ export class PanelSwitcherComponent {
       return [];
     }
 
-    // Summary-goals rows are the canonical IAvH target universe. MEC remains
-    // supporting classification data until a Mesa-compatible sidecar is wired.
-    if (
-      domain.featureType === 'ecosystems' &&
-      (!domain.targeted || this.goalsModalEcosystemBreakdownId() !== 'iavh')
-    ) {
+    if (domain.featureType === 'ecosystems') {
       const mecRows = this.goalsModalEcosystemRowsByView().get(
         this.goalsModalEcosystemBreakdown().view,
       );
+      if (this.goalsModalEcosystemBreakdownId() === 'iavh') {
+        return this.mergeGoalsModalEcosystemCoverage(document.features.ecosystems, mecRows);
+      }
       if (mecRows) {
         const relativeTarget = this.getGoalsModalEcosystemRelativeTarget();
         return mecRows.map((row) => this.toGoalsModalEcosystemRow(row, relativeTarget));
@@ -2306,6 +2309,37 @@ export class PanelSwitcherComponent {
     };
   }
 
+  private mergeGoalsModalEcosystemCoverage(
+    features: GoalFeatureRow[],
+    mecRows: MecCoverageRow[] | undefined,
+  ): GoalsModalRow[] {
+    const goalRows = features.map((feature) => this.toGoalsModalRow(feature));
+    const mecDocument = this.goalsModalEcosystemMecDocument();
+    if (!mecRows || !mecDocument || !isMecCompactV2Document(mecDocument)) {
+      return goalRows;
+    }
+
+    const mecRowsByLabel = new Map(mecRows.map((row) => [slugify(row.label), row]));
+    return goalRows.map((goalRow) => {
+      const mecRow = mecRowsByLabel.get(slugify(goalRow.name));
+      if (!mecRow) {
+        return goalRow;
+      }
+
+      const coverageRow = this.toGoalsModalEcosystemRow(mecRow, goalRow.relativeTarget);
+      return {
+        ...goalRow,
+        relativeHeld: coverageRow.relativeHeld,
+        preExistingRelativeHeld: coverageRow.preExistingRelativeHeld,
+        newRelativeHeld: coverageRow.newRelativeHeld,
+        ecosystemAreaKm2: coverageRow.ecosystemAreaKm2,
+        solutionCoverageAreaKm2: coverageRow.solutionCoverageAreaKm2,
+        preExistingCoverageAreaKm2: coverageRow.preExistingCoverageAreaKm2,
+        newCoverageAreaKm2: coverageRow.newCoverageAreaKm2,
+      };
+    });
+  }
+
   private getGoalsModalEcosystemRelativeTarget(): number | null {
     const mecDocument = this.goalsModalEcosystemMecDocument();
     if (mecDocument && isMecCompactV2Document(mecDocument)) {
@@ -2558,8 +2592,13 @@ export class PanelSwitcherComponent {
     if (domain.featureType === 'strategicEcosystems' && !domain.targeted) {
       return 'analysis.overview.goalsWidget.modal.strategicRasterAdditionalDescription';
     }
-    if (domain.featureType === 'species' && !domain.targeted && this.speciesReferenceSummary()) {
-      return 'analysis.overview.goalsWidget.modal.speciesReferenceAdditionalDescription';
+    if (domain.featureType === 'species') {
+      if (!domain.targeted && this.speciesReferenceSummary()) {
+        return 'analysis.overview.goalsWidget.modal.speciesReferenceAdditionalDescription';
+      }
+      return domain.targeted
+        ? 'analysis.overview.goalsWidget.modal.speciesTargetedDescription'
+        : 'analysis.overview.goalsWidget.modal.speciesAdditionalDescription';
     }
     return domain.targeted
       ? 'analysis.overview.goalsWidget.modal.targetedDescription'
@@ -2612,9 +2651,9 @@ export class PanelSwitcherComponent {
           mec: this.mecMetrics.loadMecMetrics(solutionId, geographyLevel),
           nationalDenominator: this.mecMetrics.loadNationalDenominator(solutionId),
         })
-      : this.mecMetrics.loadMecMetrics(solutionId, geographyLevel).pipe(
-          map((mec) => ({ mec, nationalDenominator: null })),
-        );
+      : this.mecMetrics
+          .loadMecMetrics(solutionId, geographyLevel)
+          .pipe(map((mec) => ({ mec, nationalDenominator: null })));
     load
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ mec: result, nationalDenominator }) => {

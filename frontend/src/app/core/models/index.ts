@@ -7,6 +7,7 @@ export * from './mec-compact.model';
 export * from './metric.model';
 export * from './metric-value.model';
 export * from './solution-identity-summary.model';
+export * from './solution-display.utils';
 export * from './solution.model';
 export * from './solution-catalog.model';
 export * from './solution-goals.model';

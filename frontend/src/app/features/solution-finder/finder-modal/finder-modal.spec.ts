@@ -149,11 +149,20 @@ describe('FinderModalComponent', () => {
     );
   });
 
-  it('renders the approved species range help text with a technical-details tooltip only on the species card', () => {
+  it('renders approved help text with technical-details tooltips on ecosystems, strategic ecosystems, and species cards', () => {
     const fixture = TestBed.createComponent(FinderModalComponent);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    const ecosystemsHelp = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-ecosystems',
+    );
+    const ecosystemsHelpToggle = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-toggle-ecosystems',
+    );
+    const ecosystemsHelpTooltip = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-ecosystems',
+    );
     const speciesHelp = compiled.querySelector(
       '#solution-finder-modal-step1-target-type-help-species-richness',
     );
@@ -163,16 +172,32 @@ describe('FinderModalComponent', () => {
     const speciesHelpTooltip = compiled.querySelector(
       '#solution-finder-modal-step1-target-type-help-tooltip-species-richness',
     );
-    const ecosystemsHelpToggle = compiled.querySelector(
-      '#solution-finder-modal-step1-target-type-help-tooltip-toggle-ecosystems',
+    const strategicHelp = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-strategic-ecosystems',
     );
     const strategicHelpToggle = compiled.querySelector(
       '#solution-finder-modal-step1-target-type-help-tooltip-toggle-strategic-ecosystems',
+    );
+    const strategicHelpTooltip = compiled.querySelector(
+      '#solution-finder-modal-step1-target-type-help-tooltip-strategic-ecosystems',
     );
     const servicesHelpToggle = compiled.querySelector(
       '#solution-finder-modal-step1-target-type-help-tooltip-toggle-ecosystem-services',
     );
 
+    expect(ecosystemsHelp?.textContent).toContain('solutionControls.finder.step1.ecosystemsHelp');
+    expect(ecosystemsHelp?.getAttribute('title')).toBeNull();
+    expect(ecosystemsHelpToggle).not.toBeNull();
+    expect(ecosystemsHelpToggle?.getAttribute('aria-label')).toContain(
+      'solutionControls.finder.step1.ecosystemsTechnicalHelpToggle',
+    );
+    expect(ecosystemsHelpToggle?.getAttribute('aria-describedby')).toBe(
+      'solution-finder-modal-step1-target-type-help-tooltip-ecosystems',
+    );
+    expect(ecosystemsHelpTooltip?.getAttribute('role')).toBe('tooltip');
+    expect(ecosystemsHelpTooltip?.textContent).toContain(
+      'solutionControls.finder.step1.ecosystemsTechnicalHelp',
+    );
     expect(speciesHelp?.textContent).toContain('solutionControls.finder.step1.speciesRichnessHelp');
     expect(speciesHelp?.getAttribute('title')).toBeNull();
     expect(speciesHelpToggle).not.toBeNull();
@@ -186,8 +211,21 @@ describe('FinderModalComponent', () => {
     expect(speciesHelpTooltip?.textContent).toContain(
       'solutionControls.finder.step1.speciesRichnessTechnicalHelp',
     );
-    expect(ecosystemsHelpToggle).toBeNull();
-    expect(strategicHelpToggle).toBeNull();
+    expect(strategicHelp?.textContent).toContain(
+      'solutionControls.finder.step1.strategicEcosystemsHelp',
+    );
+    expect(strategicHelp?.getAttribute('title')).toBeNull();
+    expect(strategicHelpToggle).not.toBeNull();
+    expect(strategicHelpToggle?.getAttribute('aria-label')).toContain(
+      'solutionControls.finder.step1.strategicEcosystemsTechnicalHelpToggle',
+    );
+    expect(strategicHelpToggle?.getAttribute('aria-describedby')).toBe(
+      'solution-finder-modal-step1-target-type-help-tooltip-strategic-ecosystems',
+    );
+    expect(strategicHelpTooltip?.getAttribute('role')).toBe('tooltip');
+    expect(strategicHelpTooltip?.textContent).toContain(
+      'solutionControls.finder.step1.strategicEcosystemsTechnicalHelp',
+    );
     expect(servicesHelpToggle).toBeNull();
   });
 
@@ -538,8 +576,8 @@ describe('FinderModalComponent', () => {
     expect(rationaleToggle?.getAttribute('aria-label')).toContain(
       'solutionControls.finder.step1.targetLevelRationaleToggle',
     );
-    expect(rationaleToggle?.classList.contains('tooltip-info-icon-glyph')).toBe(true);
-    expect(rationaleToggle?.textContent?.trim()).toBe('i');
+    expect(rationaleToggle?.querySelector('app-info-icon')).not.toBeNull();
+    expect(rationaleToggle?.querySelector('app-info-icon svg')).not.toBeNull();
     expect(rationaleTooltip?.getAttribute('role')).toBe('tooltip');
     expect(rationale?.textContent).toContain('solutionControls.finder.step1.targetLevelRationale');
     expect(aichiSource?.textContent).toContain(
@@ -1213,8 +1251,8 @@ describe('FinderModalComponent', () => {
     expect(regionSelect).not.toBeNull();
     expect([...regionSelect.options].map((option) => option.value)).toEqual([
       '',
-      'eje-cafetero',
       'orinoquia',
+      'eje-cafetero',
     ]);
     expect(
       regionSelect.querySelector('#solution-finder-modal-scope-bar-sirap-region-caribe'),
@@ -1297,12 +1335,13 @@ describe('FinderModalComponent', () => {
       '#solution-finder-modal-step1-target-level-title-ecosystems',
     ) as HTMLElement;
     const nationalTargetQuestion = fixture.nativeElement.querySelector(
-      '#solution-finder-modal-step1-target-level-coverage-label-ecosystems',
+      '#solution-finder-modal-step1-target-level-label-row-ecosystems',
     ) as HTMLElement;
     expect(nationalTargetTitle).not.toBeNull();
     expect(nationalTargetQuestion).not.toBeNull();
     const expectedTargetTitleClasses = [...nationalTargetTitle.classList].sort();
-    const expectedTargetQuestionClasses = [...nationalTargetQuestion.classList].sort();
+    const expectedTargetQuestionClass = 'finder-target-coverage-question-label';
+    expect(nationalTargetQuestion.classList.contains(expectedTargetQuestionClass)).toBe(true);
     for (const target of ['strategic', 'dry-forest', 'wetlands'] as const) {
       expect(
         fixture.nativeElement
@@ -1321,7 +1360,7 @@ describe('FinderModalComponent', () => {
         `#solution-finder-modal-sirap-${target}-target-level-question`,
       ) as HTMLElement;
       expect([...title.classList].sort()).toEqual(expectedTargetTitleClasses);
-      expect([...question.classList].sort()).toEqual(expectedTargetQuestionClasses);
+      expect(question.classList.contains(expectedTargetQuestionClass)).toBe(true);
     }
     expect(
       fixture.nativeElement.querySelector(
@@ -1487,7 +1526,7 @@ describe('FinderModalComponent', () => {
       '#solution-finder-modal-step1-target-level-title-ecosystems',
     ) as HTMLElement;
     const nationalTargetQuestion = fixture.nativeElement.querySelector(
-      '#solution-finder-modal-step1-target-level-coverage-label-ecosystems',
+      '#solution-finder-modal-step1-target-level-label-row-ecosystems',
     ) as HTMLElement;
     const savannasTitle = fixture.nativeElement.querySelector(
       '#solution-finder-modal-sirap-savannas-target-level-title',
@@ -1496,8 +1535,9 @@ describe('FinderModalComponent', () => {
       '#solution-finder-modal-sirap-savannas-target-level-question',
     ) as HTMLElement;
     expect([...savannasTitle.classList].sort()).toEqual([...nationalTargetTitle.classList].sort());
-    expect([...savannasQuestion.classList].sort()).toEqual(
-      [...nationalTargetQuestion.classList].sort(),
+    expect(savannasQuestion.classList.contains('finder-target-coverage-question-label')).toBe(true);
+    expect(nationalTargetQuestion.classList.contains('finder-target-coverage-question-label')).toBe(
+      true,
     );
     for (const target of [17, 30]) {
       expect(

@@ -500,8 +500,8 @@
                                 [id]="'right-sidebar-v3-overview-goals-domain-label-' + domain.id"
                                 class="font-semibold"
                               >
-                                {{ domain.labelKey | translate }}
-                                <span
+                                {{ domain.labelKey | translate
+                                }}<span
                                   [id]="'right-sidebar-v3-overview-goals-domain-help-' + domain.id"
                                   class="v3-methodology-help"
                                   (mouseenter)="showGoalsTooltip($event, domain.id)"
@@ -524,15 +524,13 @@
                                       domain.id
                                     "
                                   >
-                                    <span
-                                      [id]="
+                                    <app-info-icon
+                                      [rootId]="
                                         'right-sidebar-v3-overview-goals-domain-help-indicator-' +
                                         domain.id
                                       "
-                                      class="v3-methodology-indicator tooltip-info-icon-glyph"
-                                      aria-hidden="true"
-                                      >i</span
-                                    >
+                                      colorClass="text-slate-400"
+                                    />
                                   </button>
                                   <span
                                     [id]="
@@ -788,15 +786,13 @@
                                         domain.id
                                       "
                                     >
-                                      <span
-                                        [id]="
+                                      <app-info-icon
+                                        [rootId]="
                                           'right-sidebar-v3-overview-goals-additional-domain-method-indicator-' +
                                           domain.id
                                         "
-                                        class="v3-methodology-indicator tooltip-info-icon-glyph"
-                                        aria-hidden="true"
-                                        >i</span
-                                      >
+                                        colorClass="text-slate-400"
+                                      />
                                     </button>
                                     <span
                                       [id]="
@@ -1246,15 +1242,13 @@
                                         entry.id
                                       "
                                     >
-                                      <span
-                                        [id]="
+                                      <app-info-icon
+                                        [rootId]="
                                           'right-sidebar-v3-overview-gain-methodology-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-methodology-indicator tooltip-info-icon-glyph"
-                                        aria-hidden="true"
-                                        >i</span
-                                      >
+                                        colorClass="text-slate-400"
+                                      />
                                     </button>
                                     <span
                                       [id]="
@@ -1312,15 +1306,13 @@
                                         entry.id
                                       "
                                     >
-                                      <span
-                                        [id]="
+                                      <app-info-icon
+                                        [rootId]="
                                           'right-sidebar-v3-overview-gain-unavailable-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-unavailable-indicator tooltip-info-icon-glyph"
-                                        aria-hidden="true"
-                                        >i</span
-                                      >
+                                        colorClass="text-slate-400"
+                                      />
                                     </button>
                                     <span
                                       [id]="
@@ -1492,15 +1484,13 @@
                                         entry.id
                                       "
                                     >
-                                      <span
-                                        [id]="
+                                      <app-info-icon
+                                        [rootId]="
                                           'right-sidebar-v3-overview-ecosystem-services-methodology-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-methodology-indicator tooltip-info-icon-glyph"
-                                        aria-hidden="true"
-                                        >i</span
-                                      >
+                                        colorClass="text-slate-400"
+                                      />
                                     </button>
                                     <span
                                       [id]="
@@ -1559,15 +1549,13 @@
                                         entry.id
                                       "
                                     >
-                                      <span
-                                        [id]="
+                                      <app-info-icon
+                                        [rootId]="
                                           'right-sidebar-v3-overview-ecosystem-services-unavailable-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-unavailable-indicator tooltip-info-icon-glyph"
-                                        aria-hidden="true"
-                                        >i</span
-                                      >
+                                        colorClass="text-slate-400"
+                                      />
                                     </button>
                                     <span
                                       [id]="
@@ -1734,15 +1722,13 @@
                                         entry.id
                                       "
                                     >
-                                      <span
-                                        [id]="
+                                      <app-info-icon
+                                        [rootId]="
                                           'right-sidebar-v3-overview-cost-unavailable-indicator-' +
                                           entry.id
                                         "
-                                        class="v3-unavailable-indicator tooltip-info-icon-glyph"
-                                        aria-hidden="true"
-                                        >i</span
-                                      >
+                                        colorClass="text-slate-400"
+                                      />
                                     </button>
                                     <span
                                       [id]="
@@ -2727,12 +2713,10 @@
                               "
                               aria-describedby="aoi-stat-total-carbon-unit-tooltip"
                             >
-                              <span
-                                id="aoi-stat-total-carbon-unit-help-indicator"
-                                class="aoi-unit-help-indicator"
-                                aria-hidden="true"
-                                >?</span
-                              >
+                              <app-info-icon
+                                rootId="aoi-stat-total-carbon-unit-help-indicator"
+                                colorClass="text-slate-400"
+                              />
                             </button>
                             <span
                               id="aoi-stat-total-carbon-unit-tooltip"
@@ -2796,12 +2780,10 @@
                               "
                               aria-describedby="aoi-stat-above-carbon-unit-tooltip"
                             >
-                              <span
-                                id="aoi-stat-above-carbon-unit-help-indicator"
-                                class="aoi-unit-help-indicator"
-                                aria-hidden="true"
-                                >?</span
-                              >
+                              <app-info-icon
+                                rootId="aoi-stat-above-carbon-unit-help-indicator"
+                                colorClass="text-slate-400"
+                              />
                             </button>
                             <span
                               id="aoi-stat-above-carbon-unit-tooltip"
@@ -2846,12 +2828,10 @@
                               "
                               aria-describedby="aoi-stat-soil-carbon-unit-tooltip"
                             >
-                              <span
-                                id="aoi-stat-soil-carbon-unit-help-indicator"
-                                class="aoi-unit-help-indicator"
-                                aria-hidden="true"
-                                >?</span
-                              >
+                              <app-info-icon
+                                rootId="aoi-stat-soil-carbon-unit-help-indicator"
+                                colorClass="text-slate-400"
+                              />
                             </button>
                             <span
                               id="aoi-stat-soil-carbon-unit-tooltip"
@@ -3234,12 +3214,10 @@
                                   "
                                   aria-describedby="aoi-row-mpa-unavailable-tooltip"
                                 >
-                                  <span
-                                    id="aoi-row-mpa-unavailable-indicator"
-                                    class="v3-unavailable-indicator tooltip-info-icon-glyph"
-                                    aria-hidden="true"
-                                    >i</span
-                                  >
+                                  <app-info-icon
+                                    rootId="aoi-row-mpa-unavailable-indicator"
+                                    colorClass="text-slate-400"
+                                  />
                                 </button>
                                 <span
                                   id="aoi-row-mpa-unavailable-tooltip"
@@ -3434,12 +3412,10 @@
                                   "
                                   aria-describedby="aoi-row-eez-unavailable-tooltip"
                                 >
-                                  <span
-                                    id="aoi-row-eez-unavailable-indicator"
-                                    class="v3-unavailable-indicator tooltip-info-icon-glyph"
-                                    aria-hidden="true"
-                                    >i</span
-                                  >
+                                  <app-info-icon
+                                    rootId="aoi-row-eez-unavailable-indicator"
+                                    colorClass="text-slate-400"
+                                  />
                                 </button>
                                 <span
                                   id="aoi-row-eez-unavailable-tooltip"
@@ -5020,23 +4996,23 @@
                     "
                     [class.grid-cols-[minmax(15rem,1fr)_13rem_13rem_13rem_13rem_8rem_7rem]]="
                       (!isNationalGoalsModal() || isSirapPrimaryGoalsModal()) &&
-                        goalsModalUsesExpandedCoverageLayout() &&
-                        domain.targeted
+                      goalsModalUsesExpandedCoverageLayout() &&
+                      domain.targeted
                     "
                     [class.grid-cols-[minmax(15rem,1fr)_13rem_13rem_13rem_13rem_10rem]]="
                       (!isNationalGoalsModal() || isSirapPrimaryGoalsModal()) &&
-                        goalsModalUsesExpandedCoverageLayout() &&
-                        !domain.targeted
+                      goalsModalUsesExpandedCoverageLayout() &&
+                      !domain.targeted
                     "
                     [class.grid-cols-[minmax(15rem,1fr)_15rem_8rem_7rem]]="
                       !isNationalGoalsModal() &&
-                        !goalsModalUsesExpandedCoverageLayout() &&
-                        domain.targeted
+                      !goalsModalUsesExpandedCoverageLayout() &&
+                      domain.targeted
                     "
                     [class.grid-cols-[minmax(15rem,1fr)_15rem_10rem]]="
                       !isNationalGoalsModal() &&
-                        !goalsModalUsesExpandedCoverageLayout() &&
-                        !domain.targeted
+                      !goalsModalUsesExpandedCoverageLayout() &&
+                      !domain.targeted
                     "
                     role="row"
                   >
@@ -5448,7 +5424,8 @@
                             [idBase]="'conservation-goals-modal-heading-' + heading.id"
                             [labelKey]="'analysis.overview.goalsWidget.modal.' + heading.label"
                             [questionKey]="
-                              'analysis.overview.goalsWidget.modal.columnQuestions.' + heading.question
+                              'analysis.overview.goalsWidget.modal.columnQuestions.' +
+                              heading.question
                             "
                             align="end"
                           ></app-table-header-tooltip>
