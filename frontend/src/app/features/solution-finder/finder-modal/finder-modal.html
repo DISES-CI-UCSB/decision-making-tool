@@ -416,18 +416,19 @@
                     class="mt-1 text-xs font-normal leading-snug"
                     [class.finder-subtext-dark]="isTargetTypeAvailable(option.id)"
                     [class.text-slate-400]="!isTargetTypeAvailable(option.id)"
-                    [class.finder-target-help-clamp]="!isTargetTypeSelected(option.id)"
                     [attr.title]="option.helpTooltipKey ? null : (option.helpKey | translate)"
                   >
-                    <span [id]="'solution-finder-modal-step1-target-type-help-text-' + option.id">
-                      {{ option.helpKey | translate }}
-                    </span>
+                    <span
+                      [id]="'solution-finder-modal-step1-target-type-help-text-' + option.id"
+                      [class.finder-target-help-clamp]="!isTargetTypeSelected(option.id)"
+                      >{{ option.helpKey | translate }}</span
+                    >
                     @if (option.helpTooltipKey && option.helpTooltipToggleKey) {
                       <span
                         [id]="
                           'solution-finder-modal-step1-target-type-help-tooltip-wrap-' + option.id
                         "
-                        class="finder-target-tooltip group relative z-20 ml-1 inline-flex align-middle hover:z-100 focus-within:z-100"
+                        class="finder-inline-help finder-target-tooltip group relative z-20 hover:z-100 focus-within:z-100"
                       >
                         <button
                           [id]="
@@ -435,7 +436,7 @@
                             option.id
                           "
                           type="button"
-                          class="finder-layer-info-button inline-flex items-center justify-center text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                          class="finder-inline-help-trigger"
                           [attr.aria-label]="option.helpTooltipToggleKey | translate"
                           [attr.aria-describedby]="
                             'solution-finder-modal-step1-target-type-help-tooltip-' + option.id
@@ -444,7 +445,8 @@
                         >
                           <app-info-icon
                             [rootId]="
-                              'solution-finder-modal-step1-target-type-help-tooltip-icon-' + option.id
+                              'solution-finder-modal-step1-target-type-help-tooltip-icon-' +
+                              option.id
                             "
                             colorClass="text-slate-400"
                           />
@@ -452,7 +454,7 @@
                         <span
                           [id]="'solution-finder-modal-step1-target-type-help-tooltip-' + option.id"
                           role="tooltip"
-                          class="pointer-events-none absolute left-0 top-full z-100 mt-2 w-72 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
+                          class="pointer-events-auto absolute left-0 top-full z-100 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs font-normal leading-relaxed text-slate-100 opacity-0 shadow-xl transition-[opacity,transform] duration-150 ease-out translate-y-1 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 before:absolute before:-top-1.5 before:left-3 before:size-3 before:rotate-45 before:border-l before:border-t before:border-slate-700 before:bg-slate-900 before:content-['']"
                         >
                           <span
                             [id]="
@@ -539,33 +541,14 @@
                         >
                           <span
                             [id]="'solution-finder-modal-step1-target-level-label-row-' + option.id"
-                            class="inline-flex items-baseline gap-1"
+                            class="finder-target-coverage-question-label leading-snug"
                           >
-                            <span
-                              [id]="
-                                'solution-finder-modal-step1-target-level-coverage-label-' +
-                                option.id
-                              "
-                              class="finder-target-coverage-question-label"
-                            >
-                              {{ getTargetCoverageQuestion(option.id) }}
-                            </span>
-                            @if (isTargetTypeLevelMissing(option.id)) {
-                              <span
-                                [id]="
-                                  'solution-finder-modal-step1-target-level-required-label-' +
-                                  option.id
-                                "
-                                class="finder-all-caps-optical finder-target-level-title-optical text-red-600"
-                              >
-                                {{ 'solutionControls.finder.step1.requiredInline' | translate }}
-                              </span>
-                            }
-                            <span
+                            {{ getTargetCoverageQuestion(option.id)
+                            }}<span
                               [id]="
                                 'solution-finder-modal-step1-target-level-rationale-' + option.id
                               "
-                              class="finder-target-tooltip group relative z-20 ml-1 inline-flex normal-case tracking-normal hover:z-100 focus-within:z-100"
+                              class="finder-inline-help finder-target-tooltip group relative z-20 normal-case tracking-normal hover:z-100 focus-within:z-100"
                             >
                               <button
                                 [id]="
@@ -573,7 +556,7 @@
                                   option.id
                                 "
                                 type="button"
-                                class="finder-layer-info-button inline-flex items-center justify-center text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                class="finder-inline-help-trigger"
                                 [attr.aria-label]="
                                   'solutionControls.finder.step1.targetLevelRationaleToggle'
                                     | translate
@@ -598,7 +581,7 @@
                                   option.id
                                 "
                                 role="tooltip"
-                                class="pointer-events-none absolute left-1/2 top-full z-100 mt-2 w-72 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
+                                class="pointer-events-auto absolute left-1/2 top-full z-100 mt-2 w-80 max-w-[calc(100vw-2rem)] -translate-x-1/2 translate-y-1 rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs font-normal leading-relaxed text-slate-100 opacity-0 shadow-xl transition-[opacity,transform] duration-150 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 before:absolute before:-top-1.5 before:left-1/2 before:size-3 before:-translate-x-1/2 before:rotate-45 before:border-l before:border-t before:border-slate-700 before:bg-slate-900 before:content-['']"
                               >
                                 <span
                                   [id]="
@@ -623,7 +606,7 @@
                                       'solution-finder-modal-step1-target-level-rationale-aichi-source-' +
                                       option.id
                                     "
-                                    class="pointer-events-auto font-semibold text-sky-700 underline-offset-2 hover:underline"
+                                    class="font-semibold text-sky-300 underline-offset-2 hover:text-sky-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                                     [href]="
                                       'solutionControls.finder.step1.targetLevelAichiSourceUrl'
                                         | translate
@@ -653,7 +636,7 @@
                                       'solution-finder-modal-step1-target-level-rationale-kunming-source-' +
                                       option.id
                                     "
-                                    class="pointer-events-auto font-semibold text-sky-700 underline-offset-2 hover:underline"
+                                    class="font-semibold text-sky-300 underline-offset-2 hover:text-sky-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                                     [href]="
                                       'solutionControls.finder.step1.targetLevelKunmingSourceUrl'
                                         | translate
@@ -672,6 +655,17 @@
                                 </span>
                               </span>
                             </span>
+                            @if (isTargetTypeLevelMissing(option.id)) {
+                              <span
+                                [id]="
+                                  'solution-finder-modal-step1-target-level-required-label-' +
+                                  option.id
+                                "
+                                class="finder-all-caps-optical finder-target-level-title-optical text-red-600"
+                              >
+                                {{ 'solutionControls.finder.step1.requiredInline' | translate }}
+                              </span>
+                            }
                           </span>
                         </div>
                         <div

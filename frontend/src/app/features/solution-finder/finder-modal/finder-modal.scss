@@ -121,8 +121,31 @@
   padding: 0.25rem 0.5rem;
 }
 
-.finder-layer-info-button {
-  line-height: 1;
+.finder-inline-help {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  margin-left: 2px;
+}
+
+.finder-inline-help-trigger {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: help;
+  line-height: 0;
+}
+
+.finder-inline-help-trigger:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+.finder-inline-help:hover,
+.finder-inline-help:focus-within {
+  z-index: 1000 !important;
 }
 
 @supports (text-box-trim: trim-both) and (text-box-edge: cap alphabetic) {
@@ -236,8 +259,6 @@
 
 /* Sentence-case coverage questions in step 1 target-level panels. */
 .finder-target-coverage-question-label {
-  display: inline-block;
-  line-height: 1.375;
   letter-spacing: normal;
   text-transform: none;
 }
