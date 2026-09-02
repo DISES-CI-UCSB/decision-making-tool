@@ -63,6 +63,7 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 # Metrics pipeline: track source + fixtures, ignore generated artifacts and raster cache.
 /data/metrics/generated/
 /data/metrics/cache/
+/data/metrics/python/data/metrics/cache/
 /data/metrics/python/**/.venv/
 # Tracked metrics pipeline dependency files, test config, and shared fixtures.
 !/data/metrics/python/requirements.txt

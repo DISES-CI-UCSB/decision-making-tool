@@ -11,7 +11,11 @@ import {
   inject,
 } from '@angular/core';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
-import { isSirapRegionId, type SirapRegionId } from '@core/models/sirap-access.model';
+import {
+  AVAILABLE_SIRAP_REGION_IDS,
+  isSirapRegionId,
+  type SirapRegionId,
+} from '@core/models/sirap-access.model';
 import {
   getSolutionIncludeFlags,
   getSolutionHumanFootprintYear,
@@ -51,8 +55,6 @@ type SirapStrategicTarget = 17 | 30 | 50 | 100;
 type SirapDryForestMode = 'inherit' | 'separate-100';
 type SirapWetlandsTarget = 70 | 100;
 type SirapSavannasTarget = 17 | 30;
-
-const FINDER_SIRAP_REGION_IDS: readonly SirapRegionId[] = ['eje-cafetero', 'orinoquia'];
 
 interface SirapTargetTuple {
   id: string;
@@ -227,7 +229,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     const accessibleIds = this.appState.accessibleSirapIds();
     return this.sirapRegions.filter(
       (region) =>
-        FINDER_SIRAP_REGION_IDS.includes(region.id) && accessibleIds.includes(region.id),
+        AVAILABLE_SIRAP_REGION_IDS.includes(region.id) && accessibleIds.includes(region.id),
     );
   }
 
@@ -1125,7 +1127,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   }
 
   private isFinderSupportedSirapRegion(value: unknown): value is SirapRegionId {
-    return isSirapRegionId(value) && FINDER_SIRAP_REGION_IDS.includes(value);
+    return isSirapRegionId(value) && AVAILABLE_SIRAP_REGION_IDS.includes(value);
   }
 
   private toTargetLevelsByType(

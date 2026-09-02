@@ -51,14 +51,20 @@ def validate_species_goals_release_artifacts(
     )
     catalog_path = root / catalog_item["path"]
     catalog = validate_catalog(read_json(catalog_path))
-    catalog_provenance_release_id = catalog["provenance"]["releaseId"]
-    if catalog_provenance_release_id != release_id:
-        warnings.warn(
-            "Species goals catalog provenance releaseId "
-            f"{catalog_provenance_release_id!r} differs from release "
-            f"{release_id!r}; binding on catalogSha256 is expected.",
-            stacklevel=2,
-        )
+    catalog_provenance = catalog.get("provenance")
+    if isinstance(catalog_provenance, dict):
+        catalog_provenance_release_id = catalog_provenance.get("releaseId")
+        if (
+            isinstance(catalog_provenance_release_id, str)
+            and catalog_provenance_release_id
+            and catalog_provenance_release_id != release_id
+        ):
+            warnings.warn(
+                "Species goals catalog provenance releaseId "
+                f"{catalog_provenance_release_id!r} differs from release "
+                f"{release_id!r}; binding on catalogSha256 is expected.",
+                stacklevel=2,
+            )
     catalog_completion_item = next(
         item
         for item in completion_artifacts

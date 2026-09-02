@@ -24,6 +24,9 @@ export const SIRAP_REGIONS: readonly SirapRegion[] = [
 
 export const SIRAP_REGION_IDS: readonly SirapRegionId[] = SIRAP_REGIONS.map((region) => region.id);
 
+/** SIRAP regions with published scenarios and metrics in the current product release. */
+export const AVAILABLE_SIRAP_REGION_IDS: readonly SirapRegionId[] = ['eje-cafetero', 'orinoquia'];
+
 export type SirapAccessRequestStatus = 'pending' | 'approved' | 'denied';
 
 export function isSirapRegionId(value: unknown): value is SirapRegionId {
