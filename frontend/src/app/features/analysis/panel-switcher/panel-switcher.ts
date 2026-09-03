@@ -911,6 +911,13 @@ export class PanelSwitcherComponent {
   private readonly goalsModalEcosystemRowsByView = computed<
     ReadonlyMap<MecViewId, MecCoverageRow[]>
   >(() => {
+    if (this.supportsSirapCustomAoiMetrics()) {
+      const customState = this.mecPanelState();
+      if (customState.status === 'custom' && customState.data.rowsByView.size > 0) {
+        return customState.data.rowsByView;
+      }
+    }
+
     const document = this.goalsModalEcosystemMecDocument();
     if (!document) {
       return new Map<MecViewId, MecCoverageRow[]>();
@@ -937,6 +944,10 @@ export class PanelSwitcherComponent {
       const mecRows = this.goalsModalEcosystemRowsByView().get(
         this.goalsModalEcosystemBreakdown().view,
       );
+      if (this.supportsSirapCustomAoiMetrics() && mecRows && mecRows.length > 0) {
+        const relativeTarget = this.getGoalsModalEcosystemRelativeTarget();
+        return mecRows.map((row) => this.toGoalsModalEcosystemRow(row, relativeTarget));
+      }
       if (this.goalsModalEcosystemBreakdownId() === 'iavh') {
         return this.mergeGoalsModalEcosystemCoverage(document.features.ecosystems, mecRows);
       }
@@ -1093,6 +1104,13 @@ export class PanelSwitcherComponent {
   protected readonly customAoiSpeciesSolutionId = computed(() =>
     this.isMarineSolution() ? null : this.activeSolutionId(),
   );
+  protected readonly customAoiSpeciesScopeId = computed(() => {
+    if (!this.supportsSirapCustomAoiMetrics()) {
+      return null;
+    }
+    const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
+    return typeof sirapId === 'string' ? sirapId : null;
+  });
   protected readonly customAoiSpeciesModalOpen = signal(false);
   protected readonly canOpenCustomAoiSpeciesInventory = computed(
     () =>
@@ -2737,7 +2755,25 @@ export class PanelSwitcherComponent {
 
   private loadGoalsModalEcosystemMec(): void {
     const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
-    if (!solutionId || this.goalsModalEcosystemMecSolutionId === solutionId) {
+    if (!solutionId) {
+      return;
+    }
+
+    if (this.supportsSirapCustomAoiMetrics()) {
+      const customState = this.mecPanelState();
+      if (customState.status === 'custom') {
+        this.goalsModalEcosystemMecDocument.set(null);
+        this.goalsModalEcosystemNationalAreas.set(null);
+        this.goalsModalEcosystemMecLoading.set(false);
+        this.goalsModalEcosystemMecLoadFailed.set(
+          customState.data.rowsByView.size === 0 &&
+            (customState.data.status === 'failed' || customState.data.status === 'unavailable'),
+        );
+        return;
+      }
+    }
+
+    if (this.goalsModalEcosystemMecSolutionId === solutionId) {
       return;
     }
 

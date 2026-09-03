@@ -255,6 +255,26 @@ describe('AOI ecosystems utilities', () => {
     expect(() => buildCustomMecData(response)).toThrowError(
       'Missing Mesa solution coverage for active custom AOI solution',
     );
+    expect(
+      buildCustomMecData(response, 'test-solution', { allowVariableMesaRowCount: true }).rowsByView
+        .size,
+    ).toBe(1);
+  });
+
+  it('falls back to view records when SIRAP custom AOI solution coverage is empty', () => {
+    const response = buildCustomProfileResponse();
+    response.sections.ecosystems!.solution_coverage = [];
+
+    const data = buildCustomMecData(response, 'test-solution', { allowVariableMesaRowCount: true });
+
+    expect(data.rowsByView.get('broadEcosystem')).toEqual([
+      expect.objectContaining({
+        label: 'Forest',
+        solutionCoveragePercent: 50,
+        preExistingPercent: 12.5,
+        newPrioritizrPercent: 37.5,
+      }),
+    ]);
   });
 
   it('returns an unavailable custom MEC state without throwing', () => {

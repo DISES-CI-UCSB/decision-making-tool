@@ -12,7 +12,7 @@ import rasterio
 from affine import Affine
 
 from scripts import build_sirap_runtime_artifact as builder
-from scripts.aligned_cache import sha256_file
+from scripts.aligned_cache import read_fingerprint, sha256_file
 from scripts.build_runtime_artifact import DownloadedSource
 
 PUBLIC_BLOB_HOST = builder.PUBLIC_BLOB_HOST
@@ -77,14 +77,18 @@ def fake_release_manifest() -> dict:
     }
 
 
-def fake_packet_manifest(*, ecosystem_sha256: str) -> dict:
+def fake_packet_manifest(*, ecosystem_sha256: str, species_sha256: str = "f" * 64) -> dict:
     return {
         "format": "sirap-approved-packet-manifest-v2",
         "solutions": [
             {
                 "id": f"{SIRAP_ID}-{index:03d}",
                 "sirapId": SIRAP_ID,
-                "regionalInputPacket": _packet_for(SIRAP_ID, ecosystem_sha256=ecosystem_sha256),
+            "regionalInputPacket": _packet_for(
+                SIRAP_ID,
+                ecosystem_sha256=ecosystem_sha256,
+                species_sha256=species_sha256,
+            ),
             }
             for index in range(1, 41)
         ]
@@ -92,14 +96,23 @@ def fake_packet_manifest(*, ecosystem_sha256: str) -> dict:
             {
                 "id": f"sirap-orinoquia-fixture-{index:02d}",
                 "sirapId": "orinoquia",
-                "regionalInputPacket": _packet_for("orinoquia", ecosystem_sha256=ecosystem_sha256),
+                "regionalInputPacket": _packet_for(
+                    "orinoquia",
+                    ecosystem_sha256=ecosystem_sha256,
+                    species_sha256=species_sha256,
+                ),
             }
             for index in range(1, 17)
         ],
     }
 
 
-def _packet_for(sirap_id: str, *, ecosystem_sha256: str) -> dict:
+def _packet_for(
+    sirap_id: str,
+    *,
+    ecosystem_sha256: str,
+    species_sha256: str = "f" * 64,
+) -> dict:
     return {
         "format": "sirap-metric-input-packet-v2",
         "regionId": sirap_id,
@@ -123,7 +136,7 @@ def _packet_for(sirap_id: str, *, ecosystem_sha256: str) -> dict:
                     "taxonomicClass": "Magnoliopsida",
                     "format": "smsp-v1",
                     "url": f"{PUBLIC_BLOB_HOST}/inputs/features/species/{sirap_id}_plants.smsp.gz",
-                    "sha256": "f" * 64,
+                    "sha256": species_sha256,
                     "gridSha256": "c" * 64,
                 }
             ],
@@ -144,6 +157,16 @@ def publish_fixture_sources(tmp_path: Path) -> dict[str, Path]:
         crs="EPSG:9377",
         transform=GRID,
     )
+    strategic_sources: dict[str, Path] = {}
+    for layer_id, filename, _metric_id in builder.STRATEGIC_LAYER_SPECS:
+        strategic_sources[layer_id] = write_raster(
+            tmp_path / "published" / filename,
+            np.array([[1, 0, 0], [0, 1, 0]], dtype=np.uint8),
+            crs="EPSG:4326",
+            transform=Affine(0.01, 0.0, -75.0, 0.0, -0.01, 5.0),
+        )
+    species_source = tmp_path / "published" / f"{SIRAP_ID}_plants.smsp.gz"
+    species_source.write_bytes(b"fixture species matrix")
     crosswalk = tmp_path / "published" / "crosswalk.csv"
     crosswalk.write_text(
         "rasterValue,tipoEcosistema,biomeFamily,broadBiomeContext,"
@@ -193,7 +216,11 @@ def publish_fixture_sources(tmp_path: Path) -> dict[str, Path]:
                     "absolute_held_km2,feature_type,class"
                 ),
                 (
-                    f"Forest,TRUE,100,30,30,0,0.3,0.3,0,Fixture solution 1,"
+                    f"paramos,TRUE,100,17,17,0,0.17,0.17,0,,"
+                    "prioritizr_model,9,4.25,strategic ecosystem,NA"
+                ),
+                (
+                    f"Forest,TRUE,100,30,30,0,0.3,0.3,0,,"
                     "prioritizr_model,9,2.7,ecosystem,NA"
                 ),
             ]
@@ -214,6 +241,7 @@ def publish_fixture_sources(tmp_path: Path) -> dict[str, Path]:
     published = {
         f"{PUBLIC_BLOB_HOST}/solutions/{SIRAP_ID}-001.tif": solution,
         f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/{SIRAP_ID}_mec.tif": ecosystem,
+        f"{PUBLIC_BLOB_HOST}/inputs/features/species/{SIRAP_ID}_plants.smsp.gz": species_source,
         builder.published_source_summary_url(
             builder.SirapReleaseManifest(
                 url="https://example.invalid/manifest.json",
@@ -226,6 +254,10 @@ def publish_fixture_sources(tmp_path: Path) -> dict[str, Path]:
         f"{PUBLIC_BLOB_HOST}/releases/{RELEASE_ID}/mec/v2/national-denominator.mec.json": denominator,
         builder.MESA_ECOSYSTEM_CATALOG_URL: catalog,
     }
+    for layer_id, filename, _metric_id in builder.STRATEGIC_LAYER_SPECS:
+        published[
+            f"{PUBLIC_BLOB_HOST}/inputs/features/strategic/{filename}"
+        ] = strategic_sources[layer_id]
     for index in range(1, 41):
         solution_id = f"{SIRAP_ID}-{index:03d}"
         published[
@@ -259,7 +291,12 @@ def build_fixture_artifact(
     release_path.write_text(json.dumps(fake_release_manifest()), encoding="utf-8")
     ecosystem_path = published[f"{PUBLIC_BLOB_HOST}/inputs/features/ecosystems/{SIRAP_ID}_mec.tif"]
     packet_path.write_text(
-        json.dumps(fake_packet_manifest(ecosystem_sha256=sha256_file(ecosystem_path))),
+        json.dumps(
+            fake_packet_manifest(
+                ecosystem_sha256=sha256_file(ecosystem_path),
+                species_sha256=sha256_file(published[f"{PUBLIC_BLOB_HOST}/inputs/features/species/{SIRAP_ID}_plants.smsp.gz"]),
+            )
+        ),
         encoding="utf-8",
     )
 
@@ -312,17 +349,39 @@ def test_builds_regional_manifest_with_expected_shape(
     assert manifest["reference_grid"]["crs"] == "EPSG:9377"
     assert manifest["valid_data"]["valid_cell_count"] == 5
     assert manifest["raster_layers"][0]["layer_id"] == builder.ECOSYSTEM_LAYER_ID
+    strategic_layers = {
+        layer["layer_id"]: layer for layer in manifest["raster_layers"][1:]
+    }
+    assert {
+        layer["metric_ids"][0]
+        for layer in strategic_layers.values()
+    } == {
+        "ecosystem_coverage_paramo",
+        "ecosystem_coverage_wetlands",
+        "ecosystem_coverage_dry_forest",
+        "mangrove_coverage",
+    }
     assert manifest["authoritative_summary"]["format"] == builder.SOURCE_SUMMARY_FORMAT
     assert manifest["ecosystem_inventory"]["raster"]["checksum"]["value"]
     assert manifest["sirap_coverage"]["format"] == builder.SIRAP_RUNTIME_COVERAGE_FORMAT
-    assert manifest["sirap_coverage"]["solution_targets"]["eje-cafetero-001"]["target_count"] == 1
+    assert manifest["sirap_coverage"]["solution_targets"]["eje-cafetero-001"]["target_count"] == 2
+    assert all(
+        entry["target_count"] > 0
+        for entry in manifest["sirap_coverage"]["solution_targets"].values()
+    )
     assert manifest["mec_national_denominator"]["source_url"].endswith(
         "national-denominator.mec.json"
     )
-    assert manifest["species_matrices"]["status"] == "stubbed"
-    assert len(manifest["species_matrices"]["declared_bindings"]) == 1
+    assert manifest["species_matrices"][0]["group"] == "plants"
     assert manifest["checksum"]["algorithm"] == "sha256"
     assert len(manifest["files"]) >= 8
+
+    reference_fingerprint = read_fingerprint(
+        artifact_dir / manifest["reference_raster_path"]
+    )
+    for layer in strategic_layers.values():
+        layer_fingerprint = read_fingerprint(artifact_dir / layer["path"])
+        assert layer_fingerprint == reference_fingerprint
 
 
 def test_rejects_solution_count_mismatch(

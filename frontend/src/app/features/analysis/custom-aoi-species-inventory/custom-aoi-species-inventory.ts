@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import type {
@@ -38,8 +39,38 @@ interface LoadedInventoryState {
 
 type InventoryState = { status: 'idle' | 'loading' } | LoadedInventoryState;
 
+export const LIVE_SPECIES_INVENTORY_UNAVAILABLE_REASONS = [
+  'species_matrices_stubbed',
+  'species_index_required',
+] as const;
+
+export function isLiveSpeciesInventoryUnavailableReason(
+  reason: string | null | undefined,
+): boolean {
+  if (!reason) {
+    return false;
+  }
+  return (
+    LIVE_SPECIES_INVENTORY_UNAVAILABLE_REASONS.includes(
+      reason as (typeof LIVE_SPECIES_INVENTORY_UNAVAILABLE_REASONS)[number],
+    ) || reason.startsWith('species_matrix_group_missing')
+  );
+}
+
 function isLoadedInventoryState(state: InventoryState): state is LoadedInventoryState {
   return state.status !== 'idle' && state.status !== 'loading';
+}
+
+function isSpeciesCoverageUnavailableError(error: unknown): boolean {
+  if (!(error instanceof HttpErrorResponse) || error.status !== 503) {
+    return false;
+  }
+  const detail = error.error;
+  if (!detail || typeof detail !== 'object') {
+    return false;
+  }
+  const status = (detail as { status?: unknown }).status;
+  return status === 'species_index_required' || status === 'species_matrices_stubbed';
 }
 
 type CoverageState = 'idle' | 'submitting' | 'active' | 'failed' | 'cancelled';
@@ -200,7 +231,10 @@ export class CustomAoiSpeciesInventoryComponent {
   });
   protected readonly speciesCoverageUnavailable = computed(() => {
     const reason = this.inventoryUnavailableReason();
-    return reason === 'species_matrices_stubbed';
+    return (
+      isLiveSpeciesInventoryUnavailableReason(reason) ||
+      this.precomputedCoverageRecords().length > 0
+    );
   });
   protected readonly inventoryUnavailableReason = computed((): string | null => {
     const state = this.inventoryState();
@@ -296,13 +330,47 @@ export class CustomAoiSpeciesInventoryComponent {
                     ...(solutionId ? { solution_id: solutionId } : {}),
                   })
                   .pipe(
-                    map((response) => this.toInventoryState(parseSpeciesSection(response))),
-                    catchError(() =>
-                      of<InventoryState>({
+                    switchMap((response) => {
+                      const inventoryState = this.toInventoryState(parseSpeciesSection(response));
+                      if (
+                        isLoadedInventoryState(inventoryState) &&
+                        this.shouldFallbackToPrecomputedSpecies(
+                          inventoryState,
+                          geographyLevel,
+                          scopeId,
+                          solutionId,
+                        )
+                      ) {
+                        return this.loadPrecomputedInventory(
+                          solutionId!,
+                          geographyLevel!,
+                          scopeId!,
+                        );
+                      }
+                      return of(inventoryState);
+                    }),
+                    catchError((error) => {
+                      if (
+                        this.canFallbackToPrecomputedSpecies(geographyLevel, scopeId, solutionId)
+                      ) {
+                        return this.loadPrecomputedInventory(
+                          solutionId!,
+                          geographyLevel!,
+                          scopeId!,
+                        );
+                      }
+                      if (isSpeciesCoverageUnavailableError(error)) {
+                        return of<InventoryState>({
+                          status: 'unavailable',
+                          data: null,
+                          reason: 'species_index_required',
+                        });
+                      }
+                      return of<InventoryState>({
                         status: 'failed',
                         data: null,
-                      }),
-                    ),
+                      });
+                    }),
                   ),
               ),
             ),
@@ -378,7 +446,7 @@ export class CustomAoiSpeciesInventoryComponent {
   }
 
   protected inventoryStateKey(status: InventoryState['status'], reason?: string | null): string {
-    if (status === 'unavailable' && reason === 'species_matrices_stubbed') {
+    if (status === 'unavailable' && isLiveSpeciesInventoryUnavailableReason(reason)) {
       return 'analysis.aoi.customProfile.species.stubbedUnavailable';
     }
     return `analysis.aoi.customProfile.states.${status}`;
@@ -477,9 +545,9 @@ export class CustomAoiSpeciesInventoryComponent {
                 : 'active',
           );
         }),
-        catchError(() => {
+        catchError((error) => {
           if (version === this.contextVersion) {
-            this.coverageState.set('failed');
+            this.coverageState.set(isSpeciesCoverageUnavailableError(error) ? 'idle' : 'failed');
           }
           return of(null);
         }),
@@ -511,7 +579,8 @@ export class CustomAoiSpeciesInventoryComponent {
   }
 
   private buildCoverageView(record: DetailedSpeciesCoverageRecord): SpeciesCoverageView {
-    const mesaCoverage = this.geometry() ? mapMesaSpeciesCoverage(record) : null;
+    const mesaCoverage =
+      this.geometry() && this.hasMesaCoverageFields(record) ? mapMesaSpeciesCoverage(record) : null;
     const coverageById = {
       'solution-coverage': mesaCoverage
         ? this.buildCoverageMetric(
@@ -636,6 +705,64 @@ export class CustomAoiSpeciesInventoryComponent {
       data: section,
       reason: section.reason ?? null,
     };
+  }
+
+  private canFallbackToPrecomputedSpecies(
+    geographyLevel: GeographyLevel | null,
+    scopeId: string | null,
+    solutionId: string | null,
+  ): boolean {
+    return Boolean(solutionId && geographyLevel && scopeId);
+  }
+
+  private shouldFallbackToPrecomputedSpecies(
+    state: LoadedInventoryState,
+    geographyLevel: GeographyLevel | null,
+    scopeId: string | null,
+    solutionId: string | null,
+  ): boolean {
+    if (!this.canFallbackToPrecomputedSpecies(geographyLevel, scopeId, solutionId)) {
+      return false;
+    }
+    if (state.status === 'failed') {
+      return true;
+    }
+    if (state.status === 'unavailable') {
+      return isLiveSpeciesInventoryUnavailableReason(state.reason ?? state.data?.reason);
+    }
+    return false;
+  }
+
+  private loadPrecomputedInventory(
+    solutionId: string,
+    geographyLevel: GeographyLevel,
+    scopeId: string,
+  ) {
+    return this.speciesGoals.load(solutionId, geographyLevel, scopeId).pipe(
+      map((records) => {
+        if (records === null) {
+          return {
+            status: 'unavailable',
+            data: null,
+            reason: 'precomputed_species_unavailable',
+          } satisfies InventoryState;
+        }
+        this.precomputedCoverageRecords.set(records);
+        return {
+          status: records.length > 0 ? 'complete' : 'empty',
+          data: {
+            status: records.length > 0 ? 'complete' : 'empty',
+            records,
+          },
+        } satisfies InventoryState;
+      }),
+      catchError(() =>
+        of<InventoryState>({
+          status: 'failed',
+          data: null,
+        }),
+      ),
+    );
   }
 }
 

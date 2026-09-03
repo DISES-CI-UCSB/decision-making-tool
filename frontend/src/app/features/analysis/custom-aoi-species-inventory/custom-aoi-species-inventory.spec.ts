@@ -13,7 +13,7 @@ import type {
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
 import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import {
   clampSpeciesBarPercent,
   CustomAoiSpeciesInventoryComponent,
@@ -528,6 +528,77 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(
       compiled.querySelector('#custom-aoi-species-inventory-state-copy')?.textContent,
     ).toContain('analysis.aoi.customProfile.species.stubbedUnavailable');
+  });
+
+  it('falls back to precomputed SIRAP species goals when live inventory is stubbed', async () => {
+    api.getCustomAoiAreaProfile.mockReturnValue(
+      of({
+        format: 'custom-aoi-area-profile-v1',
+        status: 'partial',
+        artifact_version: 'sirap-fixture-v1',
+        selection: {
+          status: 'selected',
+          selected_cell_count: 1,
+          available_cell_count: 1,
+          area_km2: 1,
+          source: 'test',
+        },
+        requested_sections: ['species'],
+        sections: {
+          species: {
+            status: 'unavailable',
+            reason: 'species_matrices_stubbed',
+            records: [],
+          },
+        },
+      }),
+    );
+    const fixture = TestBed.createComponent(CustomAoiSpeciesInventoryComponent);
+    fixture.componentRef.setInput('geometry', geometry(0));
+    fixture.componentRef.setInput('solutionId', 'solution-1');
+    fixture.componentRef.setInput('geographyLevel', 'siraps');
+    fixture.componentRef.setInput('scopeId', 'orinoquia');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    expect(speciesGoals.load).toHaveBeenCalledWith('solution-1', 'siraps', 'orinoquia');
+    expect(api.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '#custom-aoi-species-coverage-precomputed-complete',
+      ),
+    ).not.toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelectorAll(
+        '[id^="custom-aoi-species-inventory-row-"]',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('does not mark coverage failed when species coverage jobs return species_index_required', async () => {
+    const { HttpErrorResponse } = await import('@angular/common/http');
+    api.createDetailedSpeciesCoverageJob.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 503,
+            error: {
+              status: 'species_index_required',
+              message: 'The detailed species index is unavailable.',
+            },
+          }),
+      ),
+    );
+    const fixture = createFixture('solution-1');
+    await fixture.whenStable();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-failed'),
+    ).toBeNull();
   });
 
   function createFixture(solutionId: string | null) {

@@ -6,6 +6,7 @@ import argparse
 import copy
 import csv
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -16,6 +17,8 @@ from typing import Any
 
 import numpy as np
 import rasterio
+from rasterio.enums import Resampling
+from rasterio.warp import reproject
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_ROOT.parent
@@ -24,12 +27,15 @@ for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
     if str(_import_root) not in sys.path:
         sys.path.insert(0, str(_import_root))
 
+from raster_align import exact_grid_matches, policy_for_layer  # noqa: E402
+from raster_metrics import RasterFingerprint  # noqa: E402
 from scripts.aligned_cache import read_fingerprint, sha256_file  # noqa: E402
 from scripts.build_runtime_artifact import (  # noqa: E402
     ECOSYSTEM_SOURCE_URLS_BY_GRID,
     MESA_ECOSYSTEM_CATALOG_URL,
     DownloadedSource,
     aggregate_file_checksum,
+    copy_source,
     download_source,
     file_entry,
     safe_filename,
@@ -44,13 +50,21 @@ SUPPORTED_SIRAP_IDS = {
     "orinoquia": 16,
 }
 ECOSYSTEM_LAYER_ID = "ecosistemas_IAVH_2024"
+STRATEGIC_LAYER_SPECS = (
+    ("paramos", "paramos.tif", "ecosystem_coverage_paramo"),
+    ("wetlands", "humedales.tif", "ecosystem_coverage_wetlands"),
+    ("bosque_seco", "bosque_seco.tif", "ecosystem_coverage_dry_forest"),
+    ("mangroves", "mangroves.tif", "mangrove_coverage"),
+)
 ARTIFACT_KIND = "sirap-raster-custom-aoi/v1"
 SCHEMA_VERSION = "metrics-artifact-manifest/v1"
 SOURCE_SUMMARY_FORMAT = "sirap-source-summary-v1"
 SIRAP_SOLUTION_TARGETS_FORMAT = "sirap-solution-targets-v1"
 SIRAP_RUNTIME_COVERAGE_FORMAT = "sirap-runtime-coverage-v1"
 SIRAP_TARGET_EVALUATION = "prioritizr_model"
-SIRAP_TARGET_FEATURE_TYPES = frozenset({"ecosystem", "species"})
+SIRAP_ECOSYSTEM_EVALUATIONS = frozenset({"prioritizr_model", "post-hoc"})
+SIRAP_SPECIES_EVALUATIONS = frozenset({SIRAP_TARGET_EVALUATION})
+SIRAP_TARGET_FEATURE_TYPES = frozenset({"ecosystem", "species", "strategic ecosystem"})
 
 
 @dataclass(frozen=True)
@@ -186,6 +200,7 @@ def main() -> None:
         sample_solution,
         reference_source,
     )
+    reference_fingerprint = read_fingerprint(reference_source.path)
     file_entries = [
         file_entry(
             reference_source.path,
@@ -225,6 +240,36 @@ def main() -> None:
             "size_bytes": ecosystem.bytes,
         }
     )
+    for layer_id, filename, metric_id in STRATEGIC_LAYER_SPECS:
+        strategic_url = f"{PUBLIC_BLOB_HOST}/inputs/features/strategic/{filename}"
+        strategic, aligned_to_reference = package_strategic_layer(
+            layer_id,
+            filename,
+            strategic_url,
+            sources_dir=sources_dir,
+            reference_fingerprint=reference_fingerprint,
+            force=args.force,
+        )
+        if aligned_to_reference:
+            print(
+                f"Aligned {layer_id} to {reference_fingerprint.crs} "
+                f"{reference_fingerprint.width}x{reference_fingerprint.height}."
+            )
+        file_entries.append(
+            file_entry(strategic.path, artifact_dir, strategic.sha256, strategic.bytes)
+        )
+        layer_entries.append(
+            {
+                "layer_id": layer_id,
+                "path": str(strategic.path.relative_to(artifact_dir)),
+                "kind": "binary",
+                "rendering": {"valueType": "binary", "selectedValue": 1},
+                "metric_ids": [metric_id],
+                "source_url": strategic_url,
+                "checksum": {"algorithm": "sha256", "value": strategic.sha256},
+                "size_bytes": strategic.bytes,
+            }
+        )
 
     summary_binding = sample_packet["regionalInputPacket"]["authoritativeSummary"]
     summary_url = published_source_summary_url(release, sample_solution["id"])
@@ -269,7 +314,16 @@ def main() -> None:
         }
 
     solution_rasters = build_solution_rasters(regional_solutions)
-    species_matrices = build_species_matrix_stub(sample_packet["regionalInputPacket"])
+    species_entries = build_species_matrix_bundle(
+        sample_packet["regionalInputPacket"],
+        sources_dir,
+        artifact_dir,
+        file_entries,
+        force=args.force,
+    )
+    species_matrices: list[dict[str, Any]] | dict[str, Any] = species_entries
+    if not species_entries:
+        species_matrices = build_species_matrix_stub(sample_packet["regionalInputPacket"])
     sirap_coverage = build_sirap_coverage_bundle(
         release,
         regional_solutions,
@@ -342,8 +396,8 @@ def main() -> None:
     print(f"Wrote SIRAP runtime artifact manifest: {manifest_path}")
     print(f"Regional solutions registered: {len(solution_rasters)}")
     print(f"Downloaded/reused files: {len(file_entries)}")
-    if species_matrices.get("status") == "stubbed":
-        print("Species SMSP matrices are stubbed; see manifest species_matrices.todo.")
+    if isinstance(species_matrices, dict) and species_matrices.get("status") == "stubbed":
+        print("No regional species SMSP matrices were packaged.")
 
 
 def release_manifest_url(release_id: str) -> str:
@@ -407,6 +461,96 @@ def filter_solutions(solutions: list[dict[str, Any]], sirap_id: str) -> list[dic
         and str(solution.get("sirapId") or "") == sirap_id
     ]
     return sorted(regional, key=lambda item: str(item.get("id") or ""))
+
+
+def package_strategic_layer(
+    layer_id: str,
+    filename: str,
+    source_url: str,
+    *,
+    sources_dir: Path,
+    reference_fingerprint: RasterFingerprint,
+    force: bool,
+) -> tuple[DownloadedSource, bool]:
+    """Download a strategic layer and align it to the regional reference grid when needed."""
+    raw = download_source(
+        source_url,
+        sources_dir / "strategic" / f"raw_{filename}",
+        force=force,
+    )
+    target = sources_dir / "strategic" / filename
+    source_fingerprint = read_fingerprint(raw.path)
+    if exact_grid_matches(source_fingerprint, reference_fingerprint):
+        return copy_source(raw.path, target), False
+
+    align_raster_to_reference_grid(
+        raw.path,
+        target,
+        layer_id=layer_id,
+        reference_fingerprint=reference_fingerprint,
+    )
+    return DownloadedSource(target, sha256_file(target), target.stat().st_size), True
+
+
+def align_raster_to_reference_grid(
+    source_path: Path,
+    target_path: Path,
+    *,
+    layer_id: str,
+    reference_fingerprint: RasterFingerprint,
+) -> None:
+    """Reproject one strategic layer onto the regional SIRAP reference grid."""
+    if reference_fingerprint.crs is None:
+        raise SystemExit(f"Reference grid for {layer_id!r} has no CRS.")
+
+    policy = policy_for_layer(layer_id)
+    resampling = {
+        "nearest": Resampling.nearest,
+        "bilinear": Resampling.bilinear,
+        "average": Resampling.average,
+        "sum": Resampling.sum,
+    }[policy.resampling]
+
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target_path.with_name(f".{target_path.name}.part")
+    with rasterio.open(source_path) as source:
+        if source.count != 1:
+            raise SystemExit(f"Strategic layer {layer_id!r} must have exactly one band.")
+        if source.crs is None:
+            raise SystemExit(f"Strategic layer {layer_id!r} has no CRS.")
+
+        source_array = source.read(1)
+        destination_array = np.full(
+            (reference_fingerprint.height, reference_fingerprint.width),
+            source.nodata if source.nodata is not None else 0,
+            dtype=source_array.dtype,
+        )
+        reproject(
+            source=source_array,
+            destination=destination_array,
+            src_transform=source.transform,
+            src_crs=source.crs,
+            src_nodata=source.nodata,
+            dst_transform=rasterio.Affine(*reference_fingerprint.transform),
+            dst_crs=reference_fingerprint.crs,
+            dst_nodata=source.nodata,
+            resampling=resampling,
+            init_dest_nodata=True,
+        )
+        profile = source.profile.copy()
+        profile.update(
+            {
+                "driver": "GTiff",
+                "height": reference_fingerprint.height,
+                "width": reference_fingerprint.width,
+                "transform": rasterio.Affine(*reference_fingerprint.transform),
+                "crs": reference_fingerprint.crs,
+                "count": 1,
+            }
+        )
+        with rasterio.open(tmp, "w", **profile) as destination:
+            destination.write(destination_array, 1)
+    tmp.replace(target_path)
 
 
 def resolve_reference_grid(
@@ -592,25 +736,56 @@ def build_sirap_coverage_bundle(
 
 def parse_sirap_summary_targets(summary_path: Path, *, scenario_name: str) -> list[dict[str, Any]]:
     with summary_path.open(encoding="utf-8-sig", newline="") as handle:
-        rows = list(csv.DictReader(handle))
+        reader = csv.DictReader(handle)
+        rows = list(reader)
+        header_map = {
+            _normalized_column(name): name
+            for name in (reader.fieldnames or [])
+            if name is not None
+        }
+
+    def value(row: dict[str, Any], *names: str) -> str:
+        for name in names:
+            column = header_map.get(_normalized_column(name))
+            if column is not None and row.get(column) not in (None, ""):
+                return str(row[column]).strip()
+        return ""
+
+    expected_scenario = _normalized_scenario(scenario_name)
     targets: list[dict[str, Any]] = []
     for row in rows:
-        evaluated = str(row.get("evaluated") or "").strip()
-        if evaluated != SIRAP_TARGET_EVALUATION:
-            continue
-        raw_type = str(row.get("feature_type") or "").strip().lower()
+        evaluated = value(row, "evaluated", "evaluation", "evaluated_by").casefold()
+        raw_type = value(row, "feature_type", "feature type", "type").casefold()
         if raw_type not in SIRAP_TARGET_FEATURE_TYPES:
             continue
-        scenario = str(row.get("scenario") or "").strip()
-        if scenario_name and scenario and scenario != scenario_name:
+        allowed_evaluations = (
+            SIRAP_ECOSYSTEM_EVALUATIONS
+            if raw_type in {"ecosystem", "strategic ecosystem"}
+            else SIRAP_SPECIES_EVALUATIONS
+        )
+        if evaluated not in allowed_evaluations:
             continue
-        feature = str(row.get("feature") or "").strip()
+        scenario = value(row, "scenario", "scenario_name", "scenario name")
+        normalized_scenario = _normalized_scenario(scenario)
+        if (
+            expected_scenario
+            and normalized_scenario
+            and not _scenario_matches(expected_scenario, normalized_scenario)
+        ):
+            continue
+        feature = value(row, "feature", "feature_name", "feature name")
         if not feature:
             continue
-        relative_target = row.get("relative_target")
-        if relative_target in (None, ""):
+        raw_relative_target = value(
+            row, "relative_target", "relative target", "target", "relativeTarget"
+        )
+        if not raw_relative_target or raw_relative_target.upper() == "NA":
             continue
-        feature_class = str(row.get("class") or "").strip() or None
+        try:
+            relative_target = float(raw_relative_target)
+        except ValueError:
+            continue
+        feature_class = value(row, "class", "feature_class", "feature class") or None
         if feature_class == "NA":
             feature_class = None
         targets.append(
@@ -618,28 +793,77 @@ def parse_sirap_summary_targets(summary_path: Path, *, scenario_name: str) -> li
                 "feature": feature,
                 "feature_type": raw_type,
                 "class": feature_class,
-                "relative_target": float(relative_target),
+                "relative_target": relative_target,
                 "evaluated": evaluated,
             }
         )
     return targets
 
 
+def _normalized_column(value: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", value.casefold())
+
+
+def _normalized_scenario(value: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", value.casefold())
+
+
+def _scenario_matches(expected: str, actual: str) -> bool:
+    """Accept release naming variants that add/remove separators or prefixes."""
+    return expected == actual or expected in actual or actual in expected
+
+
+def build_species_matrix_bundle(
+    packet: dict[str, Any],
+    sources_dir: Path,
+    artifact_dir: Path,
+    file_entries: list[dict[str, Any]],
+    *,
+    force: bool,
+) -> list[dict[str, Any]]:
+    species = packet.get("species")
+    if not isinstance(species, dict) or not isinstance(species.get("matrices"), list):
+        return []
+
+    entries: list[dict[str, Any]] = []
+    for binding in species["matrices"]:
+        if not isinstance(binding, dict):
+            continue
+        group = _sirap_species_group(binding.get("taxonomicClass"))
+        source_url = str(binding.get("url") or "").strip()
+        expected_sha256 = str(binding.get("sha256") or "").strip()
+        if group is None or not source_url or not expected_sha256:
+            continue
+        suffix = ".smsp.gz" if source_url.endswith(".gz") else ".smsp"
+        source = download_source(
+            source_url,
+            sources_dir / "species" / f"{group}{suffix}",
+            force=force,
+        )
+        if source.sha256 != expected_sha256:
+            raise SystemExit(f"Species matrix {group} checksum does not match binding.")
+        file_entries.append(file_entry(source.path, artifact_dir, source.sha256, source.bytes))
+        entries.append(
+            {
+                "group": group,
+                "path": str(source.path.relative_to(artifact_dir)),
+                "source_url": source_url,
+                "checksum": {"algorithm": "sha256", "value": source.sha256},
+                "size_bytes": source.bytes,
+                "grid_sha256": str(binding.get("gridSha256") or ""),
+            }
+        )
+    return entries
+
+
 def build_species_matrix_stub(packet: dict[str, Any]) -> dict[str, Any]:
     species = packet.get("species")
-    matrices: list[dict[str, Any]] = []
-    if isinstance(species, dict) and isinstance(species.get("matrices"), list):
-        matrices = [
-            {
-                "taxonomic_class": str(entry.get("taxonomicClass") or ""),
-                "format": str(entry.get("format") or ""),
-                "source_url": str(entry.get("url") or ""),
-                "checksum": {"algorithm": "sha256", "value": str(entry.get("sha256") or "")},
-                "grid_sha256": str(entry.get("gridSha256") or ""),
-            }
-            for entry in species["matrices"]
-            if isinstance(entry, dict)
-        ]
+    matrices = species.get("matrices") if isinstance(species, dict) else None
+    declared_bindings = (
+        [entry for entry in matrices if isinstance(entry, dict)]
+        if isinstance(matrices, list)
+        else []
+    )
     return {
         "status": "stubbed",
         "todo": (
@@ -647,9 +871,22 @@ def build_species_matrix_stub(packet: dict[str, Any]) -> dict[str, Any]:
             "regionalInputPacket.species.matrices and wire the backend species "
             "accumulator to the regional grid."
         ),
-        "declared_bindings": matrices,
+        "declared_bindings": declared_bindings,
         "entries": [],
     }
+
+
+def _sirap_species_group(taxonomic_class: Any) -> str | None:
+    normalized = re.sub(r"[^a-z0-9]", "", str(taxonomic_class or "").casefold())
+    return {
+        "mammalia": "mammals",
+        "aves": "birds",
+        "amphibia": "amphibians",
+        "squamata": "reptiles",
+        "crocodylia": "reptiles",
+        "magnoliopsida": "plants",
+        "threatened": "threatened",
+    }.get(normalized)
 
 
 def extract_mec_national_denominator_url(

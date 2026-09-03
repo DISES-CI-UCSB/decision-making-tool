@@ -16,6 +16,7 @@ from .solution_coverage import (
 from .sirap_coverage import (
     SirapCoverageError,
     calculate_sirap_ecosystem_aoi_coverage,
+    calculate_sirap_strategic_aoi_coverage,
 )
 from .species_index import (
     RuntimeSpeciesBitsetIndex,
@@ -30,6 +31,16 @@ if TYPE_CHECKING:
 
 
 SPECIES_GROUPS = ("mammals", "birds", "amphibians", "reptiles", "plants")
+SPECIES_MATRICES_STUBBED_REASON = "species_matrices_stubbed"
+
+
+def species_inventory_unavailable_reason(artifact: RuntimeArtifact) -> str | None:
+    raw_species = artifact.manifest.get("species_matrices")
+    if isinstance(raw_species, dict) and raw_species.get("status") == "stubbed":
+        return SPECIES_MATRICES_STUBBED_REASON
+    if _is_sirap_artifact(artifact) and not artifact.species_matrices:
+        return SPECIES_MATRICES_STUBBED_REASON
+    return None
 
 
 def calculate_custom_area_profile(
@@ -109,9 +120,9 @@ def calculate_custom_area_profile(
 
 
 def _species_section(artifact: RuntimeArtifact, raster: SolutionRaster) -> dict[str, Any]:
-    raw_species = artifact.manifest.get("species_matrices")
-    if isinstance(raw_species, dict) and raw_species.get("status") == "stubbed":
-        return _unavailable_section("species", "species_matrices_stubbed")
+    unavailable_reason = species_inventory_unavailable_reason(artifact)
+    if unavailable_reason is not None:
+        return _unavailable_section("species", unavailable_reason)
 
     available_groups = (
         artifact.species_index.groups
@@ -206,12 +217,21 @@ def _sirap_ecosystem_rows(
         or solution_id is None
     ):
         return []
-    rows = calculate_sirap_ecosystem_aoi_coverage(
-        artifact.sirap_coverage,
-        solution_id,
-        raster,
-        solution_raster,
-    )
+    rows = {
+        **calculate_sirap_ecosystem_aoi_coverage(
+            artifact.sirap_coverage,
+            solution_id,
+            raster,
+            solution_raster,
+        ),
+        **calculate_sirap_strategic_aoi_coverage(
+            artifact.sirap_coverage,
+            solution_id,
+            raster,
+            solution_raster,
+            artifact.raster_layers,
+        ),
+    }
     return [_coverage_row_dict(row) for row in rows.values()]
 
 

@@ -10,7 +10,10 @@ from typing import Any, Callable
 from fastapi import FastAPI, Header, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from .area_profile import calculate_custom_area_profile
+from .area_profile import (
+    calculate_custom_area_profile,
+    species_inventory_unavailable_reason,
+)
 from .artifacts import (
     artifact_ready,
     get_artifact_state,
@@ -321,10 +324,26 @@ def create_detailed_species_job(
     settings = get_settings()
     artifact = get_runtime_artifact_for_solution(settings, request.solution_id)
     loaded_artifact_version = _loaded_artifact_version(artifact)
-    if artifact is None or not isinstance(
-        artifact.species_index,
-        RuntimeSpeciesBitsetIndex,
-    ):
+    if artifact is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "species_index_required",
+                "message": "The detailed species index is unavailable.",
+            },
+        )
+    species_unavailable = species_inventory_unavailable_reason(artifact)
+    if species_unavailable is not None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": species_unavailable,
+                "message": (
+                    "Detailed species coverage is unavailable for this regional scenario."
+                ),
+            },
+        )
+    if not isinstance(artifact.species_index, RuntimeSpeciesBitsetIndex):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={

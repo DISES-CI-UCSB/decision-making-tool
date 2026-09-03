@@ -1,6 +1,10 @@
 services:
   backend:
     restart: unless-stopped
+    # VM-local backend/.env (not committed) supplies artifact paths and ops settings.
+    env_file:
+      - path: .env
+        required: false
     build:
       context: ..
       dockerfile: backend/Dockerfile

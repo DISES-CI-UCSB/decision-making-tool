@@ -157,8 +157,119 @@ def test_parse_sirap_summary_targets_filters_evaluated_rows(tmp_path: Path) -> N
 
     targets = parse_sirap_summary_targets(summary, scenario_name=scenario)
 
-    assert [row["feature"] for row in targets] == ["Forest", "Species one"]
+    assert [row["feature"] for row in targets] == ["Forest", "Species one", "paramos"]
     assert all(row["evaluated"] == "prioritizr_model" for row in targets)
+
+
+def test_parse_sirap_summary_targets_accepts_published_header_variants(
+    tmp_path: Path,
+) -> None:
+    summary = tmp_path / "summary-variant.csv"
+    summary.write_text(
+        "Feature Name,Feature Type,Relative Target,Scenario Name,Evaluation,Feature Class\n"
+        "Forest,ecosystem,0.3,Estr17 + Bs100,prioritizr_model,NA\n",
+        encoding="utf-8",
+    )
+
+    targets = parse_sirap_summary_targets(
+        summary,
+        scenario_name="estr17-bs100",
+    )
+
+    assert targets == [
+        {
+            "feature": "Forest",
+            "feature_type": "ecosystem",
+            "class": None,
+            "relative_target": 0.3,
+            "evaluated": "prioritizr_model",
+        }
+    ]
+
+
+def test_parse_sirap_summary_targets_includes_strategic_ecosystems(
+    tmp_path: Path,
+) -> None:
+    scenario = "Estr17+Cong17+Sab17"
+    summary = tmp_path / "summary-strategic.csv"
+    summary.write_text(
+        "\n".join(
+            [
+                SUMMARY_HEADER,
+                f"paramos,TRUE,100,17,52,0,0.17,0.52,0,{scenario},prioritizr_model,9,4.68,strategic ecosystem,NA",
+                f"Forest,TRUE,100,30,30,0,0.3,0.3,0,{scenario},prioritizr_model,9,2.7,ecosystem,NA",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    targets = parse_sirap_summary_targets(summary, scenario_name=scenario)
+
+    assert {row["feature_type"] for row in targets} == {"strategic ecosystem", "ecosystem"}
+    assert {row["feature"] for row in targets} == {"paramos", "Forest"}
+
+
+def test_calculate_sirap_strategic_aoi_coverage_uses_binary_layers(
+    tmp_path: Path,
+) -> None:
+    from app.artifacts import RuntimeRasterLayer
+    from app.metric_adapters import build_custom_aoi_raster
+    from app.sirap_coverage import (
+        RuntimeSirapCoverage,
+        calculate_sirap_strategic_aoi_coverage,
+    )
+
+    base = raster_artifact(tmp_path)
+    paramos_path = write_tif(
+        tmp_path / "paramos.tif",
+        np.array([[1, 0], [1, 0]], dtype=np.uint8),
+        nodata=255,
+    )
+    layers = {
+        "paramos": RuntimeRasterLayer(
+            layer_id="paramos",
+            path=paramos_path,
+            kind="binary",
+            rendering={"valueType": "binary", "selectedValue": 1},
+            source_url=None,
+            metric_ids=("ecosystem_coverage_paramo",),
+        )
+    }
+    coverage = RuntimeSirapCoverage(
+        ecosystem_raster_path=paramos_path,
+        ecosystem_catalog_path=tmp_path / "catalog.csv",
+        targets_by_solution={
+            SOLUTION_ID: (
+                CoverageTarget(
+                    feature="paramos",
+                    feature_type="strategic ecosystem",
+                    feature_class=None,
+                    relative_target=0.17,
+                    evaluated="prioritizr_model",
+                ),
+            )
+        },
+    )
+    solution_path = write_tif(
+        tmp_path / "solution.tif",
+        np.array([[2, 0], [1, 0]], dtype=np.uint8),
+        nodata=255,
+    )
+    aoi = build_custom_aoi_raster(base.reference_raster_path, POLYGON_LEFT_COLUMN)
+    solution = read_solution_raster(solution_path)
+
+    rows = calculate_sirap_strategic_aoi_coverage(
+        coverage,
+        SOLUTION_ID,
+        aoi,
+        solution,
+        layers,
+    )
+
+    assert len(rows) == 1
+    assert rows["paramos"].feature == "paramos"
+    assert rows["paramos"].absolute_held_aoi == pytest.approx(2.0)
 
 
 def test_calculate_sirap_ecosystem_aoi_coverage_without_row_count_gate(
@@ -289,6 +400,24 @@ def test_sirap_area_profile_accepts_uint32_regional_mec_raster(
     assert status == "complete"
     assert sections["ecosystems"]["status"] == "complete"
     assert len(sections["ecosystems"]["solution_coverage"]) == 1
+
+
+def test_species_inventory_unavailable_reason_treats_empty_sirap_matrices_as_stubbed(
+    tmp_path: Path,
+) -> None:
+    from app.area_profile import species_inventory_unavailable_reason
+
+    artifact = _sirap_artifact(tmp_path)
+    artifact = replace(
+        artifact,
+        manifest={
+            **artifact.manifest,
+            "species_matrices": [],
+        },
+        species_matrices={},
+    )
+
+    assert species_inventory_unavailable_reason(artifact) == "species_matrices_stubbed"
 
 
 def test_sirap_area_profile_returns_ecosystems_and_stubbed_species(

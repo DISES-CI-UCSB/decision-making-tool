@@ -415,14 +415,24 @@ export function buildCustomMecData(
   if (hasActiveSolution && response.solution_id !== expectedSolutionId) {
     throw new Error('Missing or mismatched solution id in custom AOI ecosystem response');
   }
+
+  const allowVariableMesaRowCount = options.allowVariableMesaRowCount === true;
+  const solutionCoverage: readonly unknown[] | null = Array.isArray(section.solution_coverage)
+    ? section.solution_coverage
+    : allowVariableMesaRowCount
+      ? []
+      : null;
+
   if (
     hasActiveSolution &&
     section.status !== 'unavailable' &&
     section.status !== 'failed' &&
-    !Array.isArray(section.solution_coverage)
+    solutionCoverage === null
   ) {
     throw new Error('Missing Mesa solution coverage for active custom AOI solution');
   }
+
+  const activeSolutionCoverage = solutionCoverage ?? [];
 
   const rowsByView = new Map<MecViewId, MecCoverageRow[]>();
   const previewByView = new Map<MecViewId, MecPreviewItem[]>();
@@ -430,12 +440,11 @@ export function buildCustomMecData(
     hasActiveSolution &&
     section.status !== 'unavailable' &&
     section.status !== 'failed' &&
-    Array.isArray(section.solution_coverage) &&
-    section.solution_coverage.length > 0
+    activeSolutionCoverage.length > 0
   ) {
     const rows = validateMesaSolutionCoverage(
-      section.solution_coverage ?? [],
-      options.allowVariableMesaRowCount ? null : MESA_IAVH_FEATURE_COUNT,
+      activeSolutionCoverage,
+      allowVariableMesaRowCount ? null : MESA_IAVH_FEATURE_COUNT,
     ).map(buildMesaCustomMecCoverageRow);
     // Mesa solution coverage is the 417-class IAvH biome-region inventory.
     // The section's canonical view describes the separate composition taxonomy.
@@ -451,6 +460,33 @@ export function buildCustomMecData(
           percent: row.solutionCoveragePercent ?? null,
         })),
     );
+  } else if (
+    hasActiveSolution &&
+    allowVariableMesaRowCount &&
+    section.status !== 'unavailable' &&
+    section.status !== 'failed' &&
+    activeSolutionCoverage.length === 0 &&
+    Array.isArray(section.views)
+  ) {
+    section.views.forEach((view) => {
+      const rows = view.records
+        .filter(viewRecordHasSolutionCoverage)
+        .map(buildCustomMecSolutionCompositionRow);
+      if (rows.length === 0) {
+        return;
+      }
+      rowsByView.set(view.id, rows);
+      previewByView.set(
+        view.id,
+        [...rows]
+          .sort((a, b) => (b.solutionCoveragePercent ?? -1) - (a.solutionCoveragePercent ?? -1))
+          .slice(0, 5)
+          .map((row) => ({
+            label: row.label,
+            percent: row.solutionCoveragePercent ?? null,
+          })),
+      );
+    });
   } else if (!hasActiveSolution) {
     section.views.forEach((view) => {
       const rows = view.records.map(buildCustomMecCompositionRow);
@@ -496,6 +532,26 @@ export function buildCustomMecCompositionRow(record: CustomAoiEcosystemRecord): 
     preExistingPercent: null,
     newPrioritizrPercent: null,
   };
+}
+
+function buildCustomMecSolutionCompositionRow(record: CustomAoiEcosystemRecord): MecCoverageRow {
+  return {
+    ...buildCustomMecCompositionRow(record),
+    solutionCoverageKm2: record.solution_covered_area_km2,
+    solutionCoveragePercent: record.solution_covered_pct_of_aoi,
+    preExistingCoverageKm2: record.pre_existing_covered_area_km2,
+    preExistingPercent: record.pre_existing_covered_pct_of_aoi,
+    newPrioritizrCoverageKm2: record.new_covered_area_km2,
+    newPrioritizrPercent: record.new_covered_pct_of_aoi,
+  };
+}
+
+function viewRecordHasSolutionCoverage(record: CustomAoiEcosystemRecord): boolean {
+  return (
+    record.solution_covered_pct_of_aoi !== null ||
+    record.pre_existing_covered_pct_of_aoi !== null ||
+    record.new_covered_pct_of_aoi !== null
+  );
 }
 
 export function buildMesaCustomMecCoverageRow(record: MesaAoiCoverageRecord): MecCoverageRow {

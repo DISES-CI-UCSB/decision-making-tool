@@ -5784,6 +5784,8 @@
       id="aoi-custom-species-inventory"
       [geometry]="customAoiGeometry()"
       [solutionId]="customAoiSpeciesSolutionId()"
+      [geographyLevel]="supportsSirapCustomAoiMetrics() ? 'siraps' : null"
+      [scopeId]="customAoiSpeciesScopeId()"
       [useSirapCoverageColumnOrder]="supportsSirapCustomAoiMetrics()"
       [preExistingCoverageColor]="existingProtectedColor()"
       [newCoverageColor]="solutionColor()"

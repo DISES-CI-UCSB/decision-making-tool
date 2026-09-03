@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -243,17 +243,49 @@ class CustomAreaProfileSelection(BaseModel):
     crs: str | None = None
 
 
+AreaProfileSection = Union[SpeciesAreaProfileSection, EcosystemAreaProfileSection]
+
+
+def _coerce_area_profile_section(
+    section_name: str,
+    section: Any,
+) -> AreaProfileSection:
+    if section_name == "species":
+        if isinstance(section, SpeciesAreaProfileSection):
+            return section
+        return SpeciesAreaProfileSection.model_validate(section)
+    if section_name == "ecosystems":
+        if isinstance(section, EcosystemAreaProfileSection):
+            return section
+        return EcosystemAreaProfileSection.model_validate(section)
+    raise ValueError(f"Unknown area profile section: {section_name}")
+
+
 class CustomAreaProfileResponse(BaseModel):
     format: Literal["custom-aoi-area-profile-v1"] = "custom-aoi-area-profile-v1"
     status: Literal["complete", "partial", "zero_cells"]
     artifact_version: str
     selection: CustomAreaProfileSelection
     requested_sections: list[AreaProfileSectionName]
-    sections: dict[
-        AreaProfileSectionName, SpeciesAreaProfileSection | EcosystemAreaProfileSection
-    ]
+    sections: dict[AreaProfileSectionName, AreaProfileSection]
     solution_id: str | None = None
     solution_raster_checksum: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_sections_by_name(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        sections = data.get("sections")
+        if not isinstance(sections, dict):
+            return data
+        return {
+            **data,
+            "sections": {
+                section_name: _coerce_area_profile_section(section_name, section)
+                for section_name, section in sections.items()
+            },
+        }
 
 
 class DetailedSpeciesCoverageRequest(BaseModel):
