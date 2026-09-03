@@ -113,6 +113,10 @@
             <p id="custom-aoi-species-coverage-no-solution">
               {{ 'analysis.aoi.customProfile.species.coverageNoSolution' | translate }}
             </p>
+          } @else if (speciesCoverageUnavailable()) {
+            <p id="custom-aoi-species-coverage-stubbed-unavailable">
+              {{ 'analysis.aoi.customProfile.species.stubbedCoverageUnavailable' | translate }}
+            </p>
           } @else if (coverageState() === 'submitting') {
             <p id="custom-aoi-species-coverage-submitting">
               {{ 'analysis.aoi.customProfile.species.coverageSubmitting' | translate }}
@@ -270,10 +274,7 @@
                   {{ 'analysis.aoi.customProfile.species.ofNationalModeledRange' | translate }}
                 </span>
               </th>
-              @for (
-                metricId of ['solutionCoverage', 'preExistingCoverage', 'newCoverage'];
-                track metricId
-              ) {
+              @for (metricId of coverageColumnIds(); track metricId) {
                 <th
                   [id]="'custom-aoi-species-inventory-' + metricId + '-heading'"
                   class="sticky top-8 z-[3] min-w-[190px] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
@@ -456,7 +457,7 @@
         [attr.role]="inventoryState().status === 'failed' ? 'alert' : 'status'"
       >
         <p id="custom-aoi-species-inventory-state-copy">
-          {{ inventoryStateKey(inventoryState().status) | translate }}
+          {{ inventoryStateMessageKey() | translate }}
         </p>
         @if (inventoryState().status === 'failed' || inventoryState().status === 'unavailable') {
           <button

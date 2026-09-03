@@ -21,6 +21,8 @@ import {
   type CustomPolygonMetricId,
   type CustomPolygonMetricsGeometry,
   type CustomPolygonMetricsResponse,
+  type DetailedSpeciesCoverageRecord,
+  type DetailedSpeciesJobResponse,
   type GoalFeatureRow,
   type GoalFeatureType,
   type GeographyLevel,
@@ -44,6 +46,7 @@ import {
   normalizeSolutionToken,
   solutionCostMatchesChoice,
 } from '@core/models/solution-matching.utils';
+import { AVAILABLE_SIRAP_REGION_IDS, type SirapRegionId } from '@core/models/sirap-access.model';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { nationalMetrics } from '@core/services/cached-metrics.utils';
@@ -83,7 +86,9 @@ import {
   map,
   of,
   switchMap,
+  takeWhile,
   tap,
+  timer,
 } from 'rxjs';
 import type { Observable } from 'rxjs';
 import {
@@ -716,6 +721,15 @@ export class PanelSwitcherComponent {
       normalizeSolutionToken(catalogSolution?.finderInputs?.scope ?? '') === 'sirap'
     );
   });
+  protected readonly supportsSirapCustomAoiMetrics = computed(() => {
+    if (!this.isCustomAoiSelected() || !this.isSirapScopedSolution()) {
+      return false;
+    }
+    const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
+    return (
+      typeof sirapId === 'string' && AVAILABLE_SIRAP_REGION_IDS.includes(sirapId as SirapRegionId)
+    );
+  });
   protected readonly isSirapPacketOverview = computed(() => {
     const solution = this.activeSolution();
     const catalogSolution = this.findActiveCatalogSolution(solution);
@@ -1071,7 +1085,10 @@ export class PanelSwitcherComponent {
     );
   });
   protected readonly goalsModalUsesExpandedCoverageLayout = computed(
-    () => this.knownAoiCoverageMetricsV2() || this.isSirapPrimaryGoalsModal(),
+    () =>
+      this.knownAoiCoverageMetricsV2() ||
+      this.isSirapPrimaryGoalsModal() ||
+      this.supportsSirapCustomAoiMetrics(),
   );
   protected readonly customAoiSpeciesSolutionId = computed(() =>
     this.isMarineSolution() ? null : this.activeSolutionId(),
@@ -1530,7 +1547,9 @@ export class PanelSwitcherComponent {
                   map(
                     (response): MecPanelState => ({
                       status: 'custom',
-                      data: buildCustomMecData(response, request.solutionId ?? null),
+                      data: buildCustomMecData(response, request.solutionId ?? null, {
+                        allowVariableMesaRowCount: this.supportsSirapCustomAoiMetrics(),
+                      }),
                     }),
                   ),
                   catchError(() =>
@@ -2372,7 +2391,11 @@ export class PanelSwitcherComponent {
   }
 
   protected openGoalsModal(domainId: string): void {
-    if (domainId === 'species' && this.selectedAoi()?.type === 'custom') {
+    if (
+      domainId === 'species' &&
+      this.selectedAoi()?.type === 'custom' &&
+      !this.supportsSirapCustomAoiMetrics()
+    ) {
       return;
     }
     this.cancelGoalsModalPreparation();
@@ -2437,7 +2460,11 @@ export class PanelSwitcherComponent {
   }
 
   protected isGoalsBreakdownDisabled(domainId: string): boolean {
-    return domainId === 'species' && this.selectedAoi()?.type === 'custom';
+    return (
+      domainId === 'species' &&
+      this.selectedAoi()?.type === 'custom' &&
+      !this.supportsSirapCustomAoiMetrics()
+    );
   }
 
   protected retryGoalsModalSpecies(): void {
@@ -2445,9 +2472,10 @@ export class PanelSwitcherComponent {
   }
 
   private loadGoalsModalSpecies(): void {
-    const context = this.resolveGoalsModalSpeciesContext();
     const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
-    if (!context || !solutionId) {
+    const useCustomSirap = this.supportsSirapCustomAoiMetrics();
+    const context = useCustomSirap ? null : this.resolveGoalsModalSpeciesContext();
+    if ((!useCustomSirap && !context) || !solutionId) {
       this.goalsModalSpeciesLoading.set(false);
       this.goalsModalSpeciesLoadFailed.set(true);
       return;
@@ -2458,19 +2486,28 @@ export class PanelSwitcherComponent {
     this.goalsModalSpeciesLoading.set(true);
     this.goalsModalSpeciesLoadFailed.set(false);
     const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
-    const selected = this.speciesGoals.load(solutionId, context.geographyLevel, context.scopeId);
-    const records =
-      this.isSirapScopedSolution() && this.selectedAoi() && sirapId
-        ? forkJoin({
-            selected,
-            sirap: this.speciesGoals.load(solutionId, 'siraps', sirapId),
-          })
-        : selected.pipe(map((records) => ({ selected: records, sirap: null })));
+    const selected =
+      useCustomSirap && sirapId
+        ? this.speciesGoals.load(solutionId, 'siraps', sirapId)
+        : useCustomSirap
+          ? this.loadCustomAoiDetailedSpeciesGoals(this.customAoiGeometry()!, solutionId)
+          : this.speciesGoals.load(solutionId, context!.geographyLevel, context!.scopeId);
+    const loadSirapRangeContext =
+      this.isSirapScopedSolution() &&
+      this.selectedAoi() &&
+      sirapId &&
+      (this.selectedAoi()?.type !== 'custom' || useCustomSirap);
+    const records = loadSirapRangeContext
+      ? forkJoin({
+          selected,
+          sirap: this.speciesGoals.load(solutionId, 'siraps', sirapId),
+        })
+      : selected.pipe(map((records) => ({ selected: records, sirap: null })));
     records.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(({ selected, sirap }) => {
       if (requestId !== this.goalsModalSpeciesRequestId || !this.goalsModalOpen()) {
         return;
       }
-      if (selected === null || (this.isSirapScopedSolution() && this.selectedAoi() && !sirap)) {
+      if (selected === null || (loadSirapRangeContext && !sirap)) {
         this.goalsModalSpeciesLoadFailed.set(true);
       } else {
         const sirapRangeBySpecies = new Map(
@@ -2506,6 +2543,66 @@ export class PanelSwitcherComponent {
     }
     const geographyLevel = aoiTypeToGeographyLevel(aoi.type);
     return geographyLevel ? { geographyLevel, scopeId: extractRawAoiScopeId(aoi.id) } : null;
+  }
+
+  private loadCustomAoiDetailedSpeciesGoals(
+    geometry: CustomPolygonMetricsGeometry,
+    solutionId: string,
+  ): Observable<HydratedSpeciesGoalsRecord[] | null> {
+    return this.api.createDetailedSpeciesCoverageJob({ geometry, solution_id: solutionId }).pipe(
+      switchMap((created) =>
+        this.isTerminalDetailedSpeciesJob(created)
+          ? of(created)
+          : concat(
+              of(created),
+              timer(1500, 1500).pipe(
+                switchMap(() => this.api.getDetailedSpeciesCoverageJob(created.job_id)),
+                takeWhile((job) => !this.isTerminalDetailedSpeciesJob(job), true),
+              ),
+            ),
+      ),
+      map((job) => {
+        if (
+          job.status !== 'complete' ||
+          !job.result ||
+          job.result.solution_id !== solutionId ||
+          job.result.records.some((record) => !this.hasDetailedSpeciesCoverageFields(record))
+        ) {
+          return null;
+        }
+        return job.result.records.map((record) => this.toHydratedDetailedSpeciesRecord(record));
+      }),
+      catchError(() => of(null)),
+    );
+  }
+
+  private isTerminalDetailedSpeciesJob(job: DetailedSpeciesJobResponse): boolean {
+    return job.status === 'complete' || job.status === 'failed' || job.status === 'cancelled';
+  }
+
+  private hasDetailedSpeciesCoverageFields(record: DetailedSpeciesCoverageRecord): boolean {
+    return (
+      record.total_in_aoi !== undefined &&
+      record.held_in_aoi !== undefined &&
+      record.coverage_within_aoi !== undefined &&
+      record.contribution_to_national_coverage !== undefined &&
+      record.contribution_to_national_target !== undefined
+    );
+  }
+
+  private toHydratedDetailedSpeciesRecord(
+    record: DetailedSpeciesCoverageRecord,
+  ): HydratedSpeciesGoalsRecord {
+    const configuredTargetPercent = null;
+    return {
+      ...record,
+      availability: 'available',
+      no_range_in_scope: record.range_in_aoi_area_km2 <= 0,
+      configured_target_percent: configuredTargetPercent,
+      met_17_percent: record.solution_covered_in_aoi_pct >= 17,
+      met_30_percent: record.solution_covered_in_aoi_pct >= 30,
+      configured_target_met: null,
+    };
   }
 
   private toSpeciesGoalsModalRow(
@@ -4302,27 +4399,36 @@ export class PanelSwitcherComponent {
     const startedAt = Date.now();
     this.logCustomAoiRequestStart(requestId, mode, metrics);
 
-    return this.api.getCustomPolygonMetrics({ geometry, metrics }).pipe(
-      map((response) => {
-        const responseMetricKeys = Object.keys(response.metrics ?? {});
-        this.logCustomAoiRequestSuccess(requestId, mode, startedAt, response, responseMetricKeys);
+    return this.api
+      .getCustomPolygonMetrics({
+        geometry,
+        metrics,
+        ...(this.isSirapScopedSolution() && this.activeSolutionId()
+          ? { solution_id: this.activeSolutionId()! }
+          : {}),
+      })
+      .pipe(
+        map((response) => {
+          const responseMetricKeys = Object.keys(response.metrics ?? {});
+          this.logCustomAoiRequestSuccess(requestId, mode, startedAt, response, responseMetricKeys);
 
-        if (response.status !== 'ok') {
-          throw new Error(
-            response.message ||
-              this.translate.instant('analysis.aoi.customMetrics.statusReturned', {
-                status: response.status,
-              }),
-          );
-        }
+          if (response.status !== 'ok') {
+            throw new Error(
+              response.message ||
+                this.translate.instant('analysis.aoi.customMetrics.statusReturned', {
+                  status: response.status,
+                }),
+            );
+          }
 
-        return this.mapCustomPolygonMetrics(response, mode);
-      }),
-      tap({
-        error: (error: unknown) => this.logCustomAoiRequestError(requestId, mode, startedAt, error),
-      }),
-      finalize(() => this.logCustomAoiRequestFinalize(requestId, mode, startedAt)),
-    );
+          return this.mapCustomPolygonMetrics(response, mode);
+        }),
+        tap({
+          error: (error: unknown) =>
+            this.logCustomAoiRequestError(requestId, mode, startedAt, error),
+        }),
+        finalize(() => this.logCustomAoiRequestFinalize(requestId, mode, startedAt)),
+      );
   }
 
   private mapCustomPolygonMetrics(

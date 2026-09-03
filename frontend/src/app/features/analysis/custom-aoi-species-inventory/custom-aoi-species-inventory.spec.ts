@@ -494,6 +494,42 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(api.createDetailedSpeciesCoverageJob).toHaveBeenCalledTimes(2);
   });
 
+  it('shows a friendly message and skips coverage jobs when species matrices are stubbed', async () => {
+    api.getCustomAoiAreaProfile.mockReturnValue(
+      of({
+        format: 'custom-aoi-area-profile-v1',
+        status: 'partial',
+        artifact_version: 'sirap-fixture-v1',
+        selection: {
+          status: 'selected',
+          selected_cell_count: 1,
+          available_cell_count: 1,
+          area_km2: 1,
+          source: 'test',
+        },
+        requested_sections: ['species'],
+        sections: {
+          species: {
+            status: 'unavailable',
+            reason: 'species_matrices_stubbed',
+            records: [],
+          },
+        },
+      }),
+    );
+    const fixture = createFixture('solution-1');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(api.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
+    expect(
+      compiled.querySelector('#custom-aoi-species-inventory-state-copy')?.textContent,
+    ).toContain('analysis.aoi.customProfile.species.stubbedUnavailable');
+  });
+
   function createFixture(solutionId: string | null) {
     const fixture = TestBed.createComponent(CustomAoiSpeciesInventoryComponent);
     fixture.componentRef.setInput('geometry', geometry(0));

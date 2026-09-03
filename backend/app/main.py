@@ -15,6 +15,7 @@ from .artifacts import (
     artifact_ready,
     get_artifact_state,
     get_runtime_artifact,
+    get_runtime_artifact_for_solution,
     reset_runtime_artifact_cache,
     warmup_artifacts,
 )
@@ -39,6 +40,26 @@ from .species_index import RuntimeSpeciesBitsetIndex
 
 LOGGER = logging.getLogger(__name__)
 _DETAILED_SPECIES_QUEUE: DetailedSpeciesJobQueue | None = None
+
+
+def _loaded_artifact_version(artifact: Any) -> str | None:
+    if artifact is None:
+        return None
+    version = artifact.manifest.get("artifact_version")
+    if version is None:
+        return None
+    return str(version)
+
+
+def _artifact_version_conflict(
+    request_version: str | None,
+    loaded_version: str | None,
+) -> bool:
+    return bool(
+        request_version
+        and loaded_version is not None
+        and request_version != loaded_version
+    )
 
 
 @asynccontextmanager
@@ -129,7 +150,11 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
     started = time.perf_counter()
     settings = get_settings()
     state = get_artifact_state(settings)
-    artifact = get_runtime_artifact(settings)
+    artifact = (
+        get_runtime_artifact_for_solution(settings, request.solution_id)
+        if request.solution_id
+        else get_runtime_artifact(settings)
+    )
 
     if artifact is None:
         response = PolygonMetricsResponse(
@@ -144,7 +169,8 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
             detail=response.model_dump(),
         )
 
-    if request.artifact_version and request.artifact_version != state.artifact_version:
+    loaded_artifact_version = _loaded_artifact_version(artifact)
+    if _artifact_version_conflict(request.artifact_version, loaded_artifact_version):
         response = PolygonMetricsResponse(
             status="invalid_request",
             message=f"Requested artifact_version {request.artifact_version} is not loaded.",
@@ -199,8 +225,8 @@ def custom_polygon_area_profile(
     request: CustomAreaProfileRequest,
 ) -> CustomAreaProfileResponse:
     settings = get_settings()
-    state = get_artifact_state(settings)
-    artifact = get_runtime_artifact(settings)
+    get_artifact_state(settings)
+    artifact = get_runtime_artifact_for_solution(settings, request.solution_id)
     if artifact is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -209,7 +235,12 @@ def custom_polygon_area_profile(
                 "message": "Runtime artifacts are required for custom area profiles.",
             },
         )
-    if request.artifact_version and request.artifact_version != state.artifact_version:
+    loaded_artifact_version = artifact.manifest.get("artifact_version")
+    if (
+        request.artifact_version
+        and loaded_artifact_version is not None
+        and request.artifact_version != loaded_artifact_version
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
@@ -261,14 +292,14 @@ def custom_polygon_area_profile(
             detail={"status": "invalid_request", "message": str(exc)},
         ) from exc
 
-    if state.artifact_version is None:
+    if loaded_artifact_version is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"status": "artifact_required", "message": "Artifact version is unavailable."},
         )
     return CustomAreaProfileResponse(
         status=overall_status,
-        artifact_version=state.artifact_version,
+        artifact_version=loaded_artifact_version,
         selection=selection,
         requested_sections=request.sections,
         sections=sections,
@@ -288,8 +319,8 @@ def create_detailed_species_job(
 ) -> DetailedSpeciesJobResponse:
     queue = _require_detailed_species_queue()
     settings = get_settings()
-    state = get_artifact_state(settings)
-    artifact = get_runtime_artifact(settings)
+    artifact = get_runtime_artifact_for_solution(settings, request.solution_id)
+    loaded_artifact_version = _loaded_artifact_version(artifact)
     if artifact is None or not isinstance(
         artifact.species_index,
         RuntimeSpeciesBitsetIndex,
@@ -301,7 +332,7 @@ def create_detailed_species_job(
                 "message": "The detailed species index is unavailable.",
             },
         )
-    if request.artifact_version and request.artifact_version != state.artifact_version:
+    if _artifact_version_conflict(request.artifact_version, loaded_artifact_version):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
@@ -320,11 +351,19 @@ def create_detailed_species_job(
                 "message": "The requested solution is not registered.",
             },
         )
+    if loaded_artifact_version is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "artifact_required",
+                "message": "Artifact version is unavailable.",
+            },
+        )
 
     payload = {
         "geometry": request.geometry,
         "solution_id": request.solution_id,
-        "artifact_version": state.artifact_version,
+        "artifact_version": loaded_artifact_version,
     }
     try:
         snapshot, coalesced = queue.enqueue(payload)
@@ -435,21 +474,21 @@ def _calculate_detailed_species_coverage(
     is_cancelled: Callable[[], bool],
 ) -> dict[str, Any]:
     settings = get_settings()
-    state = get_artifact_state(settings)
-    artifact = get_runtime_artifact(settings)
+    solution_id = str(payload["solution_id"])
+    artifact = get_runtime_artifact_for_solution(settings, solution_id)
+    loaded_artifact_version = _loaded_artifact_version(artifact)
     if artifact is None or not isinstance(
         artifact.species_index,
         RuntimeSpeciesBitsetIndex,
     ):
         raise RuntimeError("species_index_required")
-    if payload.get("artifact_version") != state.artifact_version:
+    if payload.get("artifact_version") != loaded_artifact_version:
         raise RuntimeError("artifact_version_changed")
     if artifact.reference_raster_path is None:
         raise RuntimeError("reference_raster_required")
     if artifact.solution_registry is None:
         raise RuntimeError("solution_registry_required")
 
-    solution_id = str(payload["solution_id"])
     solution_raster, solution_checksum = artifact.solution_registry.load(solution_id)
     aoi_raster = build_custom_aoi_raster(
         artifact.reference_raster_path,
@@ -474,10 +513,10 @@ def _calculate_detailed_species_coverage(
         is_cancelled,
         target_for_species=target_for_species,
     )
-    if state.artifact_version is None:
+    if loaded_artifact_version is None:
         raise RuntimeError("artifact_version_required")
     return {
-        "artifact_version": state.artifact_version,
+        "artifact_version": loaded_artifact_version,
         "solution_id": solution_id,
         "solution_raster_checksum": solution_checksum,
         "records": [record.__dict__ for record in records],

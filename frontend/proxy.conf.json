@@ -1,6 +1,6 @@
 {
   "/metrics-api": {
-    "target": "http://127.0.0.1:8000",
+    "target": "https://api.decision-making-support-tool.xyz",
     "secure": false,
     "changeOrigin": true,
     "pathRewrite": {

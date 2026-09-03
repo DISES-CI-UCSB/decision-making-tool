@@ -15,7 +15,7 @@ import numpy as np
 import rasterio
 from pydantic import BaseModel, Field
 
-from .config import Settings
+from .config import SIRAP_ARTIFACT_KIND, Settings, resolve_sirap_id_from_solution_id
 from .coverage_target_validation import (
     CoverageTargetValidationError,
     MESA_V3_ECOSYSTEM_TARGET_COUNT,
@@ -44,6 +44,11 @@ from .solution_coverage import (
     RuntimeMesaCoverage,
     SolutionCoverageError,
     load_runtime_mesa_coverage,
+)
+from .sirap_coverage import (
+    RuntimeSirapCoverage,
+    SirapCoverageError,
+    load_runtime_sirap_coverage,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -94,6 +99,7 @@ class RuntimeArtifact:
     species_pool_sizes: dict[str, Any] = field(default_factory=dict)
     ecosystem_inventory: RuntimeEcosystemInventory | None = None
     mesa_coverage: RuntimeMesaCoverage | None = None
+    sirap_coverage: RuntimeSirapCoverage | None = None
     solution_registry: RuntimeSolutionRegistry | None = None
 
     def close(self) -> None:
@@ -127,6 +133,9 @@ _RUNTIME_SETTINGS_KEY: tuple[
     str | None,
     str | None,
 ] | None = None
+_SIRAP_RUNTIME_LOCK = Lock()
+_SIRAP_RUNTIME_ARTIFACTS: dict[str, RuntimeArtifact] = {}
+_SIRAP_RUNTIME_SETTINGS_KEY: str | None = None
 
 
 def _close_runtime_artifact(artifact: RuntimeArtifact | None) -> None:
@@ -389,6 +398,8 @@ def _load_species_matrices(manifest_path: Path, manifest: dict[str, Any]) -> dic
     raw_matrices = manifest.get("species_matrices")
     if raw_matrices is None:
         return {}
+    if isinstance(raw_matrices, dict) and raw_matrices.get("status") == "stubbed":
+        return {}
     if not isinstance(raw_matrices, list):
         raise ArtifactValidationError("species_matrices must be a list when present.")
 
@@ -553,6 +564,71 @@ def _load_mesa_coverage(
         "solution_count": len(coverage.targets_by_solution),
         "species_groups": list(coverage.species_groups),
         "contract": raw.get("contract"),
+    }
+
+
+def _load_sirap_coverage(
+    manifest_path: Path,
+    manifest: dict[str, Any],
+    raster_layers: dict[str, RuntimeRasterLayer],
+) -> tuple[RuntimeSirapCoverage | None, dict[str, Any]]:
+    raw = manifest.get("sirap_coverage")
+    if raw is None:
+        return None, {"status": "not_configured"}
+    if not isinstance(raw, dict):
+        raise ArtifactValidationError("sirap_coverage must be an object when present.")
+
+    ecosystems = raw.get("ecosystems")
+    if not isinstance(ecosystems, dict):
+        raise ArtifactValidationError("sirap_coverage.ecosystems must be an object.")
+    layer_id = ecosystems.get("raster_layer_id")
+    layer = raster_layers.get(str(layer_id))
+    if layer is None:
+        raise ArtifactValidationError("SIRAP ecosystem raster layer is not packaged.")
+
+    catalog_entry = ecosystems.get("catalog")
+    if not isinstance(catalog_entry, dict) or not isinstance(catalog_entry.get("path"), str):
+        raise ArtifactValidationError("sirap_coverage.ecosystems.catalog.path is required.")
+    catalog_path = _relative_artifact_path(manifest_path, catalog_entry["path"])
+    if not catalog_path.is_file():
+        raise ArtifactValidationError("SIRAP ecosystem catalog artifact is missing.")
+    _verify_checksum(catalog_path, catalog_entry.get("checksum"), "SIRAP ecosystem catalog")
+
+    raw_targets = raw.get("solution_targets")
+    if not isinstance(raw_targets, dict) or not raw_targets:
+        raise ArtifactValidationError("sirap_coverage.solution_targets must be a non-empty object.")
+
+    solution_targets: dict[str, Path] = {}
+    for solution_id, entry in raw_targets.items():
+        if not isinstance(solution_id, str) or not solution_id:
+            raise ArtifactValidationError("sirap_coverage solution ids must be non-empty strings.")
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+            raise ArtifactValidationError(
+                f"sirap_coverage.solution_targets.{solution_id}.path is required."
+            )
+        targets_path = _relative_artifact_path(manifest_path, entry["path"])
+        if not targets_path.is_file():
+            raise ArtifactValidationError(
+                f"SIRAP coverage targets for {solution_id} are missing."
+            )
+        _verify_checksum(
+            targets_path,
+            entry.get("checksum"),
+            f"SIRAP coverage targets {solution_id}",
+        )
+        solution_targets[solution_id] = targets_path
+
+    try:
+        coverage = load_runtime_sirap_coverage(
+            layer.path,
+            catalog_path,
+            solution_targets,
+        )
+    except SirapCoverageError as exc:
+        raise ArtifactValidationError(str(exc)) from exc
+    return coverage, {
+        "status": "ready",
+        "solution_count": len(coverage.targets_by_solution),
     }
 
 
@@ -854,14 +930,21 @@ def _load_raster_artifact(
             manifest,
             layers,
         )
-        _validate_required_mesa_coverage(
-            settings,
+        sirap_coverage, sirap_coverage_metadata = _load_sirap_coverage(
+            manifest_path,
             manifest,
-            mesa_coverage,
-            reference_fingerprint,
-            reference_valid_cell_count,
-            species_index,
+            layers,
         )
+        artifact_kind = manifest.get("artifact_kind", "colombia-raster-custom-aoi/v1")
+        if artifact_kind != SIRAP_ARTIFACT_KIND:
+            _validate_required_mesa_coverage(
+                settings,
+                manifest,
+                mesa_coverage,
+                reference_fingerprint,
+                reference_valid_cell_count,
+                species_index,
+            )
     except Exception:
         if species_index is not None:
             species_index.close()
@@ -880,6 +963,7 @@ def _load_raster_artifact(
         "species_pool_sizes": species_pool_sizes,
         "ecosystem_inventory": ecosystem_inventory_metadata,
         "mesa_coverage": mesa_coverage_metadata,
+        "sirap_coverage": sirap_coverage_metadata,
         "solution_registry": solution_registry_metadata,
         "metric_coverage": manifest.get("metric_coverage", {}),
     }
@@ -892,6 +976,7 @@ def _load_raster_artifact(
         species_pool_sizes=species_pool_sizes,
         ecosystem_inventory=ecosystem_inventory,
         mesa_coverage=mesa_coverage,
+        sirap_coverage=sirap_coverage,
         solution_registry=solution_registry,
     )
     return artifact, metadata
@@ -978,8 +1063,71 @@ def warmup_artifacts(settings: Settings) -> ArtifactState:
         return state
 
 
+def load_sirap_runtime_artifact(settings: Settings, sirap_id: str) -> RuntimeArtifact:
+    manifest_path = settings.sirap_artifact_root / sirap_id / "manifest.json"
+    manifest = load_manifest(manifest_path)
+
+    if manifest.get("schema_version") != settings.artifact_schema_version:
+        raise ArtifactValidationError(
+            f"Artifact manifest schema_version must be {settings.artifact_schema_version}."
+        )
+    if manifest.get("artifact_kind") != SIRAP_ARTIFACT_KIND:
+        raise ArtifactValidationError(
+            f"SIRAP artifact manifest must declare artifact_kind {SIRAP_ARTIFACT_KIND!r}."
+        )
+    packaged_sirap_id = manifest.get("sirap_id")
+    if packaged_sirap_id != sirap_id:
+        raise ArtifactValidationError(
+            f"SIRAP artifact manifest sirap_id {packaged_sirap_id!r} does not match "
+            f"requested {sirap_id!r}."
+        )
+    _verify_aggregate_checksum(manifest)
+    artifact, _metadata = _load_raster_artifact(settings, manifest_path, manifest)
+    return artifact
+
+
+def get_sirap_runtime_artifact(settings: Settings, sirap_id: str) -> RuntimeArtifact | None:
+    global _SIRAP_RUNTIME_ARTIFACTS, _SIRAP_RUNTIME_SETTINGS_KEY
+
+    settings_key = str(settings.sirap_artifact_root.resolve())
+    with _SIRAP_RUNTIME_LOCK:
+        if _SIRAP_RUNTIME_SETTINGS_KEY != settings_key:
+            for artifact in _SIRAP_RUNTIME_ARTIFACTS.values():
+                _close_runtime_artifact(artifact)
+            _SIRAP_RUNTIME_ARTIFACTS = {}
+            _SIRAP_RUNTIME_SETTINGS_KEY = settings_key
+
+        cached = _SIRAP_RUNTIME_ARTIFACTS.get(sirap_id)
+        if cached is not None:
+            return cached
+
+        try:
+            artifact = load_sirap_runtime_artifact(settings, sirap_id)
+        except ArtifactValidationError as exc:
+            LOGGER.warning(
+                "SIRAP runtime artifact did not load",
+                extra={"sirap_id": sirap_id, "reason": str(exc)},
+            )
+            return None
+
+        _SIRAP_RUNTIME_ARTIFACTS[sirap_id] = artifact
+        return artifact
+
+
+def get_runtime_artifact_for_solution(
+    settings: Settings,
+    solution_id: str | None,
+) -> RuntimeArtifact | None:
+    if solution_id:
+        sirap_id = resolve_sirap_id_from_solution_id(solution_id)
+        if sirap_id is not None:
+            return get_sirap_runtime_artifact(settings, sirap_id)
+    return get_runtime_artifact(settings)
+
+
 def reset_runtime_artifact_cache() -> None:
     global _RUNTIME_ARTIFACT, _RUNTIME_SETTINGS_KEY, _RUNTIME_STATE
+    global _SIRAP_RUNTIME_ARTIFACTS, _SIRAP_RUNTIME_SETTINGS_KEY
 
     with _RUNTIME_LOCK:
         artifact = _RUNTIME_ARTIFACT
@@ -987,6 +1135,12 @@ def reset_runtime_artifact_cache() -> None:
         _RUNTIME_SETTINGS_KEY = None
         _RUNTIME_STATE = None
         _close_runtime_artifact(artifact)
+
+    with _SIRAP_RUNTIME_LOCK:
+        for sirap_artifact in _SIRAP_RUNTIME_ARTIFACTS.values():
+            _close_runtime_artifact(sirap_artifact)
+        _SIRAP_RUNTIME_ARTIFACTS = {}
+        _SIRAP_RUNTIME_SETTINGS_KEY = None
 
 
 def get_artifact_state(settings: Settings) -> ArtifactState:

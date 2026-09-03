@@ -257,6 +257,22 @@ describe('AOI ecosystems utilities', () => {
     );
   });
 
+  it('returns an unavailable custom MEC state without throwing', () => {
+    const response = buildCustomProfileResponse();
+    response.sections.ecosystems = {
+      ...response.sections.ecosystems!,
+      status: 'unavailable',
+      reason: 'ecosystem_artifact_not_packaged',
+      solution_coverage: undefined,
+    };
+
+    const data = buildCustomMecData(response);
+
+    expect(data.status).toBe('unavailable');
+    expect(data.hasSolutionCoverage).toBe(true);
+    expect(data.rowsByView.size).toBe(0);
+  });
+
   it('rejects partial active-solution Mesa inventories', () => {
     const response = buildCustomProfileResponse();
     response.sections.ecosystems!.solution_coverage = buildMesaCoverageFixture().slice(0, -1);
@@ -275,6 +291,21 @@ describe('AOI ecosystems utilities', () => {
     expect(() => buildCustomMecData(response)).toThrowError(
       'Invalid Mesa solution coverage: duplicate feature "forest" at row 417',
     );
+  });
+
+  it('accepts variable SIRAP Mesa row counts when configured', () => {
+    const response = buildCustomProfileResponse();
+    response.sections.ecosystems!.solution_coverage = buildMesaCoverageFixture().slice(0, 3);
+
+    const data = buildCustomMecData(response, 'test-solution', { allowVariableMesaRowCount: true });
+
+    expect(data.rowsByView.get('biomeRegion')).toHaveLength(3);
+  });
+
+  it('derives remaining coverage percent for Mesa custom rows', () => {
+    const row = buildCustomMecData(buildCustomProfileResponse()).rowsByView.get('biomeRegion')?.[0];
+
+    expect(row?.remainingCoveragePercent).toBe(75);
   });
 
   it.each([

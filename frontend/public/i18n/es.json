@@ -659,6 +659,8 @@
           "inventoryUnavailableGeometry": "Dibuje un área personalizada válida antes de abrir el desglose de cobertura de especies.",
           "inventoryUnavailableSolution": "Seleccione un escenario terrestre antes de abrir el desglose de cobertura de especies.",
           "inventoryUnavailableMarine": "La cobertura detallada de especies no está disponible para escenarios marinos.",
+          "stubbedUnavailable": "El inventario en vivo de especies no está disponible para este escenario regional. Use el desglose de metas del escenario para la cobertura precalculada de especies.",
+          "stubbedCoverageUnavailable": "Los trabajos de cobertura detallada de especies no están disponibles para este escenario regional. Use el desglose de metas del escenario en su lugar.",
           "coverageNoSolution": "Seleccione un escenario terrestre para calcular la cobertura de especies.",
           "coverageSubmitting": "Enviando el cálculo detallado de especies…",
           "coverageQueued": "La cobertura detallada está en cola. Los nombres de las especies siguen disponibles mientras espera.",

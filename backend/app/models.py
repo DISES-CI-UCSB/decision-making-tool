@@ -30,6 +30,10 @@ class PolygonMetricsRequest(BaseModel):
         default=None,
         description="Optional artifact version pin requested by the client.",
     )
+    solution_id: str | None = Field(
+        default=None,
+        description="Optional solution id used to route regional SIRAP artifacts.",
+    )
 
 
 class PolygonMetricsResponse(BaseModel):

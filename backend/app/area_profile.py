@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from .artifacts import RuntimeArtifact
+from .config import SIRAP_ARTIFACT_KIND
 from .coverage_target_validation import MESA_V3_ECOSYSTEM_TARGET_COUNT
 from .ecosystem_inventory import EcosystemInventoryError, build_ecosystem_inventory
 from .metric_adapters import build_custom_aoi_raster
@@ -11,6 +12,10 @@ from .polygon_metrics import PolygonMetricError, validate_polygon_geometry
 from .solution_coverage import (
     SolutionCoverageError,
     calculate_ecosystem_aoi_coverage,
+)
+from .sirap_coverage import (
+    SirapCoverageError,
+    calculate_sirap_ecosystem_aoi_coverage,
 )
 from .species_index import (
     RuntimeSpeciesBitsetIndex,
@@ -89,6 +94,7 @@ def calculate_custom_area_profile(
             SpeciesIndexQueryError,
             EcosystemInventoryError,
             SolutionCoverageError,
+            SirapCoverageError,
         ) as exc:
             sections[section] = _failed_section(section, str(exc))
         except Exception as exc:
@@ -103,6 +109,10 @@ def calculate_custom_area_profile(
 
 
 def _species_section(artifact: RuntimeArtifact, raster: SolutionRaster) -> dict[str, Any]:
+    raw_species = artifact.manifest.get("species_matrices")
+    if isinstance(raw_species, dict) and raw_species.get("status") == "stubbed":
+        return _unavailable_section("species", "species_matrices_stubbed")
+
     available_groups = (
         artifact.species_index.groups
         if artifact.species_index is not None
@@ -149,13 +159,12 @@ def _ecosystems_section(
     solution_raster: SolutionRaster | None,
     solution_id: str | None,
 ) -> dict[str, Any]:
-    mesa_rows = _mesa_ecosystem_rows(
-        artifact,
-        raster,
-        solution_raster,
-        solution_id,
+    coverage_rows = (
+        _sirap_ecosystem_rows(artifact, raster, solution_raster, solution_id)
+        if _is_sirap_artifact(artifact)
+        else _mesa_ecosystem_rows(artifact, raster, solution_raster, solution_id)
     )
-    if artifact.ecosystem_inventory is None and not mesa_rows:
+    if artifact.ecosystem_inventory is None and not coverage_rows:
         return _unavailable_section("ecosystems", "ecosystem_artifact_not_packaged")
     inventory = (
         build_ecosystem_inventory(
@@ -172,9 +181,62 @@ def _ecosystems_section(
     )
     record_count = sum(len(view["records"]) for view in inventory["views"])
     return {
-        "status": "complete" if record_count or mesa_rows else "empty",
+        "status": "complete" if record_count or coverage_rows else "empty",
         **inventory,
-        "solution_coverage": mesa_rows,
+        "solution_coverage": coverage_rows,
+    }
+
+
+def _is_sirap_artifact(artifact: RuntimeArtifact) -> bool:
+    return (
+        artifact.manifest.get("artifact_kind") == SIRAP_ARTIFACT_KIND
+        or artifact.sirap_coverage is not None
+    )
+
+
+def _sirap_ecosystem_rows(
+    artifact: RuntimeArtifact,
+    raster: SolutionRaster,
+    solution_raster: SolutionRaster | None,
+    solution_id: str | None,
+) -> list[dict[str, Any]]:
+    if (
+        artifact.sirap_coverage is None
+        or solution_raster is None
+        or solution_id is None
+    ):
+        return []
+    rows = calculate_sirap_ecosystem_aoi_coverage(
+        artifact.sirap_coverage,
+        solution_id,
+        raster,
+        solution_raster,
+    )
+    return [_coverage_row_dict(row) for row in rows.values()]
+
+
+def _coverage_row_dict(row: Any) -> dict[str, Any]:
+    return {
+        "feature": row.feature,
+        "total_in_aoi": row.total_amount_aoi,
+        "national_total": row.national_total_amount,
+        "classified_total_in_aoi": row.classified_total_amount_aoi,
+        "share_of_national_total": row.share_of_national_amount,
+        "share_of_classified_aoi": row.share_of_classified_aoi,
+        "held_in_aoi": row.absolute_held_aoi,
+        "coverage_within_aoi": row.coverage_within_aoi,
+        "pre_existing_held_in_aoi": row.absolute_pre_existing_aoi,
+        "pre_existing_coverage_within_aoi": row.pre_existing_coverage_within_aoi,
+        "new_prioritizr_held_in_aoi": row.absolute_new_prioritizr_aoi,
+        "new_prioritizr_coverage_within_aoi": row.new_prioritizr_coverage_within_aoi,
+        "contribution_to_national_coverage": row.contribution_to_national_coverage,
+        "pre_existing_contribution_to_national_coverage": (
+            row.pre_existing_contribution_to_national_coverage
+        ),
+        "new_prioritizr_contribution_to_national_coverage": (
+            row.new_prioritizr_contribution_to_national_coverage
+        ),
+        "contribution_to_national_target": row.contribution_to_national_target,
     }
 
 
@@ -201,33 +263,7 @@ def _mesa_ecosystem_rows(
             "mesa_ecosystem_coverage_incomplete:"
             f"expected_{MESA_V3_ECOSYSTEM_TARGET_COUNT}_received_{len(rows)}"
         )
-    return [
-        {
-            "feature": row.feature,
-            "total_in_aoi": row.total_amount_aoi,
-            "national_total": row.national_total_amount,
-            "classified_total_in_aoi": row.classified_total_amount_aoi,
-            "share_of_national_total": row.share_of_national_amount,
-            "share_of_classified_aoi": row.share_of_classified_aoi,
-            "held_in_aoi": row.absolute_held_aoi,
-            "coverage_within_aoi": row.coverage_within_aoi,
-            "pre_existing_held_in_aoi": row.absolute_pre_existing_aoi,
-            "pre_existing_coverage_within_aoi": row.pre_existing_coverage_within_aoi,
-            "new_prioritizr_held_in_aoi": row.absolute_new_prioritizr_aoi,
-            "new_prioritizr_coverage_within_aoi": (
-                row.new_prioritizr_coverage_within_aoi
-            ),
-            "contribution_to_national_coverage": row.contribution_to_national_coverage,
-            "pre_existing_contribution_to_national_coverage": (
-                row.pre_existing_contribution_to_national_coverage
-            ),
-            "new_prioritizr_contribution_to_national_coverage": (
-                row.new_prioritizr_contribution_to_national_coverage
-            ),
-            "contribution_to_national_target": row.contribution_to_national_target,
-        }
-        for row in rows.values()
-    ]
+    return [_coverage_row_dict(row) for row in rows.values()]
 
 
 def _unavailable_section(section: str, reason: str) -> dict[str, Any]:

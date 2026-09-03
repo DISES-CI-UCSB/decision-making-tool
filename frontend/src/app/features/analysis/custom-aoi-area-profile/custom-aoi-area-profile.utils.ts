@@ -40,6 +40,7 @@ export function parseSpeciesSection(response: unknown): CustomAoiSpeciesSection 
   return {
     status: section.status,
     records: section.records.filter(isSpeciesRecord),
+    reason: section.reason ?? null,
   };
 }
 

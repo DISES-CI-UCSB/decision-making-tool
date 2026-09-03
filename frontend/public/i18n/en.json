@@ -742,6 +742,8 @@
           "inventoryUnavailableGeometry": "Draw a valid custom area before opening the species coverage breakdown.",
           "inventoryUnavailableSolution": "Select a land scenario before opening the species coverage breakdown.",
           "inventoryUnavailableMarine": "Detailed species coverage is not available for marine scenarios.",
+          "stubbedUnavailable": "Live species inventory is not available for this regional scenario. Use the scenario goals breakdown for precomputed species coverage.",
+          "stubbedCoverageUnavailable": "Detailed species coverage jobs are not available for this regional scenario. Use the scenario goals breakdown instead.",
           "coverageNoSolution": "Select a land scenario to calculate species coverage.",
           "coverageSubmitting": "Submitting the detailed species calculation…",
           "coverageQueued": "Detailed coverage is queued. Species names remain available while you wait.",

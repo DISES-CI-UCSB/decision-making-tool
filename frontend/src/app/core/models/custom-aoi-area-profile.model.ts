@@ -87,6 +87,7 @@ export type CustomAoiEcosystemView =
 export interface CustomAoiSpeciesSection {
   status: CustomAoiProfileSectionStatus;
   records: CustomAoiSpeciesRecord[];
+  reason?: string | null;
 }
 
 export interface CustomAoiEcosystemsSection {

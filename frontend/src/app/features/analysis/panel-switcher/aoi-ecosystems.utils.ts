@@ -404,6 +404,7 @@ export function buildMecPreviewItems(
 export function buildCustomMecData(
   response: CustomAoiAreaProfileResponse,
   expectedSolutionId: string | null = response.solution_id ?? null,
+  options: { allowVariableMesaRowCount?: boolean } = {},
 ): CustomMecData {
   const section = response.sections.ecosystems;
   if (!section) {
@@ -414,16 +415,28 @@ export function buildCustomMecData(
   if (hasActiveSolution && response.solution_id !== expectedSolutionId) {
     throw new Error('Missing or mismatched solution id in custom AOI ecosystem response');
   }
-  if (hasActiveSolution && !Array.isArray(section.solution_coverage)) {
+  if (
+    hasActiveSolution &&
+    section.status !== 'unavailable' &&
+    section.status !== 'failed' &&
+    !Array.isArray(section.solution_coverage)
+  ) {
     throw new Error('Missing Mesa solution coverage for active custom AOI solution');
   }
 
   const rowsByView = new Map<MecViewId, MecCoverageRow[]>();
   const previewByView = new Map<MecViewId, MecPreviewItem[]>();
-  if (hasActiveSolution) {
-    const rows = validateMesaSolutionCoverage(section.solution_coverage ?? []).map(
-      buildMesaCustomMecCoverageRow,
-    );
+  if (
+    hasActiveSolution &&
+    section.status !== 'unavailable' &&
+    section.status !== 'failed' &&
+    Array.isArray(section.solution_coverage) &&
+    section.solution_coverage.length > 0
+  ) {
+    const rows = validateMesaSolutionCoverage(
+      section.solution_coverage ?? [],
+      options.allowVariableMesaRowCount ? null : MESA_IAVH_FEATURE_COUNT,
+    ).map(buildMesaCustomMecCoverageRow);
     // Mesa solution coverage is the 417-class IAvH biome-region inventory.
     // The section's canonical view describes the separate composition taxonomy.
     const mesaView: MecViewId = 'biomeRegion';
@@ -438,7 +451,7 @@ export function buildCustomMecData(
           percent: row.solutionCoveragePercent ?? null,
         })),
     );
-  } else {
+  } else if (!hasActiveSolution) {
     section.views.forEach((view) => {
       const rows = view.records.map(buildCustomMecCompositionRow);
       rowsByView.set(view.id, rows);
@@ -486,6 +499,14 @@ export function buildCustomMecCompositionRow(record: CustomAoiEcosystemRecord): 
 }
 
 export function buildMesaCustomMecCoverageRow(record: MesaAoiCoverageRecord): MecCoverageRow {
+  const remainingCellCount = Math.max(record.total_in_aoi - record.held_in_aoi, 0);
+  const remainingCoveragePercent =
+    record.total_in_aoi > 0
+      ? (remainingCellCount / record.total_in_aoi) * 100
+      : record.coverage_within_aoi === null
+        ? null
+        : Math.max(0, (1 - record.coverage_within_aoi) * 100);
+
   return {
     id: slugify(record.feature),
     label: record.feature,
@@ -494,6 +515,8 @@ export function buildMesaCustomMecCoverageRow(record: MesaAoiCoverageRecord): Me
     nationalClassPercent: fractionToPercent(record.share_of_national_total),
     solutionCoverageKm2: null,
     solutionCoveragePercent: fractionToPercent(record.coverage_within_aoi),
+    remainingCoverageKm2: null,
+    remainingCoveragePercent,
     preExistingCoverageKm2: null,
     newPrioritizrCoverageKm2: null,
     preExistingPercent: fractionToPercent(record.pre_existing_coverage_within_aoi),
@@ -517,10 +540,16 @@ export function buildMesaCustomMecCoverageRow(record: MesaAoiCoverageRecord): Me
   };
 }
 
-function validateMesaSolutionCoverage(records: readonly unknown[]): MesaAoiCoverageRecord[] {
-  if (records.length !== MESA_IAVH_FEATURE_COUNT) {
+function validateMesaSolutionCoverage(
+  records: readonly unknown[],
+  expectedRowCount: number | null = MESA_IAVH_FEATURE_COUNT,
+): MesaAoiCoverageRecord[] {
+  if (records.length === 0) {
+    throw new Error('Invalid Mesa solution coverage: expected at least one row, received 0');
+  }
+  if (expectedRowCount !== null && records.length !== expectedRowCount) {
     throw new Error(
-      `Invalid Mesa solution coverage: expected ${MESA_IAVH_FEATURE_COUNT} rows, received ${records.length}`,
+      `Invalid Mesa solution coverage: expected ${expectedRowCount} rows, received ${records.length}`,
     );
   }
 

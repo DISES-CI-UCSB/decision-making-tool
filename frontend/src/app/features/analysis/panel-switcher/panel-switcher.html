@@ -762,61 +762,63 @@
                                 "
                                 class="min-w-0 flex-1 font-semibold text-slate-800"
                               >
-                                {{ domain.labelKey | translate
-                                }}@if (domain.methodLabelKey) {<span
-                                  [id]="
-                                    'right-sidebar-v3-overview-goals-additional-domain-method-help-' +
-                                    domain.id
-                                  "
-                                  class="v3-methodology-help"
-                                  (mouseenter)="showGoalsTooltip($event, domain.id, 'additional')"
-                                  (mouseleave)="hideGoalsTooltip(domain.id, 'additional')"
-                                  (focusin)="showGoalsTooltip($event, domain.id, 'additional')"
-                                  (focusout)="hideGoalsTooltip(domain.id, 'additional')"
-                                >
-                                  <button
-                                    [id]="
-                                      'right-sidebar-v3-overview-goals-additional-domain-method-trigger-' +
-                                      domain.id
-                                    "
-                                    type="button"
-                                    class="v3-methodology-trigger"
-                                    [attr.aria-label]="
-                                      'analysis.overview.methodologyInfoLabel' | translate
-                                    "
-                                    [attr.aria-describedby]="
-                                      'right-sidebar-v3-overview-goals-additional-domain-method-tooltip-' +
-                                      domain.id
-                                    "
-                                  >
-                                    <app-info-icon
-                                      [rootId]="
-                                        'right-sidebar-v3-overview-goals-additional-domain-method-indicator-' +
-                                        domain.id
-                                      "
-                                      colorClass="text-slate-400"
-                                    />
-                                  </button>
+                                {{ domain.labelKey | translate }}
+                                @if (domain.methodLabelKey) {
                                   <span
                                     [id]="
-                                      'right-sidebar-v3-overview-goals-additional-domain-method-tooltip-' +
+                                      'right-sidebar-v3-overview-goals-additional-domain-method-help-' +
                                       domain.id
                                     "
-                                    role="tooltip"
-                                    popover="manual"
-                                    class="v3-methodology-tooltip v3-methodology-tooltip-overlay"
+                                    class="v3-methodology-help"
+                                    (mouseenter)="showGoalsTooltip($event, domain.id, 'additional')"
+                                    (mouseleave)="hideGoalsTooltip(domain.id, 'additional')"
+                                    (focusin)="showGoalsTooltip($event, domain.id, 'additional')"
+                                    (focusout)="hideGoalsTooltip(domain.id, 'additional')"
                                   >
-                                    <span
+                                    <button
                                       [id]="
-                                        'right-sidebar-v3-overview-goals-additional-domain-method-text-' +
+                                        'right-sidebar-v3-overview-goals-additional-domain-method-trigger-' +
                                         domain.id
                                       "
-                                      class="v3-methodology-tooltip-text"
+                                      type="button"
+                                      class="v3-methodology-trigger"
+                                      [attr.aria-label]="
+                                        'analysis.overview.methodologyInfoLabel' | translate
+                                      "
+                                      [attr.aria-describedby]="
+                                        'right-sidebar-v3-overview-goals-additional-domain-method-tooltip-' +
+                                        domain.id
+                                      "
                                     >
-                                      {{ domain.methodLabelKey | translate }}
+                                      <app-info-icon
+                                        [rootId]="
+                                          'right-sidebar-v3-overview-goals-additional-domain-method-indicator-' +
+                                          domain.id
+                                        "
+                                        colorClass="text-slate-400"
+                                      />
+                                    </button>
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-goals-additional-domain-method-tooltip-' +
+                                        domain.id
+                                      "
+                                      role="tooltip"
+                                      popover="manual"
+                                      class="v3-methodology-tooltip v3-methodology-tooltip-overlay"
+                                    >
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-goals-additional-domain-method-text-' +
+                                          domain.id
+                                        "
+                                        class="v3-methodology-tooltip-text"
+                                      >
+                                        {{ domain.methodLabelKey | translate }}
+                                      </span>
                                     </span>
                                   </span>
-                                </span>}
+                                }
                               </span>
                               <span
                                 [id]="
@@ -5782,6 +5784,7 @@
       id="aoi-custom-species-inventory"
       [geometry]="customAoiGeometry()"
       [solutionId]="customAoiSpeciesSolutionId()"
+      [useSirapCoverageColumnOrder]="supportsSirapCustomAoiMetrics()"
       [preExistingCoverageColor]="existingProtectedColor()"
       [newCoverageColor]="solutionColor()"
       (modalOpenChange)="customAoiSpeciesModalOpen.set($event)"

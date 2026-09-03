@@ -1140,25 +1140,25 @@ def read_mec_raster_values(
 
     with rasterio.open(path) as dataset:
         dtype = np.dtype(dataset.dtypes[0])
-        expected_dtype = (
-            np.dtype(np.uint16)
-            if taxonomy.source_mode == SOURCE_MODE_COMPOSITE
-            else np.dtype(np.uint32)
-        )
-        expected_nodata = (
-            0
-            if taxonomy.source_mode == SOURCE_MODE_COMPOSITE
-            else MEC_RASTER_NODATA
-        )
-        if dtype != expected_dtype:
+        if taxonomy.source_mode == SOURCE_MODE_COMPOSITE:
+            allowed_dtypes = (np.dtype(np.uint16), np.dtype(np.uint32))
+            allowed_nodata = (
+                (0,)
+                if dtype == np.dtype(np.uint16)
+                else (MEC_RASTER_NODATA,)
+            )
+        else:
+            allowed_dtypes = (np.dtype(np.uint32),)
+            allowed_nodata = (MEC_RASTER_NODATA,)
+        if dtype not in allowed_dtypes:
             raise RasterError(
                 f"{taxonomy.source_mode} MEC raster {path} must use "
-                f"{expected_dtype.name}; got {dtype}."
+                f"{' or '.join(item.name for item in allowed_dtypes)}; got {dtype}."
             )
-        if dataset.nodata is None or int(dataset.nodata) != expected_nodata:
+        if dataset.nodata is None or int(dataset.nodata) not in allowed_nodata:
             raise RasterError(
                 f"{taxonomy.source_mode} MEC raster {path} must declare "
-                f"nodata={expected_nodata}; "
+                f"nodata={' or '.join(str(item) for item in allowed_nodata)}; "
                 f"got {dataset.nodata!r}."
             )
     values = read_layer_values(path, expected)

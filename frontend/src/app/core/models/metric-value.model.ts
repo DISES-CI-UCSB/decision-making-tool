@@ -27,6 +27,7 @@ export interface CustomPolygonMetricsRequest {
   geometry: CustomPolygonMetricsGeometry;
   metrics?: CustomPolygonMetricId[];
   artifact_version?: string;
+  solution_id?: string;
 }
 
 export interface CustomPolygonMetricsArtifactState {

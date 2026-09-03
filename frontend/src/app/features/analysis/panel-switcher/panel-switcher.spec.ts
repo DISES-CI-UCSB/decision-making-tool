@@ -2472,9 +2472,11 @@ describe('PanelSwitcherComponent', () => {
         ?.classList.contains('v3-methodology-tooltip-overlay'),
     ).toBe(true);
     expect(
-      compiled.querySelector(
-        '#right-sidebar-v3-overview-goals-additional-domain-method-tooltip-strategic-ecosystems',
-      )?.getAttribute('popover'),
+      compiled
+        .querySelector(
+          '#right-sidebar-v3-overview-goals-additional-domain-method-tooltip-strategic-ecosystems',
+        )
+        ?.getAttribute('popover'),
     ).toBe('manual');
 
     (
@@ -2940,6 +2942,62 @@ describe('PanelSwitcherComponent', () => {
     button.click();
     expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('#conservation-goals-modal')).toBeNull();
+  });
+
+  it('enables SIRAP custom AOI expanded coverage for eje-cafetero solutions', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildSirapGoalsDocument(solution.id);
+    mockSirapCatalogSolution(solution);
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    vi.mocked(apiServiceSpy.getCustomAoiAreaProfile).mockImplementation((request) =>
+      of(
+        request.sections[0] === 'ecosystems'
+          ? {
+              ...buildCustomEcosystemProfileResponse(solution.id),
+              sections: {
+                ecosystems: {
+                  ...buildCustomEcosystemProfileResponse(solution.id).sections.ecosystems!,
+                  solution_coverage: buildMesaEcosystemCoverageFixture().slice(0, 2),
+                },
+              },
+            }
+          : buildCustomEcosystemProfileResponse(solution.id),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      supportsSirapCustomAoiMetrics(): boolean;
+      goalsModalUsesExpandedCoverageLayout(): boolean;
+    };
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.supportsSirapCustomAoiMetrics()).toBe(true);
+    expect(component.goalsModalUsesExpandedCoverageLayout()).toBe(true);
+    expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith(
+      expect.objectContaining({
+        geometry: buildTestGeometry(),
+        solution_id: solution.id,
+      }),
+    );
+
+    (
+      fixture.componentInstance as unknown as { openGoalsModal(domainId: string): void }
+    ).openGoalsModal('species');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('#conservation-goals-modal')).not.toBeNull();
   });
 
   it('shows species loading and recoverable error states', async () => {
@@ -4221,6 +4279,21 @@ function buildSirapAoi(boundarySourceLayerKey: string, boundarySourceId: string)
     boundarySourceId,
     boundaryGeometrySelection: 'whole-feature',
   };
+}
+
+function mockSirapCatalogSolution(solution: ReturnType<typeof buildTestSolution>): void {
+  vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+    id: solution.id,
+    scope: 'sirap',
+    sirapId: 'eje-cafetero',
+    precomputedMetricUrls: {
+      goals: '/releases/sirap-test/goals/cache/test-solution.goals.json',
+      speciesGoalsCatalog: '/releases/sirap-test/species-goals/catalog/v1/catalog.json',
+      speciesGoalsByGeography: {
+        siraps: '/releases/sirap-test/species-goals/test-solution/siraps.json',
+      },
+    },
+  } as CatalogSolution);
 }
 
 /**
