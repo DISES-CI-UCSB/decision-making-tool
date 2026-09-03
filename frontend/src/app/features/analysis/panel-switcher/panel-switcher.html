@@ -2250,12 +2250,12 @@
                         class="aoi-mec-open-modal aoi-biodiversity-open-species-inventory min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-haspopup="dialog"
                         [attr.aria-controls]="
-                          selectedAoi()?.type === 'custom'
+                          selectedAoi()?.type === 'custom' && !supportsSirapCustomAoiMetrics()
                             ? 'custom-aoi-species-inventory-modal'
                             : 'conservation-goals-modal'
                         "
                         [attr.aria-expanded]="
-                          selectedAoi()?.type === 'custom'
+                          selectedAoi()?.type === 'custom' && !supportsSirapCustomAoiMetrics()
                             ? customAoiSpeciesModalOpen()
                             : goalsModalOpen() && goalsModalDomain()?.featureType === 'species'
                         "
@@ -5298,6 +5298,443 @@
               }
             </div>
           </div>
+        } @else if (domain.featureType === 'ecosystems' && goalsModalRows().length > 0) {
+          <div
+            id="conservation-goals-modal-ecosystem-virtual-table-scroll-wrapper"
+            class="overflow-x-auto"
+          >
+            <div
+              id="conservation-goals-modal-ecosystem-virtual-table"
+              class="min-w-180 text-left text-xs"
+              [class.min-w-[1100px]]="true"
+              role="table"
+              [attr.aria-label]="'analysis.overview.goalsWidget.modal.featureDetails' | translate"
+            >
+              <div
+                id="conservation-goals-modal-ecosystem-virtual-table-head"
+                class="sticky top-0 z-10 bg-white shadow-sm"
+                role="rowgroup"
+              >
+                <div
+                  id="conservation-goals-modal-ecosystem-virtual-heading-group-row"
+                  class="grid"
+                  [class.grid-cols-[minmax(15rem,1fr)_8rem_8rem_8rem_15rem_8rem_8rem]]="
+                    !isSirapPrimaryGoalsModal() && domain.targeted
+                  "
+                  [class.grid-cols-[minmax(15rem,1fr)_8rem_8rem_8rem_15rem_10rem]]="
+                    !isSirapPrimaryGoalsModal() && !domain.targeted
+                  "
+                  [class.grid-cols-[minmax(15rem,1fr)_8rem_8rem_8rem_8rem_8rem_15rem_8rem_8rem]]="
+                    isSirapPrimaryGoalsModal() && domain.targeted
+                  "
+                  [class.grid-cols-[minmax(15rem,1fr)_8rem_8rem_8rem_8rem_8rem_15rem_10rem]]="
+                    isSirapPrimaryGoalsModal() && !domain.targeted
+                  "
+                  role="row"
+                >
+                  <span
+                    id="conservation-goals-modal-ecosystem-virtual-heading-feature"
+                    class="px-3 py-2.5 font-bold text-slate-600"
+                    role="columnheader"
+                    [attr.aria-rowspan]="isSirapPrimaryGoalsModal() ? 2 : 2"
+                  >
+                    <app-table-header-tooltip
+                      idBase="conservation-goals-modal-ecosystem-virtual-heading-feature"
+                      labelKey="analysis.overview.goalsWidget.modal.category"
+                      questionKey="analysis.overview.goalsWidget.modal.columnQuestions.category"
+                      align="start"
+                    ></app-table-header-tooltip>
+                  </span>
+                  @if (!isSirapPrimaryGoalsModal()) {
+                    <span
+                      id="conservation-goals-modal-ecosystem-virtual-heading-ecosystem-area"
+                      class="px-3 py-2.5 text-right font-bold text-slate-600"
+                      role="columnheader"
+                      aria-rowspan="2"
+                    >
+                      <app-table-header-tooltip
+                        idBase="conservation-goals-modal-ecosystem-virtual-heading-ecosystem-area"
+                        labelKey="analysis.overview.goalsWidget.modal.nationalEcosystemTypeArea"
+                        questionKey="analysis.overview.goalsWidget.modal.columnQuestions.nationalEcosystemTypeArea"
+                        align="end"
+                      ></app-table-header-tooltip>
+                    </span>
+                  } @else {
+                    <span
+                      id="conservation-goals-modal-ecosystem-virtual-heading-sirap-context-group"
+                      class="col-span-3 px-3 py-2.5 text-center font-bold text-slate-600"
+                      role="columnheader"
+                      aria-colspan="3"
+                    >
+                      {{ 'analysis.overview.goalsWidget.modal.sirapContextGroup' | translate }}
+                    </span>
+                  }
+                  <span
+                    id="conservation-goals-modal-ecosystem-virtual-heading-coverage-group"
+                    class="col-span-3 px-3 py-2.5 text-center font-bold text-slate-600"
+                    role="columnheader"
+                    aria-colspan="3"
+                  >
+                    {{ 'analysis.overview.goalsWidget.modal.solutionCoverageGroup' | translate }}
+                  </span>
+                  @if (domain.targeted) {
+                    <span
+                      id="conservation-goals-modal-ecosystem-virtual-heading-target"
+                      class="px-3 py-2.5 font-bold text-slate-600"
+                      role="columnheader"
+                      aria-rowspan="2"
+                    >
+                      <app-table-header-tooltip
+                        idBase="conservation-goals-modal-ecosystem-virtual-heading-target"
+                        labelKey="analysis.overview.goalsWidget.modal.target"
+                        questionKey="analysis.overview.goalsWidget.modal.columnQuestions.nationalTarget"
+                      ></app-table-header-tooltip>
+                    </span>
+                    <span
+                      id="conservation-goals-modal-ecosystem-virtual-heading-status"
+                      class="px-3 py-2.5 font-bold text-slate-600"
+                      role="columnheader"
+                      aria-rowspan="2"
+                    >
+                      <app-table-header-tooltip
+                        idBase="conservation-goals-modal-ecosystem-virtual-heading-status"
+                        labelKey="analysis.overview.goalsWidget.modal.status"
+                        questionKey="analysis.overview.goalsWidget.modal.columnQuestions.nationalStatus"
+                        align="end"
+                      ></app-table-header-tooltip>
+                    </span>
+                  } @else {
+                    <span
+                      id="conservation-goals-modal-ecosystem-virtual-heading-checkpoints"
+                      class="px-3 py-2.5 font-bold text-slate-600"
+                      role="columnheader"
+                      aria-rowspan="2"
+                    >
+                      <app-table-header-tooltip
+                        idBase="conservation-goals-modal-ecosystem-virtual-heading-checkpoints"
+                        labelKey="analysis.overview.goalsWidget.modal.checkpoints"
+                        questionKey="analysis.overview.goalsWidget.modal.columnQuestions.nationalCheckpoints"
+                        align="end"
+                      ></app-table-header-tooltip>
+                    </span>
+                  }
+                </div>
+                @if (isSirapPrimaryGoalsModal()) {
+                  <div
+                    id="conservation-goals-modal-ecosystem-virtual-heading-metrics-row"
+                    class="grid grid-cols-[minmax(15rem,1fr)_8rem_8rem_8rem_8rem_8rem_15rem_8rem_8rem]"
+                    role="row"
+                  >
+                    <span class="px-3 py-2" role="columnheader" aria-hidden="true"></span>
+                    @for (
+                      heading of [
+                        {
+                          id: 'ecosystem-area',
+                          label: 'sirapEcosystemTypeArea',
+                          question: 'sirapEcosystemTypeArea',
+                        },
+                        {
+                          id: 'national-share',
+                          label: 'sirapEcosystemNationalShare',
+                          question: 'sirapEcosystemNationalShare',
+                        },
+                        {
+                          id: 'sirap-share',
+                          label: 'sirapEcosystemAreaShare',
+                          question: 'sirapEcosystemAreaShare',
+                        },
+                        {
+                          id: 'pre-existing-coverage',
+                          label: 'nationalPreExistingCoverageShort',
+                          question: 'sirapPreExistingCoverage',
+                        },
+                        {
+                          id: 'new-coverage',
+                          label: 'nationalNewSolutionCoverageShort',
+                          question: 'sirapNewSolutionCoverage',
+                        },
+                        {
+                          id: 'coverage',
+                          label: 'nationalTotalCoverageShort',
+                          question: 'sirapTotalCoverage',
+                        },
+                      ];
+                      track heading.id
+                    ) {
+                      <span
+                        [id]="'conservation-goals-modal-ecosystem-virtual-heading-' + heading.id"
+                        class="px-3 py-2 text-right font-bold text-slate-600"
+                        role="columnheader"
+                      >
+                        <app-table-header-tooltip
+                          [idBase]="
+                            'conservation-goals-modal-ecosystem-virtual-heading-' + heading.id
+                          "
+                          [labelKey]="'analysis.overview.goalsWidget.modal.' + heading.label"
+                          [questionKey]="
+                            'analysis.overview.goalsWidget.modal.columnQuestions.' +
+                            heading.question
+                          "
+                          align="end"
+                        ></app-table-header-tooltip>
+                      </span>
+                    }
+                    @if (domain.targeted) {
+                      <span class="px-3 py-2" role="columnheader" aria-hidden="true"></span>
+                      <span class="px-3 py-2" role="columnheader" aria-hidden="true"></span>
+                    } @else {
+                      <span class="px-3 py-2" role="columnheader" aria-hidden="true"></span>
+                    }
+                  </div>
+                }
+              </div>
+              <cdk-virtual-scroll-viewport
+                id="conservation-goals-modal-ecosystem-viewport"
+                class="h-[48vh] max-h-120 min-h-40"
+                [itemSize]="goalsModalVirtualRowSize"
+                [minBufferPx]="goalsModalVirtualMinBuffer"
+                [maxBufferPx]="goalsModalVirtualMaxBuffer"
+                tabindex="0"
+                [attr.aria-label]="
+                  'analysis.overview.goalsWidget.modal.virtualScrollAriaLabel' | translate
+                "
+              >
+                <div
+                  *cdkVirtualFor="
+                    let row of goalsModalRows();
+                    let rowIndex = index;
+                    trackBy: trackGoalsModalRow
+                  "
+                  [id]="'conservation-goals-modal-row-' + rowIndex"
+                  class="grid h-14.25 border-t border-slate-100"
+                  [class.grid-cols-[minmax(15rem,1fr)_8rem_8rem_8rem_15rem_8rem_8rem]]="
+                    !isSirapPrimaryGoalsModal() && domain.targeted
+                  "
+                  [class.grid-cols-[minmax(15rem,1fr)_8rem_8rem_8rem_15rem_10rem]]="
+                    !isSirapPrimaryGoalsModal() && !domain.targeted
+                  "
+                  [class.grid-cols-[minmax(15rem,1fr)_8rem_8rem_8rem_8rem_8rem_15rem_8rem_8rem]]="
+                    isSirapPrimaryGoalsModal() && domain.targeted
+                  "
+                  [class.grid-cols-[minmax(15rem,1fr)_8rem_8rem_8rem_8rem_8rem_15rem_10rem]]="
+                    isSirapPrimaryGoalsModal() && !domain.targeted
+                  "
+                  role="row"
+                >
+                  <span
+                    [id]="'conservation-goals-modal-feature-' + rowIndex"
+                    class="min-w-0 px-3 py-2"
+                    role="cell"
+                  >
+                    <strong
+                      [id]="'conservation-goals-modal-feature-name-' + rowIndex"
+                      class="block truncate font-semibold text-slate-900"
+                    >
+                      {{ row.name }}
+                    </strong>
+                    @if (row.secondaryLabel) {
+                      <span
+                        [id]="'conservation-goals-modal-feature-secondary-' + rowIndex"
+                        class="mt-0.5 block truncate text-[10px] text-slate-500"
+                      >
+                        {{ row.secondaryLabel }}
+                      </span>
+                    }
+                  </span>
+                  @if (!isSirapPrimaryGoalsModal()) {
+                    <span
+                      [id]="'conservation-goals-modal-ecosystem-area-' + rowIndex"
+                      class="grid content-center px-3 py-2 text-right tabular-nums text-slate-700"
+                      role="cell"
+                    >
+                      {{ formatMecEcosystemArea(row.ecosystemAreaKm2) }}
+                    </span>
+                  } @else {
+                    <span
+                      [id]="'conservation-goals-modal-ecosystem-area-' + rowIndex"
+                      class="grid content-center px-3 py-2 text-right tabular-nums text-slate-700"
+                      role="cell"
+                    >
+                      {{ formatMecEcosystemArea(row.ecosystemAreaKm2) }}
+                    </span>
+                    <span
+                      [id]="'conservation-goals-modal-ecosystem-national-share-' + rowIndex"
+                      class="grid content-center px-3 py-2 text-right tabular-nums text-slate-700"
+                      role="cell"
+                    >
+                      {{ formatGoalsModalPercent(row.nationalEcosystemSharePercent) }}
+                    </span>
+                    <span
+                      [id]="'conservation-goals-modal-ecosystem-sirap-share-' + rowIndex"
+                      class="grid content-center px-3 py-2 text-right tabular-nums text-slate-700"
+                      role="cell"
+                    >
+                      {{ formatGoalsModalPercent(row.ecosystemSharePercent) }}
+                    </span>
+                  }
+                  <span
+                    [id]="'conservation-goals-modal-pre-existing-coverage-' + rowIndex"
+                    class="grid content-center px-3 py-2 text-right tabular-nums text-slate-700"
+                    role="cell"
+                  >
+                    <strong
+                      [id]="'conservation-goals-modal-pre-existing-coverage-percent-' + rowIndex"
+                      class="block font-semibold"
+                    >
+                      {{ formatGoalsModalPercent(row.preExistingRelativeHeld) }}
+                    </strong>
+                    <span
+                      [id]="'conservation-goals-modal-pre-existing-coverage-area-' + rowIndex"
+                      class="block text-[10px] text-slate-500"
+                    >
+                      {{ formatMecEcosystemArea(row.preExistingCoverageAreaKm2) }}
+                    </span>
+                  </span>
+                  <span
+                    [id]="'conservation-goals-modal-new-coverage-' + rowIndex"
+                    class="grid content-center px-3 py-2 text-right tabular-nums text-slate-700"
+                    role="cell"
+                  >
+                    <strong
+                      [id]="'conservation-goals-modal-new-coverage-percent-' + rowIndex"
+                      class="block font-semibold"
+                    >
+                      {{ formatGoalsModalPercent(row.newRelativeHeld) }}
+                    </strong>
+                    <span
+                      [id]="'conservation-goals-modal-new-coverage-area-' + rowIndex"
+                      class="block text-[10px] text-slate-500"
+                    >
+                      {{ formatMecEcosystemArea(row.newCoverageAreaKm2) }}
+                    </span>
+                  </span>
+                  <span
+                    [id]="'conservation-goals-modal-coverage-' + rowIndex"
+                    class="flex items-center px-3 py-2"
+                    role="cell"
+                  >
+                    @if (isSirapPrimaryGoalsModal()) {
+                      <span
+                        [id]="'conservation-goals-modal-coverage-values-' + rowIndex"
+                        class="grid w-full text-right tabular-nums text-slate-700"
+                      >
+                        <strong
+                          [id]="'conservation-goals-modal-coverage-value-' + rowIndex"
+                          class="font-semibold"
+                        >
+                          {{ formatGoalsModalPercent(row.relativeHeld) }}
+                        </strong>
+                        <span
+                          [id]="'conservation-goals-modal-coverage-area-' + rowIndex"
+                          class="text-[10px] text-slate-500"
+                        >
+                          {{ formatMecEcosystemArea(row.solutionCoverageAreaKm2) }}
+                        </span>
+                      </span>
+                    } @else {
+                      <div
+                        [id]="'conservation-goals-modal-coverage-layout-' + rowIndex"
+                        class="flex w-full items-center gap-2"
+                      >
+                        <div
+                          [id]="'conservation-goals-modal-coverage-bar-' + rowIndex"
+                          class="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-slate-200"
+                        >
+                          <span
+                            [id]="'conservation-goals-modal-coverage-fill-' + rowIndex"
+                            class="block h-full rounded-full bg-emerald-500"
+                            [style.width.%]="
+                              getGoalsProgressBarWidth((row.relativeHeld ?? 0) * 100)
+                            "
+                          ></span>
+                        </div>
+                        <span
+                          [id]="'conservation-goals-modal-coverage-values-' + rowIndex"
+                          class="grid min-w-14 text-right tabular-nums text-slate-700"
+                        >
+                          <strong
+                            [id]="'conservation-goals-modal-coverage-value-' + rowIndex"
+                            class="font-semibold"
+                          >
+                            {{ formatGoalsModalPercent(row.relativeHeld) }}
+                          </strong>
+                          <span
+                            [id]="'conservation-goals-modal-coverage-area-' + rowIndex"
+                            class="text-[10px] text-slate-500"
+                          >
+                            {{ formatMecEcosystemArea(row.solutionCoverageAreaKm2) }}
+                          </span>
+                        </span>
+                      </div>
+                    }
+                  </span>
+                  @if (domain.targeted) {
+                    <span
+                      [id]="'conservation-goals-modal-target-value-' + rowIndex"
+                      class="flex items-center px-3 py-2 text-slate-700"
+                      role="cell"
+                    >
+                      {{ formatGoalsModalPercent(row.relativeTarget) }}
+                    </span>
+                    <span
+                      [id]="'conservation-goals-modal-status-' + rowIndex"
+                      class="flex items-center px-3 py-2"
+                      role="cell"
+                    >
+                      <span
+                        [id]="'conservation-goals-modal-status-badge-' + rowIndex"
+                        class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        [class.bg-emerald-100]="row.met === true"
+                        [class.text-emerald-800]="row.met === true"
+                        [class.bg-amber-100]="row.met === false"
+                        [class.text-amber-800]="row.met === false"
+                        [class.bg-slate-100]="row.met === null"
+                        [class.text-slate-500]="row.met === null"
+                      >
+                        @if (row.met === null) {
+                          —
+                        } @else {
+                          {{
+                            (row.met
+                              ? 'analysis.overview.goalsWidget.modal.met'
+                              : 'analysis.overview.goalsWidget.modal.notMet'
+                            ) | translate
+                          }}
+                        }
+                      </span>
+                    </span>
+                  } @else {
+                    <span
+                      [id]="'conservation-goals-modal-checkpoints-' + rowIndex"
+                      class="flex items-center gap-1.5 px-3 py-2"
+                      role="cell"
+                    >
+                      <span
+                        [id]="'conservation-goals-modal-checkpoint-17-badge-' + rowIndex"
+                        class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        [class.bg-green-100]="row.reached17"
+                        [class.text-green-800]="row.reached17"
+                        [class.bg-slate-100]="!row.reached17"
+                        [class.text-slate-500]="!row.reached17"
+                      >
+                        17%
+                      </span>
+                      <span
+                        [id]="'conservation-goals-modal-checkpoint-30-badge-' + rowIndex"
+                        class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        [class.bg-green-700]="row.reached30"
+                        [class.text-white]="row.reached30"
+                        [class.bg-slate-100]="!row.reached30"
+                        [class.text-slate-500]="!row.reached30"
+                      >
+                        30%
+                      </span>
+                    </span>
+                  }
+                </div>
+              </cdk-virtual-scroll-viewport>
+            </div>
+          </div>
         } @else {
           <div id="conservation-goals-modal-table-wrapper" class="max-h-[48vh] overflow-auto">
             <table
@@ -6056,6 +6493,213 @@
         }
       </ng-template>
 
+      <ng-template #aoiMecModalDataCells let-row="row">
+        <th
+          [id]="'aoi-mec-modal-category-' + row.id"
+          class="aoi-mec-modal-category-cell sticky left-0 z-[1] grid min-w-[180px] gap-1 bg-white text-left text-[11px]"
+          scope="row"
+        >
+          <strong [id]="'aoi-mec-modal-category-label-' + row.id">{{ row.label }}</strong>
+          @if (mecModalBreakdownId() === 'iavh' && iavhConsideredInRun()) {
+            <span [id]="'aoi-mec-modal-category-badge-' + row.id">{{
+              'analysis.aoi.mec.consideredInRun' | translate
+            }}</span>
+          }
+        </th>
+        @if (isExpandedMecState()) {
+          <td
+            [id]="'aoi-mec-modal-available-' + row.id"
+            [attr.data-label]="
+              getMecModalCopyKey('analysis.aoi.mec.modal.areaInsideAoi') | translate
+            "
+          >
+            {{ formatMecEcosystemAmount(row.ecosystemAreaKm2, row.mesaTotalInAoi ?? null) }}
+          </td>
+          <td
+            [id]="'aoi-mec-modal-national-share-' + row.id"
+            [attr.data-label]="
+              (isSirapScopedSolution()
+                ? 'analysis.aoi.mec.modal.sirap.extentContext'
+                : getMecModalCopyKey('analysis.aoi.mec.modal.nationalExtentInsideAoi')
+              ) | translate
+            "
+          >
+            @if (isSirapScopedSolution()) {
+              <div
+                [id]="'aoi-mec-modal-extent-context-' + row.id"
+                class="grid gap-1 text-[10px]"
+              >
+                <span [id]="'aoi-mec-modal-national-context-' + row.id">
+                  <strong
+                    [id]="'aoi-mec-modal-national-context-value-' + row.id"
+                    class="text-xs"
+                    >{{ formatMecCoveragePercent(row.nationalClassPercent) }}</strong
+                  >
+                  {{ 'analysis.aoi.mec.modal.sirap.ofNationalExtent' | translate }}
+                </span>
+                <span [id]="'aoi-mec-modal-sirap-context-' + row.id">
+                  <strong
+                    [id]="'aoi-mec-modal-sirap-context-value-' + row.id"
+                    class="text-xs"
+                    >{{ formatMecCoveragePercent(row.sirapClassPercent) }}</strong
+                  >
+                  {{ 'analysis.aoi.mec.modal.sirap.ofSirapExtent' | translate }}
+                </span>
+              </div>
+            } @else {
+              <ng-container
+                [ngTemplateOutlet]="customMecMeasure"
+                [ngTemplateOutletContext]="{
+                  areaKm2: row.ecosystemAreaKm2,
+                  cellCount: row.mesaTotalInAoi ?? null,
+                  color: '#64748b',
+                  ecosystemLabel: row.label,
+                  idPrefix: 'aoi-mec-modal-national-share-' + row.id,
+                  labelKey: getMecModalCopyKey(
+                    'analysis.aoi.mec.modal.nationalExtentInsideAoi'
+                  ),
+                  percent: row.nationalClassPercent ?? null,
+                  zeroDenominator: row.mesaNationalTotal === 0,
+                }"
+              ></ng-container>
+            }
+          </td>
+          <td
+            [id]="'aoi-mec-modal-aoi-share-' + row.id"
+            [attr.data-label]="
+              getMecModalCopyKey('analysis.aoi.mec.modal.mappedAoiOccupied') | translate
+            "
+          >
+            <ng-container
+              [ngTemplateOutlet]="customMecMeasure"
+              [ngTemplateOutletContext]="{
+                areaKm2: row.ecosystemAreaKm2,
+                cellCount: row.mesaTotalInAoi ?? null,
+                color: '#64748b',
+                ecosystemLabel: row.label,
+                idPrefix: 'aoi-mec-modal-aoi-share-' + row.id,
+                labelKey: getMecModalCopyKey('analysis.aoi.mec.modal.mappedAoiOccupied'),
+                percent: row.ecosystemSharePercent ?? null,
+                zeroDenominator: row.mesaClassifiedTotalInAoi === 0,
+              }"
+            ></ng-container>
+          </td>
+          <td
+            [id]="'aoi-mec-modal-total-coverage-' + row.id"
+            [attr.data-label]="
+              getMecModalCopyKey('analysis.aoi.mec.modal.totalCoverage') | translate
+            "
+          >
+            @if (hasExpandedMecCoverage()) {
+              <ng-container
+                [ngTemplateOutlet]="customMecMeasure"
+                [ngTemplateOutletContext]="{
+                  areaKm2: row.solutionCoverageKm2 ?? null,
+                  cellCount: row.mesaHeldInAoi ?? null,
+                  color: mecAdditionalColor(),
+                  ecosystemLabel: row.label,
+                  idPrefix: 'aoi-mec-modal-total-coverage-' + row.id,
+                  labelKey: getMecModalCopyKey('analysis.aoi.mec.modal.totalCoverage'),
+                  percent: row.solutionCoveragePercent ?? null,
+                  totalInAoi: row.mesaTotalInAoi ?? null,
+                  zeroDenominator: row.mesaTotalInAoi === 0,
+                }"
+              ></ng-container>
+              @if (isSirapScopedSolution() && row.remainingCoveragePercent !== null) {
+                <span
+                  [id]="'aoi-mec-modal-total-remaining-' + row.id"
+                  class="mt-1 block text-[10px] text-slate-500"
+                >
+                  {{
+                    'analysis.aoi.mec.modal.remainingCoverage'
+                      | translate
+                        : {
+                            percent: formatMecCoveragePercent(row.remainingCoveragePercent),
+                          }
+                  }}
+                </span>
+              }
+            } @else {
+              {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
+            }
+          </td>
+          <td
+            [id]="'aoi-mec-modal-pre-existing-coverage-' + row.id"
+            [attr.data-label]="
+              getMecModalCopyKey('analysis.aoi.mec.modal.preExistingCoverage') | translate
+            "
+          >
+            @if (hasExpandedMecCoverage()) {
+              <ng-container
+                [ngTemplateOutlet]="customMecMeasure"
+                [ngTemplateOutletContext]="{
+                  areaKm2: row.preExistingCoverageKm2,
+                  cellCount: row.preExistingCellCountInAoi ?? null,
+                  color: mecExistingColor(),
+                  ecosystemLabel: row.label,
+                  idPrefix: 'aoi-mec-modal-pre-existing-coverage-' + row.id,
+                  labelKey: getMecModalCopyKey(
+                    'analysis.aoi.mec.modal.preExistingCoverage'
+                  ),
+                  percent: row.preExistingPercent,
+                  totalInAoi: row.mesaTotalInAoi ?? null,
+                  zeroDenominator: row.mesaTotalInAoi === 0,
+                }"
+              ></ng-container>
+            } @else {
+              {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
+            }
+          </td>
+          <td
+            [id]="'aoi-mec-modal-new-coverage-' + row.id"
+            [attr.data-label]="
+              getMecModalCopyKey('analysis.aoi.mec.modal.newCoverage') | translate
+            "
+          >
+            @if (hasExpandedMecCoverage()) {
+              <ng-container
+                [ngTemplateOutlet]="customMecMeasure"
+                [ngTemplateOutletContext]="{
+                  areaKm2: row.newPrioritizrCoverageKm2,
+                  cellCount: row.newPrioritizrCellCountInAoi ?? null,
+                  color: mecAdditionalColor(),
+                  ecosystemLabel: row.label,
+                  idPrefix: 'aoi-mec-modal-new-coverage-' + row.id,
+                  labelKey: getMecModalCopyKey('analysis.aoi.mec.modal.newCoverage'),
+                  percent: row.newPrioritizrPercent,
+                  totalInAoi: row.mesaTotalInAoi ?? null,
+                  zeroDenominator: row.mesaTotalInAoi === 0,
+                }"
+              ></ng-container>
+            } @else {
+              {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
+            }
+          </td>
+        } @else {
+          <td [id]="'aoi-mec-modal-available-' + row.id">
+            {{ formatMecEcosystemAmount(row.ecosystemAreaKm2, row.mesaTotalInAoi ?? null) }}
+          </td>
+          <td [id]="'aoi-mec-modal-coverage-' + row.id">
+            <div [id]="'aoi-mec-modal-coverage-bar-' + row.id" class="aoi-mec-coverage-bar">
+              <span
+                [id]="'aoi-mec-modal-existing-fill-' + row.id"
+                [style.width.%]="row.preExistingPercent ?? 0"
+                [style.background-color]="mecExistingColor()"
+              ></span>
+              <span
+                [id]="'aoi-mec-modal-additional-fill-' + row.id"
+                [style.width.%]="row.newPrioritizrPercent ?? 0"
+                [style.background-color]="mecAdditionalColor()"
+              ></span>
+            </div>
+            <span [id]="'aoi-mec-modal-coverage-values-' + row.id">
+              {{ formatMecCoveragePercent(row.preExistingPercent) }} +
+              {{ formatMecCoveragePercent(row.newPrioritizrPercent) }}
+            </span>
+          </td>
+        }
+      </ng-template>
+
       <div
         id="aoi-mec-modal-table-wrapper"
         class="aoi-mec-modal-table-wrapper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
@@ -6144,219 +6788,56 @@
             }
           </thead>
           <tbody id="aoi-mec-modal-table-body">
-            @for (row of mecCoverageRows(); track row.id) {
-              <tr [id]="'aoi-mec-modal-row-' + row.id">
-                <th
-                  [id]="'aoi-mec-modal-category-' + row.id"
-                  class="aoi-mec-modal-category-cell sticky left-0 z-[1] grid min-w-[180px] gap-1 bg-white text-left text-[11px]"
-                  scope="row"
+            @if (mecModalUsesVirtualScroll()) {
+              <tr id="aoi-mec-modal-virtual-scroll-row">
+                <td
+                  id="aoi-mec-modal-virtual-scroll-cell"
+                  class="p-0"
+                  [attr.colspan]="isExpandedMecState() ? 7 : 3"
                 >
-                  <strong [id]="'aoi-mec-modal-category-label-' + row.id">{{ row.label }}</strong>
-                  @if (mecModalBreakdownId() === 'iavh' && iavhConsideredInRun()) {
-                    <span [id]="'aoi-mec-modal-category-badge-' + row.id">{{
-                      'analysis.aoi.mec.consideredInRun' | translate
-                    }}</span>
-                  }
-                </th>
-                @if (isExpandedMecState()) {
-                  <td
-                    [id]="'aoi-mec-modal-available-' + row.id"
-                    [attr.data-label]="
-                      getMecModalCopyKey('analysis.aoi.mec.modal.areaInsideAoi') | translate
+                  <cdk-virtual-scroll-viewport
+                    id="aoi-mec-modal-virtual-viewport"
+                    class="block h-[48vh] max-h-120 min-h-40"
+                    [itemSize]="mecModalVirtualRowSize"
+                    [minBufferPx]="mecModalVirtualMinBuffer"
+                    [maxBufferPx]="mecModalVirtualMaxBuffer"
+                    tabindex="0"
+                    [attr.aria-label]="
+                      'analysis.overview.goalsWidget.modal.virtualScrollAriaLabel' | translate
                     "
                   >
-                    {{ formatMecEcosystemAmount(row.ecosystemAreaKm2, row.mesaTotalInAoi ?? null) }}
-                  </td>
-                  <td
-                    [id]="'aoi-mec-modal-national-share-' + row.id"
-                    [attr.data-label]="
-                      (isSirapScopedSolution()
-                        ? 'analysis.aoi.mec.modal.sirap.extentContext'
-                        : getMecModalCopyKey('analysis.aoi.mec.modal.nationalExtentInsideAoi')
-                      ) | translate
-                    "
-                  >
-                    @if (isSirapScopedSolution()) {
-                      <div
-                        [id]="'aoi-mec-modal-extent-context-' + row.id"
-                        class="grid gap-1 text-[10px]"
-                      >
-                        <span [id]="'aoi-mec-modal-national-context-' + row.id">
-                          <strong
-                            [id]="'aoi-mec-modal-national-context-value-' + row.id"
-                            class="text-xs"
-                            >{{ formatMecCoveragePercent(row.nationalClassPercent) }}</strong
-                          >
-                          {{ 'analysis.aoi.mec.modal.sirap.ofNationalExtent' | translate }}
-                        </span>
-                        <span [id]="'aoi-mec-modal-sirap-context-' + row.id">
-                          <strong
-                            [id]="'aoi-mec-modal-sirap-context-value-' + row.id"
-                            class="text-xs"
-                            >{{ formatMecCoveragePercent(row.sirapClassPercent) }}</strong
-                          >
-                          {{ 'analysis.aoi.mec.modal.sirap.ofSirapExtent' | translate }}
-                        </span>
-                      </div>
-                    } @else {
-                      <ng-container
-                        [ngTemplateOutlet]="customMecMeasure"
-                        [ngTemplateOutletContext]="{
-                          areaKm2: row.ecosystemAreaKm2,
-                          cellCount: row.mesaTotalInAoi ?? null,
-                          color: '#64748b',
-                          ecosystemLabel: row.label,
-                          idPrefix: 'aoi-mec-modal-national-share-' + row.id,
-                          labelKey: getMecModalCopyKey(
-                            'analysis.aoi.mec.modal.nationalExtentInsideAoi'
-                          ),
-                          percent: row.nationalClassPercent ?? null,
-                          zeroDenominator: row.mesaNationalTotal === 0,
-                        }"
-                      ></ng-container>
-                    }
-                  </td>
-                  <td
-                    [id]="'aoi-mec-modal-aoi-share-' + row.id"
-                    [attr.data-label]="
-                      getMecModalCopyKey('analysis.aoi.mec.modal.mappedAoiOccupied') | translate
-                    "
-                  >
-                    <ng-container
-                      [ngTemplateOutlet]="customMecMeasure"
-                      [ngTemplateOutletContext]="{
-                        areaKm2: row.ecosystemAreaKm2,
-                        cellCount: row.mesaTotalInAoi ?? null,
-                        color: '#64748b',
-                        ecosystemLabel: row.label,
-                        idPrefix: 'aoi-mec-modal-aoi-share-' + row.id,
-                        labelKey: getMecModalCopyKey('analysis.aoi.mec.modal.mappedAoiOccupied'),
-                        percent: row.ecosystemSharePercent ?? null,
-                        zeroDenominator: row.mesaClassifiedTotalInAoi === 0,
-                      }"
-                    ></ng-container>
-                  </td>
-                  <td
-                    [id]="'aoi-mec-modal-total-coverage-' + row.id"
-                    [attr.data-label]="
-                      getMecModalCopyKey('analysis.aoi.mec.modal.totalCoverage') | translate
-                    "
-                  >
-                    @if (hasExpandedMecCoverage()) {
-                      <ng-container
-                        [ngTemplateOutlet]="customMecMeasure"
-                        [ngTemplateOutletContext]="{
-                          areaKm2: row.solutionCoverageKm2 ?? null,
-                          cellCount: row.mesaHeldInAoi ?? null,
-                          color: mecAdditionalColor(),
-                          ecosystemLabel: row.label,
-                          idPrefix: 'aoi-mec-modal-total-coverage-' + row.id,
-                          labelKey: getMecModalCopyKey('analysis.aoi.mec.modal.totalCoverage'),
-                          percent: row.solutionCoveragePercent ?? null,
-                          totalInAoi: row.mesaTotalInAoi ?? null,
-                          zeroDenominator: row.mesaTotalInAoi === 0,
-                        }"
-                      ></ng-container>
-                      @if (isSirapScopedSolution() && row.remainingCoveragePercent !== null) {
-                        <span
-                          [id]="'aoi-mec-modal-total-remaining-' + row.id"
-                          class="mt-1 block text-[10px] text-slate-500"
+                    <table id="aoi-mec-modal-virtual-inner-table" class="w-full">
+                      <tbody id="aoi-mec-modal-virtual-inner-table-body">
+                        <tr
+                          *cdkVirtualFor="
+                            let row of mecCoverageRows();
+                            trackBy: trackMecCoverageRow
+                          "
+                          [id]="'aoi-mec-modal-row-' + row.id"
                         >
-                          {{
-                            'analysis.aoi.mec.modal.remainingCoverage'
-                              | translate
-                                : {
-                                    percent: formatMecCoveragePercent(row.remainingCoveragePercent),
-                                  }
-                          }}
-                        </span>
-                      }
-                    } @else {
-                      {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
-                    }
-                  </td>
-                  <td
-                    [id]="'aoi-mec-modal-pre-existing-coverage-' + row.id"
-                    [attr.data-label]="
-                      getMecModalCopyKey('analysis.aoi.mec.modal.preExistingCoverage') | translate
-                    "
-                  >
-                    @if (hasExpandedMecCoverage()) {
-                      <ng-container
-                        [ngTemplateOutlet]="customMecMeasure"
-                        [ngTemplateOutletContext]="{
-                          areaKm2: row.preExistingCoverageKm2,
-                          cellCount: row.preExistingCellCountInAoi ?? null,
-                          color: mecExistingColor(),
-                          ecosystemLabel: row.label,
-                          idPrefix: 'aoi-mec-modal-pre-existing-coverage-' + row.id,
-                          labelKey: getMecModalCopyKey(
-                            'analysis.aoi.mec.modal.preExistingCoverage'
-                          ),
-                          percent: row.preExistingPercent,
-                          totalInAoi: row.mesaTotalInAoi ?? null,
-                          zeroDenominator: row.mesaTotalInAoi === 0,
-                        }"
-                      ></ng-container>
-                    } @else {
-                      {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
-                    }
-                  </td>
-                  <td
-                    [id]="'aoi-mec-modal-new-coverage-' + row.id"
-                    [attr.data-label]="
-                      getMecModalCopyKey('analysis.aoi.mec.modal.newCoverage') | translate
-                    "
-                  >
-                    @if (hasExpandedMecCoverage()) {
-                      <ng-container
-                        [ngTemplateOutlet]="customMecMeasure"
-                        [ngTemplateOutletContext]="{
-                          areaKm2: row.newPrioritizrCoverageKm2,
-                          cellCount: row.newPrioritizrCellCountInAoi ?? null,
-                          color: mecAdditionalColor(),
-                          ecosystemLabel: row.label,
-                          idPrefix: 'aoi-mec-modal-new-coverage-' + row.id,
-                          labelKey: getMecModalCopyKey('analysis.aoi.mec.modal.newCoverage'),
-                          percent: row.newPrioritizrPercent,
-                          totalInAoi: row.mesaTotalInAoi ?? null,
-                          zeroDenominator: row.mesaTotalInAoi === 0,
-                        }"
-                      ></ng-container>
-                    } @else {
-                      {{ 'analysis.aoi.mec.modal.coverageNotCalculated' | translate }}
-                    }
-                  </td>
-                } @else {
-                  <td [id]="'aoi-mec-modal-available-' + row.id">
-                    {{ formatMecEcosystemAmount(row.ecosystemAreaKm2, row.mesaTotalInAoi ?? null) }}
-                  </td>
-                  <td [id]="'aoi-mec-modal-coverage-' + row.id">
-                    <div [id]="'aoi-mec-modal-coverage-bar-' + row.id" class="aoi-mec-coverage-bar">
-                      <span
-                        [id]="'aoi-mec-modal-existing-fill-' + row.id"
-                        [style.width.%]="row.preExistingPercent ?? 0"
-                        [style.background-color]="mecExistingColor()"
-                      ></span>
-                      <span
-                        [id]="'aoi-mec-modal-additional-fill-' + row.id"
-                        [style.width.%]="row.newPrioritizrPercent ?? 0"
-                        [style.background-color]="mecAdditionalColor()"
-                      ></span>
-                    </div>
-                    <span [id]="'aoi-mec-modal-coverage-values-' + row.id">
-                      {{ formatMecCoveragePercent(row.preExistingPercent) }} +
-                      {{ formatMecCoveragePercent(row.newPrioritizrPercent) }}
-                    </span>
-                  </td>
-                }
-              </tr>
-            } @empty {
-              <tr id="aoi-mec-modal-empty-row">
-                <td id="aoi-mec-modal-empty-cell" [attr.colspan]="isExpandedMecState() ? 7 : 3">
-                  {{ 'analysis.aoi.mec.modal.noRows' | translate }}
+                          <ng-container
+                            *ngTemplateOutlet="aoiMecModalDataCells; context: { row: row }"
+                          ></ng-container>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </cdk-virtual-scroll-viewport>
                 </td>
               </tr>
+            } @else {
+              @for (row of mecCoverageRows(); track row.id) {
+                <tr [id]="'aoi-mec-modal-row-' + row.id">
+                  <ng-container
+                    *ngTemplateOutlet="aoiMecModalDataCells; context: { row: row }"
+                  ></ng-container>
+                </tr>
+              } @empty {
+                <tr id="aoi-mec-modal-empty-row">
+                  <td id="aoi-mec-modal-empty-cell" [attr.colspan]="isExpandedMecState() ? 7 : 3">
+                    {{ 'analysis.aoi.mec.modal.noRows' | translate }}
+                  </td>
+                </tr>
+              }
             }
           </tbody>
         </table>

@@ -417,6 +417,10 @@ const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
 const GOALS_MODAL_VIRTUAL_ROW_SIZE_PX = 57;
 const GOALS_MODAL_VIRTUAL_MIN_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 4;
 const GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 8;
+const MEC_MODAL_VIRTUAL_ROW_SIZE_PX = 57;
+const MEC_MODAL_VIRTUAL_MIN_BUFFER_PX = MEC_MODAL_VIRTUAL_ROW_SIZE_PX * 4;
+const MEC_MODAL_VIRTUAL_MAX_BUFFER_PX = MEC_MODAL_VIRTUAL_ROW_SIZE_PX * 8;
+const MEC_MODAL_VIRTUAL_SCROLL_THRESHOLD = 30;
 const GOALS_MODAL_COVERAGE_METRICS = [
   {
     id: 'range-in-aoi',
@@ -885,6 +889,9 @@ export class PanelSwitcherComponent {
   protected readonly goalsModalVirtualRowSize = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX;
   protected readonly goalsModalVirtualMinBuffer = GOALS_MODAL_VIRTUAL_MIN_BUFFER_PX;
   protected readonly goalsModalVirtualMaxBuffer = GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX;
+  protected readonly mecModalVirtualRowSize = MEC_MODAL_VIRTUAL_ROW_SIZE_PX;
+  protected readonly mecModalVirtualMinBuffer = MEC_MODAL_VIRTUAL_MIN_BUFFER_PX;
+  protected readonly mecModalVirtualMaxBuffer = MEC_MODAL_VIRTUAL_MAX_BUFFER_PX;
   protected readonly goalsModalCoverageMetrics = computed(() =>
     this.isSirapScopedSolution()
       ? SIRAP_GOALS_MODAL_COVERAGE_METRICS
@@ -1330,6 +1337,9 @@ export class PanelSwitcherComponent {
       : rows;
     return [...filtered].sort((a, b) => this.compareMecCoverageRows(a, b));
   });
+  protected readonly mecModalUsesVirtualScroll = computed(
+    () => this.mecCoverageRows().length > MEC_MODAL_VIRTUAL_SCROLL_THRESHOLD,
+  );
   private readonly aoiBiodiversityMetricIds: Record<string, string> = {
     mammals: 'species_richness_mammals',
     birds: 'species_richness_birds',
@@ -1460,9 +1470,8 @@ export class PanelSwitcherComponent {
     toObservable(this.selectedAoi)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((aoi) => {
-        if (aoi?.type !== 'custom') {
-          this.customAoiSpeciesInventoryRequested.set(false);
-          this.customAoiSpeciesModalOpen.set(false);
+        if (!aoi || aoi.type !== 'custom') {
+          this.tearDownAoiCoverageModals();
         }
       });
 
@@ -1614,6 +1623,8 @@ export class PanelSwitcherComponent {
         ),
         switchMap((geometry) => {
           if (!geometry) {
+            this.customAoiMetricsRequestSequence += 1;
+            this.tearDownAoiCoverageModals();
             this.customAoiMetrics.set([]);
             this.isCustomAoiMetricsLoading.set(false);
             this.customAoiMetricsLoadFailed.set(false);
@@ -2443,6 +2454,26 @@ export class PanelSwitcherComponent {
     this.cancelGoalsModalPreparation();
     this.goalsModalContentReady.set(false);
     this.goalsModalOpen.set(false);
+    this.goalsModalDomainId.set(null);
+    this.goalsModalSearchQuery.set('');
+    this.goalsModalFilterId.set('all');
+    this.goalsModalTaxonGroup.set('all');
+    this.goalsModalEcosystemBreakdownId.set('iavh');
+    this.goalsModalSpeciesRows.set([]);
+    this.goalsModalSpeciesLoading.set(false);
+    this.goalsModalSpeciesLoadFailed.set(false);
+    this.goalsModalEcosystemMecDocument.set(null);
+    this.goalsModalEcosystemNationalAreas.set(null);
+    this.goalsModalEcosystemMecLoading.set(false);
+    this.goalsModalEcosystemMecLoadFailed.set(false);
+    this.goalsModalEcosystemMecSolutionId = null;
+  }
+
+  private tearDownAoiCoverageModals(): void {
+    this.closeGoalsModal();
+    this.closeMecModal();
+    this.customAoiSpeciesInventoryRequested.set(false);
+    this.customAoiSpeciesModalOpen.set(false);
   }
 
   private scheduleGoalsModalContent(): void {
@@ -2492,6 +2523,14 @@ export class PanelSwitcherComponent {
   private loadGoalsModalSpecies(): void {
     const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
     const useCustomSirap = this.supportsSirapCustomAoiMetrics();
+    const selectedAoi = this.selectedAoi();
+    if (
+      useCustomSirap &&
+      (!this.customAoiGeometry() || selectedAoi?.type !== 'custom')
+    ) {
+      this.goalsModalSpeciesLoading.set(false);
+      return;
+    }
     const context = useCustomSirap ? null : this.resolveGoalsModalSpeciesContext();
     if ((!useCustomSirap && !context) || !solutionId) {
       this.goalsModalSpeciesLoading.set(false);
@@ -2567,6 +2606,9 @@ export class PanelSwitcherComponent {
     geometry: CustomPolygonMetricsGeometry,
     solutionId: string,
   ): Observable<HydratedSpeciesGoalsRecord[] | null> {
+    if (!this.customAoiGeometry() || this.selectedAoi()?.type !== 'custom') {
+      return of(null);
+    }
     return this.api.createDetailedSpeciesCoverageJob({ geometry, solution_id: solutionId }).pipe(
       switchMap((created) =>
         this.isTerminalDetailedSpeciesJob(created)
@@ -2682,6 +2724,10 @@ export class PanelSwitcherComponent {
   }
 
   protected trackGoalsModalRow(_index: number, row: GoalsModalRow): string {
+    return row.id;
+  }
+
+  protected trackMecCoverageRow(_index: number, row: MecCoverageRow): string {
     return row.id;
   }
 
@@ -2907,6 +2953,10 @@ export class PanelSwitcherComponent {
       return;
     }
     if (aoi.type === 'custom') {
+      if (this.supportsSirapCustomAoiMetrics()) {
+        this.openGoalsModal('species');
+        return;
+      }
       if (this.canOpenCustomAoiSpeciesInventory()) {
         this.customAoiSpeciesInventoryRequested.set(true);
       }

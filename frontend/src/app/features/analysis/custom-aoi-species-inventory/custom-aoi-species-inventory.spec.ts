@@ -275,9 +275,9 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     },
   );
 
-  it('continues polling after Escape close and preserves completed coverage on reopen', () => {
+  it('cancels in-flight coverage work when the modal closes via Escape', () => {
     vi.useFakeTimers();
-    api.getDetailedSpeciesCoverageJob.mockReturnValue(of(job('complete')));
+    api.getDetailedSpeciesCoverageJob.mockReturnValue(of(job('queued')));
     const fixture = createFixture('solution-1');
     const modalOpenChange = vi.spyOn(fixture.componentInstance.modalOpenChange, 'emit');
     fixture.componentInstance.open();
@@ -289,17 +289,7 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
     fixture.detectChanges();
     expect(modalOpenChange).toHaveBeenLastCalledWith(false);
-    expect(api.cancelDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
-
-    vi.advanceTimersByTime(1500);
-    fixture.detectChanges();
-    fixture.componentInstance.open();
-    fixture.detectChanges();
-
-    expect(api.createDetailedSpeciesCoverageJob).toHaveBeenCalledTimes(1);
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-complete'),
-    ).not.toBeNull();
+    expect(api.cancelDetailedSpeciesCoverageJob).toHaveBeenCalledWith('job-1');
   });
 
   it('supports explicit cancellation and restart', () => {

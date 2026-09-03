@@ -390,6 +390,7 @@ export class CustomAoiSpeciesInventoryComponent {
   }
 
   protected close(): void {
+    this.cancelStaleCoverage();
     this.modalOpen.set(false);
     this.modalOpenChange.emit(false);
   }

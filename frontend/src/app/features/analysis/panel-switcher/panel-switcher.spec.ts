@@ -1503,9 +1503,15 @@ describe('PanelSwitcherComponent', () => {
     });
     expect(compiled.querySelector('#aoi-mec-modal-table')).toBe(table);
     expect(compiled.querySelector('#aoi-mec-modal-coverage-solution-guidance')).toBeNull();
+    const component = fixture.componentInstance as unknown as {
+      mecCoverageRows(): { id: string; solutionCoveragePercent: number | null }[];
+      mecModalUsesVirtualScroll(): boolean;
+    };
+    expect(component.mecModalUsesVirtualScroll()).toBe(true);
     expect(
-      compiled.querySelector('#aoi-mec-modal-total-coverage-andean-forest')?.textContent,
-    ).toContain('50%');
+      component.mecCoverageRows().find((row) => row.id === 'andean-forest')?.solutionCoveragePercent,
+    ).toBe(50);
+    expect(compiled.querySelector('#aoi-mec-modal-virtual-viewport')).not.toBeNull();
     expect(compiled.querySelector('#aoi-mec-modal-heading-total-coverage')?.textContent).toContain(
       'analysis.aoi.mec.modal.customMesa.totalCoverage',
     );
@@ -3145,6 +3151,94 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#conservation-goals-modal-met-value')?.textContent).toContain(
       '1 / 2',
     );
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-table'),
+    ).not.toBeNull();
+    expect(fixture.debugElement.query(By.directive(CdkVirtualScrollViewport))).not.toBeNull();
+  });
+
+  it('tears down goals modal state when custom AOI geometry is cleared', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildGoalsDocument();
+    mockSirapCatalogSolution(solution);
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    vi.mocked(apiServiceSpy.getCustomAoiAreaProfile).mockReturnValue(
+      of(buildCustomEcosystemProfileResponse(solution.id)),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalOpen(): boolean;
+      goalsModalSpeciesRows(): unknown[];
+      goalsModalDomainId(): string | null;
+    };
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    (
+      fixture.componentInstance as unknown as { openGoalsModal(domainId: string): void }
+    ).openGoalsModal('species');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(component.goalsModalOpen()).toBe(true);
+    expect(component.goalsModalSpeciesRows().length).toBeGreaterThan(0);
+
+    appState.clearAOI();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.goalsModalOpen()).toBe(false);
+    expect(component.goalsModalSpeciesRows()).toHaveLength(0);
+    expect(component.goalsModalDomainId()).toBeNull();
+  });
+
+  it('routes SIRAP custom AOI species inventory through the goals modal', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildSirapGoalsDocument(solution.id);
+    mockSirapCatalogSolution(solution);
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    appState.activeSolution$.set({
+      ...solution,
+      metadata: { ...solution.metadata, domain: 'land' },
+    });
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalOpen(): boolean;
+      goalsModalDomainId(): string | null;
+    };
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const openButton = compiled.querySelector(
+      '#aoi-biodiversity-open-species-inventory-button',
+    ) as HTMLButtonElement;
+
+    expect(openButton.getAttribute('aria-controls')).toBe('conservation-goals-modal');
+    openButton.click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#custom-aoi-species-inventory-modal')).toBeNull();
+    expect(component.goalsModalOpen()).toBe(true);
+    expect(component.goalsModalDomainId()).toBe('species');
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
+    expect(compiled.querySelector('#conservation-goals-modal')).not.toBeNull();
   });
 
   it('shows loading and recoverable error states for national ecosystem classifications', async () => {
