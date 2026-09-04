@@ -20,7 +20,7 @@
     }
   },
   "header": {
-    "appTitle": "Decision Making Tool",
+    "appTitle": "Eco Plan Tool",
     "about": "About",
     "primaryPartnersLabel": "Primary partner organizations",
     "primaryPartnersPrevious": "Show previous partner organizations",
@@ -40,10 +40,17 @@
     "title": "Organizations supporting conservation planning in Colombia",
     "description": "This decision-support tool is made possible through the expertise, data, and collaboration of the organizations shown below.",
     "backToMap": "Return to map",
-    "primaryPartnersTitle": "Primary partner organizations",
-    "primaryPartnersDescription": "These twelve organizations are featured in the tool header.",
-    "secondaryPartnersTitle": "Additional partner organizations",
-    "secondaryPartnersDescription": "The following organizations also contribute to the broader conservation planning collaboration."
+    "nationalInstitutionsTitle": "National institutions",
+    "nationalInstitutionsDescription": "Colombian national agencies contributing data, expertise, and institutional support.",
+    "fundersTitle": "Funders",
+    "fundersDescription": "Organizations supporting the development and funding of this tool.",
+    "alliesTitle": "Allies",
+    "alliesDescription": "Conservation organizations collaborating on planning and implementation.",
+    "sirapTitle": "Regional systems of protected areas",
+    "sirapDescription": "Regional protected area systems contributing to territorial planning.",
+    "sirapEmptyMessage": "SIRAP logos are not yet available. They will be added when assets are provided.",
+    "regionalCorporationsTitle": "Regional autonomous corporations",
+    "regionalCorporationsDescription": "Regional environmental authorities participating in the broader conservation planning collaboration."
   },
   "common": {
     "close": "Close"
