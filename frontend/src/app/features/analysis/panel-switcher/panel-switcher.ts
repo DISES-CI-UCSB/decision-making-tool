@@ -46,7 +46,12 @@ import {
   normalizeSolutionToken,
   solutionCostMatchesChoice,
 } from '@core/models/solution-matching.utils';
-import { AVAILABLE_SIRAP_REGION_IDS, type SirapRegionId } from '@core/models/sirap-access.model';
+import {
+  AVAILABLE_SIRAP_REGION_IDS,
+  isSirapRegionId,
+  sirapRegionLabel,
+  type SirapRegionId,
+} from '@core/models/sirap-access.model';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { nationalMetrics } from '@core/services/cached-metrics.utils';
@@ -138,6 +143,7 @@ import {
   formatMetricValue as formatPresentedMetricValue,
   formatNumber as formatPresentedNumber,
   formatPanelMetric,
+  formatSpeciesCoveragePercent,
   getMetricDisplayUnit,
   isDisplayableMetricValue,
   displayableMetricValue,
@@ -157,6 +163,7 @@ import {
   MEC_BREAKDOWNS,
   resolveMecScopeSummary,
   resolveMecScopeIndex,
+  resolveSirapMecScopeIndex,
   slugify,
   type MecBreakdownConfig,
   type MecBreakdownId,
@@ -169,8 +176,8 @@ import {
 import {
   formatSpeciesGroupsProtectedValue,
   formatSpeciesReferenceValue,
+  overviewMetricCandidateIds,
   readSpeciesReferenceSummary,
-  resolveOverviewMetric,
   summarizeEcosystemGoals,
   type SpeciesReferenceGroupSummary,
   type SpeciesReferenceSummary,
@@ -242,6 +249,8 @@ interface OverviewGoalsTaxaEntry {
 }
 
 type GoalsModalSortId = 'coverage-desc' | 'coverage-asc' | 'name';
+type GoalsModalSource = 'overview' | 'aoi';
+type GoalsModalScope = 'solution-overview' | 'selected-aoi';
 type GoalsModalFilterId =
   | 'all'
   | 'met'
@@ -262,10 +271,13 @@ interface GoalsModalRow {
   relativeHeld: number | null;
   preExistingRelativeHeld: number | null;
   newRelativeHeld: number | null;
+  nationalRangeKm2: number | null;
   rangeInAoiAreaKm2: number | null;
   rangeInAoiPercent: number | null;
   rangeInSirapPercent: number | null;
   ecosystemAreaKm2: number | null;
+  nationalExtentKm2: number | null;
+  sirapExtentKm2: number | null;
   ecosystemSharePercent: number | null;
   nationalEcosystemSharePercent: number | null;
   solutionCoverageAreaKm2: number | null;
@@ -412,6 +424,15 @@ type MecRequest =
     };
 const AREA_UNIT_OPTIONS: AreaDisplayUnit[] = ['km2', 'hectares'];
 
+/** Regional SIRAP products exclude these national custom-AOI metric ids. */
+const SIRAP_CUSTOM_AOI_EXCLUDED_METRIC_IDS = new Set<CustomPolygonMetricId>([
+  'carbon_storage_biomass',
+  'national_contribution',
+  'mangrove_coverage',
+  'soil_organic_carbon',
+  'carbon_pct_of_national',
+]);
+
 const CUSTOM_AOI_SPECIES_DELAYED_STAGE_MS = 10_000;
 const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
 const GOALS_MODAL_VIRTUAL_ROW_SIZE_PX = 57;
@@ -466,37 +487,37 @@ const EXPANDED_MEC_COLUMN_HEADINGS = [
     id: 'available',
     labelKey: 'analysis.aoi.mec.modal.areaInsideAoi',
     questionKey: 'analysis.aoi.mec.modal.columnQuestions.areaInsideAoi',
-    align: 'center',
+    align: 'start',
   },
   {
     id: 'national-share',
     labelKey: 'analysis.aoi.mec.modal.nationalExtentInsideAoi',
     questionKey: 'analysis.aoi.mec.modal.columnQuestions.nationalExtentInsideAoi',
-    align: 'center',
+    align: 'start',
   },
   {
     id: 'aoi-share',
     labelKey: 'analysis.aoi.mec.modal.mappedAoiOccupied',
     questionKey: 'analysis.aoi.mec.modal.columnQuestions.mappedAoiOccupied',
-    align: 'center',
+    align: 'start',
   },
   {
     id: 'total-coverage',
     labelKey: 'analysis.aoi.mec.modal.totalCoverage',
     questionKey: 'analysis.aoi.mec.modal.columnQuestions.totalCoverage',
-    align: 'center',
+    align: 'start',
   },
   {
     id: 'pre-existing-coverage',
     labelKey: 'analysis.aoi.mec.modal.preExistingCoverage',
     questionKey: 'analysis.aoi.mec.modal.columnQuestions.preExistingCoverage',
-    align: 'center',
+    align: 'start',
   },
   {
     id: 'new-coverage',
     labelKey: 'analysis.aoi.mec.modal.newCoverage',
     questionKey: 'analysis.aoi.mec.modal.columnQuestions.newCoverage',
-    align: 'end',
+    align: 'start',
   },
 ] as const;
 const COMPACT_MEC_COLUMN_HEADINGS = [
@@ -510,13 +531,13 @@ const COMPACT_MEC_COLUMN_HEADINGS = [
     id: 'available',
     labelKey: 'analysis.aoi.mec.modal.availableArea',
     questionKey: 'analysis.aoi.mec.modal.columnQuestions.areaInsideAoi',
-    align: 'center',
+    align: 'start',
   },
   {
     id: 'coverage',
     labelKey: 'analysis.aoi.mec.modal.solutionCoverage',
     questionKey: 'analysis.aoi.mec.modal.columnQuestions.totalCoverage',
-    align: 'end',
+    align: 'start',
   },
 ] as const;
 
@@ -870,6 +891,7 @@ export class PanelSwitcherComponent {
     () => this.speciesReferenceSummary()?.groups ?? [],
   );
   protected readonly goalsModalOpen = signal(false);
+  private readonly goalsModalScope = signal<GoalsModalScope>('solution-overview');
   protected readonly goalsModalDomainId = signal<string | null>(null);
   protected readonly goalsModalSearchQuery = signal('');
   protected readonly goalsModalSortId = signal<GoalsModalSortId>('coverage-desc');
@@ -906,9 +928,11 @@ export class PanelSwitcherComponent {
     () =>
       this.overviewGoalsDomains().find((domain) => domain.id === this.goalsModalDomainId()) ?? null,
   );
-  protected readonly isNationalGoalsModal = computed(() => this.selectedAoi() === null);
+  protected readonly isNationalGoalsModal = computed(
+    () => this.goalsModalScope() === 'solution-overview' && !this.isSirapScopedSolution(),
+  );
   protected readonly isSirapPrimaryGoalsModal = computed(
-    () => this.isSirapScopedSolution() && this.selectedAoi() === null,
+    () => this.isSirapScopedSolution() && this.goalsModalScope() === 'solution-overview',
   );
   protected readonly goalsModalEcosystemBreakdown = computed<MecBreakdownConfig>(
     () =>
@@ -918,13 +942,6 @@ export class PanelSwitcherComponent {
   private readonly goalsModalEcosystemRowsByView = computed<
     ReadonlyMap<MecViewId, MecCoverageRow[]>
   >(() => {
-    if (this.supportsSirapCustomAoiMetrics()) {
-      const customState = this.mecPanelState();
-      if (customState.status === 'custom' && customState.data.rowsByView.size > 0) {
-        return customState.data.rowsByView;
-      }
-    }
-
     const document = this.goalsModalEcosystemMecDocument();
     if (!document) {
       return new Map<MecViewId, MecCoverageRow[]>();
@@ -932,12 +949,19 @@ export class PanelSwitcherComponent {
     const nationalScopeIndex = document.scopeCatalog.findIndex(([scopeId]) =>
       ['national', 'colombia'].includes(scopeId.toLocaleLowerCase()),
     );
+    const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
+    const scopeIndex =
+      this.isSirapPrimaryGoalsModal() && sirapId
+        ? (resolveSirapMecScopeIndex(document, sirapId) ?? 0)
+        : nationalScopeIndex >= 0
+          ? nationalScopeIndex
+          : 0;
     return buildMecCoverageRowsByView(
       document,
-      nationalScopeIndex >= 0 ? nationalScopeIndex : 0,
+      scopeIndex,
       null,
       this.isSirapPrimaryGoalsModal() ? 'sirap' : 'national',
-      this.goalsModalEcosystemNationalAreas(),
+      this.resolveGoalsModalNationalAreas(),
     );
   });
   private readonly goalsModalSourceRows = computed<GoalsModalRow[]>(() => {
@@ -951,11 +975,10 @@ export class PanelSwitcherComponent {
       const mecRows = this.goalsModalEcosystemRowsByView().get(
         this.goalsModalEcosystemBreakdown().view,
       );
-      if (this.supportsSirapCustomAoiMetrics() && mecRows && mecRows.length > 0) {
-        const relativeTarget = this.getGoalsModalEcosystemRelativeTarget();
-        return mecRows.map((row) => this.toGoalsModalEcosystemRow(row, relativeTarget));
-      }
-      if (this.goalsModalEcosystemBreakdownId() === 'iavh') {
+      if (
+        this.goalsModalEcosystemBreakdownId() === 'iavh' &&
+        document.features.ecosystems.length > 0
+      ) {
         return this.mergeGoalsModalEcosystemCoverage(document.features.ecosystems, mecRows);
       }
       if (mecRows) {
@@ -972,9 +995,7 @@ export class PanelSwitcherComponent {
       return this.strategicOutcomeRows().map((row) => this.toStrategicOutcomeModalRow(row, target));
     }
     if (domain.featureType === 'species') {
-      return this.isNationalGoalsModal() && domain.targeted
-        ? document.features.species.map((feature) => this.toGoalsModalRow(feature))
-        : this.goalsModalSpeciesRows();
+      return this.goalsModalSpeciesRows();
     }
 
     return document.features[domain.featureType].map((feature) => this.toGoalsModalRow(feature));
@@ -1106,7 +1127,7 @@ export class PanelSwitcherComponent {
     () =>
       this.knownAoiCoverageMetricsV2() ||
       this.isSirapPrimaryGoalsModal() ||
-      this.supportsSirapCustomAoiMetrics(),
+      this.usesGoalsModalCustomSirapCoverage(),
   );
   protected readonly customAoiSpeciesSolutionId = computed(() =>
     this.isMarineSolution() ? null : this.activeSolutionId(),
@@ -1167,8 +1188,14 @@ export class PanelSwitcherComponent {
   );
 
   protected readonly comparisonMetrics = computed(() => {
-    const baselineMetrics = nationalMetrics(this.cachedMetricsDocument());
-    const candidateMetrics = nationalMetrics(this.comparisonCandidateMetricsDocument());
+    const baselineMetrics = this.resolveComparisonSourceMetrics(
+      this.cachedMetricsDocument(),
+      this.activeSolution(),
+    );
+    const candidateMetrics = this.resolveComparisonSourceMetrics(
+      this.comparisonCandidateMetricsDocument(),
+      this.comparisonSolution(),
+    );
     if (baselineMetrics.length === 0 || candidateMetrics.length === 0) {
       return [];
     }
@@ -1576,6 +1603,9 @@ export class PanelSwitcherComponent {
                       status: 'custom',
                       data: buildCustomMecData(response, request.solutionId ?? null, {
                         allowVariableMesaRowCount: this.supportsSirapCustomAoiMetrics(),
+                        nationalAreaKm2ByClass: this.supportsSirapCustomAoiMetrics()
+                          ? this.nationalMecAreaKm2ByClass()
+                          : null,
                       }),
                     }),
                   ),
@@ -1648,7 +1678,7 @@ export class PanelSwitcherComponent {
 
           return this.loadCustomAoiMetricBatch(
             geometry,
-            CUSTOM_AOI_FAST_METRIC_IDS,
+            this.resolveCustomAoiMetricIds('fast'),
             'fast',
             requestId,
           ).pipe(
@@ -1669,7 +1699,7 @@ export class PanelSwitcherComponent {
                 of(fastMetrics),
                 this.loadCustomAoiMetricBatch(
                   geometry,
-                  CUSTOM_AOI_SPECIES_METRIC_IDS,
+                  this.resolveCustomAoiMetricIds('species'),
                   'species',
                   requestId,
                 ).pipe(
@@ -2270,10 +2300,13 @@ export class PanelSwitcherComponent {
       relativeHeld: feature.relativeHeld,
       preExistingRelativeHeld: null,
       newRelativeHeld: null,
+      nationalRangeKm2: null,
       rangeInAoiAreaKm2: null,
       rangeInAoiPercent: null,
       rangeInSirapPercent: null,
       ecosystemAreaKm2: null,
+      nationalExtentKm2: null,
+      sirapExtentKm2: null,
       ecosystemSharePercent: null,
       nationalEcosystemSharePercent: null,
       solutionCoverageAreaKm2: null,
@@ -2303,10 +2336,13 @@ export class PanelSwitcherComponent {
       relativeHeld: row.coverageFraction,
       preExistingRelativeHeld: null,
       newRelativeHeld: null,
+      nationalRangeKm2: null,
       rangeInAoiAreaKm2: null,
       rangeInAoiPercent: null,
       rangeInSirapPercent: null,
       ecosystemAreaKm2: null,
+      nationalExtentKm2: null,
+      sirapExtentKm2: null,
       ecosystemSharePercent: null,
       nationalEcosystemSharePercent: null,
       solutionCoverageAreaKm2: row.coveredAreaKm2,
@@ -2342,10 +2378,13 @@ export class PanelSwitcherComponent {
       preExistingRelativeHeld:
         row.preExistingPercent === null ? null : row.preExistingPercent / 100,
       newRelativeHeld: row.newPrioritizrPercent === null ? null : row.newPrioritizrPercent / 100,
+      nationalRangeKm2: null,
       rangeInAoiAreaKm2: null,
       rangeInAoiPercent: null,
       rangeInSirapPercent: null,
       ecosystemAreaKm2: row.ecosystemAreaKm2,
+      nationalExtentKm2: row.nationalExtentKm2 ?? null,
+      sirapExtentKm2: row.sirapExtentKm2 ?? null,
       ecosystemSharePercent: row.ecosystemSharePercent ?? null,
       nationalEcosystemSharePercent: row.nationalClassPercent ?? null,
       solutionCoverageAreaKm2: row.solutionCoverageKm2 ?? null,
@@ -2389,6 +2428,10 @@ export class PanelSwitcherComponent {
         preExistingRelativeHeld: coverageRow.preExistingRelativeHeld,
         newRelativeHeld: coverageRow.newRelativeHeld,
         ecosystemAreaKm2: coverageRow.ecosystemAreaKm2,
+        nationalExtentKm2: coverageRow.nationalExtentKm2,
+        sirapExtentKm2: coverageRow.sirapExtentKm2,
+        ecosystemSharePercent: coverageRow.ecosystemSharePercent,
+        nationalEcosystemSharePercent: coverageRow.nationalEcosystemSharePercent,
         solutionCoverageAreaKm2: coverageRow.solutionCoverageAreaKm2,
         preExistingCoverageAreaKm2: coverageRow.preExistingCoverageAreaKm2,
         newCoverageAreaKm2: coverageRow.newCoverageAreaKm2,
@@ -2419,15 +2462,17 @@ export class PanelSwitcherComponent {
     return sorted;
   }
 
-  protected openGoalsModal(domainId: string): void {
+  protected openGoalsModal(domainId: string, source: GoalsModalSource = 'overview'): void {
     if (
       domainId === 'species' &&
+      source !== 'overview' &&
       this.selectedAoi()?.type === 'custom' &&
       !this.supportsSirapCustomAoiMetrics()
     ) {
       return;
     }
     this.cancelGoalsModalPreparation();
+    this.goalsModalScope.set(this.resolveGoalsModalScope(source));
     this.goalsModalDomainId.set(domainId);
     this.goalsModalSearchQuery.set('');
     this.goalsModalSortId.set('coverage-desc');
@@ -2441,10 +2486,7 @@ export class PanelSwitcherComponent {
     this.scheduleGoalsModalContent();
     if (this.goalsModalDomain()?.featureType === 'ecosystems') {
       this.loadGoalsModalEcosystemMec();
-    } else if (
-      this.goalsModalDomain()?.featureType === 'species' &&
-      !(this.isNationalGoalsModal() && this.goalsModalDomain()?.targeted)
-    ) {
+    } else if (this.goalsModalDomain()?.featureType === 'species') {
       this.loadGoalsModalSpecies();
     }
   }
@@ -2454,6 +2496,7 @@ export class PanelSwitcherComponent {
     this.cancelGoalsModalPreparation();
     this.goalsModalContentReady.set(false);
     this.goalsModalOpen.set(false);
+    this.goalsModalScope.set('solution-overview');
     this.goalsModalDomainId.set(null);
     this.goalsModalSearchQuery.set('');
     this.goalsModalFilterId.set('all');
@@ -2522,12 +2565,9 @@ export class PanelSwitcherComponent {
 
   private loadGoalsModalSpecies(): void {
     const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
-    const useCustomSirap = this.supportsSirapCustomAoiMetrics();
+    const useCustomSirap = this.usesGoalsModalCustomSirapCoverage();
     const selectedAoi = this.selectedAoi();
-    if (
-      useCustomSirap &&
-      (!this.customAoiGeometry() || selectedAoi?.type !== 'custom')
-    ) {
+    if (useCustomSirap && (!this.customAoiGeometry() || selectedAoi?.type !== 'custom')) {
       this.goalsModalSpeciesLoading.set(false);
       return;
     }
@@ -2543,14 +2583,15 @@ export class PanelSwitcherComponent {
     this.goalsModalSpeciesLoading.set(true);
     this.goalsModalSpeciesLoadFailed.set(false);
     const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
-    const selected =
-      useCustomSirap && sirapId
-        ? this.speciesGoals.load(solutionId, 'siraps', sirapId)
-        : useCustomSirap
-          ? this.loadCustomAoiDetailedSpeciesGoals(this.customAoiGeometry()!, solutionId)
-          : this.speciesGoals.load(solutionId, context!.geographyLevel, context!.scopeId);
+    // The selected records must describe the current custom geometry. The SIRAP
+    // sidecar below is only a reference denominator for the "of SIRAP range"
+    // annotation; it must never replace the polygon-intersection results.
+    const selected = useCustomSirap
+      ? this.loadCustomAoiDetailedSpeciesGoals(this.customAoiGeometry()!, solutionId)
+      : this.speciesGoals.load(solutionId, context!.geographyLevel, context!.scopeId);
     const loadSirapRangeContext =
       this.isSirapScopedSolution() &&
+      this.goalsModalScope() === 'selected-aoi' &&
       this.selectedAoi() &&
       sirapId &&
       (this.selectedAoi()?.type !== 'custom' || useCustomSirap);
@@ -2587,6 +2628,13 @@ export class PanelSwitcherComponent {
     geographyLevel: GeographyLevel;
     scopeId: string;
   } | null {
+    if (this.goalsModalScope() === 'solution-overview') {
+      const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
+      if (this.isSirapScopedSolution() && sirapId) {
+        return { geographyLevel: 'siraps', scopeId: sirapId };
+      }
+      return { geographyLevel: 'national', scopeId: 'colombia' };
+    }
     const aoi = this.selectedAoi();
     if (!aoi) {
       const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
@@ -2685,6 +2733,7 @@ export class PanelSwitcherComponent {
       relativeHeld: record.solution_covered_in_aoi_pct / 100,
       preExistingRelativeHeld: record.pre_existing_covered_in_aoi_pct / 100,
       newRelativeHeld: record.new_covered_in_aoi_pct / 100,
+      nationalRangeKm2: record.range_area_km2,
       rangeInAoiAreaKm2: record.range_in_aoi_area_km2,
       rangeInAoiPercent: record.range_in_aoi_pct / 100,
       rangeInSirapPercent:
@@ -2692,6 +2741,8 @@ export class PanelSwitcherComponent {
           ? record.range_in_aoi_area_km2 / rangeInSirapAreaKm2
           : null,
       ecosystemAreaKm2: null,
+      nationalExtentKm2: null,
+      sirapExtentKm2: null,
       ecosystemSharePercent: null,
       nationalEcosystemSharePercent: null,
       solutionCoverageAreaKm2: record.solution_covered_in_aoi_area_km2,
@@ -2732,24 +2783,68 @@ export class PanelSwitcherComponent {
   }
 
   protected getGoalsModalTitleKey(): string {
-    const sirapPrimary = this.isSirapScopedSolution() && this.selectedAoi() === null;
+    const selectedAoi = this.selectedAoi();
+    const namedKnownAoi =
+      this.goalsModalScope() === 'selected-aoi' &&
+      selectedAoi !== null &&
+      selectedAoi.type !== 'custom';
     switch (this.goalsModalDomain()?.featureType) {
       case 'strategicEcosystems':
         return 'analysis.overview.goalsWidget.modal.nationalStrategicEcosystemsTitle';
       case 'ecosystems':
-        return sirapPrimary
+        return this.isSirapPrimaryGoalsModal()
           ? 'analysis.overview.goalsWidget.modal.sirapEcosystemsTitle'
           : 'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle';
       case 'species':
-        if (sirapPrimary) {
+        if (this.isSirapPrimaryGoalsModal()) {
           return 'analysis.overview.goalsWidget.modal.sirapSpeciesTitle';
         }
-        return this.isNationalGoalsModal()
-          ? 'analysis.overview.goalsWidget.modal.nationalSpeciesTitle'
+        if (this.isNationalGoalsModal() || this.goalsModalScope() === 'solution-overview') {
+          return 'analysis.overview.goalsWidget.modal.nationalSpeciesTitle';
+        }
+        return namedKnownAoi
+          ? 'analysis.overview.goalsWidget.modal.aoiSpeciesTitle'
           : 'analysis.overview.goalsWidget.modal.speciesCoverageTitle';
       default:
         return 'analysis.overview.goalsWidget.modal.title';
     }
+  }
+
+  protected getGoalsModalTitleParams(): Record<string, string> {
+    if (this.isSirapPrimaryGoalsModal()) {
+      const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
+      return {
+        sirapName: isSirapRegionId(sirapId) ? sirapRegionLabel(sirapId) : 'SIRAP',
+      };
+    }
+    const selectedAoi = this.selectedAoi();
+    if (
+      this.goalsModalScope() === 'selected-aoi' &&
+      selectedAoi &&
+      selectedAoi.type !== 'custom' &&
+      selectedAoi.name
+    ) {
+      return { aoiName: selectedAoi.name };
+    }
+    return {};
+  }
+
+  private resolveGoalsModalScope(source: GoalsModalSource): GoalsModalScope {
+    if (source === 'aoi') {
+      return 'selected-aoi';
+    }
+    if (this.isSirapScopedSolution()) {
+      return 'solution-overview';
+    }
+    const aoi = this.selectedAoi();
+    if (aoi && aoi.type !== 'custom') {
+      return 'selected-aoi';
+    }
+    return 'solution-overview';
+  }
+
+  private usesGoalsModalCustomSirapCoverage(): boolean {
+    return this.goalsModalScope() === 'selected-aoi' && this.supportsSirapCustomAoiMetrics();
   }
 
   protected getGoalsModalDescriptionKey(domain: OverviewGoalsDomainEntry): string {
@@ -2799,24 +2894,19 @@ export class PanelSwitcherComponent {
     this.goalsModalFilterId.set('all');
   }
 
+  private resolveGoalsModalNationalAreas(): ReadonlyMap<string, number> | null {
+    const fromArtifact = this.goalsModalEcosystemNationalAreas();
+    if (fromArtifact && fromArtifact.size > 0) {
+      return fromArtifact;
+    }
+    const fromSummary = this.nationalMecAreaKm2ByClass();
+    return fromSummary.size > 0 ? fromSummary : fromArtifact;
+  }
+
   private loadGoalsModalEcosystemMec(): void {
     const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
     if (!solutionId) {
       return;
-    }
-
-    if (this.supportsSirapCustomAoiMetrics()) {
-      const customState = this.mecPanelState();
-      if (customState.status === 'custom') {
-        this.goalsModalEcosystemMecDocument.set(null);
-        this.goalsModalEcosystemNationalAreas.set(null);
-        this.goalsModalEcosystemMecLoading.set(false);
-        this.goalsModalEcosystemMecLoadFailed.set(
-          customState.data.rowsByView.size === 0 &&
-            (customState.data.status === 'failed' || customState.data.status === 'unavailable'),
-        );
-        return;
-      }
     }
 
     if (this.goalsModalEcosystemMecSolutionId === solutionId) {
@@ -2828,8 +2918,7 @@ export class PanelSwitcherComponent {
     this.goalsModalEcosystemNationalAreas.set(null);
     this.goalsModalEcosystemMecLoading.set(true);
     this.goalsModalEcosystemMecLoadFailed.set(false);
-    const geographyLevel: GeographyLevel =
-      this.isSirapScopedSolution() && this.selectedAoi() === null ? 'siraps' : 'national';
+    const geographyLevel: GeographyLevel = this.isSirapPrimaryGoalsModal() ? 'siraps' : 'national';
     const load: Observable<{
       mec: MecMetricsLoadResult;
       nationalDenominator: MecNationalDenominatorLoadResult | null;
@@ -2878,6 +2967,27 @@ export class PanelSwitcherComponent {
       return '--';
     }
     return this.getGoalsPercentLabel(Math.round(value * 1000) / 10);
+  }
+
+  protected formatGoalsModalSharePercent(value: number | null | undefined): string {
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      return '--';
+    }
+    return formatSpeciesCoveragePercent(value, this.appLocale.locale());
+  }
+
+  protected formatGoalsModalArea(value: number | null | undefined): string {
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      return '--';
+    }
+    return this.formatAreaValue(value);
+  }
+
+  protected formatSpeciesTablePercent(value: number | null): string {
+    if (value === null || value === undefined) {
+      return '--';
+    }
+    return formatSpeciesCoveragePercent(value * 100, this.appLocale.locale());
   }
 
   protected getOverviewPriorityZoneCountValue(): string {
@@ -2954,7 +3064,7 @@ export class PanelSwitcherComponent {
     }
     if (aoi.type === 'custom') {
       if (this.supportsSirapCustomAoiMetrics()) {
-        this.openGoalsModal('species');
+        this.openGoalsModal('species', 'aoi');
         return;
       }
       if (this.canOpenCustomAoiSpeciesInventory()) {
@@ -2962,7 +3072,7 @@ export class PanelSwitcherComponent {
       }
       return;
     }
-    this.openGoalsModal('species');
+    this.openGoalsModal('species', 'aoi');
   }
 
   protected getSirapAggregateEcosystemValue(metric: MetricValue | undefined): string {
@@ -3009,10 +3119,7 @@ export class PanelSwitcherComponent {
   }
 
   protected getMecModalCopyKey(sharedKey: string): string {
-    const prefix = 'analysis.aoi.mec.modal.';
-    return this.hasCustomMecCoverage() && sharedKey.startsWith(prefix)
-      ? `${prefix}customMesa.${sharedKey.slice(prefix.length)}`
-      : sharedKey;
+    return sharedKey;
   }
 
   protected hasExpandedMecCoverage(): boolean {
@@ -3252,13 +3359,34 @@ export class PanelSwitcherComponent {
       : this.formatAreaValue(value);
   }
 
+  protected resolveMecEcosystemAreaKm2(
+    areaKm2: number | null | undefined,
+    cellAreaKm2: number | null | undefined,
+  ): number | null {
+    const candidate = areaKm2 ?? cellAreaKm2 ?? null;
+    return candidate !== null && Number.isFinite(candidate) ? candidate : null;
+  }
+
   protected formatMecEcosystemAmount(
-    areaKm2: number | null,
-    planningCellCount: number | null,
+    areaKm2: number | null | undefined,
+    cellAreaKm2: number | null | undefined,
   ): string {
-    return areaKm2 === null
-      ? this.formatMecPlanningCellAmount(planningCellCount)
-      : this.formatMecEcosystemArea(areaKm2);
+    return this.formatMecEcosystemArea(this.resolveMecEcosystemAreaKm2(areaKm2, cellAreaKm2));
+  }
+
+  protected formatMecMeasureAmount(
+    areaKm2: number | null | undefined,
+    cellCount: number | null | undefined,
+    totalInAoi: number | null | undefined,
+  ): string {
+    const resolvedArea = this.resolveMecEcosystemAreaKm2(areaKm2, cellCount);
+    if (resolvedArea !== null) {
+      return this.formatCustomMecAreaKm2(resolvedArea);
+    }
+    if (totalInAoi !== null && totalInAoi !== undefined) {
+      return this.formatMecCellCount(cellCount ?? null, totalInAoi);
+    }
+    return this.formatMecPlanningCellAmount(cellCount ?? null);
   }
 
   protected formatMecCoveragePercent(value: number | null | undefined): string {
@@ -3286,9 +3414,10 @@ export class PanelSwitcherComponent {
     heldInAoi: number | null = null,
     totalInAoi: number | null = null,
   ): string {
+    const resolvedArea = this.resolveMecEcosystemAreaKm2(areaKm2, heldInAoi);
     const amount =
-      areaKm2 !== null
-        ? this.formatCustomMecAreaKm2(areaKm2)
+      resolvedArea !== null
+        ? this.formatCustomMecAreaKm2(resolvedArea)
         : this.formatMecCellCount(heldInAoi, totalInAoi);
     return [
       this.translate.instant(metricLabelKey),
@@ -3302,19 +3431,14 @@ export class PanelSwitcherComponent {
     if (heldInAoi === null || totalInAoi === null) {
       return this.translate.instant('analysis.common.valueUnavailable');
     }
-    return this.translate.instant('analysis.aoi.mec.modal.mesaCellCount', {
-      held: this.formatNumber(heldInAoi, this.metricNumberFormatMode(), 0, 1),
-      total: this.formatNumber(totalInAoi, this.metricNumberFormatMode(), 0, 1),
-    });
+    return `${this.formatCustomMecAreaKm2(heldInAoi)} / ${this.formatCustomMecAreaKm2(totalInAoi)}`;
   }
 
   protected formatMecPlanningCellAmount(value: number | null): string {
     if (value === null) {
       return this.translate.instant('analysis.common.valueUnavailable');
     }
-    return this.translate.instant('analysis.aoi.mec.modal.mesaPlanningCellAmount', {
-      count: this.formatNumber(value, this.metricNumberFormatMode(), 0, 1),
-    });
+    return this.formatCustomMecAreaKm2(value);
   }
 
   protected getMecCoverageTotal(row: MecCoverageRow): number {
@@ -3351,6 +3475,16 @@ export class PanelSwitcherComponent {
 
   protected hasDisplayableAoiMetric(metricId: string): boolean {
     return isDisplayableMetricValue(this.aoiMetricsById().get(metricId));
+  }
+
+  protected shouldShowAoiCarbonMetric(metricId: CustomPolygonMetricId): boolean {
+    if (!this.isSirapScopedSolution()) {
+      return true;
+    }
+    if (SIRAP_CUSTOM_AOI_EXCLUDED_METRIC_IDS.has(metricId)) {
+      return false;
+    }
+    return this.aoiMetricsById().get(metricId)?.status !== 'not_applicable';
   }
 
   protected getAoiUnitFallback(value: number, unit: string): string {
@@ -4579,7 +4713,12 @@ export class PanelSwitcherComponent {
     this.isCustomAoiSpeciesMetricsLoading.set(true);
     this.startCustomAoiSpeciesLoadingStages();
 
-    this.loadCustomAoiMetricBatch(geometry, CUSTOM_AOI_SPECIES_METRIC_IDS, 'species', requestId)
+    this.loadCustomAoiMetricBatch(
+      geometry,
+      this.resolveCustomAoiMetricIds('species'),
+      'species',
+      requestId,
+    )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (speciesMetrics) => {
@@ -4828,7 +4967,7 @@ export class PanelSwitcherComponent {
         }
 
         const realMetric = metric.realMetricId
-          ? resolveOverviewMetric(metricsById, metric.realMetricId, planningDomain)
+          ? this.resolveOverviewMetricForPanel(metricsById, metric.realMetricId, planningDomain)
           : undefined;
         const realValueAvailable =
           isDisplayableMetricValue(realMetric) ||
@@ -4846,12 +4985,8 @@ export class PanelSwitcherComponent {
             sourceLabelKey: metric.sourceLabelKey,
             sourceUrlKey: metric.sourceUrlKey,
             iconClass: metric.iconClass,
-            value: this.formatAreaWithContextShare(priorityAreaKm2, COLOMBIA_REFERENCE_AREA_KM2),
-            fullValue: this.formatAreaWithContextShare(
-              priorityAreaKm2,
-              COLOMBIA_REFERENCE_AREA_KM2,
-              'full',
-            ),
+            value: this.formatOverviewPriorityAreaValue(priorityAreaKm2, metricsById),
+            fullValue: this.formatOverviewPriorityAreaValue(priorityAreaKm2, metricsById, 'full'),
             unit: '',
             partialNote: this.metricPartialNote(realMetric),
             conditional: Boolean(metric.conditional),
@@ -4921,7 +5056,85 @@ export class PanelSwitcherComponent {
         .map((metric) => [metric.metricId, metric] as const),
     );
     const planningDomain = this.isMarineSolution() ? 'marine' : 'land';
-    return resolveOverviewMetric(metricsById, metricId, planningDomain) ?? null;
+    return this.resolveOverviewMetricForPanel(metricsById, metricId, planningDomain) ?? null;
+  }
+
+  private resolveOverviewMetricForPanel(
+    metricsById: ReadonlyMap<string, MetricValue>,
+    metricId: string,
+    planningDomain: 'land' | 'marine',
+  ): MetricValue | undefined {
+    const candidateIds =
+      this.isSirapScopedSolution() && metricId === 'carbon_storage_biomass'
+        ? ['carbon_biomass_total', metricId]
+        : overviewMetricCandidateIds(metricId, planningDomain);
+    return candidateIds
+      .map((candidateId) => metricsById.get(candidateId))
+      .find((metric): metric is MetricValue => metric !== undefined);
+  }
+
+  private formatOverviewPriorityAreaValue(
+    priorityAreaKm2: number,
+    metricsById: ReadonlyMap<string, MetricValue>,
+    mode: MetricNumberFormatMode = this.metricNumberFormatMode(),
+  ): string {
+    if (this.isSirapScopedSolution()) {
+      const sirapContributionPct = displayableMetricValue(
+        metricsById.get('priority_area_pct_of_region'),
+      );
+      if (sirapContributionPct !== null) {
+        const area = this.formatAreaValue(priorityAreaKm2, mode);
+        const maxFractionDigits = mode === 'full' ? 2 : 1;
+        return `${area} (${this.appendUnit(
+          this.formatNumber(sirapContributionPct, mode, 0, maxFractionDigits),
+          '%',
+        )})`;
+      }
+      return this.formatAreaValue(priorityAreaKm2, mode);
+    }
+
+    return this.formatAreaWithContextShare(priorityAreaKm2, COLOMBIA_REFERENCE_AREA_KM2, mode);
+  }
+
+  private resolveCustomAoiMetricIds(mode: CustomAoiMetricRequestMode): CustomPolygonMetricId[] {
+    const ids = mode === 'fast' ? CUSTOM_AOI_FAST_METRIC_IDS : CUSTOM_AOI_SPECIES_METRIC_IDS;
+    if (!this.isSirapScopedSolution()) {
+      return ids;
+    }
+    return ids.filter((metricId) => !SIRAP_CUSTOM_AOI_EXCLUDED_METRIC_IDS.has(metricId));
+  }
+
+  private resolveComparisonSourceMetrics(
+    document: CachedSolutionMetricsDocument | null,
+    solution: Solution | null,
+  ): MetricValue[] {
+    const catalogSolution = this.findActiveCatalogSolution(solution);
+    const isSirapScoped =
+      normalizeSolutionToken(catalogSolution?.scope ?? '') === 'sirap' ||
+      normalizeSolutionToken(catalogSolution?.finderInputs?.scope ?? '') === 'sirap';
+    if (!isSirapScoped) {
+      return nationalMetrics(document);
+    }
+
+    const primaryGeography = document?.primaryGeography;
+    if (
+      primaryGeography?.level !== 'sirap' ||
+      !primaryGeography.scopeId ||
+      (catalogSolution?.sirapId && primaryGeography.scopeId !== catalogSolution.sirapId)
+    ) {
+      return [];
+    }
+
+    const metrics = document?.geographies.sirap?.[primaryGeography.scopeId]?.metrics ?? [];
+    return this.aliasSirapComparisonMetrics(metrics);
+  }
+
+  private aliasSirapComparisonMetrics(metrics: MetricValue[]): MetricValue[] {
+    return metrics.map((metric) =>
+      metric.metricId === 'priority_area_pct_of_region'
+        ? { ...metric, metricId: 'national_contribution' }
+        : metric,
+    );
   }
 
   private overviewMetrics(document: CachedSolutionMetricsDocument | null): MetricValue[] {
@@ -4949,7 +5162,7 @@ export class PanelSwitcherComponent {
 
     return definitions.flatMap(([id, metricId, labelKey]) => {
       const metric = this.findSirapOverviewMetric(metricId);
-      if (!isDisplayableMetricValue(metric) || metric.status !== 'ready') {
+      if (!isDisplayableMetricValue(metric)) {
         return [];
       }
 
@@ -4969,7 +5182,7 @@ export class PanelSwitcherComponent {
 
   private findSirapOverviewMetric(metricId: string): MetricValue | null {
     return (
-      nationalMetrics(this.cachedMetricsDocument()).find(
+      this.overviewMetrics(this.cachedMetricsDocument()).find(
         (metric) => metric.metricId === metricId,
       ) ?? null
     );

@@ -213,7 +213,7 @@
       >
         <table
           id="custom-aoi-species-inventory-table"
-          class="w-full min-w-[980px] border-collapse text-[11px] max-[760px]:min-w-0"
+          class="w-full min-w-[1120px] border-collapse text-[11px] max-[760px]:min-w-0"
           aria-describedby="custom-aoi-species-inventory-caption custom-aoi-species-coverage-status"
         >
           <caption
@@ -243,9 +243,9 @@
                 id="custom-aoi-species-inventory-presence-group-heading"
                 class="sticky top-0 z-[3] h-8 border-b border-slate-200 bg-white px-3 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-600"
                 scope="colgroup"
-                colspan="1"
+                colspan="2"
               >
-                {{ 'analysis.aoi.customProfile.species.aoiPresence' | translate }}
+                {{ 'analysis.aoi.customProfile.species.speciesRangeContext' | translate }}
               </th>
               <th
                 id="custom-aoi-species-inventory-coverage-group-heading"
@@ -257,6 +257,17 @@
               </th>
             </tr>
             <tr id="custom-aoi-species-inventory-column-heading-row" class="max-[760px]:sr-only">
+              <th
+                id="custom-aoi-species-inventory-national-range-heading"
+                class="sticky top-8 z-[3] min-w-[150px] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
+                scope="col"
+              >
+                <app-table-header-tooltip
+                  idBase="custom-aoi-species-inventory-national-range-heading"
+                  labelKey="analysis.aoi.customProfile.species.nationalModeledRangeColombia"
+                  questionKey="analysis.aoi.customProfile.species.columnQuestions.nationalModeledRangeColombia"
+                ></app-table-header-tooltip>
+              </th>
               <th
                 id="custom-aoi-species-inventory-range-in-aoi-heading"
                 class="sticky top-8 z-[3] min-w-[205px] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
@@ -284,7 +295,7 @@
                     [idBase]="'custom-aoi-species-inventory-' + metricId + '-heading'"
                     [labelKey]="'analysis.aoi.customProfile.species.' + metricId"
                     [questionKey]="'analysis.aoi.customProfile.species.columnQuestions.' + metricId"
-                    [align]="metricId === 'newCoverage' ? 'end' : 'center'"
+                    align="start"
                   ></app-table-header-tooltip>
                 </th>
               }
@@ -321,19 +332,32 @@
                       {{ formatIucn(record.iucn_status) }}
                     </span>
                   </span>
-                  @if (speciesCoverageView(record.id); as coverageView) {
-                    <span
-                      [id]="'custom-aoi-species-national-range-context-' + index"
-                      class="mt-1 block text-[10px] leading-4 text-slate-500"
-                    >
-                      {{
-                        'analysis.aoi.customProfile.species.nationalModeledRangeTotal'
-                          | translate: { area: coverageView.formattedNationalRangeArea }
-                      }}
-                    </span>
-                  }
                 </th>
                 @if (speciesCoverageView(record.id); as coverageView) {
+                  <td
+                    [id]="'custom-aoi-species-national-range-' + index"
+                    class="px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-center max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100"
+                    [attr.data-label]="
+                      'analysis.aoi.customProfile.species.nationalModeledRangeColombia' | translate
+                    "
+                  >
+                    <span
+                      [id]="'custom-aoi-species-national-range-mobile-label-' + index"
+                      class="hidden text-[10px] font-semibold leading-4 text-slate-600 max-[760px]:block"
+                    >
+                      {{
+                        'analysis.aoi.customProfile.species.nationalModeledRangeColombia'
+                          | translate
+                      }}
+                    </span>
+                    <span
+                      [id]="'custom-aoi-species-national-range-value-' + index"
+                      class="block whitespace-nowrap text-left tabular-nums text-slate-700"
+                      [attr.aria-label]="coverageView.nationalRange.ariaLabel"
+                    >
+                      {{ coverageView.nationalRange.formattedAmount }}
+                    </span>
+                  </td>
                   <td
                     [id]="'custom-aoi-species-range-in-aoi-' + index"
                     class="px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-center max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100"
@@ -365,13 +389,13 @@
                       </div>
                       <span
                         [id]="'custom-aoi-species-range-in-aoi-percent-' + index"
-                        class="whitespace-nowrap text-right font-semibold tabular-nums text-slate-800"
+                        class="whitespace-nowrap text-left font-semibold tabular-nums text-slate-800"
                       >
                         {{ coverageView.presence.formattedPercent }}
                       </span>
                       <span
                         [id]="'custom-aoi-species-range-in-aoi-area-' + index"
-                        class="col-span-2 whitespace-nowrap text-right tabular-nums text-slate-700"
+                        class="col-span-2 whitespace-nowrap text-left tabular-nums text-slate-700"
                       >
                         {{ coverageView.presence.formattedAmount }}
                       </span>
@@ -409,13 +433,13 @@
                         </div>
                         <span
                           [id]="'custom-aoi-species-' + metric.id + '-percent-' + index"
-                          class="whitespace-nowrap text-right font-semibold tabular-nums text-slate-800"
+                          class="whitespace-nowrap text-left font-semibold tabular-nums text-slate-800"
                         >
                           {{ metric.formattedPercent }}
                         </span>
                         <span
                           [id]="'custom-aoi-species-' + metric.id + '-area-' + index"
-                          class="col-span-2 whitespace-nowrap text-right tabular-nums text-slate-700"
+                          class="col-span-2 whitespace-nowrap text-left tabular-nums text-slate-700"
                         >
                           {{ metric.formattedAmount }}
                         </span>
@@ -426,7 +450,7 @@
                   <td
                     [id]="'custom-aoi-species-inventory-pending-metrics-' + index"
                     class="px-0 py-0 max-[760px]:hidden"
-                    colspan="4"
+                    colspan="5"
                     aria-hidden="true"
                   ></td>
                 }
@@ -436,7 +460,7 @@
                 <td
                   id="custom-aoi-species-inventory-no-results"
                   class="p-4 text-sm text-slate-600"
-                  colspan="5"
+                  colspan="6"
                 >
                   {{
                     (inventoryState().status === 'empty'

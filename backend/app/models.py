@@ -95,10 +95,12 @@ class EcosystemAreaProfileRecord(BaseModel):
     id: str
     label: str
     area_km2: float
-    national_area_km2: float
+    national_area_km2: float | None = None
     share_of_classified_pct: float | None
     share_of_total_aoi_pct: float | None
-    share_of_national_class_pct: float | None
+    share_of_national_class_pct: float | None = None
+    sirap_area_km2: float | None = None
+    share_of_sirap_class_pct: float | None = None
     solution_covered_area_km2: float | None
     solution_covered_pct_of_aoi: float | None
     pre_existing_covered_area_km2: float | None
@@ -228,6 +230,7 @@ def _validate_ratio(
 class EcosystemAreaProfileSection(BaseModel):
     status: AreaProfileSectionStatus
     canonical_summary_view: Literal["broadEcosystem"] = "broadEcosystem"
+    reference_scope: Literal["national", "sirap"] = "national"
     classified_area_km2: float = 0.0
     views: list[EcosystemAreaProfileView] = Field(default_factory=list)
     solution_coverage: list[MesaAoiCoverageRecord] = Field(default_factory=list)

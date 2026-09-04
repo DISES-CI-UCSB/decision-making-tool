@@ -30,6 +30,7 @@ for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
 from raster_align import exact_grid_matches, policy_for_layer  # noqa: E402
 from raster_metrics import RasterFingerprint  # noqa: E402
 from scripts.aligned_cache import read_fingerprint, sha256_file  # noqa: E402
+from sparse.species_bitset import build_species_bitset  # noqa: E402
 from scripts.build_runtime_artifact import (  # noqa: E402
     ECOSYSTEM_SOURCE_URLS_BY_GRID,
     MESA_ECOSYSTEM_CATALOG_URL,
@@ -38,6 +39,8 @@ from scripts.build_runtime_artifact import (  # noqa: E402
     copy_source,
     download_source,
     file_entry,
+    load_species_pool_sizes,
+    metric_ids_for_layer,
     safe_filename,
     write_json,
 )
@@ -56,6 +59,7 @@ STRATEGIC_LAYER_SPECS = (
     ("bosque_seco", "bosque_seco.tif", "ecosystem_coverage_dry_forest"),
     ("mangroves", "mangroves.tif", "mangrove_coverage"),
 )
+STRATEGIC_METRIC_IDS = {layer_id: metric_id for layer_id, _, metric_id in STRATEGIC_LAYER_SPECS}
 ARTIFACT_KIND = "sirap-raster-custom-aoi/v1"
 SCHEMA_VERSION = "metrics-artifact-manifest/v1"
 SOURCE_SUMMARY_FORMAT = "sirap-source-summary-v1"
@@ -236,39 +240,24 @@ def main() -> None:
             "kind": "categorical",
             "rendering": ecosystem_binding.get("rendering") or {"valueType": "categorical"},
             "source_url": str(ecosystem_binding["url"]),
+            "metric_ids": list(metric_ids_for_layer(ECOSYSTEM_LAYER_ID)),
             "checksum": {"algorithm": "sha256", "value": ecosystem.sha256},
             "size_bytes": ecosystem.bytes,
         }
     )
-    for layer_id, filename, metric_id in STRATEGIC_LAYER_SPECS:
-        strategic_url = f"{PUBLIC_BLOB_HOST}/inputs/features/strategic/{filename}"
-        strategic, aligned_to_reference = package_strategic_layer(
-            layer_id,
-            filename,
-            strategic_url,
-            sources_dir=sources_dir,
-            reference_fingerprint=reference_fingerprint,
-            force=args.force,
-        )
-        if aligned_to_reference:
-            print(
-                f"Aligned {layer_id} to {reference_fingerprint.crs} "
-                f"{reference_fingerprint.width}x{reference_fingerprint.height}."
-            )
-        file_entries.append(
-            file_entry(strategic.path, artifact_dir, strategic.sha256, strategic.bytes)
-        )
-        layer_entries.append(
-            {
-                "layer_id": layer_id,
-                "path": str(strategic.path.relative_to(artifact_dir)),
-                "kind": "binary",
-                "rendering": {"valueType": "binary", "selectedValue": 1},
-                "metric_ids": [metric_id],
-                "source_url": strategic_url,
-                "checksum": {"algorithm": "sha256", "value": strategic.sha256},
-                "size_bytes": strategic.bytes,
-            }
+    supplemental_layers, packaged_layer_ids = build_supplemental_raster_layers(
+        packet_layers,
+        sources_dir=sources_dir,
+        artifact_dir=artifact_dir,
+        reference_fingerprint=reference_fingerprint,
+        file_entries=file_entries,
+        force=args.force,
+    )
+    layer_entries.extend(supplemental_layers)
+    if packaged_layer_ids - {ECOSYSTEM_LAYER_ID}:
+        print(
+            "Packaged supplemental raster layers: "
+            + ", ".join(sorted(packaged_layer_ids - {ECOSYSTEM_LAYER_ID}))
         )
 
     summary_binding = sample_packet["regionalInputPacket"]["authoritativeSummary"]
@@ -321,6 +310,13 @@ def main() -> None:
         file_entries,
         force=args.force,
     )
+    species_bitset = build_species_bitset_bundle(
+        species_entries,
+        artifact_dir,
+        sources_dir,
+        file_entries,
+    )
+    species_pool_sizes = resolve_species_pool_sizes(sample_packet["regionalInputPacket"])
     species_matrices: list[dict[str, Any]] | dict[str, Any] = species_entries
     if not species_entries:
         species_matrices = build_species_matrix_stub(sample_packet["regionalInputPacket"])
@@ -385,6 +381,8 @@ def main() -> None:
         "raster_layers": layer_entries,
         "ecosystem_inventory": ecosystem_inventory,
         "species_matrices": species_matrices,
+        **({"species_bitset": species_bitset} if species_bitset is not None else {}),
+        **({"species_pool_sizes": species_pool_sizes} if species_pool_sizes is not None else {}),
         "mec_national_denominator": mec_national_denominator,
         "sirap_coverage": sirap_coverage,
         "solution_rasters": solution_rasters,
@@ -463,22 +461,156 @@ def filter_solutions(solutions: list[dict[str, Any]], sirap_id: str) -> list[dic
     return sorted(regional, key=lambda item: str(item.get("id") or ""))
 
 
-def package_strategic_layer(
+def build_supplemental_raster_layers(
+    packet_layers: dict[str, Any],
+    *,
+    sources_dir: Path,
+    artifact_dir: Path,
+    reference_fingerprint: RasterFingerprint,
+    file_entries: list[dict[str, Any]],
+    force: bool,
+) -> tuple[list[dict[str, Any]], set[str]]:
+    """Package packet-bound metric layers, falling back to national strategic rasters."""
+    layer_entries: list[dict[str, Any]] = []
+    packaged_layer_ids: set[str] = set()
+
+    for layer_id, binding in sorted(packet_layers.items()):
+        if layer_id == ECOSYSTEM_LAYER_ID or not isinstance(binding, dict):
+            continue
+        source_url = str(binding.get("url") or "").strip()
+        if not source_url:
+            continue
+        filename = Path(source_url.split("?", 1)[0]).name or f"{layer_id}.tif"
+        packaged, aligned_to_reference = package_aligned_layer(
+            layer_id,
+            source_url,
+            filename,
+            sources_dir=sources_dir,
+            reference_fingerprint=reference_fingerprint,
+            force=force,
+            expected_sha256=str(binding.get("sha256") or "").strip() or None,
+            cache_subdir="packet-layers",
+        )
+        if aligned_to_reference:
+            print(
+                f"Aligned {layer_id} to {reference_fingerprint.crs} "
+                f"{reference_fingerprint.width}x{reference_fingerprint.height}."
+            )
+        file_entries.append(
+            file_entry(packaged.path, artifact_dir, packaged.sha256, packaged.bytes)
+        )
+        entry = _layer_manifest_entry(
+            layer_id,
+            binding,
+            packaged,
+            artifact_dir,
+            source_url,
+        )
+        layer_entries.append(entry)
+        packaged_layer_ids.add(layer_id)
+
+    for layer_id, filename, metric_id in STRATEGIC_LAYER_SPECS:
+        if layer_id in packaged_layer_ids:
+            continue
+        strategic_url = f"{PUBLIC_BLOB_HOST}/inputs/features/strategic/{filename}"
+        packaged, aligned_to_reference = package_aligned_layer(
+            layer_id,
+            strategic_url,
+            filename,
+            sources_dir=sources_dir,
+            reference_fingerprint=reference_fingerprint,
+            force=force,
+            cache_subdir="strategic",
+        )
+        if aligned_to_reference:
+            print(
+                f"Aligned {layer_id} to {reference_fingerprint.crs} "
+                f"{reference_fingerprint.width}x{reference_fingerprint.height}."
+            )
+        file_entries.append(
+            file_entry(packaged.path, artifact_dir, packaged.sha256, packaged.bytes)
+        )
+        layer_entries.append(
+            {
+                "layer_id": layer_id,
+                "path": str(packaged.path.relative_to(artifact_dir)),
+                "kind": "binary",
+                "rendering": {"valueType": "binary", "selectedValue": 1},
+                "metric_ids": [metric_id],
+                "source_url": strategic_url,
+                "checksum": {"algorithm": "sha256", "value": packaged.sha256},
+                "size_bytes": packaged.bytes,
+            }
+        )
+        packaged_layer_ids.add(layer_id)
+
+    return layer_entries, packaged_layer_ids
+
+
+def _layer_manifest_entry(
     layer_id: str,
-    filename: str,
+    binding: dict[str, Any],
+    packaged: DownloadedSource,
+    artifact_dir: Path,
     source_url: str,
+) -> dict[str, Any]:
+    metric_ids = list(metric_ids_for_layer(layer_id))
+    if not metric_ids and layer_id in STRATEGIC_METRIC_IDS:
+        metric_ids = [STRATEGIC_METRIC_IDS[layer_id]]
+    entry: dict[str, Any] = {
+        "layer_id": layer_id,
+        "path": str(packaged.path.relative_to(artifact_dir)),
+        "kind": _layer_kind(binding),
+        "rendering": binding.get("rendering") or {"valueType": "categorical"},
+        "source_url": source_url,
+        "checksum": {"algorithm": "sha256", "value": packaged.sha256},
+        "size_bytes": packaged.bytes,
+    }
+    if metric_ids:
+        entry["metric_ids"] = metric_ids
+    return entry
+
+
+def _layer_kind(binding: dict[str, Any]) -> str:
+    alignment = binding.get("alignment")
+    if isinstance(alignment, dict):
+        layer_class = str(alignment.get("layerClass") or "").strip()
+        if layer_class == "fraction_or_density":
+            return "continuous"
+        if layer_class in {"binary", "categorical"}:
+            return layer_class
+    rendering = binding.get("rendering")
+    if isinstance(rendering, dict):
+        value_type = str(rendering.get("valueType") or "").strip()
+        if value_type == "continuous":
+            return "continuous"
+        if value_type == "binary":
+            return "binary"
+    return "categorical"
+
+
+def package_aligned_layer(
+    layer_id: str,
+    source_url: str,
+    filename: str,
     *,
     sources_dir: Path,
     reference_fingerprint: RasterFingerprint,
     force: bool,
+    expected_sha256: str | None = None,
+    cache_subdir: str = "layers",
 ) -> tuple[DownloadedSource, bool]:
-    """Download a strategic layer and align it to the regional reference grid when needed."""
+    """Download one metric layer and align it to the regional reference grid when needed."""
     raw = download_source(
         source_url,
-        sources_dir / "strategic" / f"raw_{filename}",
+        sources_dir / cache_subdir / f"raw_{filename}",
         force=force,
     )
-    target = sources_dir / "strategic" / filename
+    if expected_sha256 and raw.sha256 != expected_sha256:
+        raise SystemExit(
+            f"{layer_id} checksum does not match the packet binding."
+        )
+    target = sources_dir / cache_subdir / filename
     source_fingerprint = read_fingerprint(raw.path)
     if exact_grid_matches(source_fingerprint, reference_fingerprint):
         return copy_source(raw.path, target), False
@@ -490,6 +622,31 @@ def package_strategic_layer(
         reference_fingerprint=reference_fingerprint,
     )
     return DownloadedSource(target, sha256_file(target), target.stat().st_size), True
+
+
+def resolve_species_pool_sizes(packet: dict[str, Any]) -> dict[str, Any] | None:
+    species = packet.get("species")
+    if isinstance(species, dict):
+        denominator = species.get("nationalDenominator")
+        if isinstance(denominator, dict):
+            total_non_fish = denominator.get("nonFishCount")
+            if isinstance(total_non_fish, (int, float)) and total_non_fish > 0:
+                pool_sizes: dict[str, Any] = {"total_non_fish": int(total_non_fish)}
+                by_bucket = denominator.get("byBucket")
+                if isinstance(by_bucket, dict) and by_bucket:
+                    pool_sizes["by_bucket"] = {
+                        str(key): int(value)
+                        for key, value in by_bucket.items()
+                        if isinstance(value, (int, float))
+                    }
+                threatened_total = denominator.get("threatenedTotal")
+                if isinstance(threatened_total, (int, float)) and threatened_total > 0:
+                    pool_sizes["threatened_total"] = int(threatened_total)
+                return pool_sizes
+    try:
+        return load_species_pool_sizes()
+    except (OSError, ValueError, KeyError):
+        return None
 
 
 def align_raster_to_reference_grid(
@@ -826,7 +983,7 @@ def build_species_matrix_bundle(
         return []
 
     entries: list[dict[str, Any]] = []
-    for binding in species["matrices"]:
+    for index, binding in enumerate(species["matrices"]):
         if not isinstance(binding, dict):
             continue
         group = _sirap_species_group(binding.get("taxonomicClass"))
@@ -837,7 +994,7 @@ def build_species_matrix_bundle(
         suffix = ".smsp.gz" if source_url.endswith(".gz") else ".smsp"
         source = download_source(
             source_url,
-            sources_dir / "species" / f"{group}{suffix}",
+            sources_dir / "species" / f"{group}-{index}{suffix}",
             force=force,
         )
         if source.sha256 != expected_sha256:
@@ -854,6 +1011,38 @@ def build_species_matrix_bundle(
             }
         )
     return entries
+
+
+def build_species_bitset_bundle(
+    species_entries: list[dict[str, Any]],
+    artifact_dir: Path,
+    sources_dir: Path,
+    file_entries: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Build the detailed custom-AOI index from the regional species matrices."""
+    if not species_entries:
+        return None
+
+    matrix_paths = [
+        (str(entry["group"]), artifact_dir / str(entry["path"]))
+        for entry in species_entries
+    ]
+    bitset_dir = sources_dir / "species-bitset"
+    data_path = bitset_dir / "species.cells.bits"
+    metadata_path = bitset_dir / "species.cells.json"
+    build_species_bitset(matrix_paths, data_path, metadata_path)
+
+    result: dict[str, Any] = {}
+    for key, path in {"data": data_path, "metadata": metadata_path}.items():
+        checksum = sha256_file(path)
+        size_bytes = path.stat().st_size
+        file_entries.append(file_entry(path, artifact_dir, checksum, size_bytes))
+        result[key] = {
+            "path": str(path.relative_to(artifact_dir)),
+            "checksum": {"algorithm": "sha256", "value": checksum},
+            "size_bytes": size_bytes,
+        }
+    return result
 
 
 def build_species_matrix_stub(packet: dict[str, Any]) -> dict[str, Any]:

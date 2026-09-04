@@ -399,6 +399,18 @@ def test_sirap_area_profile_accepts_uint32_regional_mec_raster(
     assert selection["status"] == "selected"
     assert status == "complete"
     assert sections["ecosystems"]["status"] == "complete"
+    assert sections["ecosystems"]["reference_scope"] == "sirap"
+    ecosystem_record = next(
+        record
+        for view in sections["ecosystems"]["views"]
+        if view["id"] == "broadEcosystem"
+        for record in view["records"]
+        if record["label"] == "Forest"
+    )
+    assert ecosystem_record["sirap_area_km2"] == pytest.approx(2.0)
+    assert ecosystem_record["share_of_sirap_class_pct"] == pytest.approx(100.0)
+    assert ecosystem_record["national_area_km2"] == pytest.approx(2.0)
+    assert ecosystem_record["share_of_national_class_pct"] == pytest.approx(100.0)
     assert len(sections["ecosystems"]["solution_coverage"]) == 1
 
 

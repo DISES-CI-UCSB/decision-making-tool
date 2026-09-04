@@ -36,11 +36,15 @@ export interface CustomAoiEcosystemRecord {
   label: string;
   area_km2: number;
   national_area_km2: number;
+  /** Present for SIRAP-scoped responses; the regional artifact is the denominator. */
+  sirap_area_km2?: number | null;
   /** Retained for composition summaries that intentionally exclude unclassified AOI land. */
   share_of_classified_pct: number | null;
   /** Optional only for compatibility with older v1 responses; consumers must not substitute classified share. */
   share_of_total_aoi_pct?: number | null;
   share_of_national_class_pct: number | null;
+  /** Present for SIRAP-scoped responses; never infer this from a national percentage. */
+  share_of_sirap_class_pct?: number | null;
   solution_covered_area_km2: number | null;
   solution_covered_pct_of_aoi: number | null;
   pre_existing_covered_area_km2: number | null;
@@ -50,16 +54,16 @@ export interface CustomAoiEcosystemRecord {
 }
 
 /**
- * Mesa-compatible coverage values use planning-cell counts, not square kilometers.
- * Ratio fields are decimal fractions (0–1) and remain nullable when their denominator is zero.
+ * Mesa-compatible coverage values arrive as approximately 1 km² raster-cell counts.
+ * UI consumers display their equivalent km² areas; ratio fields are decimal fractions (0–1).
  */
 export interface MesaAoiCoverageRecord {
   feature: string;
-  /** Ecosystem planning cells inside the AOI. */
+  /** Approximately 1 km² ecosystem cells inside the AOI. */
   total_in_aoi: number;
-  /** Ecosystem planning cells across the national aligned raster. */
+  /** Approximately 1 km² ecosystem cells across the national aligned raster. */
   national_total: number;
-  /** All valid, classified ecosystem planning cells inside the AOI. */
+  /** All valid, classified ecosystem cells inside the AOI. */
   classified_total_in_aoi: number;
   /** total_in_aoi / national_total. */
   share_of_national_total: number | null;
@@ -93,6 +97,8 @@ export interface CustomAoiSpeciesSection {
 export interface CustomAoiEcosystemsSection {
   status: CustomAoiProfileSectionStatus;
   canonical_summary_view: 'broadEcosystem';
+  /** Identifies whether the returned class denominator is national or SIRAP-scoped. */
+  reference_scope?: 'national' | 'sirap';
   classified_area_km2: number;
   views: {
     id: CustomAoiEcosystemView;

@@ -182,10 +182,12 @@ def _ecosystems_section(
             artifact.ecosystem_inventory,
             raster,
             solution_raster,
+            reference_scope="sirap" if _is_sirap_artifact(artifact) else "national",
         )
         if artifact.ecosystem_inventory is not None
         else {
             "canonical_summary_view": "broadEcosystem",
+            "reference_scope": "sirap" if _is_sirap_artifact(artifact) else "national",
             "classified_area_km2": 0.0,
             "views": [],
         }

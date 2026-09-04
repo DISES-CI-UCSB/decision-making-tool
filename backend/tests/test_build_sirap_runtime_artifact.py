@@ -310,6 +310,16 @@ def build_fixture_artifact(
 
     artifact_root = tmp_path / "runtime-artifacts"
     monkeypatch.setattr(builder, "download_source", fake_download)
+    def fake_build_species_bitset(
+        _matrix_paths: dict[str, Path],
+        data_path: Path,
+        metadata_path: Path,
+    ) -> None:
+        data_path.parent.mkdir(parents=True, exist_ok=True)
+        data_path.write_bytes(b"fixture species bitset")
+        metadata_path.write_text('{"format":"fixture"}', encoding="utf-8")
+
+    monkeypatch.setattr(builder, "build_species_bitset", fake_build_species_bitset)
     monkeypatch.setattr(
         builder,
         "parse_args",
@@ -373,6 +383,7 @@ def test_builds_regional_manifest_with_expected_shape(
         "national-denominator.mec.json"
     )
     assert manifest["species_matrices"][0]["group"] == "plants"
+    assert set(manifest["species_bitset"]) == {"data", "metadata"}
     assert manifest["checksum"]["algorithm"] == "sha256"
     assert len(manifest["files"]) >= 8
 

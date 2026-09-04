@@ -44,7 +44,7 @@
             <ng-content select="[modal-shell-header-content]"></ng-content>
             @if (titleKey) {
               <h2 [id]="rootId + '-title'" class="text-base font-semibold text-ink-900">
-                {{ titleKey | translate }}
+                {{ titleKey | translate: titleParams ?? {} }}
               </h2>
             }
           </div>

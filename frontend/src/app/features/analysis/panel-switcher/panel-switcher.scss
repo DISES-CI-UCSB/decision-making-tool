@@ -2745,6 +2745,38 @@
   color: #475569;
 }
 
+.aoi-mec-modal-table-wrapper-custom table {
+  table-layout: fixed;
+  min-width: 920px;
+}
+
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-heading {
+  width: 180px;
+}
+
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-data-heading {
+  min-width: 104px;
+  max-width: 132px;
+  vertical-align: bottom;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.35;
+}
+
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-data-heading [id$='-content'],
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-data-heading [id$='-label'] {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.aoi-mec-modal-table-wrapper-custom td[id^='aoi-mec-modal-available-'] {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #334155;
+}
+
 @media (max-width: 760px) {
   .aoi-mec-modal-level-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2779,11 +2811,11 @@
     display: grid;
     grid-template-columns: minmax(130px, 1fr) minmax(0, 1fr);
     gap: 12px;
-    text-align: right;
+    text-align: left;
   }
 
   .aoi-mec-modal-table-wrapper-custom .aoi-mec-measure {
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
 
   .aoi-mec-modal-table-wrapper-custom td::before {

@@ -33,6 +33,7 @@ export class ModalShellComponent implements OnChanges, OnDestroy {
   @Input() isOpen = false;
   @Input() mode: ModalShellMode = 'standard';
   @Input() titleKey = '';
+  @Input() titleParams: Record<string, string> | null = null;
   @Input() ariaLabelKey = '';
   @Input() closeOnBackdrop = true;
   @Input() closeOnEscape = true;

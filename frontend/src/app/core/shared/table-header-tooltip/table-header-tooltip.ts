@@ -10,6 +10,7 @@ type TooltipAlignment = 'start' | 'center' | 'end';
   imports: [InfoIconComponent, TranslatePipe],
   host: {
     '[attr.id]': "idBase() + '-help'",
+    class: 'block text-left',
   },
   styles: `
     .table-header-inline-help {
@@ -69,7 +70,7 @@ export class TableHeaderTooltipComponent {
   readonly idBase = input.required<string>();
   readonly labelKey = input.required<string>();
   readonly questionKey = input.required<string>();
-  readonly align = input<TooltipAlignment>('center');
+  readonly align = input<TooltipAlignment>('start');
   protected readonly pinned = signal(false);
 
   @HostListener('document:click')

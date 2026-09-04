@@ -10,6 +10,8 @@ import type {
   GeographyLevel,
   HydratedSpeciesGoalsRecord,
 } from '@core/models';
+
+const NATIONAL_RANGE_LABEL_KEY = 'analysis.aoi.customProfile.species.nationalModeledRangeColombia';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
@@ -30,6 +32,7 @@ import {
   timer,
 } from 'rxjs';
 import { parseSpeciesSection } from '../custom-aoi-area-profile/custom-aoi-area-profile.utils';
+import { formatSpeciesCoveragePercent } from '../utils/metric-presentation.utils';
 
 interface LoadedInventoryState {
   status: CustomAoiProfileSectionStatus;
@@ -89,12 +92,26 @@ interface SpeciesCoverageMetric {
 const NATIONAL_SPECIES_COVERAGE_METRIC_IDS = ['solution-coverage', 'pre-existing', 'new'] as const;
 const SIRAP_SPECIES_COVERAGE_METRIC_IDS = ['pre-existing', 'new', 'solution-coverage'] as const;
 
+interface SpeciesNationalRange {
+  formattedAmount: string;
+  ariaLabel: string;
+}
+
 interface SpeciesCoverageView {
+  nationalRange: SpeciesNationalRange;
   presence: SpeciesCoverageMetric;
   coverage: readonly SpeciesCoverageMetric[];
-  formattedNationalRangeArea: string;
   contributionToNationalCoveragePercent: number | null;
   contributionToNationalTargetPercent: number | null;
+}
+
+export function isNationalRangeUnavailable(
+  record: DetailedSpeciesCoverageRecord | HydratedSpeciesGoalsRecord,
+): boolean {
+  if ('availability' in record && record.availability === 'unavailable') {
+    return true;
+  }
+  return record.range_area_km2 === null || record.range_area_km2 === undefined;
 }
 
 export interface MesaSpeciesCoverageValues {
@@ -168,12 +185,6 @@ export class CustomAoiSpeciesInventoryComponent {
   protected readonly speciesSearch = signal('');
   protected readonly speciesGroup = signal('all');
   protected readonly speciesIucn = signal('all');
-  private readonly percentNumberFormatter = computed(
-    () =>
-      new Intl.NumberFormat(this.appLocale.locale(), {
-        maximumFractionDigits: 1,
-      }),
-  );
   private readonly areaNumberFormatter = computed(
     () =>
       new Intl.NumberFormat(this.appLocale.locale(), {
@@ -435,7 +446,7 @@ export class CustomAoiSpeciesInventoryComponent {
   }
 
   protected formatPercent(value: number): string {
-    return `${this.percentNumberFormatter().format(value)}%`;
+    return formatSpeciesCoveragePercent(value, this.appLocale.locale());
   }
 
   protected formatAreaKm2(value: number): string {
@@ -587,17 +598,11 @@ export class CustomAoiSpeciesInventoryComponent {
         ? this.buildCoverageMetric(
             'solution-coverage',
             'analysis.aoi.customProfile.species.solutionCoverage',
-            'analysis.aoi.customProfile.species.ofMesaCellsInsideAoi',
+            'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
             record.scientific_name,
             mesaCoverage.coverageWithinAoiPercent,
-            null,
+            record.solution_covered_in_aoi_area_km2,
             '#475569',
-            mesaCoverage.heldInAoi === null || mesaCoverage.totalInAoi === null
-              ? this.translate.instant('analysis.common.valueUnavailable')
-              : this.translate.instant('analysis.aoi.customProfile.species.mesaCellCount', {
-                  held: this.areaNumberFormatter().format(mesaCoverage.heldInAoi),
-                  total: this.areaNumberFormatter().format(mesaCoverage.totalInAoi),
-                }),
           )
         : this.buildCoverageMetric(
             'solution-coverage',
@@ -632,6 +637,7 @@ export class CustomAoiSpeciesInventoryComponent {
       : NATIONAL_SPECIES_COVERAGE_METRIC_IDS;
 
     return {
+      nationalRange: this.buildNationalRange(record),
       presence: this.buildCoverageMetric(
         'range-in-aoi',
         'analysis.aoi.customProfile.species.rangeInAoi',
@@ -642,11 +648,24 @@ export class CustomAoiSpeciesInventoryComponent {
         '#0284c7',
       ),
       coverage: metricIds.map((metricId) => coverageById[metricId]),
-      formattedNationalRangeArea: this.formatAreaKm2(record.range_area_km2),
       contributionToNationalCoveragePercent:
         mesaCoverage?.contributionToNationalCoveragePercent ?? null,
       contributionToNationalTargetPercent:
         mesaCoverage?.contributionToNationalTargetPercent ?? null,
+    };
+  }
+
+  private buildNationalRange(record: DetailedSpeciesCoverageRecord): SpeciesNationalRange {
+    const formattedAmount = isNationalRangeUnavailable(record)
+      ? this.translate.instant('analysis.common.valueUnavailable')
+      : this.formatAreaKm2(record.range_area_km2);
+    return {
+      formattedAmount,
+      ariaLabel: [
+        this.translate.instant(NATIONAL_RANGE_LABEL_KEY),
+        record.scientific_name,
+        formattedAmount,
+      ].join(', '),
     };
   }
 

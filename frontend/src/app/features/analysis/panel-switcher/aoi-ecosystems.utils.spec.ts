@@ -9,6 +9,7 @@ import type {
 import {
   buildCustomMecData,
   buildDummyCoverageRows,
+  buildMesaCustomMecCoverageRow,
   buildMecCoverageRows,
   buildMecPreviewItems,
   calculateOverlapPercent,
@@ -18,6 +19,7 @@ import {
   MESA_IAVH_FEATURE_COUNT,
   resolveMecScopeSummary,
   resolveMecScopeIndex,
+  resolveSirapMecScopeIndex,
 } from './aoi-ecosystems.utils';
 
 describe('AOI ecosystems utilities', () => {
@@ -59,6 +61,19 @@ describe('AOI ecosystems utilities', () => {
     ).toBeNull();
   });
 
+  it('resolves a SIRAP catalog ID against the compact sidecar source identifier', () => {
+    const document: MecCompactDocument = {
+      ...buildMecDocument(),
+      scopeCatalog: [
+        ['thematic_eje_cafetero_1', 'Eje Cafetero'],
+        ['territorial_territorial_orinoquia_7', 'Territorial Orinoquia'],
+      ],
+    };
+
+    expect(resolveSirapMecScopeIndex(document, 'orinoquia')).toBe(1);
+    expect(resolveSirapMecScopeIndex(document, 'eje-cafetero')).toBe(0);
+  });
+
   it('maps only the selected scope and view with zero-preserving percentages', () => {
     const rows = buildMecCoverageRows(buildMecDocument(), 0, 'broadEcosystem');
 
@@ -67,6 +82,8 @@ describe('AOI ecosystems utilities', () => {
         id: 'broadecosystem-forest',
         label: 'Forest',
         ecosystemAreaKm2: 10,
+        nationalExtentKm2: null,
+        sirapExtentKm2: null,
         ecosystemSharePercent: null,
         nationalClassPercent: null,
         sirapClassPercent: null,
@@ -126,6 +143,7 @@ describe('AOI ecosystems utilities', () => {
 
     expect(buildMecCoverageRows(document, 0, 'broadEcosystem', nationalDocument)[0]).toMatchObject({
       ecosystemAreaKm2: 10,
+      nationalExtentKm2: 50,
       ecosystemSharePercent: 50,
       nationalClassPercent: 20,
       solutionCoverageKm2: 5,
@@ -150,6 +168,8 @@ describe('AOI ecosystems utilities', () => {
     expect(
       buildMecCoverageRows(document, 0, 'broadEcosystem', sirapDocument, 'sirap', nationalAreas)[0],
     ).toMatchObject({
+      nationalExtentKm2: 100,
+      sirapExtentKm2: 40,
       nationalClassPercent: 10,
       sirapClassPercent: 25,
     });
@@ -190,7 +210,7 @@ describe('AOI ecosystems utilities', () => {
     ]);
   });
 
-  it('uses Mesa rows exclusively when a custom AOI has an active solution', () => {
+  it('keeps all composition views and enriches matching IAvH rows with Mesa coverage', () => {
     const data = buildCustomMecData(buildCustomProfileResponse());
     const row = data.rowsByView.get('biomeRegion')?.[0];
 
@@ -201,18 +221,26 @@ describe('AOI ecosystems utilities', () => {
       buildCustomMecData({ ...buildCustomProfileResponse(), solution_id: null })
         .hasSolutionCoverage,
     ).toBe(false);
-    expect(data.previewByView.get('biomeRegion')?.[0]).toEqual({ label: 'forest', percent: 25 });
-    expect([...data.rowsByView.keys()]).toEqual(['biomeRegion']);
-    expect(data.rowsByView.get('biomeRegion')).toHaveLength(MESA_IAVH_FEATURE_COUNT);
+    expect(data.previewByView.get('biomeRegion')?.[0]).toEqual({ label: 'Forest', percent: 66.67 });
+    expect([...data.rowsByView.keys()]).toEqual([
+      'biomeFamily',
+      'broadBiomeContext',
+      'broadEcosystem',
+      'detailedEcosystem',
+      'biomeRegion',
+    ]);
+    expect(data.rowsByView.get('biomeRegion')).toHaveLength(1);
     expect(row).toMatchObject({
       id: 'forest',
-      ecosystemAreaKm2: null,
-      ecosystemSharePercent: 66.66666666666666,
+      label: 'Forest',
+      ecosystemAreaKm2: 8,
+      ecosystemSharePercent: 66.67,
       nationalClassPercent: 20,
-      solutionCoverageKm2: null,
+      sirapClassPercent: null,
+      solutionCoverageKm2: 2,
       solutionCoveragePercent: 25,
-      preExistingCoverageKm2: null,
-      newPrioritizrCoverageKm2: null,
+      preExistingCoverageKm2: 1,
+      newPrioritizrCoverageKm2: 1,
       preExistingPercent: 12.5,
       newPrioritizrPercent: 12.5,
       mesaTotalInAoi: 8,
@@ -233,12 +261,119 @@ describe('AOI ecosystems utilities', () => {
     });
   });
 
+  it('keeps all five SIRAP custom-AOI breakdowns available with partial Mesa coverage', () => {
+    const response = buildCustomProfileResponse();
+    response.sections.ecosystems!.solution_coverage = buildMesaCoverageFixture().slice(0, 3);
+
+    const data = buildCustomMecData(response, 'test-solution', { allowVariableMesaRowCount: true });
+
+    expect([...data.rowsByView.keys()]).toHaveLength(5);
+    expect(data.rowsByView.get('biomeFamily')?.[0]).toMatchObject({
+      ecosystemAreaKm2: 8,
+      solutionCoverageKm2: 4,
+    });
+    expect(data.rowsByView.get('biomeRegion')?.[0]).toMatchObject({
+      ecosystemAreaKm2: 8,
+      solutionCoverageKm2: 2,
+    });
+  });
+
+  it('keeps both national and SIRAP extent shares for SIRAP custom AOIs', () => {
+    const response = buildCustomProfileResponse();
+    const ecosystems = response.sections.ecosystems!;
+    ecosystems.reference_scope = 'sirap';
+    ecosystems.views.forEach((view) => {
+      view.records[0].sirap_area_km2 = 16;
+      view.records[0].share_of_sirap_class_pct = 50;
+    });
+
+    const row = buildCustomMecData(response, 'test-solution', {
+      allowVariableMesaRowCount: true,
+    }).rowsByView.get('broadEcosystem')?.[0];
+
+    expect(row?.nationalClassPercent).toBe(20);
+    expect(row?.sirapClassPercent).toBe(50);
+  });
+
+  it('fills SIRAP custom-AOI national extent from area, class map, or Mesa share', () => {
+    const areaResponse = buildCustomProfileResponse();
+    areaResponse.sections.ecosystems!.reference_scope = 'sirap';
+    areaResponse.sections.ecosystems!.views.forEach((view) => {
+      view.records[0].share_of_national_class_pct = null;
+      view.records[0].sirap_area_km2 = 16;
+      view.records[0].share_of_sirap_class_pct = 50;
+    });
+
+    const areaRow = buildCustomMecData(areaResponse, 'test-solution', {
+      allowVariableMesaRowCount: true,
+    }).rowsByView.get('broadEcosystem')?.[0];
+
+    expect(areaRow?.nationalClassPercent).toBe(20);
+    expect(areaRow?.sirapClassPercent).toBe(50);
+
+    const mappedResponse = buildCustomProfileResponse();
+    const mappedEcosystems = mappedResponse.sections.ecosystems!;
+    mappedEcosystems.reference_scope = 'sirap';
+    mappedEcosystems.views.forEach((view) => {
+      const record = view.records[0] as {
+        national_area_km2?: number;
+        share_of_national_class_pct?: number | null;
+        sirap_area_km2?: number;
+        share_of_sirap_class_pct?: number;
+      };
+      delete record.national_area_km2;
+      delete record.share_of_national_class_pct;
+      record.sirap_area_km2 = 16;
+      record.share_of_sirap_class_pct = 50;
+    });
+
+    const mappedRow = buildCustomMecData(mappedResponse, 'test-solution', {
+      allowVariableMesaRowCount: true,
+      nationalAreaKm2ByClass: new Map([['broadEcosystem\u0000Forest', 40]]),
+    }).rowsByView.get('broadEcosystem')?.[0];
+
+    expect(mappedRow?.nationalClassPercent).toBe(20);
+    expect(mappedRow?.nationalExtentKm2).toBe(40);
+    expect(mappedRow?.sirapClassPercent).toBe(50);
+    expect(mappedRow?.sirapExtentKm2).toBe(16);
+
+    const mesaResponse = buildCustomProfileResponse();
+    mesaResponse.sections.ecosystems!.reference_scope = 'sirap';
+    mesaResponse.sections.ecosystems!.views.forEach((view) => {
+      view.records[0].share_of_national_class_pct = null;
+      (view.records[0] as { national_area_km2?: number }).national_area_km2 = undefined;
+      view.records[0].sirap_area_km2 = 16;
+      view.records[0].share_of_sirap_class_pct = 50;
+    });
+
+    const mesaRow = buildCustomMecData(mesaResponse, 'test-solution', {
+      allowVariableMesaRowCount: true,
+    }).rowsByView.get('biomeRegion')?.[0];
+
+    expect(mesaRow?.nationalClassPercent).toBe(20);
+    expect(mesaRow?.sirapClassPercent).toBe(50);
+  });
+
+  it('humanizes unmatched Mesa feature labels and expresses their counts as km²', () => {
+    const row = buildMesaCustomMecCoverageRow({
+      ...buildMesaCoverageFixture()[0],
+      feature: 'bosque_seco',
+    });
+
+    expect(row).toMatchObject({
+      label: 'Bosque Seco',
+      ecosystemAreaKm2: 8,
+      mesaTotalInAoi: 8,
+      solutionCoverageKm2: 2,
+    });
+  });
+
   it('preserves composition-only rows when no solution is active', () => {
     const data = buildCustomMecData({ ...buildCustomProfileResponse(), solution_id: null });
     const row = data.rowsByView.get('broadEcosystem')?.[0];
 
     expect(data.mode).toBe('composition');
-    expect([...data.rowsByView.keys()]).toEqual(['broadEcosystem']);
+    expect([...data.rowsByView.keys()]).toHaveLength(5);
     expect(data.previewByView.get('broadEcosystem')).toEqual([{ label: 'Forest', percent: 66.67 }]);
     expect(row).toMatchObject({
       ecosystemAreaKm2: 8,
@@ -258,7 +393,7 @@ describe('AOI ecosystems utilities', () => {
     expect(
       buildCustomMecData(response, 'test-solution', { allowVariableMesaRowCount: true }).rowsByView
         .size,
-    ).toBe(1);
+    ).toBe(5);
   });
 
   it('falls back to view records when SIRAP custom AOI solution coverage is empty', () => {
@@ -319,7 +454,7 @@ describe('AOI ecosystems utilities', () => {
 
     const data = buildCustomMecData(response, 'test-solution', { allowVariableMesaRowCount: true });
 
-    expect(data.rowsByView.get('biomeRegion')).toHaveLength(3);
+    expect(data.rowsByView.get('biomeRegion')).toHaveLength(1);
   });
 
   it('derives remaining coverage percent for Mesa custom rows', () => {
@@ -402,17 +537,12 @@ describe('AOI ecosystems utilities', () => {
   it('preserves null denominators and national target contributions above one', () => {
     const response = buildCustomProfileResponse();
     const records = buildMesaCoverageFixture();
-    records[1] = { ...records[1], contribution_to_national_target: 1.4 };
+    records[0] = { ...records[0], contribution_to_national_target: 1.4 };
     response.sections.ecosystems!.solution_coverage = records;
 
     const rows = buildCustomMecData(response).rowsByView.get('biomeRegion');
 
-    expect(rows?.[2]).toMatchObject({
-      solutionCoveragePercent: null,
-      contributionToNationalCoveragePercent: null,
-      contributionToNationalTargetPercent: null,
-    });
-    expect(rows?.[1].contributionToNationalTargetPercent).toBe(140);
+    expect(rows?.[0].contributionToNationalTargetPercent).toBe(140);
   });
 
   it('does not fall back when the requested active solution is missing from the response', () => {
@@ -426,7 +556,8 @@ describe('AOI ecosystems utilities', () => {
   it('does not mislabel classified share when a legacy custom response lacks total share', () => {
     const response = buildCustomProfileResponse();
     response.solution_id = null;
-    const record = response.sections.ecosystems?.views[0].records[0];
+    const record = response.sections.ecosystems?.views.find((view) => view.id === 'broadEcosystem')
+      ?.records[0];
     if (record) {
       delete record.share_of_total_aoi_pct;
     }
@@ -492,6 +623,21 @@ describe('AOI ecosystems utilities', () => {
 });
 
 function buildCustomProfileResponse(): CustomAoiAreaProfileResponse {
+  const forest = {
+    id: 'forest',
+    label: 'Forest',
+    area_km2: 8,
+    national_area_km2: 40,
+    share_of_classified_pct: 80,
+    share_of_total_aoi_pct: 66.67,
+    share_of_national_class_pct: 20,
+    solution_covered_area_km2: 4,
+    solution_covered_pct_of_aoi: 50,
+    pre_existing_covered_area_km2: 1,
+    pre_existing_covered_pct_of_aoi: 12.5,
+    new_covered_area_km2: 3,
+    new_covered_pct_of_aoi: 37.5,
+  };
   return {
     format: 'custom-aoi-area-profile-v1',
     status: 'complete',
@@ -510,27 +656,15 @@ function buildCustomProfileResponse(): CustomAoiAreaProfileResponse {
         classified_area_km2: 10,
         solution_coverage: buildMesaCoverageFixture(),
         views: [
+          { id: 'biomeFamily', label: 'Biome family', records: [{ ...forest }] },
+          { id: 'broadBiomeContext', label: 'Broad biome context', records: [{ ...forest }] },
           {
             id: 'broadEcosystem',
             label: 'Broad ecosystem',
-            records: [
-              {
-                id: 'forest',
-                label: 'Forest',
-                area_km2: 8,
-                national_area_km2: 40,
-                share_of_classified_pct: 80,
-                share_of_total_aoi_pct: 66.67,
-                share_of_national_class_pct: 20,
-                solution_covered_area_km2: 4,
-                solution_covered_pct_of_aoi: 50,
-                pre_existing_covered_area_km2: 1,
-                pre_existing_covered_pct_of_aoi: 12.5,
-                new_covered_area_km2: 3,
-                new_covered_pct_of_aoi: 37.5,
-              },
-            ],
+            records: [{ ...forest }],
           },
+          { id: 'detailedEcosystem', label: 'Detailed ecosystem', records: [{ ...forest }] },
+          { id: 'biomeRegion', label: 'Biome region', records: [{ ...forest }] },
         ],
       },
     },

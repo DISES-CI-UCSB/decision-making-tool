@@ -227,3 +227,42 @@ export function getMetricDisplayUnit(
 function resolveNumberLocale(locale: string): string {
   return locale === 'es' ? 'es-CO' : 'en-US';
 }
+
+/**
+ * Formats a species-coverage percentage on a 0–100 scale so non-zero areas never display as 0%.
+ */
+export function formatSpeciesCoveragePercent(valuePercent: number, locale: string): string {
+  if (!Number.isFinite(valuePercent)) {
+    return '';
+  }
+  if (valuePercent === 0) {
+    return '0%';
+  }
+
+  const resolvedLocale = resolveNumberLocale(locale);
+  for (let fractionDigits = 1; fractionDigits <= 4; fractionDigits += 1) {
+    const formatted = new Intl.NumberFormat(resolvedLocale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: fractionDigits,
+    }).format(valuePercent);
+    if (parseLocalizedNumber(formatted, resolvedLocale) > 0) {
+      return `${formatted}%`;
+    }
+  }
+
+  const fallback = new Intl.NumberFormat(resolvedLocale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 6,
+  }).format(valuePercent);
+  return `${fallback}%`;
+}
+
+function parseLocalizedNumber(value: string, locale: string): number {
+  const parts = new Intl.NumberFormat(locale).formatToParts(1.1);
+  const decimalSeparator = parts.find((part) => part.type === 'decimal')?.value ?? '.';
+  const normalized = value
+    .replace(new RegExp(`[^0-9${decimalSeparator}-]`, 'g'), '')
+    .replace(decimalSeparator, '.');
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
