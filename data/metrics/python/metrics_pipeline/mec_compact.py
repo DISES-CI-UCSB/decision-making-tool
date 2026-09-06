@@ -86,7 +86,7 @@ LEGACY_MEC_COMPACT_FORMAT = "mec-compact-v1"
 MEC_COMPACT_FORMAT = "mec-compact-v2"
 MEC_COMPACT_SUFFIX = ".mec.compact.json"
 MEC_SIGNATURE_FORMAT = "mec-generation-signature-v3"
-MEC_GENERATOR_CONFIG_VERSION = "mec-generator-config-v6"
+MEC_GENERATOR_CONFIG_VERSION = "mec-generator-config-v7"
 DEFAULT_OUTPUT_DIR = Path("data/metrics/generated/mec")
 DEFAULT_BLOB_DIRECTORY = "metrics/mec-cache"
 SOURCE_MODE_COMPOSITE = "composite"
@@ -448,6 +448,26 @@ def resolve_national_target(solution: dict[str, Any]) -> dict[str, Any]:
         raise ManifestError(
             f"Solution {solution.get('id')!r} has no finderInputs target metadata."
         )
+    if solution.get("scope") == "sirap":
+        structured = finder_inputs.get("structuredTargets")
+        if not isinstance(structured, dict):
+            raise ManifestError(
+                f"SIRAP solution {solution.get('id')!r} lacks structured target metadata."
+            )
+        return {
+            "applicability": "not-applicable-regional-post-hoc",
+            "targetPercent": None,
+            "source": "solution.finderInputs.structuredTargets",
+            "statusStorage": "not-evaluated",
+            "interpretation": (
+                "MEC ecosystem coverage is an additional regional outcome, "
+                "not SIRAP solver-target attainment."
+            ),
+            "solverTargetFeatureSet": finder_inputs.get("targetFeatureSet"),
+            "solverTargetFeatureIds": list(
+                finder_inputs.get("targetFeatureIds") or []
+            ),
+        }
     raw_target = finder_inputs.get("targetPercent")
     if isinstance(raw_target, bool):
         raw_target = None
@@ -1120,25 +1140,25 @@ def read_mec_raster_values(
 
     with rasterio.open(path) as dataset:
         dtype = np.dtype(dataset.dtypes[0])
-        expected_dtype = (
-            np.dtype(np.uint16)
-            if taxonomy.source_mode == SOURCE_MODE_COMPOSITE
-            else np.dtype(np.uint32)
-        )
-        expected_nodata = (
-            0
-            if taxonomy.source_mode == SOURCE_MODE_COMPOSITE
-            else MEC_RASTER_NODATA
-        )
-        if dtype != expected_dtype:
+        if taxonomy.source_mode == SOURCE_MODE_COMPOSITE:
+            allowed_dtypes = (np.dtype(np.uint16), np.dtype(np.uint32))
+            allowed_nodata = (
+                (0,)
+                if dtype == np.dtype(np.uint16)
+                else (MEC_RASTER_NODATA,)
+            )
+        else:
+            allowed_dtypes = (np.dtype(np.uint32),)
+            allowed_nodata = (MEC_RASTER_NODATA,)
+        if dtype not in allowed_dtypes:
             raise RasterError(
                 f"{taxonomy.source_mode} MEC raster {path} must use "
-                f"{expected_dtype.name}; got {dtype}."
+                f"{' or '.join(item.name for item in allowed_dtypes)}; got {dtype}."
             )
-        if dataset.nodata is None or int(dataset.nodata) != expected_nodata:
+        if dataset.nodata is None or int(dataset.nodata) not in allowed_nodata:
             raise RasterError(
                 f"{taxonomy.source_mode} MEC raster {path} must declare "
-                f"nodata={expected_nodata}; "
+                f"nodata={' or '.join(str(item) for item in allowed_nodata)}; "
                 f"got {dataset.nodata!r}."
             )
     values = read_layer_values(path, expected)
@@ -1433,6 +1453,7 @@ def build_mec_document(
     aligned_mec_identity: dict[str, str],
     generated_at: str,
     solution_catalog_binding: dict[str, Any] | None = None,
+    restrict_scopes_to_solution_support: bool = False,
 ) -> dict[str, Any]:
     _validate_geography_level(geography_level)
     boundary_level = "departments" if geography_level == "national" else geography_level
@@ -1455,9 +1476,14 @@ def build_mec_document(
             ) = scope
         else:
             raise ValueError("Scope tuples must contain 3 or 4 values.")
+        reporting_scope_mask = (
+            scope_mask & raster.solution_data_valid_mask
+            if restrict_scopes_to_solution_support
+            else scope_mask
+        )
         scope_catalog.append([scope_id, scope_name])
         scope_stats[str(scope_index)] = compute_scope_stats(
-            scope_mask=scope_mask,
+            scope_mask=reporting_scope_mask,
             ecosystem_values=ecosystem_values,
             pixel_area_km2_per_row=raster.pixel_area_km2_per_row,
             boundary_provenance_ref=boundary_provenance_ref,
@@ -1465,14 +1491,20 @@ def build_mec_document(
         rows.extend(
             compute_scope_rows(
                 scope_index=scope_index,
-                scope_mask=scope_mask,
+                scope_mask=reporting_scope_mask,
                 pre_existing_mask=raster.pre_existing_mask,
                 new_prioritizr_mask=raster.new_prioritizr_mask,
                 selected_mask=raster.selected_mask,
                 ecosystem_values=ecosystem_values,
                 pixel_area_km2_per_row=raster.pixel_area_km2_per_row,
                 taxonomy=taxonomy,
-                emit_absent_classes=geography_level == "national",
+                # National artifacts historically retain absent classes for
+                # national solutions. SIRAP artifacts are sparse over their
+                # clipped reporting support, including the whole-SIRAP view.
+                emit_absent_classes=(
+                    geography_level == "national"
+                    and not restrict_scopes_to_solution_support
+                ),
             )
         )
 
@@ -1523,6 +1555,11 @@ def build_mec_document(
         },
         "viewSupport": view_support_for_mode(taxonomy.source_mode),
         "semantics": SEMANTICS,
+        "reportingScope": (
+            "boundary-intersection-with-solution-valid-support"
+            if restrict_scopes_to_solution_support
+            else "boundary"
+        ),
         "rowLayout": ROW_LAYOUT,
         "scopeStatsFields": list(SCOPE_STATS_FIELDS),
         "grid": {
@@ -1550,7 +1587,10 @@ def build_mec_document(
         "rows": rows,
     }
     if geography_level == "national":
-        document["nationalCoverageBenchmark"] = national_target
+        if national_target["applicability"] == "national-only":
+            document["nationalCoverageBenchmark"] = national_target
+        else:
+            document["coverageOutcomeContext"] = national_target
     if solution_catalog_binding is not None:
         document["solutionCatalogBinding"] = solution_catalog_binding
     return document
@@ -2613,16 +2653,26 @@ def main(argv: list[str] | None = None) -> int:
                 aligned_mec_identity=aligned_mec_identity,
                 generated_at=generated_at,
                 solution_catalog_binding=solution_catalog_binding,
+                restrict_scopes_to_solution_support=(
+                    national_targets[solution_id]["applicability"]
+                    == "not-applicable-regional-post-hoc"
+                ),
             )
             denominator_signature = ecosystem_denominator_signature(document)
-            expected_denominator_signature = denominator_signatures_by_level.setdefault(
-                level,
-                denominator_signature,
-            )
-            if denominator_signature != expected_denominator_signature:
-                raise AssertionError(
-                    f"Ecosystem denominator changed between solutions for '{level}'."
+            if not (
+                national_targets[solution_id]["applicability"]
+                == "not-applicable-regional-post-hoc"
+            ):
+                expected_denominator_signature = (
+                    denominator_signatures_by_level.setdefault(
+                        level,
+                        denominator_signature,
+                    )
                 )
+                if denominator_signature != expected_denominator_signature:
+                    raise AssertionError(
+                        f"Ecosystem denominator changed between solutions for '{level}'."
+                    )
             path = mec_output_path(output_dir, solution_id, level)
             _write_minified_json(path, document)
             return _entry(

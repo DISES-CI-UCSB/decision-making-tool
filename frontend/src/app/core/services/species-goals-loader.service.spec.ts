@@ -19,6 +19,8 @@ const COMPACT_URL =
   'departments.species-goals.compact.json';
 const NATIONAL_URL =
   `/releases/${RELEASE}/species-goals/compact/v1/fixture/` + 'national.species-goals.compact.json';
+const SIRAP_URL =
+  `/releases/${RELEASE}/species-goals/compact/v1/fixture/` + 'siraps.species-goals.compact.json';
 const OVERLAY_URL =
   `/releases/${RELEASE}/species-goals/targets/v1/` + 'species-target-overlays-v1.json';
 
@@ -26,9 +28,21 @@ describe('SpeciesGoalsLoaderService', () => {
   let http: HttpTestingController;
   let service: SpeciesGoalsLoaderService;
   let targetOverlayUrl: string | undefined;
+  let catalogSolution: CatalogSolution;
 
   beforeEach(() => {
     targetOverlayUrl = undefined;
+    catalogSolution = {
+      id: 'fixture',
+      precomputedMetricUrls: {
+        speciesGoalsCatalog: CATALOG_URL,
+        speciesGoalsByGeography: {
+          departments: COMPACT_URL,
+          national: NATIONAL_URL,
+        },
+        speciesGoalsTargetOverlay: targetOverlayUrl,
+      },
+    } as CatalogSolution;
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -37,18 +51,13 @@ describe('SpeciesGoalsLoaderService', () => {
         {
           provide: SolutionCatalogService,
           useValue: {
-            getById: () =>
-              ({
-                id: 'fixture',
-                precomputedMetricUrls: {
-                  speciesGoalsCatalog: CATALOG_URL,
-                  speciesGoalsByGeography: {
-                    departments: COMPACT_URL,
-                    national: NATIONAL_URL,
-                  },
-                  speciesGoalsTargetOverlay: targetOverlayUrl,
-                },
-              }) as CatalogSolution,
+            getById: () => ({
+              ...catalogSolution,
+              precomputedMetricUrls: {
+                ...catalogSolution.precomputedMetricUrls,
+                speciesGoalsTargetOverlay: targetOverlayUrl,
+              },
+            }),
           },
         },
       ],
@@ -84,6 +93,58 @@ describe('SpeciesGoalsLoaderService', () => {
     });
     http.expectOne(CATALOG_URL).flush(catalogText);
     http.expectOne(COMPACT_URL).flush(compactText);
+
+    expect(await resultPromise).toEqual([
+      expect.objectContaining({
+        id: 'species-1',
+        solution_covered_in_aoi_pct: 40,
+      }),
+    ]);
+  });
+
+  it('hydrates when catalog provenance releaseId differs from compact release', async () => {
+    const priorRelease = 'sirap-2026-09-01-v5';
+    const currentRelease = 'sirap-2026-09-02-v6';
+    const priorCatalogUrl = `/releases/${priorRelease}/species-goals/catalog/v1/catalog.json`;
+    const currentCompactUrl =
+      `/releases/${currentRelease}/species-goals/compact/v1/fixture/` +
+      'departments.species-goals.compact.json';
+    catalogSolution = {
+      id: 'fixture',
+      precomputedMetricUrls: {
+        speciesGoalsCatalog: priorCatalogUrl,
+        speciesGoalsByGeography: { departments: currentCompactUrl },
+      },
+    } as CatalogSolution;
+
+    const catalogDoc = catalog();
+    catalogDoc.provenance.releaseId = priorRelease;
+    const compactDoc = compact();
+    compactDoc.provenance.releaseId = currentRelease;
+    const catalogText = JSON.stringify(catalogDoc);
+    const compactText = JSON.stringify(compactDoc);
+    const catalogSha256 = await sha256(catalogText);
+    const compactSha256 = await sha256(compactText);
+    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '50'));
+
+    http.expectOne(`${priorCatalogUrl}.complete.json`).flush({
+      format: 'species-goals-catalog-completion-v1',
+      status: 'complete',
+      releaseId: currentRelease,
+      catalogSha256: SHA,
+      artifactSha256: catalogSha256,
+    });
+    http.expectOne(`${currentCompactUrl}.complete.json`).flush({
+      format: 'species-goals-completion-v1',
+      status: 'complete',
+      solutionId: 'fixture',
+      geographyLevel: 'departments',
+      catalogSha256: SHA,
+      artifactSha256: compactSha256,
+      provenance: { releaseId: currentRelease },
+    });
+    http.expectOne(priorCatalogUrl).flush(catalogText);
+    http.expectOne(currentCompactUrl).flush(compactText);
 
     expect(await resultPromise).toEqual([
       expect.objectContaining({
@@ -206,6 +267,66 @@ describe('SpeciesGoalsLoaderService', () => {
     const result = await resultPromise;
     expect(result).toHaveLength(8_300);
     expect(result?.filter((row) => row.configured_target_percent !== null)).toHaveLength(8_001);
+  });
+
+  it('does not request absent species-goals artifacts for a SIRAP packet', async () => {
+    catalogSolution = {
+      id: 'sirap-orinoquia-estr17-cong17-sab17-runap-omec-iheh2030',
+      scope: 'sirap',
+      precomputedMetricUrls: {
+        compactCache: 'https://example.com/metrics/sirap/orinoquia.metrics.compact.json',
+      },
+    } as CatalogSolution;
+
+    await expect(
+      firstValueFrom(service.load(catalogSolution.id, 'siraps', 'orinoquia')),
+    ).resolves.toBeNull();
+    http.expectNone(() => true);
+  });
+
+  it('hydrates a validated SIRAP target-geography partition', async () => {
+    const document = compact();
+    document.geographyLevel = 'siraps';
+    document.scopeCatalog = [['orinoquia', 'Orinoquía']];
+    catalogSolution = {
+      id: 'fixture',
+      scope: 'sirap',
+      sirapId: 'orinoquia',
+      precomputedMetricUrls: {
+        speciesGoalsCatalog: CATALOG_URL,
+        speciesGoalsByGeography: { siraps: SIRAP_URL },
+      },
+    } as CatalogSolution;
+    const catalogText = JSON.stringify(catalog());
+    const compactText = JSON.stringify(document);
+    const catalogSha256 = await sha256(catalogText);
+    const compactSha256 = await sha256(compactText);
+    const resultPromise = firstValueFrom(service.load('fixture', 'siraps', 'orinoquia'));
+
+    http.expectOne(`${CATALOG_URL}.complete.json`).flush({
+      format: 'species-goals-catalog-completion-v1',
+      status: 'complete',
+      releaseId: RELEASE,
+      catalogSha256: SHA,
+      artifactSha256: catalogSha256,
+    });
+    http.expectOne(`${SIRAP_URL}.complete.json`).flush({
+      format: 'species-goals-completion-v1',
+      status: 'complete',
+      solutionId: 'fixture',
+      geographyLevel: 'siraps',
+      catalogSha256: SHA,
+      artifactSha256: compactSha256,
+      provenance: { releaseId: RELEASE },
+    });
+    http.expectOne(CATALOG_URL).flush(catalogText);
+    http.expectOne(SIRAP_URL).flush(compactText);
+
+    const result = await resultPromise;
+    expect(result).toHaveLength(1);
+    expect(result?.[0].range_in_aoi_area_km2).toBe(2);
+    expect(result?.[0].pre_existing_covered_in_aoi_area_km2).toBe(0.3);
+    expect(result?.[0].new_covered_in_aoi_area_km2).toBe(0.5);
   });
 
   function flushCompletions(catalogSha256: string, compactSha256: string): void {

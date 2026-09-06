@@ -215,12 +215,11 @@ from solution_catalog import (
     validate_catalog_solution_ids,
 )
 from sirap_packet import (
+    download_pinned,
     read_summary,
     regional_species_accumulator,
-    regional_species_richness,
 )
 from sparse.format import SparseFormatError
-from species_taxonomy import class_bucket
 from solution_domain import SolutionDomain, solution_domain
 from solution_input_signature import build_solution_input_signature
 from sparse.layer_source import (
@@ -613,17 +612,25 @@ def _layer_rendering(
 
 def _layer_sparse_binding(
     manifest: ResolvedManifest,
+    solution: dict[str, Any],
     layer_id: str,
     source_url: str,
 ) -> SparseLayerBinding:
     """Read optional trusted sparse pins without deriving or fabricating them."""
 
-    layer = manifest.layers_by_id.get(layer_id, {})
+    layer = (
+        _resolve_layer_binding(manifest, solution, layer_id)
+        if is_sirap_solution(solution)
+        else manifest.layers_by_id.get(layer_id, {})
+    )
     sparse_config = layer.get("sparseSource")
     if not isinstance(sparse_config, dict):
         sparse_config = {}
     binding_source_url = sparse_config.get("sourceUrl", source_url)
-    source_sha256 = sparse_config.get("sourceSha256", layer.get("sourceSha256"))
+    source_sha256 = sparse_config.get(
+        "sourceSha256",
+        layer.get("sha256") if is_sirap_solution(solution) else layer.get("sourceSha256"),
+    )
     sparse_url = sparse_config.get("url", layer.get("sparseUrl"))
     sparse_sha256 = sparse_config.get("sha256", layer.get("sparseSha256"))
     has_source_nodata = "sourceNodata" in sparse_config
@@ -1086,6 +1093,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             "Write resumable species-goals-catalog-v1 and per-geography "
             "species-goals-compact-v1 artifacts locally."
+        ),
+    )
+    parser.add_argument(
+        "--species-goals-release-id",
+        default=None,
+        help=(
+            "Bind species-goals sidecars to an external release identifier "
+            "without enabling the regular-metrics release catalog workflow."
         ),
     )
     args = parser.parse_args(argv)
@@ -2606,7 +2621,9 @@ def _compute_overlap_download(
             cache_dir,
             force_download,
             allow_sparse=allow_sparse,
-            sparse_binding=_layer_sparse_binding(manifest, layer_id, layer_url),
+            sparse_binding=_layer_sparse_binding(
+                manifest, solution, layer_id, layer_url
+            ),
             expected_sha256=binding.get("sha256"),
         )
     except (AlignmentError, DownloadError, RasterError, OSError) as exc:
@@ -3006,6 +3023,59 @@ def _species_goals_provenance(
         "exactOverlapPolicySha256": species_goals_sha256(SPECIES_POLICY.__dict__),
         "targetGridSha256": alignment_provenance["targetGridSha256"],
         "speciesAlignmentInventorySha256": alignment_provenance["sha256"],
+        "solutionRasterSha256": solution_raster_sha256,
+        "targetPolicySha256": species_goals_sha256(
+            {
+                "kind": target_policy.kind,
+                "scalarTargetPercent": target_policy.scalar_target_pct,
+                "targetsBySpecies": target_policy.targets_by_species,
+                "provenance": target_policy.provenance,
+            }
+        ),
+        "boundaryProvenanceSha256": boundary_provenance_sha256,
+        "catalogSha256": catalog_sha256,
+    }
+
+
+def _sirap_species_goals_provenance(
+    *,
+    release_id: str,
+    packet: dict[str, Any],
+    solution_raster_sha256: str,
+    target_policy: SpeciesTargetPolicy,
+    boundary_provenance_sha256: str,
+    catalog_sha256: str,
+) -> dict[str, Any]:
+    species = packet["species"]
+    matrices = [
+        {
+            field: binding[field]
+            for field in (
+                "taxonomicClass",
+                "format",
+                "url",
+                "sha256",
+                "gridSha256",
+            )
+        }
+        for binding in species["matrices"]
+    ]
+    return {
+        "releaseId": release_id,
+        "speciesCsvSha256": species["metadataLookup"]["sha256"],
+        "exceptionSourceSha256": None,
+        "exceptionPolicySha256": None,
+        "exceptionBindingSha256": None,
+        "exactOverlapAlgorithmVersion": "smsp-v1-cell-overlap",
+        "exactOverlapPolicySha256": species_goals_sha256(
+            {
+                "format": "smsp-v1",
+                "joinPolicy": species["joinPolicy"],
+                "areaBasis": "regional-grid-cell-area",
+            }
+        ),
+        "targetGridSha256": packet["grid"]["sha256"],
+        "speciesAlignmentInventorySha256": species_goals_sha256(matrices),
         "solutionRasterSha256": solution_raster_sha256,
         "targetPolicySha256": species_goals_sha256(
             {
@@ -3681,12 +3751,12 @@ def _build_metrics(
         ]
 
     for defn in computable_metrics():
-        missing_input_overrides = solution.get("_sirapMissingInputMetricOverrides")
+        status_overrides = solution.get("_sirapMetricStatusOverrides")
         if (
-            isinstance(missing_input_overrides, dict)
-            and defn.metric_id in missing_input_overrides
+            isinstance(status_overrides, dict)
+            and defn.metric_id in status_overrides
         ):
-            results.append(missing_input_overrides[defn.metric_id])
+            results.append(status_overrides[defn.metric_id])
             continue
         sirap_overrides = solution.get("_sirapPacketMetricOverrides")
         if isinstance(sirap_overrides, dict) and defn.metric_id in sirap_overrides:
@@ -3730,7 +3800,20 @@ def _build_metrics(
                     species_target_policy
                     or SpeciesTargetPolicy("scalar", None, {}, None),
                 )
-                metric["source"] = "regionalInputPacket.species"
+                metric["source"] = (
+                    "regionalInputPacket.species+"
+                    "manifest:finderInputs.structuredTargets"
+                    if (
+                        species_target_policy is not None
+                        and species_target_policy.kind == "dual_reference"
+                        and defn.kind
+                        in {
+                            "species_group_coverage",
+                            "species_threatened_secured",
+                        }
+                    )
+                    else "regionalInputPacket.species"
+                )
                 metric["notes"] = (
                     f"{metric.get('notes') or ''} Computed only from packet-declared "
                     "SMSP cells within this scope."
@@ -3815,7 +3898,13 @@ def _build_metrics(
             )
 
         elif defn.kind == "aoi_percent":
-            results.append(_compute_aoi_percent(defn, raster, subnational))
+            results.append(
+                _compute_aoi_percent(
+                    defn,
+                    raster,
+                    subnational or is_sirap_solution(solution),
+                )
+            )
 
         elif defn.kind == "blocked_no_data":
             results.append(_blocked_no_data(defn))
@@ -3955,85 +4044,39 @@ def _build_metrics(
 # ---------------------------------------------------------------------------
 
 
-_SIRAP_MISSING_INPUT_REASONS: dict[str, str] = {
-    "species_groups_protected": (
-        "Regional taxonomy/IUCN companion and target-semantics contract are absent; "
-        "packet SMSP matrices alone cannot support this metric."
-    ),
-    "threatened_species_secured": (
-        "Regional taxonomy/IUCN companion and target-semantics contract are absent; "
-        "packet SMSP matrices alone cannot support this metric."
-    ),
+_SIRAP_NOT_APPLICABLE_REASONS: dict[str, str] = {
     "carbon_storage_biomass": (
-        "No qualified regional above- plus below-ground biomass raster with units and "
-        "provenance is available; the delivered carbono raster is not semantically qualified."
-    ),
-    "agricultural_area": (
-        "No regional Level-1 land-cover raster and authoritative class 2 legend are available."
+        "SIRAP reporting uses carbon_biomass_total (#39) as its single canonical "
+        "combined above- and below-ground biomass-carbon metric."
     ),
     "national_contribution": (
-        "Approved national reference denominator and definition contract are absent."
+        "A regional solution does not report national contribution; use "
+        "priority_area_pct_of_region (#19) for SIRAP contribution."
     ),
-    "threatened_species_count": (
-        "Regional taxonomy/IUCN companion is absent; packet SMSP matrices alone cannot "
-        "reliably classify CR/EN/VU species."
-    ),
-    "species_pct_of_national": (
-        "Approved national non-fish species denominator and inclusion/exclusion contract are absent."
-    ),
-    "mangrove_coverage": "No regional mangrove presence/absence raster is available.",
-    "carbon_biomass_total": (
-        "No qualified regional above- plus below-ground biomass raster with units and "
-        "provenance is available; the delivered carbono raster is not semantically qualified."
-    ),
+    "mangrove_coverage": "Mangroves are not applicable to the two land SIRAP products.",
     "soil_organic_carbon": (
-        "No separately identified qualified regional soil-organic-carbon raster with "
-        "units and provenance is available."
+        "Soil organic carbon is outside the approved SIRAP carbon reporting scope."
     ),
     "carbon_pct_of_national": (
-        "Qualified regional biomass input and approved national biomass denominator "
-        "contract are absent."
-    ),
-    "land_use_forests_and_semi_natural_areas_pct": (
-        "No regional Level-1 land-cover raster and authoritative class 3 legend are available."
-    ),
-    "land_use_agricultural_areas_pct": (
-        "No regional Level-1 land-cover raster and authoritative class 2 legend are available."
-    ),
-    "land_use_artificial_surfaces_pct": (
-        "No regional Level-1 land-cover raster and authoritative class 1 legend are available."
-    ),
-    "land_use_wetlands_pct": (
-        "No regional Level-1 land-cover raster and authoritative class 4 legend are available."
-    ),
-    "land_use_water_bodies_pct": (
-        "No regional Level-1 land-cover raster and authoritative class 5 legend are available."
-    ),
-    "national_parks_pct": (
-        "The regional RUNAP raster is binary presence-only and cannot distinguish "
-        "category 3 / Parque Nacional Natural."
+        "Percent of national carbon is outside the approved one-number SIRAP carbon scope."
     ),
 }
 
 
-def _sirap_missing_input_metric_overrides() -> dict[str, dict[str, Any]]:
-    """Return explicit blocked metrics for known SIRAP packet input gaps."""
+def _sirap_status_metric_overrides() -> dict[str, dict[str, Any]]:
+    """Return explicit SIRAP domain/reporting exclusions."""
     definitions = {definition.metric_id: definition for definition in METRIC_CATALOG}
     return {
-        metric_id: _metric_value(
+        metric_id: _not_applicable(
             definitions[metric_id],
-            value=None,
-            status="blocked",
             notes=reason,
-            source="regionalInputPacket.missingInputAuthority",
         )
-        for metric_id, reason in _SIRAP_MISSING_INPUT_REASONS.items()
+        for metric_id, reason in _SIRAP_NOT_APPLICABLE_REASONS.items()
     }
 
 
 def _sirap_packet_metric_overrides(
     solution: dict[str, Any],
-    raster: SolutionRaster,
     cache_dir: Path,
     force_download: bool,
 ) -> dict[str, dict[str, Any]]:
@@ -4068,50 +4111,6 @@ def _sirap_packet_metric_overrides(
             source="regionalInputPacket.authoritativeSummary",
         )
 
-    try:
-        counts, provenance = regional_species_richness(
-            packet["species"]["matrices"],
-            raster,
-            packet["grid"]["sha256"],
-            cache_dir,
-            force=force_download,
-        )
-        declared_buckets = {
-            bucket
-            for matrix in packet["species"]["matrices"]
-            if (bucket := class_bucket(matrix["taxonomicClass"])) is not None
-        }
-        for definition in METRIC_CATALOG:
-            bucket = definition.species_bucket
-            if bucket is None:
-                continue
-            if bucket not in declared_buckets:
-                overrides[definition.metric_id] = _metric_value(
-                    definition,
-                    value=None,
-                    status="derivation_needed",
-                    notes=f"Packet declares no SMSP matrix for the {bucket} class.",
-                    source="regionalInputPacket.species",
-                )
-                continue
-            overrides[definition.metric_id] = _metric_value(
-                definition,
-                value=counts[bucket],
-                status="ready",
-                notes=f"Counted selected species from packet-declared {bucket} SMSP matrices.",
-                source="regionalInputPacket.species",
-                details={"matrices": provenance},
-            )
-    except (DownloadError, OSError, SparseFormatError, ValueError, IndexError) as exc:
-        for definition in METRIC_CATALOG:
-            if definition.species_bucket is not None:
-                overrides[definition.metric_id] = _metric_value(
-                    definition,
-                    value=None,
-                    status="derivation_needed",
-                    notes=f"Regional SMSP execution unavailable: {exc}",
-                    source="regionalInputPacket.species",
-                )
     return overrides
 
 
@@ -4154,7 +4153,9 @@ def _preload_layer_masks(
                 cache_dir,
                 force_download,
                 allow_sparse=domain == "land",
-                sparse_binding=_layer_sparse_binding(manifest, layer_id, url),
+                sparse_binding=_layer_sparse_binding(
+                    manifest, solution, layer_id, url
+                ),
                 expected_sha256=binding.get("sha256"),
             )
         except (AlignmentError, DownloadError, ManifestError, RasterError, OSError):
@@ -4236,6 +4237,7 @@ def _process_solution(
     species_detail_sink: SpeciesDetailSink | None = None,
     species_goals_catalog: dict[str, Any] | None = None,
     species_goals_output_dir: Path | None = None,
+    species_goals_release_id: str | None = None,
     boundary_topology_cache: BoundaryTopologyCache | None = None,
     boundary_fanout_mode: str | None = None,
     weighted_boundary_fanout_mode: str | None = None,
@@ -4288,11 +4290,9 @@ def _process_solution(
         )
     if packet_identity is not None:
         solution["_sirapPacketMetricOverrides"] = _sirap_packet_metric_overrides(
-            solution, raster, cache_dir, force_download
+            solution, cache_dir, force_download
         )
-        solution["_sirapMissingInputMetricOverrides"] = (
-            _sirap_missing_input_metric_overrides()
-        )
+        solution["_sirapMetricStatusOverrides"] = _sirap_status_metric_overrides()
     validity_mask_sha256 = boolean_mask_sha256(raster.solution_data_valid_mask)
     active_boundaries_by_level = boundaries_by_level
     packet_boundary_masks: dict[str, list[np.ndarray]] = {}
@@ -4371,25 +4371,6 @@ def _process_solution(
                     boundary_mask_cache,
                 )
     phase_seconds["boundarySetup"] = time.time() - setup_started
-    if packet_identity is not None:
-        if fanout_mode != "grouped" or not boundary_indexes:
-            raise ValueError(
-                "SIRAP SMSP aggregation requires non-empty grouped boundary topology."
-            )
-        species_started = time.time()
-        species_accumulator, species_provenance = regional_species_accumulator(
-            solution["regionalInputPacket"]["species"]["matrices"],
-            raster,
-            packet_identity["gridSha256"],
-            boundary_indexes,
-            cache_dir,
-            force=force_download,
-            target_policy=effective_target_policy,
-        )
-        solution["_sirapPacketSpeciesProvenance"] = species_provenance
-        species_pool_sizes = species_accumulator.pool_sizes
-        phase_seconds["species"] = time.time() - species_started
-
     provenance = build_metrics_provenance(
         domain,
         national_only=national_only,
@@ -4409,6 +4390,66 @@ def _process_solution(
         weighted_execution_mode=weighted_mode,
         species_execution=species_execution,
     )
+    if packet_identity is not None:
+        if fanout_mode != "grouped" or not boundary_indexes:
+            raise ValueError(
+                "SIRAP SMSP aggregation requires non-empty grouped boundary topology."
+            )
+        if species_goals_catalog is not None and species_goals_output_dir is not None:
+            if species_detail_sink is not None:
+                raise ValueError(
+                    "species_detail_sink and SIRAP species goals output cannot "
+                    "both be configured"
+                )
+            effective_goals_release_id = species_goals_release_id or release_id
+            if effective_goals_release_id is None:
+                raise ValueError("SIRAP species goals require a release id")
+            species_goals_provenance = _sirap_species_goals_provenance(
+                release_id=effective_goals_release_id,
+                packet=solution["regionalInputPacket"],
+                solution_raster_sha256=download.sha256,
+                target_policy=effective_target_policy,
+                boundary_provenance_sha256=provenance["boundaryProvenance"]["sha256"],
+                catalog_sha256=species_goals_catalog["catalogSha256"],
+            )
+            expected_levels = {"siraps", *boundary_indexes}
+            active_levels = {
+                level
+                for level in expected_levels
+                if not species_goals_partition_is_resumable(
+                    species_goals_partition_path(
+                        species_goals_output_dir, solution_id, level
+                    ),
+                    catalog=species_goals_catalog,
+                    expected_solution_id=solution_id,
+                    expected_level=level,
+                    expected_catalog_sha256=species_goals_catalog["catalogSha256"],
+                    expected_provenance=species_goals_provenance,
+                )
+            }
+            species_detail_sink = SpeciesGoalsPipeline(
+                species_goals_catalog,
+                solution_id=solution_id,
+                target_policy=effective_target_policy,
+                provenance=species_goals_provenance,
+                spool_dir=species_goals_output_dir / ".spool",
+                active_levels=active_levels,
+                primary_geography_level="siraps",
+            )
+        species_started = time.time()
+        species_accumulator, species_provenance = regional_species_accumulator(
+            solution["regionalInputPacket"]["species"],
+            raster,
+            packet_identity["gridSha256"],
+            boundary_indexes,
+            cache_dir,
+            force=force_download,
+            target_policy=effective_target_policy,
+            detail_sink=species_detail_sink,
+        )
+        solution["_sirapPacketSpeciesProvenance"] = species_provenance
+        species_pool_sizes = species_accumulator.pool_sizes
+        phase_seconds["species"] = time.time() - species_started
 
     # --- Species pass: compute counters across all scopes for this solution ---
     effective_species_runtime = (
@@ -4804,12 +4845,29 @@ def _process_solution(
 
     generated_at = _utc_now_iso()
     if isinstance(species_detail_sink, SpeciesGoalsPipeline):
+        primary_species_level = "siraps" if packet_identity is not None else "national"
+        primary_scope_catalog = (
+            [
+                [
+                    str(solution["sirapId"]),
+                    {
+                        "eje-cafetero": "Eje Cafetero",
+                        "orinoquia": "Orinoquía",
+                    }.get(
+                        str(solution["sirapId"]),
+                        str(solution["sirapId"]).replace("-", " ").title(),
+                    ),
+                ]
+            ]
+            if packet_identity is not None
+            else [["colombia", "Colombia"]]
+        )
         species_detail_sink.write_partition_streaming(
             species_goals_partition_path(
-                species_goals_output_dir, solution_id, "national"
+                species_goals_output_dir, solution_id, primary_species_level
             ),
-            geography_level="national",
-            scope_catalog=[["colombia", "Colombia"]],
+            geography_level=primary_species_level,
+            scope_catalog=primary_scope_catalog,
             generated_at=generated_at,
         )
         for level, features in active_boundaries_by_level.items():
@@ -5290,19 +5348,37 @@ def main(argv: list[str] | None = None) -> int:
     species_records: list[SpeciesRecord] | None = None
     species_pool_sizes: SpeciesPoolSizes | None = None
     species_goals_catalog: dict[str, Any] | None = None
-    if (
-        any(
-            solution_domain(solution) == "land" and not is_sirap_solution(solution)
-            for solution in selected_solutions
-        )
-        and not args.skip_species
-    ):
+    species_goals_release_id = args.species_goals_release_id or args.release_id
+    land_solutions = [
+        solution
+        for solution in selected_solutions
+        if solution_domain(solution) == "land"
+    ]
+    if land_solutions and not args.skip_species:
         try:
-            species_csv_download = cached_download(
-                args.species_csv_url,
-                args.cache_dir,
-                force=args.no_cache,
-            )
+            if all(is_sirap_solution(solution) for solution in land_solutions):
+                metadata_bindings = {
+                    json.dumps(
+                        solution["regionalInputPacket"]["species"]["metadataLookup"],
+                        sort_keys=True,
+                    )
+                    for solution in land_solutions
+                }
+                if len(metadata_bindings) != 1:
+                    raise ValueError(
+                        "selected SIRAP packets use different national species lookups"
+                    )
+                species_csv_download = download_pinned(
+                    json.loads(next(iter(metadata_bindings))),
+                    args.cache_dir,
+                    force=args.no_cache,
+                )
+            else:
+                species_csv_download = cached_download(
+                    args.species_csv_url,
+                    args.cache_dir,
+                    force=args.no_cache,
+                )
             catalog_species_records = load_species_records(species_csv_download.path)
             species_pool_sizes = compute_pool_sizes(catalog_species_records)
             species_records = (
@@ -5322,11 +5398,11 @@ def main(argv: list[str] | None = None) -> int:
             args.skip_species
             or catalog_species_records is None
             or species_csv_download is None
-            or args.release_id is None
+            or species_goals_release_id is None
         ):
             print(
                 "[tier1-metrics] ERROR: --species-goals-output-dir requires "
-                "--release-id and the species pass.",
+                "--species-goals-release-id (or --release-id) and the species pass.",
                 file=sys.stderr,
             )
             return 2
@@ -5344,7 +5420,7 @@ def main(argv: list[str] | None = None) -> int:
             catalog_species_records,
             unavailable_species_ids=unavailable_ids,
             provenance={
-                "releaseId": args.release_id,
+                "releaseId": species_goals_release_id,
                 "speciesCsvSha256": species_csv_download.sha256,
                 "exceptionSourceSha256": (
                     _species_exception_source_sha256(species_exception)
@@ -5391,7 +5467,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skip_species:
         try:
             for solution in selected_solutions:
-                if solution_domain(solution) != "land" or is_sirap_solution(solution):
+                if solution_domain(solution) != "land":
                     continue
                 species_target_policies[str(solution.get("id"))] = (
                     resolve_species_target_policy(
@@ -5837,31 +5913,44 @@ def main(argv: list[str] | None = None) -> int:
                 solution_id = str(solution.get("id"))
                 regular_provenance = expected_provenance_by_id[solution_id]
                 target_policy = species_target_policies[solution_id]
-                sidecar_provenance = _species_goals_provenance(
-                    release_id=args.release_id,
-                    species_csv_sha256=species_csv_download.sha256,
-                    species_exception_source_sha256=(
-                        _species_exception_source_sha256(species_exception)
-                    ),
-                    species_exception_binding=(
-                        species_exception.binding
-                        if species_exception is not None
-                        else None
-                    ),
-                    alignment_provenance=regular_provenance["inputAlignment"],
-                    solution_raster_sha256=solution_checksums[solution_id],
-                    target_policy=target_policy,
-                    boundary_provenance_sha256=regular_provenance[
-                        "boundaryProvenance"
-                    ]["sha256"],
-                    catalog_sha256=species_goals_catalog["catalogSha256"],
-                )
-                expected_levels = (
-                    {"national"}
-                    if args.national_only
-                    else set(SPECIES_GOALS_GEOGRAPHY_LEVELS)
-                    - set(args.skip_species_boundary_level)
-                )
+                if is_sirap_solution(solution):
+                    sidecar_provenance = _sirap_species_goals_provenance(
+                        release_id=species_goals_release_id,
+                        packet=solution["regionalInputPacket"],
+                        solution_raster_sha256=solution_checksums[solution_id],
+                        target_policy=target_policy,
+                        boundary_provenance_sha256=regular_provenance[
+                            "boundaryProvenance"
+                        ]["sha256"],
+                        catalog_sha256=species_goals_catalog["catalogSha256"],
+                    )
+                    expected_levels = {"siraps", "departments", "municipalities"}
+                else:
+                    sidecar_provenance = _species_goals_provenance(
+                        release_id=args.release_id,
+                        species_csv_sha256=species_csv_download.sha256,
+                        species_exception_source_sha256=(
+                            _species_exception_source_sha256(species_exception)
+                        ),
+                        species_exception_binding=(
+                            species_exception.binding
+                            if species_exception is not None
+                            else None
+                        ),
+                        alignment_provenance=regular_provenance["inputAlignment"],
+                        solution_raster_sha256=solution_checksums[solution_id],
+                        target_policy=target_policy,
+                        boundary_provenance_sha256=regular_provenance[
+                            "boundaryProvenance"
+                        ]["sha256"],
+                        catalog_sha256=species_goals_catalog["catalogSha256"],
+                    )
+                    expected_levels = (
+                        {"national"}
+                        if args.national_only
+                        else set(SPECIES_GOALS_GEOGRAPHY_LEVELS)
+                        - set(args.skip_species_boundary_level)
+                    )
                 if not all(
                     species_goals_partition_is_resumable(
                         species_goals_partition_path(
@@ -6229,6 +6318,7 @@ def main(argv: list[str] | None = None) -> int:
                     species_target_policy=species_target_policies.get(solution_id),
                     species_goals_catalog=species_goals_catalog,
                     species_goals_output_dir=args.species_goals_output_dir,
+                    species_goals_release_id=species_goals_release_id,
                     species_detail_sink=(
                         precomputed_species.detail_sink
                         if precomputed_species is not None
@@ -6292,36 +6382,58 @@ def main(argv: list[str] | None = None) -> int:
         args.species_goals_output_dir is not None
         and species_goals_catalog is not None
         and species_csv_download is not None
-        and args.release_id is not None
+        and species_goals_release_id is not None
     ):
         expected_sidecar_provenance = {}
+        expected_sidecar_levels: dict[str, tuple[str, ...]] = {}
         for solution in solutions:
             solution_id = str(solution.get("id"))
             if solution_domain(solution) != "land":
                 continue
             regular_provenance = expected_provenance_by_id[solution_id]
-            expected_sidecar_provenance[solution_id] = _species_goals_provenance(
-                release_id=args.release_id,
-                species_csv_sha256=species_csv_download.sha256,
-                species_exception_source_sha256=(
-                    _species_exception_source_sha256(species_exception)
-                ),
-                species_exception_binding=(
-                    species_exception.binding if species_exception is not None else None
-                ),
-                alignment_provenance=regular_provenance["inputAlignment"],
-                solution_raster_sha256=solution_checksums[solution_id],
-                target_policy=species_target_policies[solution_id],
-                boundary_provenance_sha256=regular_provenance[
+            common = {
+                "release_id": species_goals_release_id,
+                "solution_raster_sha256": solution_checksums[solution_id],
+                "target_policy": species_target_policies[solution_id],
+                "boundary_provenance_sha256": regular_provenance[
                     "boundaryProvenance"
                 ]["sha256"],
-                catalog_sha256=species_goals_catalog["catalogSha256"],
-            )
+                "catalog_sha256": species_goals_catalog["catalogSha256"],
+            }
+            if is_sirap_solution(solution):
+                expected_sidecar_levels[solution_id] = (
+                    "siraps",
+                    "departments",
+                    "municipalities",
+                )
+                expected_sidecar_provenance[solution_id] = (
+                    _sirap_species_goals_provenance(
+                        packet=solution["regionalInputPacket"],
+                        **common,
+                    )
+                )
+            else:
+                expected_sidecar_provenance[solution_id] = (
+                    _species_goals_provenance(
+                        species_csv_sha256=species_csv_download.sha256,
+                        species_exception_source_sha256=(
+                            _species_exception_source_sha256(species_exception)
+                        ),
+                        species_exception_binding=(
+                            species_exception.binding
+                            if species_exception is not None
+                            else None
+                        ),
+                        alignment_provenance=regular_provenance["inputAlignment"],
+                        **common,
+                    )
+                )
         species_goals_inventory = write_species_goals_release_inventory(
             args.species_goals_output_dir,
-            release_id=args.release_id,
+            release_id=species_goals_release_id,
             catalog=species_goals_catalog,
             expected_provenance_by_solution=expected_sidecar_provenance,
+            expected_levels_by_solution=expected_sidecar_levels,
         )
         print(
             "[tier1-metrics] species goals release inventory: "

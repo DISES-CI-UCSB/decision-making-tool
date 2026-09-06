@@ -118,6 +118,7 @@ export function expandCompactMetricsDocument(
     solutionId: document.solutionId,
     generatedAt: document.generatedAt,
     ...(document.metricsProvenance ? { metricsProvenance: document.metricsProvenance } : {}),
+    ...(document.primaryGeography ? { primaryGeography: document.primaryGeography } : {}),
     geographies,
   };
 }
@@ -131,6 +132,10 @@ export function normalizeMetricsDocument(
 export function nationalMetrics(
   document: CachedSolutionMetricsDocument | null | undefined,
 ): MetricValue[] {
+  const primary = document?.primaryGeography;
+  if (primary) {
+    return document?.geographies?.[primary.level]?.[primary.scopeId]?.metrics ?? [];
+  }
   return document?.geographies?.national?.['colombia']?.metrics ?? [];
 }
 

@@ -528,6 +528,7 @@ def test_raster_artifact_warmup_reports_species_index_metadata(tmp_path: Path) -
         Settings(
             artifact_dir=tmp_path,
             artifact_manifest_path=manifest_path,
+            sirap_artifact_root=tmp_path / "sirap",
             artifact_required=True,
             artifact_schema_version="metrics-artifact-manifest/v1",
         )

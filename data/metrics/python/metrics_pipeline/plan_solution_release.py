@@ -100,6 +100,8 @@ def build_release_plan(
             action, reason = "recompute", "solution-basename-changed"
         elif baseline_entry.domain != entry.domain:
             action, reason = "recompute", "solution-domain-changed"
+        elif baseline_entry.scope != entry.scope:
+            action, reason = "recompute", "solution-scope-changed"
         elif baseline_entry.raster_sha256 != entry.raster_sha256:
             action, reason = "recompute", "raster-sha256-changed"
         elif (
@@ -121,6 +123,7 @@ def build_release_plan(
                 "solutionId": entry.solution_id,
                 "solutionBasename": entry.solution_basename,
                 "domain": entry.domain,
+                **({"scope": entry.scope} if entry.scope is not None else {}),
                 "rasterSha256": entry.raster_sha256,
                 "solutionInputSignature": (
                     input_signatures.get(entry.solution_id)

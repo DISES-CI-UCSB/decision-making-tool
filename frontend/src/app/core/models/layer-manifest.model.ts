@@ -93,6 +93,37 @@ export interface RuntimeLayerManifest {
   solutions: RuntimeSolutionManifestEntry[];
 }
 
+/** Independently versioned, solution-only batch merged into the primary runtime manifest. */
+export interface RuntimeSirapManifest {
+  format: 'sirap-runtime-manifest-v1';
+  releaseId: string;
+  catalogVersion: string;
+  catalogSha256: string;
+  generatedAt: string;
+  publicBlobHost: string;
+  expectedSolutionCount: number;
+  expectedRegularArtifactCount: number;
+  expectedGoalSummaryArtifactCount: number;
+  expectedSourceSummaryArtifactCount: number;
+  solutions: RuntimeSolutionManifestEntry[];
+}
+
+/** Immutable runtime index that composes the complete app-visible solution inventory. */
+export interface RuntimeCatalogReleaseIndex {
+  format: 'runtime-catalog-release-v1';
+  catalogVersion: string;
+  releaseId: string;
+  generatedAt: string;
+  expectedSolutionCount: number;
+  batches: RuntimeCatalogReleaseBatch[];
+}
+
+export interface RuntimeCatalogReleaseBatch {
+  id: string;
+  manifestUrl: string;
+  expectedSolutionCount: number;
+}
+
 export interface RuntimeLayerManifestSubcategory {
   id: string;
   spanishLabel: string;
@@ -208,6 +239,15 @@ export interface RuntimeSolutionMecGeographyUrls {
   omecs: string;
 }
 
+export interface RuntimeSolutionSpeciesGeographyUrls {
+  national?: string;
+  departments?: string;
+  municipalities?: string;
+  siraps?: string;
+  runaps?: string;
+  omecs?: string;
+}
+
 export interface RuntimeSolutionPrecomputedMetricUrls {
   compactCache?: string;
   compact?: string;
@@ -219,13 +259,19 @@ export interface RuntimeSolutionPrecomputedMetricUrls {
   mecByGeography?: RuntimeSolutionMecGeographyUrls;
   /** Versioned `mec-compact-v2` shards used by current clients when published. */
   mecV2ByGeography?: RuntimeSolutionMecGeographyUrls;
+  /** Shared Colombia-wide MEC class areas for SIRAP reporting denominators. */
+  mecNationalDenominator?: string;
   /** Shared immutable identity/taxonomy catalog for species coverage rows. */
   speciesGoalsCatalog?: string;
   /** Shared release-wide configured-species target maps keyed by solution. */
   speciesGoalsTargetOverlay?: string;
-  /** Per-solution national/predefined-AOI species coverage shards. */
-  speciesGoalsByGeography?: RuntimeSolutionMecGeographyUrls;
-  [key: string]: string | RuntimeSolutionMecGeographyUrls | undefined;
+  /** Per-solution target-geography and predefined-AOI species coverage shards. */
+  speciesGoalsByGeography?: RuntimeSolutionSpeciesGeographyUrls;
+  [key: string]:
+    | string
+    | RuntimeSolutionMecGeographyUrls
+    | RuntimeSolutionSpeciesGeographyUrls
+    | undefined;
 }
 
 export interface RuntimeSolutionManifestEntry {

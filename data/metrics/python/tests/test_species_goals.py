@@ -70,6 +70,8 @@ def _pipeline(
     *,
     raster_sha256: str = SHA_A,
     policy: SpeciesTargetPolicy | None = None,
+    active_levels: set[str] | None = None,
+    primary_geography_level: str = "national",
 ) -> SpeciesGoalsPipeline:
     return SpeciesGoalsPipeline(
         catalog,
@@ -98,6 +100,8 @@ def _pipeline(
             "catalogSha256": catalog["catalogSha256"],
         },
         spool_dir=tmp_path / "spool",
+        active_levels=active_levels,
+        primary_geography_level=primary_geography_level,
     )
 
 
@@ -133,6 +137,36 @@ def test_national_dense_rows_encode_unavailable_no_range_and_threshold_flags(
         | FLAG_CONFIGURED_TARGET_MET
     )
     validate_compact(document, catalog=catalog)
+
+
+def test_sirap_primary_scope_uses_regional_sparse_partition(tmp_path: Path):
+    records = [_species("Regional species"), _species("Outside region", 0)]
+    catalog = _catalog(records)
+    pipeline = _pipeline(
+        catalog,
+        tmp_path,
+        active_levels={"siraps"},
+        primary_geography_level="siraps",
+    )
+    pipeline.record_national(
+        records[0],
+        400_000,
+        1_000_000,
+        pre_existing_area_m2=100_000,
+        new_prioritizr_area_m2=300_000,
+    )
+    pipeline.record_national(records[1], 0, 0)
+
+    document = pipeline.build_partition(
+        geography_level="siraps",
+        scope_catalog=[["eje-cafetero", "Eje Cafetero"]],
+    )
+
+    assert document["encoding"] == "sparse-no-range-omitted"
+    assert document["scopeCatalog"] == [["eje-cafetero", "Eje Cafetero"]]
+    assert len(document["rows"]) == 1
+    assert document["rows"][0][2:6] == [1.0, 0.4, 0.1, 0.3]
+    assert document["rows"][0][7] & FLAG_MET_30
 
 
 def test_per_species_configured_target_and_subnational_sparse_encoding(tmp_path: Path):

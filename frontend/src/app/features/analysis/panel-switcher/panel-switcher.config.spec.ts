@@ -60,6 +60,19 @@ describe('panel switcher metric configuration', () => {
       expect(CUSTOM_AOI_METRIC_DEFINITIONS[metricId]?.metricId).toBe(metricId);
     }
   });
+
+  it('requests the five CORINE Level 1 land-cover percentages', () => {
+    expect(CUSTOM_AOI_FAST_METRIC_IDS).toEqual(
+      expect.arrayContaining([
+        'land_use_artificial_surfaces_pct',
+        'land_use_agricultural_areas_pct',
+        'land_use_forests_and_semi_natural_areas_pct',
+        'land_use_wetlands_pct',
+        'land_use_water_bodies_pct',
+      ]),
+    );
+    expect(CUSTOM_AOI_FAST_METRIC_IDS).not.toContain('land_use_other_pct');
+  });
 });
 
 function expectBlueprintIds(

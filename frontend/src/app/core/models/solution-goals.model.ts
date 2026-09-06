@@ -25,6 +25,16 @@ export interface SolutionGoalsTargetContext {
   targetFeatureIds: string[];
   relativeTargetsByType: Record<string, number[]>;
   structuredTargets?: RuntimeSolutionStructuredTargets;
+  sirap?: {
+    regionId: string;
+    selectionStep: 1;
+    source: 'certified-solution-name';
+    groups: {
+      id: string;
+      targetPercent: number;
+      targetMode: string;
+    }[];
+  };
 }
 
 export interface SolutionGoalsSummary extends GoalCountSummary {
@@ -73,6 +83,8 @@ export interface GoalFeatureRow {
   scenario: string | null;
   /** Whether final coverage came from solver evaluation or post-hoc pre-existing coverage. */
   evaluationSource?: string;
+  totalAmountKm2?: number | null;
+  absoluteHeldKm2?: number | null;
   /** Friendly display label for strategic ecosystem features (e.g. "Páramos"). */
   label?: string;
   taxonClass?: string | null;
@@ -88,10 +100,13 @@ export interface SolutionGoalsDocument {
   solutionName: string;
   generatedAt: string;
   source: {
+    metadataUrl?: string | null;
     summaryCsvUrl: string | null;
+    summaryCsvSha256?: string;
     summaryCsvRows: number;
     solutionDomain: 'land' | 'marine';
     speciesLookupUrl: string;
+    summarySchema?: string;
   };
   targetContext: SolutionGoalsTargetContext;
   summary: SolutionGoalsSummary;
@@ -102,6 +117,13 @@ export interface SolutionGoalsDocument {
     ecosystems: GoalFeatureRow[];
     other: GoalFeatureRow[];
   };
+  regionalTargetGroups?: {
+    id: string;
+    targetPercent: number;
+    targetMode: string;
+    evaluationSource: string;
+    features: GoalFeatureRow[];
+  }[];
   diagnostics: {
     rawTypeCounts: Record<string, number>;
     evaluationSourceCounts?: Record<string, number>;

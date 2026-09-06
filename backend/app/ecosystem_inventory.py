@@ -81,7 +81,11 @@ def build_ecosystem_inventory(
     inventory: RuntimeEcosystemInventory,
     raster: SolutionRaster,
     solution_raster: SolutionRaster | None = None,
+    *,
+    reference_scope: str = "national",
 ) -> dict[str, Any]:
+    if reference_scope not in {"national", "sirap"}:
+        raise EcosystemInventoryError(f"unsupported_ecosystem_reference_scope:{reference_scope}")
     total_aoi_area_km2 = raster.selected_area_km2
     try:
         ecosystem_values, _ = read_mec_raster_values(
@@ -109,12 +113,32 @@ def build_ecosystem_inventory(
                 pixel_area_km2_per_row=raster.pixel_area_km2_per_row,
                 taxonomy=inventory.taxonomy,
             )
-        national_rows = compute_inventory_rows(
-            scope_mask=np.isfinite(ecosystem_values),
+        national_scope_mask = np.isfinite(ecosystem_values)
+        reference_scope_mask = (
+            solution_raster.valid_mask
+            if reference_scope == "sirap" and solution_raster is not None
+            else raster.valid_mask
+            if reference_scope == "sirap"
+            else national_scope_mask
+        )
+        reference_rows = compute_inventory_rows(
+            scope_mask=reference_scope_mask,
             ecosystem_values=ecosystem_values,
             pixel_area_km2_per_row=raster.pixel_area_km2_per_row,
             taxonomy=inventory.taxonomy,
         )
+        national_area_by_class: dict[int, float] | None = None
+        if reference_scope == "sirap":
+            national_reference_rows = compute_inventory_rows(
+                scope_mask=national_scope_mask,
+                ecosystem_values=ecosystem_values,
+                pixel_area_km2_per_row=raster.pixel_area_km2_per_row,
+                taxonomy=inventory.taxonomy,
+            )
+            national_area_by_class = {
+                int(row[1]): float(row[2])
+                for row in national_reference_rows
+            }
     except Exception as exc:
         raise EcosystemInventoryError(f"ecosystem_inventory_query_failed:{exc}") from exc
 
@@ -127,9 +151,9 @@ def build_ecosystem_inventory(
     records_by_view: dict[str, list[dict[str, Any]]] = {
         view_id: [] for view_id in UI_VIEW_IDS
     }
-    national_area_by_class = {
+    reference_area_by_class = {
         int(row[1]): float(row[2])
-        for row in national_rows
+        for row in reference_rows
     }
     for row in rows:
         item = inventory.taxonomy.classes[int(row[1])]
@@ -150,43 +174,56 @@ def build_ecosystem_inventory(
             if pre_existing_area_km2 is not None and new_area_km2 is not None
             else None
         )
-        national_area_km2 = national_area_by_class.get(int(row[1]), 0.0)
-        records_by_view[view_id].append(
-            {
-                "id": item.class_id,
-                "label": item.label,
-                "area_km2": area_km2,
-                "national_area_km2": national_area_km2,
-                "share_of_classified_pct": (
-                    (area_km2 / classified_area_km2) * 100.0
-                    if classified_area_km2 > 0
-                    else None
-                ),
-                "share_of_total_aoi_pct": _percentage(
-                    area_km2,
-                    total_aoi_area_km2,
-                ),
-                "share_of_national_class_pct": _percentage(
-                    area_km2,
-                    national_area_km2,
-                ),
-                "solution_covered_area_km2": solution_area_km2,
-                "solution_covered_pct_of_aoi": _percentage(
-                    solution_area_km2,
-                    area_km2,
-                ) if solution_area_km2 is not None else None,
-                "pre_existing_covered_area_km2": pre_existing_area_km2,
-                "pre_existing_covered_pct_of_aoi": _percentage(
-                    pre_existing_area_km2,
-                    area_km2,
-                ) if pre_existing_area_km2 is not None else None,
-                "new_covered_area_km2": new_area_km2,
-                "new_covered_pct_of_aoi": _percentage(
-                    new_area_km2,
-                    area_km2,
-                ) if new_area_km2 is not None else None,
-            }
-        )
+        reference_area_km2 = reference_area_by_class.get(int(row[1]), 0.0)
+        record: dict[str, Any] = {
+            "id": item.class_id,
+            "label": item.label,
+            "area_km2": area_km2,
+            "share_of_classified_pct": (
+                (area_km2 / classified_area_km2) * 100.0
+                if classified_area_km2 > 0
+                else None
+            ),
+            "share_of_total_aoi_pct": _percentage(
+                area_km2,
+                total_aoi_area_km2,
+            ),
+            "solution_covered_area_km2": solution_area_km2,
+            "solution_covered_pct_of_aoi": _percentage(
+                solution_area_km2,
+                area_km2,
+            ) if solution_area_km2 is not None else None,
+            "pre_existing_covered_area_km2": pre_existing_area_km2,
+            "pre_existing_covered_pct_of_aoi": _percentage(
+                pre_existing_area_km2,
+                area_km2,
+            ) if pre_existing_area_km2 is not None else None,
+            "new_covered_area_km2": new_area_km2,
+            "new_covered_pct_of_aoi": _percentage(
+                new_area_km2,
+                area_km2,
+            ) if new_area_km2 is not None else None,
+        }
+        if reference_scope == "national":
+            record["national_area_km2"] = reference_area_km2
+            share_of_reference = _percentage(area_km2, reference_area_km2)
+            if share_of_reference is not None:
+                record["share_of_national_class_pct"] = share_of_reference
+        elif reference_scope == "sirap":
+            record["sirap_area_km2"] = reference_area_km2
+            share_of_sirap = _percentage(area_km2, reference_area_km2)
+            if share_of_sirap is not None:
+                record["share_of_sirap_class_pct"] = share_of_sirap
+            national_area_km2 = (
+                national_area_by_class.get(int(row[1]), 0.0)
+                if national_area_by_class is not None
+                else 0.0
+            )
+            record["national_area_km2"] = national_area_km2
+            share_of_national = _percentage(area_km2, national_area_km2)
+            if share_of_national is not None:
+                record["share_of_national_class_pct"] = share_of_national
+        records_by_view[view_id].append(record)
 
     views = []
     for view_id, view_label in inventory.taxonomy.view_catalog:
@@ -196,6 +233,7 @@ def build_ecosystem_inventory(
 
     return {
         "canonical_summary_view": CANONICAL_SUMMARY_VIEW,
+        "reference_scope": reference_scope,
         "classified_area_km2": classified_area_km2,
         "views": views,
     }

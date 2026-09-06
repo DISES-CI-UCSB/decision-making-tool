@@ -110,8 +110,8 @@ describe('AuthService', () => {
       status: 'active',
       role: 'authorized_viewer',
       tier: UserTier.DecisionMaker,
-      allowedSirapIds: ['caribe'],
-      administeredSirapIds: ['caribe', 'pacifico'],
+      allowedSirapIds: ['orinoquia'],
+      administeredSirapIds: ['orinoquia', 'eje-cafetero'],
     });
     const authService = TestBed.inject(AuthService);
     const appState = TestBed.inject(AppStateService);
@@ -120,12 +120,12 @@ describe('AuthService', () => {
 
     expect(appState.userIsAdmin$()).toBe(true);
     expect(appState.userIsSuperAdmin$()).toBe(false);
-    expect(appState.allowedSirapIds$()).toEqual(['caribe']);
-    expect(appState.administeredSirapIds$()).toEqual(['caribe', 'pacifico']);
-    expect(appState.accessibleSirapIds()).toEqual(['caribe']);
+    expect(appState.allowedSirapIds$()).toEqual(['orinoquia']);
+    expect(appState.administeredSirapIds$()).toEqual(['orinoquia', 'eje-cafetero']);
+    expect(appState.accessibleSirapIds()).toEqual(['orinoquia']);
   });
 
-  it('gives legacy super admins access to every SIRAP', async () => {
+  it('gives legacy super admins access to every available SIRAP', async () => {
     firebase.auth.currentUser = { uid: 'legacy-admin-uid' };
     firebase.userDocs.set('legacy-admin-uid', {
       status: 'active',
@@ -137,7 +137,8 @@ describe('AuthService', () => {
     await authService.refreshCurrentUserTier();
 
     expect(appState.userIsSuperAdmin$()).toBe(true);
-    expect(appState.accessibleSirapIds()).toHaveLength(6);
+    expect(appState.accessibleSirapIds()).toHaveLength(2);
+    expect(appState.accessibleSirapIds()).toEqual(['orinoquia', 'eje-cafetero']);
   });
 
   it('reacts to SIRAP grants without requiring another login', () => {
@@ -155,10 +156,10 @@ describe('AuthService', () => {
       status: 'active',
       role: 'authorized_viewer',
       tier: UserTier.DecisionMaker,
-      allowedSirapIds: ['amazonia'],
+      allowedSirapIds: ['eje-cafetero'],
     });
 
-    expect(appState.allowedSirapIds$()).toEqual(['amazonia']);
+    expect(appState.allowedSirapIds$()).toEqual(['eje-cafetero']);
     expect(appState.canAccessSirapScope()).toBe(true);
   });
 

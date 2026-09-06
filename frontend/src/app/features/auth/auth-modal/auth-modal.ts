@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { AuthService } from '@core/services/auth.service';
-import { SIRAP_REGIONS, type SirapRegionId } from '@core/models';
+import { SIRAP_ACCESS_REGIONS, type SirapRegionId } from '@core/models';
 import {
   AuthRequestService,
   type EmailRequestPayload,
@@ -83,7 +83,7 @@ export class AuthModalComponent {
     reason: '',
     requestedSirapIds: [],
   });
-  protected readonly sirapRegions = SIRAP_REGIONS;
+  protected readonly sirapRegions = SIRAP_ACCESS_REGIONS;
   protected readonly pendingGoogleProfile = signal<GoogleProfile | null>(null);
   protected readonly confirmedRequest = signal<StoredPendingRequest | null>(null);
 
@@ -153,6 +153,7 @@ export class AuthModalComponent {
       const loginResult = await this.authRequest.attemptLogin({
         uid: profile.uid,
         email: profile.email,
+        displayName: profile.name,
         provider: 'google',
       });
       if (loginResult === 'active') {
@@ -343,7 +344,7 @@ export class AuthModalComponent {
       });
       await this.enforceMinDelay(startedAt);
       this.confirmedRequest.set(stored);
-      this.state.set('pendingConfirm');
+      await this.syncSessionAndClose();
     } finally {
       this.isSubmitting.set(false);
     }

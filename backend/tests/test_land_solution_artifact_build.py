@@ -289,6 +289,7 @@ def test_runtime_artifact_preserves_each_corine_level_1_land_use_class() -> None
         ),
         "coberturas_wetlands": (4, "land_use_wetlands_pct"),
         "coberturas_water_bodies": (5, "land_use_water_bodies_pct"),
+        "coberturas_agriculture": (2, "agricultural_area"),
     }
 
     assert set(layers) == set(expected_land_use_layers)

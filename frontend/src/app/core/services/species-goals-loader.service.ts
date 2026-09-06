@@ -41,11 +41,7 @@ export class SpeciesGoalsLoaderService {
       return of(null);
     }
     const releaseId = releaseIdFromUrl(partitionUrl);
-    if (
-      !releaseId ||
-      releaseIdFromUrl(catalogUrl) !== releaseId ||
-      (targetOverlayUrl && releaseIdFromUrl(targetOverlayUrl) !== releaseId)
-    ) {
+    if (!releaseId || (targetOverlayUrl && releaseIdFromUrl(targetOverlayUrl) !== releaseId)) {
       return of(null);
     }
 
@@ -103,7 +99,6 @@ export class SpeciesGoalsLoaderService {
             compact.solutionId !== solutionId ||
             compact.geographyLevel !== geographyLevel ||
             compact.provenance.releaseId !== releaseId ||
-            catalog.provenance.releaseId !== releaseId ||
             catalogCompletion['format'] !== 'species-goals-catalog-completion-v1' ||
             catalogCompletion['status'] !== 'complete' ||
             catalogCompletion['releaseId'] !== releaseId ||

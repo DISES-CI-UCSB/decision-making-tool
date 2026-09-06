@@ -13,10 +13,11 @@ import type {
 } from '@core/models';
 import { ApiService } from '@core/services/api.service';
 import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import {
   clampSpeciesBarPercent,
   CustomAoiSpeciesInventoryComponent,
+  isNationalRangeUnavailable,
   mapMesaSpeciesCoverage,
 } from './custom-aoi-species-inventory';
 
@@ -88,11 +89,18 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(compiled.querySelector('table#custom-aoi-species-inventory-table')).not.toBeNull();
     expect(compiled.querySelector('caption#custom-aoi-species-inventory-caption')).not.toBeNull();
     expect(
+      compiled.querySelector('#custom-aoi-species-inventory-modal-title')?.textContent,
+    ).toContain('analysis.aoi.customProfile.species.modalTitle');
+    expect(compiled.querySelector('#custom-aoi-species-inventory-species-heading')).not.toBeNull();
+    expect(
+      compiled.querySelector('#custom-aoi-species-inventory-species-heading-spacer'),
+    ).not.toBeNull();
+    expect(
       compiled.querySelectorAll('#custom-aoi-species-inventory-table-head th[scope="colgroup"]'),
     ).toHaveLength(2);
     expect(
-      compiled.querySelectorAll('#custom-aoi-species-inventory-table-head th[scope="col"]'),
-    ).toHaveLength(5);
+      compiled.querySelectorAll('#custom-aoi-species-inventory-column-heading-row th[scope="col"]'),
+    ).toHaveLength(6);
     expect(
       compiled.querySelectorAll('#custom-aoi-species-inventory-table-body th[scope="row"]'),
     ).toHaveLength(2);
@@ -105,6 +113,36 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(
       compiled.querySelector('#custom-aoi-species-inventory-group-heading-row')?.classList,
     ).toContain('h-8');
+  });
+
+  it('opens coverage heading tooltips toward the table so they do not extend scroll width', () => {
+    const fixture = createFixture(null);
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const leftAlignedTooltipIds = [
+      'custom-aoi-species-inventory-species-heading-help-tooltip',
+      'custom-aoi-species-inventory-national-range-heading-help-tooltip',
+      'custom-aoi-species-inventory-range-in-aoi-heading-help-tooltip',
+    ];
+    for (const tooltipId of leftAlignedTooltipIds) {
+      expect(compiled.querySelector(`#${tooltipId}`)?.classList).toContain('left-0');
+      expect(compiled.querySelector(`#${tooltipId}`)?.classList).not.toContain('right-0');
+    }
+
+    const coverageTooltipIds = [
+      'custom-aoi-species-inventory-solutionCoverage-heading-help-tooltip',
+      'custom-aoi-species-inventory-preExistingCoverage-heading-help-tooltip',
+      'custom-aoi-species-inventory-newCoverage-heading-help-tooltip',
+    ];
+    for (const tooltipId of coverageTooltipIds) {
+      const tooltip = compiled.querySelector(`#${tooltipId}`);
+      expect(tooltip?.classList).toContain('right-0');
+      expect(tooltip?.classList).not.toContain('left-0');
+      expect(tooltip?.classList).toContain('hidden');
+      expect(tooltip?.classList).not.toContain('opacity-0');
+    }
   });
 
   it('loads predefined AOI sidecars without starting a custom runtime job', async () => {
@@ -127,6 +165,38 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
         '#custom-aoi-species-coverage-precomputed-complete',
       ),
     ).not.toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '#custom-aoi-species-national-range-value-0',
+      )?.textContent,
+    ).toContain('100 km²');
+  });
+
+  it('shows Unavailable for catalog species marked unavailable in precomputed coverage', async () => {
+    speciesGoals.load.mockReturnValue(
+      of([
+        {
+          ...precomputedSpeciesRecord(),
+          availability: 'unavailable',
+          range_area_km2: 0,
+        },
+      ]),
+    );
+    const fixture = TestBed.createComponent(CustomAoiSpeciesInventoryComponent);
+    fixture.componentRef.setInput('geometry', null);
+    fixture.componentRef.setInput('solutionId', 'solution-1');
+    fixture.componentRef.setInput('geographyLevel', 'siraps');
+    fixture.componentRef.setInput('scopeId', 'orinoquia');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '#custom-aoi-species-national-range-value-0',
+      )?.textContent,
+    ).toContain('analysis.common.valueUnavailable');
   });
 
   it('labels coverage columns with their within-AOI scope', () => {
@@ -135,6 +205,7 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
         aoi: {
           customProfile: {
             species: {
+              nationalModeledRangeColombia: 'National species range',
               solutionCoverage: 'Total scenario coverage (within AOI)',
               preExistingCoverage: 'Pre-existing coverage (within AOI)',
               newCoverage: 'New coverage (within AOI)',
@@ -148,6 +219,10 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
+    expect(
+      compiled.querySelector('#custom-aoi-species-inventory-national-range-heading-label')
+        ?.textContent,
+    ).toContain('National species range');
     expect(
       compiled.querySelector('#custom-aoi-species-inventory-solutionCoverage-heading-label')
         ?.textContent,
@@ -202,9 +277,22 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('#custom-aoi-species-coverage-complete')).not.toBeNull();
+    expect(
+      compiled.querySelector('#custom-aoi-species-national-range-value-0')?.textContent,
+    ).toContain('100 km²');
+    expect(
+      compiled.querySelector('#custom-aoi-species-national-range-value-0')?.className,
+    ).toContain('text-left');
+    expect(
+      compiled.querySelector('#custom-aoi-species-national-range-value-0')?.className,
+    ).not.toContain('text-right');
+    expect(
+      compiled.querySelector('#custom-aoi-species-inventory-national-range-heading')?.className,
+    ).toContain('text-left');
+    expect(compiled.querySelector('#custom-aoi-species-national-range-context-0')).toBeNull();
     const expectedMetrics = [
       ['range-in-aoi', '10%', '10 km²'],
-      ['solution-coverage', '50%', 'analysis.aoi.customProfile.species.mesaCellCount'],
+      ['solution-coverage', '50%', '5 km²'],
       ['pre-existing', '20%', '2 km²'],
       ['new', '30%', '3 km²'],
     ] as const;
@@ -275,9 +363,9 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     },
   );
 
-  it('continues polling after Escape close and preserves completed coverage on reopen', () => {
+  it('cancels in-flight coverage work when the modal closes via Escape', () => {
     vi.useFakeTimers();
-    api.getDetailedSpeciesCoverageJob.mockReturnValue(of(job('complete')));
+    api.getDetailedSpeciesCoverageJob.mockReturnValue(of(job('queued')));
     const fixture = createFixture('solution-1');
     const modalOpenChange = vi.spyOn(fixture.componentInstance.modalOpenChange, 'emit');
     fixture.componentInstance.open();
@@ -289,17 +377,7 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
     fixture.detectChanges();
     expect(modalOpenChange).toHaveBeenLastCalledWith(false);
-    expect(api.cancelDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
-
-    vi.advanceTimersByTime(1500);
-    fixture.detectChanges();
-    fixture.componentInstance.open();
-    fixture.detectChanges();
-
-    expect(api.createDetailedSpeciesCoverageJob).toHaveBeenCalledTimes(1);
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-complete'),
-    ).not.toBeNull();
+    expect(api.cancelDetailedSpeciesCoverageJob).toHaveBeenCalledWith('job-1');
   });
 
   it('supports explicit cancellation and restart', () => {
@@ -494,6 +572,131 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(api.createDetailedSpeciesCoverageJob).toHaveBeenCalledTimes(2);
   });
 
+  it('shows a friendly message and skips coverage jobs when species matrices are stubbed', async () => {
+    api.getCustomAoiAreaProfile.mockReturnValue(
+      of({
+        format: 'custom-aoi-area-profile-v1',
+        status: 'partial',
+        artifact_version: 'sirap-fixture-v1',
+        selection: {
+          status: 'selected',
+          selected_cell_count: 1,
+          available_cell_count: 1,
+          area_km2: 1,
+          source: 'test',
+        },
+        requested_sections: ['species'],
+        sections: {
+          species: {
+            status: 'unavailable',
+            reason: 'species_matrices_stubbed',
+            records: [],
+          },
+        },
+      }),
+    );
+    const fixture = createFixture('solution-1');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(api.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
+    expect(
+      compiled.querySelector('#custom-aoi-species-inventory-state-copy')?.textContent,
+    ).toContain('analysis.aoi.customProfile.species.stubbedUnavailable');
+  });
+
+  it('falls back to precomputed SIRAP species goals when live inventory is stubbed', async () => {
+    api.getCustomAoiAreaProfile.mockReturnValue(
+      of({
+        format: 'custom-aoi-area-profile-v1',
+        status: 'partial',
+        artifact_version: 'sirap-fixture-v1',
+        selection: {
+          status: 'selected',
+          selected_cell_count: 1,
+          available_cell_count: 1,
+          area_km2: 1,
+          source: 'test',
+        },
+        requested_sections: ['species'],
+        sections: {
+          species: {
+            status: 'unavailable',
+            reason: 'species_matrices_stubbed',
+            records: [],
+          },
+        },
+      }),
+    );
+    const fixture = TestBed.createComponent(CustomAoiSpeciesInventoryComponent);
+    fixture.componentRef.setInput('geometry', geometry(0));
+    fixture.componentRef.setInput('solutionId', 'solution-1');
+    fixture.componentRef.setInput('geographyLevel', 'siraps');
+    fixture.componentRef.setInput('scopeId', 'orinoquia');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    expect(speciesGoals.load).toHaveBeenCalledWith('solution-1', 'siraps', 'orinoquia');
+    expect(api.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '#custom-aoi-species-coverage-precomputed-complete',
+      ),
+    ).not.toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelectorAll(
+        '[id^="custom-aoi-species-inventory-row-"]',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('does not mark coverage failed when species coverage jobs return species_index_required', async () => {
+    const { HttpErrorResponse } = await import('@angular/common/http');
+    api.createDetailedSpeciesCoverageJob.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 503,
+            error: {
+              status: 'species_index_required',
+              message: 'The detailed species index is unavailable.',
+            },
+          }),
+      ),
+    );
+    const fixture = createFixture('solution-1');
+    await fixture.whenStable();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-failed'),
+    ).toBeNull();
+  });
+
+  it('shows extra decimals for small non-zero range-in-AOI percentages', async () => {
+    const completedJob = job('complete');
+    completedJob.result!.records[0].range_in_aoi_area_km2 = 148;
+    completedJob.result!.records[0].range_in_aoi_pct = 0.0148;
+    api.createDetailedSpeciesCoverageJob.mockReturnValue(of(completedJob));
+    const fixture = createFixture('solution-1');
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '#custom-aoi-species-range-in-aoi-percent-0',
+      )?.textContent,
+    ).toContain('0.01%');
+  });
+
   function createFixture(solutionId: string | null) {
     const fixture = TestBed.createComponent(CustomAoiSpeciesInventoryComponent);
     fixture.componentRef.setInput('geometry', geometry(0));
@@ -501,6 +704,25 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     fixture.detectChanges();
     return fixture;
   }
+});
+
+describe('isNationalRangeUnavailable', () => {
+  it('treats unavailable catalog species and null national range as unavailable', () => {
+    expect(
+      isNationalRangeUnavailable({
+        ...precomputedSpeciesRecord(),
+        availability: 'unavailable',
+        range_area_km2: 0,
+      }),
+    ).toBe(true);
+    expect(
+      isNationalRangeUnavailable({
+        ...job('complete').result!.records[0],
+        range_area_km2: null as unknown as number,
+      }),
+    ).toBe(true);
+    expect(isNationalRangeUnavailable(precomputedSpeciesRecord())).toBe(false);
+  });
 });
 
 describe('clampSpeciesBarPercent', () => {

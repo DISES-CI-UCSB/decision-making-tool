@@ -51,6 +51,7 @@ import json
 import math
 import struct
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -591,6 +592,158 @@ def decode_species_matrix_bytes(blob: bytes) -> DecodedSpeciesMatrix:
         grid_raw=grid_raw,
         entries=species_entries,
     )
+
+
+@dataclass(frozen=True)
+class SpeciesMatrixChunk:
+    """One bounded cell-ID chunk from an SMSP species entry."""
+
+    name: str
+    iucn: str
+    csv_class: str
+    cell_ids: np.ndarray
+    area_km2: float | None
+    first: bool
+    last: bool
+
+
+def iter_species_matrix_chunks(
+    path: Path,
+    *,
+    max_cells: int = 1_000_000,
+):
+    """Yield bounded SMSP cell-ID chunks while preserving delta state."""
+    if max_cells <= 0:
+        raise ValueError("max_cells must be positive")
+    with gzip.open(path, "rb") as source:
+        header = source.read(8)
+        if len(header) != 8:
+            raise SparseFormatError("smtx artifact truncated (header < 8 bytes)")
+        if header[:4] != SMSP_MAGIC:
+            raise SparseFormatError(
+                f"bad smtx magic: expected {SMSP_MAGIC!r}, got {header[:4]!r}"
+            )
+        toc_length = struct.unpack("<I", header[4:])[0]
+        toc_bytes = source.read(toc_length)
+        if len(toc_bytes) != toc_length:
+            raise SparseFormatError("smtx artifact truncated (TOC)")
+        try:
+            toc = json.loads(toc_bytes.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise SparseFormatError(f"invalid smtx TOC JSON: {exc}") from exc
+
+        grid_raw = toc.get("grid") or {}
+        grid_metadata = None
+        if grid_raw:
+            try:
+                grid_with_count = dict(grid_raw)
+                grid_with_count.setdefault("count", 0)
+                grid_metadata = SparseMetadata.from_json(grid_with_count)
+            except SparseFormatError:
+                pass
+        body_position = 0
+        for raw_entry in toc.get("species") or []:
+            name = str(raw_entry["name"])
+            offset = int(raw_entry["offset"])
+            count = int(raw_entry["count"])
+            if offset < body_position or count < 0:
+                raise SparseFormatError(
+                    f"invalid SMSP body offset/count for species {name!r}"
+                )
+            gap = offset - body_position
+            if gap and len(source.read(gap)) != gap:
+                raise SparseFormatError("smtx artifact truncated before species body")
+            area_km2 = raw_entry.get("area_km2")
+            remaining = count
+            previous_cell_id = 0
+            first = True
+            while remaining or first:
+                chunk_count = min(remaining, max_cells)
+                body = source.read(4 * chunk_count)
+                if len(body) != 4 * chunk_count:
+                    raise SparseFormatError(
+                        f"smtx body too small for species {name!r}"
+                    )
+                if chunk_count:
+                    deltas = np.frombuffer(body, dtype="<u4")
+                    cumulative = np.cumsum(deltas, dtype=np.uint64)
+                    cumulative += previous_cell_id
+                    if int(cumulative[-1]) > np.iinfo(np.uint32).max:
+                        raise SparseFormatError(
+                            f"species {name!r} cell IDs exceed uint32 range"
+                        )
+                    cell_ids = cumulative.astype(np.uint32)
+                    previous_cell_id = int(cell_ids[-1])
+                else:
+                    cell_ids = np.empty(0, dtype=np.uint32)
+                remaining -= chunk_count
+                last = remaining == 0
+                yield (
+                    SpeciesMatrixChunk(
+                        name=name,
+                        iucn=str(raw_entry.get("iucn") or ""),
+                        csv_class=str(raw_entry.get("class") or ""),
+                        cell_ids=cell_ids,
+                        area_km2=(
+                            None if area_km2 is None else float(area_km2)
+                        ),
+                        first=first,
+                        last=last,
+                    ),
+                    grid_metadata,
+                    grid_raw,
+                )
+                first = False
+            body_position = offset + 4 * count
+
+
+def iter_species_matrix_file(path: Path):
+    """Yield complete entries for compatibility; runtime uses chunk iteration."""
+    chunks: list[np.ndarray] = []
+    first_chunk: SpeciesMatrixChunk | None = None
+    grid_metadata = None
+    grid_raw: dict[str, Any] = {}
+    for chunk, grid_metadata, grid_raw in iter_species_matrix_chunks(path):
+        if chunk.first:
+            chunks = []
+            first_chunk = chunk
+        chunks.append(chunk.cell_ids)
+        if not chunk.last:
+            continue
+        assert first_chunk is not None
+        cell_ids = (
+            chunks[0]
+            if len(chunks) == 1
+            else np.concatenate(chunks).astype(np.uint32, copy=False)
+        )
+        per_entry_grid = dict(grid_raw)
+        per_entry_grid["count"] = int(cell_ids.size)
+        try:
+            metadata = SparseMetadata.from_json(per_entry_grid)
+        except SparseFormatError:
+            metadata = SparseMetadata(
+                width=0,
+                height=0,
+                x_origin=0.0,
+                y_origin=0.0,
+                x_scale=0.0,
+                y_scale=0.0,
+                nodata=None,
+                crs=None,
+                count=int(cell_ids.size),
+            )
+        yield (
+            SpeciesMatrixEntry(
+                name=first_chunk.name,
+                iucn=first_chunk.iucn,
+                csv_class=first_chunk.csv_class,
+                cell_ids=cell_ids,
+                metadata=metadata,
+                area_km2=first_chunk.area_km2,
+            ),
+            grid_metadata,
+            grid_raw,
+        )
 
 
 # ---------------------------------------------------------------------------

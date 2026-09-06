@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
-  isSirapRegionId,
-  readSirapRegionIds,
+  isSirapAccessRegionId,
+  readSirapAccessRegionIds,
   type SirapAccessRequestStatus,
   type SirapRegionId,
 } from '@core/models';
@@ -37,6 +37,7 @@ export interface SirapAccessRequestRecord {
 export interface CurrentSirapAdministrator {
   uid: string;
   isSuperAdmin: boolean;
+  allowedSirapIds: SirapRegionId[];
   administeredSirapIds: SirapRegionId[];
 }
 
@@ -83,7 +84,7 @@ export class SirapAccessService {
     reason?: string,
   ): Promise<void> {
     const firestore = this.requireFirestore();
-    const uniqueIds = [...new Set(sirapIds)].filter(isSirapRegionId);
+    const uniqueIds = [...new Set(sirapIds)].filter(isSirapAccessRegionId);
     if (uniqueIds.length === 0) {
       throw new Error('Select at least one SIRAP.');
     }
@@ -119,11 +120,13 @@ export class SirapAccessService {
       data?.['status'] === 'active' &&
       (data['isSuperAdmin'] === true || data['isAdmin'] === true || data['role'] === 'admin');
     const administeredSirapIds =
-      data?.['status'] === 'active' ? readSirapRegionIds(data['administeredSirapIds']) : [];
+      data?.['status'] === 'active' ? readSirapAccessRegionIds(data['administeredSirapIds']) : [];
+    const allowedSirapIds =
+      data?.['status'] === 'active' ? readSirapAccessRegionIds(data['allowedSirapIds']) : [];
     if (!isSuperAdmin && administeredSirapIds.length === 0) {
       throw new Error('You do not administer any SIRAPs.');
     }
-    return { uid, isSuperAdmin, administeredSirapIds };
+    return { uid, isSuperAdmin, allowedSirapIds, administeredSirapIds };
   }
 
   async listRequestsForAdministrator(): Promise<SirapAccessRequestRecord[]> {
@@ -144,13 +147,19 @@ export class SirapAccessService {
         snapshot.docs.map((requestDoc) => [requestDoc.id, requestDoc.data()] as const),
       ),
     );
+    if (!administrator.isSuperAdmin) {
+      return requests.sort(
+        (a, b) => (b.requestedAt?.getTime() ?? 0) - (a.requestedAt?.getTime() ?? 0),
+      );
+    }
+
     const allowedByUid = new Map(
       await Promise.all(
         [...new Set(requests.map((request) => request.uid))].map(async (uid) => {
           const snapshot = await getDoc(doc(firestore, 'users', uid));
           return [
             uid,
-            snapshot.exists() ? readSirapRegionIds(snapshot.data()['allowedSirapIds']) : [],
+            snapshot.exists() ? readSirapAccessRegionIds(snapshot.data()['allowedSirapIds']) : [],
           ] as const;
         }),
       ),
@@ -252,7 +261,7 @@ export class SirapAccessService {
   }
 
   private parseRequest(id: string, data: DocumentData): SirapAccessRequestRecord | null {
-    if (!isSirapRegionId(data['sirapId'])) {
+    if (!isSirapAccessRegionId(data['sirapId'])) {
       return null;
     }
     const status =

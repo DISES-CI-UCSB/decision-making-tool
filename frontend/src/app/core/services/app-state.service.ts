@@ -6,7 +6,7 @@ import {
   type CustomPolygonMetricsGeometry,
   type LayerConfig,
   type RuntimeLayerManifestRenderingConfig,
-  SIRAP_REGION_IDS,
+  SIRAP_ACCESS_REGION_IDS,
   type SirapRegionId,
   type Solution,
   UserTier,
@@ -221,7 +221,7 @@ export class AppStateService {
   );
   readonly accessibleSirapIds = computed<readonly SirapRegionId[]>(() => {
     if (environment.bypassLoginForDevelopment || this.userIsSuperAdmin$()) {
-      return SIRAP_REGION_IDS;
+      return SIRAP_ACCESS_REGION_IDS;
     }
     return this.allowedSirapIds$();
   });

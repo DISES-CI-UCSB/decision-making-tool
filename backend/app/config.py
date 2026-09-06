@@ -4,6 +4,24 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+SIRAP_ARTIFACT_KIND = "sirap-raster-custom-aoi/v1"
+
+# Catalog solution_id prefixes mapped to packaged SIRAP artifact directories.
+SIRAP_SOLUTION_ID_PREFIXES: tuple[tuple[str, str], ...] = (
+    ("eje-cafetero-", "eje-cafetero"),
+    ("sirap-orinoquia-", "orinoquia"),
+)
+
+
+def resolve_sirap_id_from_solution_id(solution_id: str) -> str | None:
+    normalized = solution_id.strip()
+    if not normalized:
+        return None
+    for prefix, sirap_id in SIRAP_SOLUTION_ID_PREFIXES:
+        if normalized.startswith(prefix):
+            return sirap_id
+    return None
+
 
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
@@ -16,6 +34,7 @@ def _env_bool(name: str, default: bool = False) -> bool:
 class Settings:
     artifact_dir: Path
     artifact_manifest_path: Path
+    sirap_artifact_root: Path
     artifact_required: bool
     artifact_schema_version: str
     mesa_coverage_required: bool = False
@@ -35,6 +54,9 @@ def get_settings() -> Settings:
     return Settings(
         artifact_dir=artifact_dir,
         artifact_manifest_path=manifest_path,
+        sirap_artifact_root=Path(
+            os.getenv("DMT_SIRAP_ARTIFACT_ROOT", "runtime-artifacts/sirap")
+        ),
         solution_cache_dir=Path(
             os.getenv("DMT_SOLUTION_CACHE_DIR", "runtime-cache/solutions")
         ),

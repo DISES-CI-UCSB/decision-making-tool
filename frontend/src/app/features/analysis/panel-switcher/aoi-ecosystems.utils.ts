@@ -45,10 +45,15 @@ export interface MecCoverageRow {
   id: string;
   label: string;
   ecosystemAreaKm2: number | null;
+  nationalExtentKm2?: number | null;
+  sirapExtentKm2?: number | null;
   ecosystemSharePercent?: number | null;
   nationalClassPercent?: number | null;
+  sirapClassPercent?: number | null;
   solutionCoverageKm2?: number | null;
   solutionCoveragePercent?: number | null;
+  remainingCoverageKm2?: number | null;
+  remainingCoveragePercent?: number | null;
   preExistingCoverageKm2: number | null;
   newPrioritizrCoverageKm2: number | null;
   preExistingPercent: number | null;
@@ -250,6 +255,34 @@ export function resolveMecScopeIndex(document: MecCompactDocument, aoi: AOI): nu
   return nameIndex >= 0 ? nameIndex : null;
 }
 
+/**
+ * SIRAP MEC sidecars use source-layer identifiers (for example,
+ * `territorial_territorial_orinoquia_7`) rather than catalog SIRAP IDs.
+ */
+export function resolveSirapMecScopeIndex(
+  document: MecCompactDocument,
+  sirapId: string,
+): number | null {
+  const directIndex = document.scopeCatalog.findIndex(([scopeId]) => scopeId === sirapId);
+  if (directIndex >= 0) {
+    return directIndex;
+  }
+
+  const normalizedSirapId = normalizeScopeLabel(sirapId);
+  if (!normalizedSirapId) {
+    return null;
+  }
+  const matches = document.scopeCatalog
+    .map(([scopeId, scopeName], index) =>
+      normalizeScopeLabel(scopeId).includes(normalizedSirapId) ||
+      normalizeScopeLabel(scopeName).includes(normalizedSirapId)
+        ? index
+        : -1,
+    )
+    .filter((index) => index >= 0);
+  return matches.length === 1 ? matches[0] : null;
+}
+
 export function isMecViewAvailable(document: MecCompactDocument, view: MecViewId): boolean {
   if (document.viewSupport.unsupported.some((item) => item.view === view)) {
     return false;
@@ -261,26 +294,45 @@ export function buildMecCoverageRows(
   document: MecCompactDocument,
   scopeIndex: number,
   view: MecViewId,
-  nationalDocument: MecCompactDocument | null = null,
+  referenceDocument: MecCompactDocument | null = null,
+  referenceKind: 'national' | 'sirap' = 'national',
+  nationalAreaKm2ByClass: ReadonlyMap<string, number> | null = null,
+  referenceScopeIndex = 0,
 ): MecCoverageRow[] {
-  return buildMecCoverageRowsByView(document, scopeIndex, nationalDocument).get(view) ?? [];
+  return (
+    buildMecCoverageRowsByView(
+      document,
+      scopeIndex,
+      referenceDocument,
+      referenceKind,
+      nationalAreaKm2ByClass,
+      referenceScopeIndex,
+    ).get(view) ?? []
+  );
 }
 
 export function buildMecCoverageRowsByView(
   document: MecCompactDocument,
   scopeIndex: number,
-  nationalDocument: MecCompactDocument | null = null,
+  referenceDocument: MecCompactDocument | null = null,
+  referenceKind: 'national' | 'sirap' = 'national',
+  nationalAreaKm2ByClass: ReadonlyMap<string, number> | null = null,
+  referenceScopeIndex = 0,
 ): ReadonlyMap<MecViewId, MecCoverageRow[]> {
   const unsupportedViews = new Set(document.viewSupport.unsupported.map((item) => item.view));
   const scopeAreaKm2 = isMecCompactV2Document(document)
     ? (document.scopeStats[String(scopeIndex)]?.scopeAreaKm2 ?? null)
     : null;
-  const nationalAreaByClassIndex =
+  const referenceAreaByClassIndex =
     isMecCompactV2Document(document) &&
-    nationalDocument &&
-    isMecCompactV2Document(nationalDocument) &&
-    nationalDocument.solutionId === document.solutionId
-      ? new Map(nationalDocument.rows.map((row) => [row[1], row[2]] as const))
+    referenceDocument &&
+    isMecCompactV2Document(referenceDocument) &&
+    referenceDocument.solutionId === document.solutionId
+      ? new Map(
+          referenceDocument.rows
+            .filter(([rowScopeIndex]) => rowScopeIndex === referenceScopeIndex)
+            .map((row) => [row[1], row[2]] as const),
+        )
       : new Map<number, number>();
   const rowsByView = new Map<MecViewId, MecCoverageRow[]>();
   document.viewCatalog.forEach(([view]) => {
@@ -304,26 +356,40 @@ export function buildMecCoverageRowsByView(
 
     const view = document.viewCatalog[classification[0]]?.[0];
     const viewRows = view ? rowsByView.get(view) : undefined;
-    if (!viewRows) {
+    if (!viewRows || (referenceKind === 'sirap' && ecosystemAreaKm2 <= 0)) {
       return;
     }
 
     const [, classId, label] = classification;
     const solutionCoverageKm2 = preExistingCoverageKm2 + newPrioritizrCoverageKm2;
-    const nationalAreaKm2 = nationalAreaByClassIndex.get(classIndex);
+    const referenceAreaKm2 = referenceAreaByClassIndex.get(classIndex);
+    const nationalAreaKm2 =
+      nationalAreaKm2ByClass?.get(mecAreaReferenceKey(view, label)) ??
+      (referenceKind === 'national' ? referenceAreaKm2 : undefined);
+    const sirapAreaKm2 = referenceKind === 'sirap' ? referenceAreaKm2 : undefined;
+    const remainingCoverageKm2 = Math.max(ecosystemAreaKm2 - solutionCoverageKm2, 0);
     viewRows.push({
       id: slugify(classId),
       label,
       ecosystemAreaKm2,
+      nationalExtentKm2: nationalAreaKm2 ?? null,
+      sirapExtentKm2: sirapAreaKm2 ?? null,
       ecosystemSharePercent:
         scopeAreaKm2 !== null && scopeAreaKm2 > 0 ? (ecosystemAreaKm2 / scopeAreaKm2) * 100 : null,
       nationalClassPercent:
         nationalAreaKm2 !== undefined && nationalAreaKm2 > 0
           ? (ecosystemAreaKm2 / nationalAreaKm2) * 100
           : null,
+      sirapClassPercent:
+        sirapAreaKm2 !== undefined && sirapAreaKm2 > 0
+          ? (ecosystemAreaKm2 / sirapAreaKm2) * 100
+          : null,
       solutionCoverageKm2,
       solutionCoveragePercent:
         ecosystemAreaKm2 > 0 ? (solutionCoverageKm2 / ecosystemAreaKm2) * 100 : null,
+      remainingCoverageKm2,
+      remainingCoveragePercent:
+        ecosystemAreaKm2 > 0 ? (remainingCoverageKm2 / ecosystemAreaKm2) * 100 : null,
       preExistingCoverageKm2,
       newPrioritizrCoverageKm2,
       preExistingPercent:
@@ -333,6 +399,10 @@ export function buildMecCoverageRowsByView(
     });
   });
   return rowsByView;
+}
+
+export function mecAreaReferenceKey(view: MecViewId, label: string): string {
+  return `${view}\u0000${label}`;
 }
 
 export function buildMecPreviewItems(
@@ -366,6 +436,10 @@ export function buildMecPreviewItems(
 export function buildCustomMecData(
   response: CustomAoiAreaProfileResponse,
   expectedSolutionId: string | null = response.solution_id ?? null,
+  options: {
+    allowVariableMesaRowCount?: boolean;
+    nationalAreaKm2ByClass?: ReadonlyMap<string, number> | null;
+  } = {},
 ): CustomMecData {
   const section = response.sections.ecosystems;
   if (!section) {
@@ -376,45 +450,87 @@ export function buildCustomMecData(
   if (hasActiveSolution && response.solution_id !== expectedSolutionId) {
     throw new Error('Missing or mismatched solution id in custom AOI ecosystem response');
   }
-  if (hasActiveSolution && !Array.isArray(section.solution_coverage)) {
+
+  const allowVariableMesaRowCount = options.allowVariableMesaRowCount === true;
+  const nationalAreaKm2ByClass = options.nationalAreaKm2ByClass ?? null;
+  const referenceKind = section.reference_scope ?? 'national';
+  const solutionCoverage: readonly unknown[] | null = Array.isArray(section.solution_coverage)
+    ? section.solution_coverage
+    : allowVariableMesaRowCount
+      ? []
+      : null;
+
+  if (
+    hasActiveSolution &&
+    section.status !== 'unavailable' &&
+    section.status !== 'failed' &&
+    solutionCoverage === null
+  ) {
     throw new Error('Missing Mesa solution coverage for active custom AOI solution');
   }
 
+  const activeSolutionCoverage = solutionCoverage ?? [];
+
   const rowsByView = new Map<MecViewId, MecCoverageRow[]>();
   const previewByView = new Map<MecViewId, MecPreviewItem[]>();
-  if (hasActiveSolution) {
-    const rows = validateMesaSolutionCoverage(section.solution_coverage ?? []).map(
-      buildMesaCustomMecCoverageRow,
-    );
-    // Mesa solution coverage is the 417-class IAvH biome-region inventory.
-    // The section's canonical view describes the separate composition taxonomy.
-    const mesaView: MecViewId = 'biomeRegion';
-    rowsByView.set(mesaView, rows);
-    previewByView.set(
-      mesaView,
-      [...rows]
-        .sort((a, b) => (b.solutionCoveragePercent ?? -1) - (a.solutionCoveragePercent ?? -1))
-        .slice(0, 5)
-        .map((row) => ({
-          label: row.label,
-          percent: row.solutionCoveragePercent ?? null,
-        })),
-    );
-  } else {
+  // Composition is authoritative for the complete five-level MEC taxonomy and
+  // its km² areas. Mesa provides coverage measures for matching IAvH rows only.
+  if (section.status !== 'unavailable' && section.status !== 'failed') {
     section.views.forEach((view) => {
-      const rows = view.records.map(buildCustomMecCompositionRow);
+      const rows = view.records.map((record) =>
+        hasActiveSolution
+          ? buildCustomMecSolutionCompositionRow(
+              record,
+              referenceKind,
+              nationalAreaKm2ByClass,
+              view.id,
+            )
+          : buildCustomMecCompositionRow(record, referenceKind, nationalAreaKm2ByClass, view.id),
+      );
       rowsByView.set(view.id, rows);
       previewByView.set(
         view.id,
-        [...view.records]
-          .sort((a, b) => b.area_km2 - a.area_km2)
+        [...rows]
+          .sort((a, b) => (b.ecosystemAreaKm2 ?? 0) - (a.ecosystemAreaKm2 ?? 0))
           .slice(0, 5)
-          .map((record) => ({
-            label: record.label,
-            percent: record.share_of_total_aoi_pct ?? null,
+          .map((row) => ({
+            label: row.label,
+            percent: row.ecosystemSharePercent ?? null,
           })),
       );
     });
+  }
+
+  if (
+    hasActiveSolution &&
+    section.status !== 'unavailable' &&
+    section.status !== 'failed' &&
+    activeSolutionCoverage.length > 0
+  ) {
+    const mesaRows = validateMesaSolutionCoverage(
+      activeSolutionCoverage,
+      allowVariableMesaRowCount ? null : MESA_IAVH_FEATURE_COUNT,
+    );
+    const biomeRegionRows = rowsByView.get('biomeRegion');
+    if (biomeRegionRows) {
+      const mesaByFeature = new Map(
+        mesaRows.map((row) => [normalizeMesaFeatureIdentity(row.feature), row]),
+      );
+      const enrichedRows = biomeRegionRows.map((row) => {
+        const mesaRow =
+          mesaByFeature.get(normalizeMesaFeatureIdentity(row.id)) ??
+          mesaByFeature.get(normalizeMesaFeatureIdentity(row.label));
+        return mesaRow ? enrichCustomMecRowWithMesaCoverage(row, mesaRow) : row;
+      });
+      rowsByView.set('biomeRegion', enrichedRows);
+      previewByView.set(
+        'biomeRegion',
+        [...enrichedRows]
+          .sort((a, b) => (b.ecosystemAreaKm2 ?? 0) - (a.ecosystemAreaKm2 ?? 0))
+          .slice(0, 5)
+          .map((row) => ({ label: row.label, percent: row.ecosystemSharePercent ?? null })),
+      );
+    }
   }
 
   return {
@@ -431,13 +547,100 @@ export function buildCustomMecData(
   };
 }
 
-export function buildCustomMecCompositionRow(record: CustomAoiEcosystemRecord): MecCoverageRow {
+function shareOfClassPercent(
+  areaKm2: number | null | undefined,
+  denominatorKm2: number | null | undefined,
+): number | null {
+  if (
+    areaKm2 === null ||
+    areaKm2 === undefined ||
+    denominatorKm2 === null ||
+    denominatorKm2 === undefined ||
+    !Number.isFinite(areaKm2) ||
+    !Number.isFinite(denominatorKm2) ||
+    denominatorKm2 <= 0
+  ) {
+    return null;
+  }
+  return (areaKm2 / denominatorKm2) * 100;
+}
+
+function resolveNationalExtentKm2(
+  record: CustomAoiEcosystemRecord,
+  view: MecViewId | undefined,
+  nationalAreaKm2ByClass: ReadonlyMap<string, number> | null,
+): number | null {
+  if (
+    record.national_area_km2 !== null &&
+    record.national_area_km2 !== undefined &&
+    Number.isFinite(record.national_area_km2) &&
+    record.national_area_km2 > 0
+  ) {
+    return record.national_area_km2;
+  }
+  if (view === undefined || nationalAreaKm2ByClass === null) {
+    return null;
+  }
+  return (
+    nationalAreaKm2ByClass.get(mecAreaReferenceKey(view, record.label)) ??
+    nationalAreaKm2ByClass.get(mecAreaReferenceKey(view, resolveCustomMecLabel(record))) ??
+    null
+  );
+}
+
+function resolveNationalClassPercent(
+  record: CustomAoiEcosystemRecord,
+  view: MecViewId | undefined,
+  nationalAreaKm2ByClass: ReadonlyMap<string, number> | null,
+): number | null {
+  if (
+    record.share_of_national_class_pct !== null &&
+    record.share_of_national_class_pct !== undefined &&
+    Number.isFinite(record.share_of_national_class_pct)
+  ) {
+    return record.share_of_national_class_pct;
+  }
+
+  const fromRecordArea = shareOfClassPercent(record.area_km2, record.national_area_km2);
+  if (fromRecordArea !== null) {
+    return fromRecordArea;
+  }
+  if (view === undefined || nationalAreaKm2ByClass === null) {
+    return null;
+  }
+  return shareOfClassPercent(
+    record.area_km2,
+    nationalAreaKm2ByClass.get(mecAreaReferenceKey(view, record.label)) ??
+      nationalAreaKm2ByClass.get(mecAreaReferenceKey(view, resolveCustomMecLabel(record))),
+  );
+}
+
+function resolveSirapClassPercent(record: CustomAoiEcosystemRecord): number | null {
+  if (
+    record.share_of_sirap_class_pct !== null &&
+    record.share_of_sirap_class_pct !== undefined &&
+    Number.isFinite(record.share_of_sirap_class_pct)
+  ) {
+    return record.share_of_sirap_class_pct;
+  }
+  return shareOfClassPercent(record.area_km2, record.sirap_area_km2);
+}
+
+export function buildCustomMecCompositionRow(
+  record: CustomAoiEcosystemRecord,
+  referenceKind: 'national' | 'sirap' = 'national',
+  nationalAreaKm2ByClass: ReadonlyMap<string, number> | null = null,
+  view?: MecViewId,
+): MecCoverageRow {
   return {
     id: slugify(record.id),
-    label: record.label,
+    label: resolveCustomMecLabel(record),
     ecosystemAreaKm2: record.area_km2,
+    nationalExtentKm2: resolveNationalExtentKm2(record, view, nationalAreaKm2ByClass),
+    sirapExtentKm2: referenceKind === 'sirap' ? (record.sirap_area_km2 ?? null) : null,
     ecosystemSharePercent: record.share_of_total_aoi_pct ?? null,
-    nationalClassPercent: record.share_of_national_class_pct,
+    nationalClassPercent: resolveNationalClassPercent(record, view, nationalAreaKm2ByClass),
+    sirapClassPercent: referenceKind === 'sirap' ? resolveSirapClassPercent(record) : null,
     solutionCoverageKm2: null,
     solutionCoveragePercent: null,
     preExistingCoverageKm2: null,
@@ -447,17 +650,51 @@ export function buildCustomMecCompositionRow(record: CustomAoiEcosystemRecord): 
   };
 }
 
-export function buildMesaCustomMecCoverageRow(record: MesaAoiCoverageRecord): MecCoverageRow {
+function buildCustomMecSolutionCompositionRow(
+  record: CustomAoiEcosystemRecord,
+  referenceKind: 'national' | 'sirap',
+  nationalAreaKm2ByClass: ReadonlyMap<string, number> | null = null,
+  view?: MecViewId,
+): MecCoverageRow {
+  return {
+    ...buildCustomMecCompositionRow(record, referenceKind, nationalAreaKm2ByClass, view),
+    solutionCoverageKm2: record.solution_covered_area_km2,
+    solutionCoveragePercent: record.solution_covered_pct_of_aoi,
+    preExistingCoverageKm2: record.pre_existing_covered_area_km2,
+    preExistingPercent: record.pre_existing_covered_pct_of_aoi,
+    newPrioritizrCoverageKm2: record.new_covered_area_km2,
+    newPrioritizrPercent: record.new_covered_pct_of_aoi,
+  };
+}
+
+export function buildMesaCustomMecCoverageRow(
+  record: MesaAoiCoverageRecord,
+  compositionRow: MecCoverageRow | null = null,
+): MecCoverageRow {
+  const remainingCellCount = Math.max(record.total_in_aoi - record.held_in_aoi, 0);
+  const remainingCoveragePercent =
+    record.total_in_aoi > 0
+      ? (remainingCellCount / record.total_in_aoi) * 100
+      : record.coverage_within_aoi === null
+        ? null
+        : Math.max(0, (1 - record.coverage_within_aoi) * 100);
+
   return {
     id: slugify(record.feature),
-    label: record.feature,
-    ecosystemAreaKm2: null,
+    label: compositionRow?.label ?? humanizeFeatureLabel(record.feature),
+    ecosystemAreaKm2: compositionRow?.ecosystemAreaKm2 ?? record.total_in_aoi,
+    nationalExtentKm2: compositionRow?.nationalExtentKm2 ?? null,
+    sirapExtentKm2: compositionRow?.sirapExtentKm2 ?? null,
     ecosystemSharePercent: fractionToPercent(record.share_of_classified_aoi),
-    nationalClassPercent: fractionToPercent(record.share_of_national_total),
-    solutionCoverageKm2: null,
+    nationalClassPercent:
+      compositionRow?.nationalClassPercent ?? fractionToPercent(record.share_of_national_total),
+    sirapClassPercent: compositionRow?.sirapClassPercent ?? null,
+    solutionCoverageKm2: record.held_in_aoi,
     solutionCoveragePercent: fractionToPercent(record.coverage_within_aoi),
-    preExistingCoverageKm2: null,
-    newPrioritizrCoverageKm2: null,
+    remainingCoverageKm2: remainingCellCount,
+    remainingCoveragePercent,
+    preExistingCoverageKm2: record.pre_existing_held_in_aoi,
+    newPrioritizrCoverageKm2: record.new_prioritizr_held_in_aoi,
     preExistingPercent: fractionToPercent(record.pre_existing_coverage_within_aoi),
     newPrioritizrPercent: fractionToPercent(record.new_prioritizr_coverage_within_aoi),
     mesaTotalInAoi: record.total_in_aoi,
@@ -479,10 +716,48 @@ export function buildMesaCustomMecCoverageRow(record: MesaAoiCoverageRecord): Me
   };
 }
 
-function validateMesaSolutionCoverage(records: readonly unknown[]): MesaAoiCoverageRecord[] {
-  if (records.length !== MESA_IAVH_FEATURE_COUNT) {
+function enrichCustomMecRowWithMesaCoverage(
+  compositionRow: MecCoverageRow,
+  record: MesaAoiCoverageRecord,
+): MecCoverageRow {
+  return {
+    ...buildMesaCustomMecCoverageRow(record, compositionRow),
+    id: compositionRow.id,
+    ecosystemAreaKm2: compositionRow.ecosystemAreaKm2 ?? record.total_in_aoi,
+    nationalExtentKm2: compositionRow.nationalExtentKm2 ?? null,
+    sirapExtentKm2: compositionRow.sirapExtentKm2 ?? null,
+    ecosystemSharePercent: compositionRow.ecosystemSharePercent,
+    nationalClassPercent:
+      compositionRow.nationalClassPercent ?? fractionToPercent(record.share_of_national_total),
+    sirapClassPercent: compositionRow.sirapClassPercent,
+  };
+}
+
+function resolveCustomMecLabel(record: CustomAoiEcosystemRecord): string {
+  return normalizeMesaFeatureIdentity(record.label) === normalizeMesaFeatureIdentity(record.id)
+    ? humanizeFeatureLabel(record.label)
+    : record.label;
+}
+
+export function humanizeFeatureLabel(value: string): string {
+  return value
+    .trim()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase()
+    .replace(/\b\p{L}/gu, (character) => character.toLocaleUpperCase());
+}
+
+function validateMesaSolutionCoverage(
+  records: readonly unknown[],
+  expectedRowCount: number | null = MESA_IAVH_FEATURE_COUNT,
+): MesaAoiCoverageRecord[] {
+  if (records.length === 0) {
+    throw new Error('Invalid Mesa solution coverage: expected at least one row, received 0');
+  }
+  if (expectedRowCount !== null && records.length !== expectedRowCount) {
     throw new Error(
-      `Invalid Mesa solution coverage: expected ${MESA_IAVH_FEATURE_COUNT} rows, received ${records.length}`,
+      `Invalid Mesa solution coverage: expected ${expectedRowCount} rows, received ${records.length}`,
     );
   }
 

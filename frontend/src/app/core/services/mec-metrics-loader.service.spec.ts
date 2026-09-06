@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import type { CatalogSolution, MecCompactDocument, MecCompactV2Document } from '@core/models';
 
-import { MecMetricsLoaderService } from './mec-metrics-loader.service';
+import { MecMetricsLoaderService, type MecMetricsLoadResult } from './mec-metrics-loader.service';
 import { SolutionCatalogService } from './solution-catalog.service';
 
 describe('MecMetricsLoaderService', () => {
@@ -207,6 +207,25 @@ describe('MecMetricsLoaderService', () => {
     let result: unknown;
 
     service.loadMecMetrics('land-solution', 'departments').subscribe((value) => {
+      result = value;
+    });
+
+    expect(result).toEqual({ status: 'unavailable', document: null });
+    httpMock.expectNone(() => true);
+  });
+
+  it('does not request absent MEC artifacts for a SIRAP packet', () => {
+    catalogSolution = {
+      id: 'sirap-orinoquia-estr17-cong17-sab17-runap-omec-iheh2030',
+      scope: 'sirap',
+      displayUrl: 'https://example.com/solutions/sirap/orinoquia.tif',
+      precomputedMetricUrls: {
+        compactCache: 'https://example.com/metrics/sirap/orinoquia.metrics.compact.json',
+      },
+    } as CatalogSolution;
+    let result: MecMetricsLoadResult | undefined;
+
+    service.loadMecMetrics(catalogSolution.id, 'siraps').subscribe((value) => {
       result = value;
     });
 

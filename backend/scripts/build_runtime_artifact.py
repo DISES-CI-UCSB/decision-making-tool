@@ -204,6 +204,7 @@ ALIGNMENT_CLASS_BY_LAYER_ID = {
     "coberturas_forests_and_semi_natural_areas": "categorical",
     "coberturas_wetlands": "categorical",
     "coberturas_water_bodies": "categorical",
+    "coberturas_agriculture": "categorical",
     "runap_protegidas": "categorical",
     "runap_parques": "categorical",
     "biomasa": "fraction_or_density",
@@ -663,6 +664,7 @@ def build_layer_specs(
                     ("coberturas_forests_and_semi_natural_areas", 3),
                     ("coberturas_wetlands", 4),
                     ("coberturas_water_bodies", 5),
+                    ("coberturas_agriculture", 2),
                 )
             ],
             LayerSpec(

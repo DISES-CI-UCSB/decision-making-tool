@@ -1,7 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { readSirapRegionIds, type SirapRegionId, UserTier } from '@core/models';
+import { readSirapAccessRegionIds, type SirapRegionId, UserTier } from '@core/models';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
   doc,
   getDoc,
@@ -62,8 +64,8 @@ export function parseAdminManagedUserRecord(
     role: readDocumentString(data, 'role') || roleForManagedUserTier(tier),
     tier,
     isAdmin: data['role'] === 'admin' || data['isAdmin'] === true || data['isSuperAdmin'] === true,
-    administeredSirapIds: readSirapRegionIds(data['administeredSirapIds']),
-    allowedSirapIds: readSirapRegionIds(data['allowedSirapIds']),
+    administeredSirapIds: readSirapAccessRegionIds(data['administeredSirapIds']),
+    allowedSirapIds: readSirapAccessRegionIds(data['allowedSirapIds']),
     updatedAt: readDocumentDate(data, 'updatedAt'),
   };
 }
@@ -98,21 +100,92 @@ export class AdminAccessRequestsService {
   async listActiveUsers(): Promise<AdminManagedUserRecord[]> {
     const firestore = this.requireFirestore();
     const administrator = await this.requireCurrentActiveAdmin();
-    const userDocuments = administrator.isSuperAdmin
-      ? (
-          await getDocs(query(collection(firestore, 'users'), where('status', '==', 'active')))
-        ).docs.map((userDoc) => [userDoc.id, userDoc.data()] as const)
-      : await this.listRegionalUsersByAuthoritativeGrant(administrator.administeredSirapIds);
+    if (administrator.isSuperAdmin) {
+      const usersSnapshot = await getDocs(
+        query(collection(firestore, 'users'), where('status', '==', 'active')),
+      );
+      await this.backfillUserDirectory(usersSnapshot.docs);
+      return usersSnapshot.docs
+        .map((userDoc) => parseAdminManagedUserRecord(userDoc.id, userDoc.data()))
+        .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
+    }
 
-    return userDocuments
-      .filter(([, data]) => data['status'] === 'active')
-      .map(([uid, data]) => parseAdminManagedUserRecord(uid, data))
-      .filter(
-        (user) =>
-          administrator.isSuperAdmin ||
-          hasSirapGrantOverlap(user.allowedSirapIds, administrator.administeredSirapIds),
-      )
+    return (
+      await getDocs(query(collection(firestore, 'userDirectory'), where('status', '==', 'active')))
+    ).docs
+      .map((directoryDoc) => this.parseDirectoryUser(directoryDoc.id, directoryDoc.data()))
+      .filter((user) => user !== null)
       .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
+  }
+
+  async updateRegionalUserAccess(
+    uid: string,
+    previousAllowedSirapIds: readonly SirapRegionId[],
+    nextAllowedSirapIds: readonly SirapRegionId[],
+  ): Promise<void> {
+    const firestore = this.requireFirestore();
+    const administrator = await this.requireCurrentActiveAdmin();
+    if (administrator.isSuperAdmin) {
+      throw new Error('Use the super-admin access update path for global permissions.');
+    }
+
+    const previous = new Set(previousAllowedSirapIds);
+    const next = new Set(nextAllowedSirapIds);
+    const batch = writeBatch(firestore);
+    for (const sirapId of administrator.administeredSirapIds) {
+      if (previous.has(sirapId) === next.has(sirapId)) {
+        continue;
+      }
+      batch.update(doc(firestore, 'users', uid), {
+        allowedSirapIds: next.has(sirapId) ? arrayUnion(sirapId) : arrayRemove(sirapId),
+        updatedAt: serverTimestamp(),
+        updatedBy: administrator.uid,
+      });
+    }
+    await batch.commit();
+  }
+
+  private parseDirectoryUser(uid: string, data: DocumentData): AdminManagedUserRecord | null {
+    if (data['status'] !== 'active') {
+      return null;
+    }
+    return {
+      uid,
+      email: readDocumentString(data, 'email'),
+      displayName: readDocumentString(data, 'displayName') || readDocumentString(data, 'email'),
+      status: 'active',
+      role: 'authorized_viewer',
+      tier: UserTier.DecisionMaker,
+      isAdmin: false,
+      administeredSirapIds: [],
+      allowedSirapIds: [],
+      updatedAt: readDocumentDate(data, 'updatedAt'),
+    };
+  }
+
+  private async backfillUserDirectory(
+    users: readonly { id: string; data: () => DocumentData }[],
+  ): Promise<void> {
+    const firestore = this.requireFirestore();
+    const directorySnapshot = await getDocs(collection(firestore, 'userDirectory'));
+    const directoryUids = new Set(directorySnapshot.docs.map((directoryDoc) => directoryDoc.id));
+    const missingUsers = users.filter((user) => !directoryUids.has(user.id));
+    if (missingUsers.length === 0) {
+      return;
+    }
+
+    const batch = writeBatch(firestore);
+    for (const user of missingUsers) {
+      const data = user.data();
+      batch.set(doc(firestore, 'userDirectory', user.id), {
+        uid: user.id,
+        email: readDocumentString(data, 'email'),
+        displayName: readDocumentString(data, 'displayName') || readDocumentString(data, 'email'),
+        status: 'active',
+        updatedAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
   }
 
   async approveRequest(
@@ -224,7 +297,7 @@ export class AdminAccessRequestsService {
       adminData?.['role'] === 'admin' ||
       adminData?.['isAdmin'] === true ||
       adminData?.['isSuperAdmin'] === true;
-    const administeredSirapIds = readSirapRegionIds(adminData?.['administeredSirapIds']);
+    const administeredSirapIds = readSirapAccessRegionIds(adminData?.['administeredSirapIds']);
     if (
       adminData?.['status'] !== 'active' ||
       (!isSuperAdmin && administeredSirapIds.length === 0)
@@ -233,19 +306,6 @@ export class AdminAccessRequestsService {
     }
 
     return { uid, isSuperAdmin, administeredSirapIds };
-  }
-
-  private async listRegionalUsersByAuthoritativeGrant(
-    administeredSirapIds: readonly SirapRegionId[],
-  ): Promise<(readonly [string, DocumentData])[]> {
-    const firestore = this.requireFirestore();
-    const snapshot = await getDocs(
-      query(
-        collection(firestore, 'users'),
-        where('allowedSirapIds', 'array-contains-any', [...administeredSirapIds]),
-      ),
-    );
-    return snapshot.docs.map((userDoc) => [userDoc.id, userDoc.data()] as const);
   }
 
   private parseAccessRequest(uid: string, data: DocumentData): AccessRequestRecord {

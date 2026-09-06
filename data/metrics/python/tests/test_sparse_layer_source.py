@@ -352,6 +352,7 @@ def test_manifest_binding_does_not_fabricate_missing_pins():
 
     binding = pipeline._layer_sparse_binding(
         SimpleNamespace(layers_by_id={"paramos": {}}),
+        {"id": "national"},
         "paramos",
         source_url,
     )
@@ -374,6 +375,7 @@ def test_manifest_binding_accepts_future_trusted_sparse_contract():
 
     binding = pipeline._layer_sparse_binding(
         SimpleNamespace(layers_by_id={"paramos": {"sparseSource": config}}),
+        {"id": "national"},
         "paramos",
         "https://example.test/ignored.tif",
     )
@@ -398,6 +400,7 @@ def test_manifest_binding_distinguishes_explicit_null_nodata():
 
     binding = pipeline._layer_sparse_binding(
         SimpleNamespace(layers_by_id={"paramos": {"sparseSource": config}}),
+        {"id": "national"},
         "paramos",
         "https://example.test/ignored.tif",
     )
@@ -416,6 +419,7 @@ def test_manifest_binding_parses_json_safe_nan_nodata():
 
     binding = pipeline._layer_sparse_binding(
         SimpleNamespace(layers_by_id={"comunidades": {"sparseSource": config}}),
+        {"id": "national"},
         "comunidades",
         "https://example.test/ignored.tif",
     )

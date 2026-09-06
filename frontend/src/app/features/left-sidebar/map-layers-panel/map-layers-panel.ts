@@ -33,6 +33,7 @@ import {
   type RuntimeSpeciesManifestLayer,
   type Solution,
   type SolutionIdentitySummary,
+  resolveSolutionDisplayLabel,
 } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
@@ -51,6 +52,7 @@ import {
   VECTOR_OVERLAY_LAYER_IDS,
 } from '@features/map/services/manifest-raster-layer.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 import { useOverlayScrollbar } from '@core/shared/overlay-scrollbar/use-overlay-scrollbar';
 import { catchError, map, of, switchMap } from 'rxjs';
 import {
@@ -121,6 +123,7 @@ import {
   MANIFEST_CATEGORY_TITLE_OVERRIDES,
   MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID,
   MARINE_ECOSYSTEMS_GROUP_ID,
+  MARINE_ECOSYSTEMS_LAYER_ID,
   OVERLAP_SOLUTION_OVERLAY_ID,
   SINGLE_SOLUTION_COLOR,
   sidebarCategoryBindingForGroup,
@@ -253,7 +256,7 @@ interface EcosystemLayerMetadata {
 @Component({
   selector: 'app-map-layers-panel',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, ColorPickerDirective],
+  imports: [CommonModule, InfoIconComponent, TranslatePipe, ColorPickerDirective],
   templateUrl: './map-layers-panel.html',
   styleUrl: './map-layers-panel.scss',
   animations: [
@@ -559,7 +562,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         if (solution && speciesManifestUrl) {
           this.layerManifestService.preloadSpeciesManifest(speciesManifestUrl);
         }
-        this.syncPrimarySolutionOverlay(solution?.name ?? null);
+        this.syncPrimarySolutionOverlay(
+          solution ? this.resolveActiveSolutionDisplayName(solutionLabel) : null,
+        );
+        this.syncActiveSirapBoundaryRow();
       });
     });
 
@@ -570,6 +576,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     effect(() => {
       const comparisonSolution = this.appState.comparisonSolution$();
+      const comparisonLabel = this.appState.comparisonSolutionLabel$();
       const vizMode = this.appState.comparisonVisualizationMode$();
       const rightSidebarMode = this.appState.rightSidebarMode$();
       untracked(() => {
@@ -594,7 +601,9 @@ export class MapLayersPanelComponent implements OnDestroy {
           return;
         }
 
-        this.syncComparisonSolutionOverlay(comparisonSolution.name);
+        this.syncComparisonSolutionOverlay(
+          this.resolveComparisonSolutionDisplayName(comparisonLabel),
+        );
         this.syncComparisonOverlapOverlay(comparisonSolution.name, vizMode === 'threeColorOverlay');
       });
     });
@@ -644,6 +653,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         : sourceGroups;
       untracked(() => {
         this.syncLocaleSensitiveSidebarLabels();
+        this.syncActiveSirapBoundaryRow();
         this.applyManifestSidebarGroups(manifestGroups);
       });
     });
@@ -988,17 +998,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         switchMap((manifest) =>
           this.loadSpeciesTaxonomyLookup().pipe(
             map(({ taxonomyByScientificName, excludedScientificNames }) =>
-              this.withSpeciesTaxonomy(
-                manifest,
-                taxonomyByScientificName,
-                excludedScientificNames,
-              ),
+              this.withSpeciesTaxonomy(manifest, taxonomyByScientificName, excludedScientificNames),
             ),
-            catchError(() =>
-              of(
-                this.withSpeciesTaxonomy(manifest, new Map(), new Set()),
-              ),
-            ),
+            catchError(() => of(this.withSpeciesTaxonomy(manifest, new Map(), new Set()))),
           ),
         ),
         catchError(() => of<RuntimeSpeciesManifest>({ layers: [] })),
@@ -1030,9 +1032,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     excludedScientificNames: Set<string>,
   ): RuntimeSpeciesManifest {
     const layers = manifest.layers
-      .filter(
-        (layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames),
-      )
+      .filter((layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames))
       .map((layer) => {
         if (layer.taxonId?.trim() && layer.taxonLabel?.trim()) {
           return layer;
@@ -1049,9 +1049,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           taxonLabel: taxonomy.taxonLabel,
         };
       })
-      .filter(
-        (layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames),
-      );
+      .filter((layer) => !this.isExcludedSpeciesManifestLayer(layer, excludedScientificNames));
 
     return {
       ...manifest,
@@ -2498,6 +2496,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
     this.layerInfoPopoverPosition.set(this.resolveLayerInfoPopoverPosition(event));
     this.openLayerInfoPopoverId.set(popoverId);
+    requestAnimationFrame(() => this.updateLayerInfoPopoverPosition(groupId, rowId));
   }
 
   protected closeLayerInfoPopover(): void {
@@ -2528,21 +2527,52 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
+  private updateLayerInfoPopoverPosition(groupId: string, rowId: string): void {
+    const button = this.document.getElementById(
+      `map-layers-layer-row-info-button-${groupId}-${rowId}`,
+    );
+    const popover = this.document.getElementById(
+      `map-layers-layer-row-info-popover-${groupId}-${rowId}`,
+    );
+    if (!button || !popover) {
+      return;
+    }
+
+    const buttonRect = button.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+    const viewportPadding = 12;
+    this.layerInfoPopoverPosition.set({
+      top: Math.min(
+        Math.max(buttonRect.top - 8, viewportPadding),
+        window.innerHeight - popoverRect.height - viewportPadding,
+      ),
+      left: Math.min(
+        Math.max(buttonRect.right + 10, viewportPadding),
+        window.innerWidth - popoverRect.width - viewportPadding,
+      ),
+    });
+  }
+
   protected layerInfoText(row: LayerControlRow): string | null {
     const copy = this.ecosystemsCopy();
     const language = this.activeLanguage();
     const ecosystemInfo = {
-      en: 'This map layer is a simplified display of the Ecosystems target used in the prioritizr run. The model targets 429 detailed Humboldt/IAvH biome-region classes from Colombia’s official MEC 2024 ecosystem data; each class combines a broad biome family with a biodiversity region, for example “Hidrobioma Alto Caquetá.” To keep the map readable, DISES groups those detailed classes into 8 broad biome families in the sidebar display.',
+      en: 'This map layer is a simplified display of IDEAM’s 2024 continental, coastal, and marine ecosystems (MEC) of Colombia. While the model targets the 429 distinct IAvH biome-region classes in the dataset, this layer displays the less detailed major biomes (“gran bioma”).',
       es: 'Esta capa del mapa es una visualización simplificada de la meta Ecosistemas usada en la ejecución de prioritizr. El modelo usa 429 clases detalladas de bioma-región de Humboldt/IAvH del mapa oficial de ecosistemas MEC 2024 de Colombia; cada clase combina una gran familia de bioma con una región de biodiversidad, por ejemplo “Hidrobioma Alto Caquetá”. Para que el mapa sea legible, DISES agrupa esas clases detalladas en 8 grandes familias de biomas en la barra lateral.',
     };
     const strategicInfo = {
       en: 'Strategic ecosystem overlays are decision-facing layers such as paramos, wetlands, dry forest, and mangroves. They are separate input layers, not classes pulled from the full MEC ecosystem map.',
       es: 'Las capas de ecosistemas estratégicos son capas de decisión, como páramos, humedales, bosque seco y manglares. Son capas de entrada separadas, no clases extraídas del mapa completo de ecosistemas MEC.',
     };
+    const marineEcosystemInfo = {
+      en: 'These data on marine and oceanic ecosystems were consolidated by INVEMAR for this conservation analysis. It incorporates the analyses generated by the institute for both deep and shallow zones.',
+      es: 'Estos datos sobre ecosistemas marinos y oceánicos fueron consolidados por INVEMAR para este análisis de conservación. Incorporan los análisis generados por el instituto tanto para zonas profundas como someras.',
+    };
     const layerInfoById: Record<string, { en: string; es: string }> = {
       [IAVH_ECOSYSTEM_LAYER_ID]: ecosystemInfo,
       'layer-ecosistemas': ecosystemInfo,
       'layer-eco-types': ecosystemInfo,
+      [MARINE_ECOSYSTEMS_LAYER_ID]: marineEcosystemInfo,
       [STRATEGIC_ECOSYSTEM_GROUP_ROW_ID]: strategicInfo,
       'layer-paramos': {
         en: 'Official paramo complexes layer from Minambiente/SIAC. Used as one of the strategic ecosystem inputs.',
@@ -3625,11 +3655,25 @@ export class MapLayersPanelComponent implements OnDestroy {
     ];
   }
 
-  private syncPrimarySolutionOverlay(solutionName: string | null): void {
+  private resolveActiveSolutionDisplayName(customLabel: string | null): string {
+    return resolveSolutionDisplayLabel(
+      customLabel,
+      this.localizedText('mapLayersPanel.activeSolutionLabel'),
+    );
+  }
+
+  private resolveComparisonSolutionDisplayName(customLabel: string | null): string {
+    return resolveSolutionDisplayLabel(
+      customLabel,
+      this.localizedText('analysis.comparison.candidateLabel'),
+    );
+  }
+
+  private syncPrimarySolutionOverlay(displayName: string | null): void {
     this.overlays.update((rows) =>
       rows.map((row) =>
-        row.id === BASELINE_SOLUTION_OVERLAY_ID && solutionName
-          ? { ...row, name: solutionName }
+        row.id === BASELINE_SOLUTION_OVERLAY_ID && displayName
+          ? { ...row, name: displayName }
           : row,
       ),
     );
@@ -3675,8 +3719,8 @@ export class MapLayersPanelComponent implements OnDestroy {
     this.updateSelectedLayerOrder(OVERLAP_SOLUTION_OVERLAY_ID, false);
   }
 
-  private syncComparisonSolutionOverlay(solutionName: string | null): void {
-    if (!solutionName) {
+  private syncComparisonSolutionOverlay(displayName: string | null): void {
+    if (!displayName) {
       this.overlays.update((rows) =>
         rows.filter((row) => row.id !== CANDIDATE_SOLUTION_OVERLAY_ID),
       );
@@ -3693,7 +3737,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         hasCandidateOverlay = true;
         return {
           ...row,
-          name: solutionName,
+          name: displayName,
           selected: true,
           visible: true,
         };
@@ -3707,7 +3751,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         ...nextRows,
         {
           id: CANDIDATE_SOLUTION_OVERLAY_ID,
-          name: solutionName,
+          name: displayName,
           selected: true,
           visible: true,
           expanded: true,
@@ -4161,7 +4205,9 @@ export class MapLayersPanelComponent implements OnDestroy {
         false,
       ),
     );
+    const activeSirapRow = this.activeSirapBoundaryRow();
     const adminBoundaryRows = [
+      ...(activeSirapRow ? [activeSirapRow] : []),
       ...sirapRows,
       this.boundaryRow(
         'admin_country_outline',
@@ -4373,6 +4419,66 @@ export class MapLayersPanelComponent implements OnDestroy {
       hasColorControl: false,
       mapSync: { type: 'admin-boundary', boundaryType, boundaryLayerKey },
     };
+  }
+
+  private activeSirapBoundaryRow(): LayerControlRow | null {
+    const activeSolution = this.appState.activeSolution$();
+    const sirapId = activeSolution?.metadata?.['sirapId'];
+    if (activeSolution?.metadata?.['scope'] !== 'sirap' || typeof sirapId !== 'string') {
+      return null;
+    }
+
+    const regionNameKeys: Record<string, string> = {
+      amazonia: 'finder.scopeBar.regions.amazonia',
+      'andes-nororientales': 'finder.scopeBar.regions.andesNororientales',
+      'andes-occidentales': 'finder.scopeBar.regions.andesOccidentales',
+      caribe: 'finder.scopeBar.regions.caribe',
+      'eje-cafetero': 'finder.scopeBar.regions.ejeCafetero',
+      orinoquia: 'finder.scopeBar.regions.orinoquia',
+      pacifico: 'finder.scopeBar.regions.pacifico',
+    };
+    const name = this.localizedTextOrFallback(regionNameKeys[sirapId] ?? '', 'SIRAP');
+    return {
+      ...this.boundaryRow('active_sirap', 'sirap', name, true, true),
+      borderColor: '#000000',
+      borderWidth: 3,
+      hasStyleControls: true,
+      hasColorControl: true,
+    };
+  }
+
+  private syncActiveSirapBoundaryRow(): void {
+    const activeRow = this.activeSirapBoundaryRow();
+    this.groups.update((groups) =>
+      groups.map((group) => {
+        if (group.id !== 'group-admin-boundaries') {
+          return group;
+        }
+        const rows = group.rows.filter((row) => row.id !== 'boundary-active_sirap');
+        const nextRows = activeRow ? [activeRow, ...rows] : rows;
+        return { ...group, rows: nextRows, countLabel: this.toLayerCountLabel(nextRows.length) };
+      }),
+    );
+    this.selectedLayerOrder.update((order) => {
+      const withoutActive = order.filter((id) => id !== 'boundary-active_sirap');
+      if (!activeRow) {
+        return this.normalizeSelectedLayerOrder(withoutActive);
+      }
+      const contextualRows = [
+        BASELINE_SOLUTION_OVERLAY_ID,
+        'boundary-active_sirap',
+        'boundary-admin_country_outline',
+      ];
+      return this.normalizeSelectedLayerOrder([
+        ...contextualRows.filter(
+          (id) => id === BASELINE_SOLUTION_OVERLAY_ID || withoutActive.includes(id),
+        ),
+        ...withoutActive.filter((id) => !contextualRows.includes(id)),
+      ]);
+    });
+    if (activeRow) {
+      this.syncRowToMap(activeRow);
+    }
   }
 
   private syncLocaleSensitiveSidebarLabels(): void {

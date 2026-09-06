@@ -25,7 +25,12 @@ from app.ecosystem_inventory import RuntimeEcosystemInventory, load_ecosystem_in
 from app.job_queue import DetailedSpeciesJobQueue
 from app.main import app
 from app import main as main_module
-from app.models import CustomAreaProfileRequest, EcosystemAreaProfileSection
+from app.models import (
+    CustomAreaProfileRequest,
+    CustomAreaProfileResponse,
+    CustomAreaProfileSelection,
+    EcosystemAreaProfileSection,
+)
 from app.species_index import (
     SpeciesIndexQueryError,
     load_runtime_species_bitset_index,
@@ -63,6 +68,64 @@ def test_area_profile_request_requires_non_empty_known_sections() -> None:
         sections=["species", "species", "ecosystems"],
     )
     assert request.sections == ["species", "ecosystems"]
+
+
+def _sample_mesa_coverage_row() -> dict[str, object]:
+    return {
+        "feature": "Forest",
+        "total_in_aoi": 1.0,
+        "national_total": 2.0,
+        "classified_total_in_aoi": 1.0,
+        "share_of_national_total": 0.5,
+        "share_of_classified_aoi": 1.0,
+        "held_in_aoi": 1.0,
+        "coverage_within_aoi": 1.0,
+        "pre_existing_held_in_aoi": 0.0,
+        "pre_existing_coverage_within_aoi": 0.0,
+        "new_prioritizr_held_in_aoi": 1.0,
+        "new_prioritizr_coverage_within_aoi": 1.0,
+        "contribution_to_national_coverage": 0.5,
+        "pre_existing_contribution_to_national_coverage": 0.0,
+        "new_prioritizr_contribution_to_national_coverage": 0.5,
+        "contribution_to_national_target": None,
+    }
+
+
+def test_custom_area_profile_response_preserves_ecosystem_solution_coverage() -> None:
+    ecosystem_section = {
+        "status": "complete",
+        "canonical_summary_view": "broadEcosystem",
+        "classified_area_km2": 1.0,
+        "views": [
+            {
+                "id": "broadEcosystem",
+                "label": "Broad ecosystem",
+                "records": [],
+            }
+        ],
+        "solution_coverage": [_sample_mesa_coverage_row()],
+    }
+    response = CustomAreaProfileResponse(
+        status="complete",
+        artifact_version="fixture-v1",
+        selection=CustomAreaProfileSelection(
+            status="selected",
+            selected_cell_count=1,
+            available_cell_count=1,
+            area_km2=1.0,
+            source="test",
+        ),
+        requested_sections=["ecosystems"],
+        sections={"ecosystems": ecosystem_section},
+    )
+
+    serialized = response.model_dump()
+    ecosystems = serialized["sections"]["ecosystems"]
+    assert "id_scope" not in ecosystems
+    assert ecosystems["classified_area_km2"] == pytest.approx(1.0)
+    assert len(ecosystems["views"]) == 1
+    assert len(ecosystems["solution_coverage"]) == 1
+    assert ecosystems["solution_coverage"][0]["feature"] == "Forest"
 
 
 def test_species_id_normalizes_nfkc_case_and_whitespace() -> None:
@@ -282,6 +345,7 @@ def test_detailed_species_job_builds_one_normalized_target_lookup(
 
     coverage = FakeCoverage()
     artifact = SimpleNamespace(
+        manifest={"artifact_version": "artifact"},
         species_index=FakeIndex(),
         reference_raster_path=Path("reference.tif"),
         solution_registry=SimpleNamespace(
@@ -292,13 +356,8 @@ def test_detailed_species_job_builds_one_normalized_target_lookup(
     monkeypatch.setattr(main_module, "RuntimeSpeciesBitsetIndex", FakeIndex)
     monkeypatch.setattr(
         main_module,
-        "get_artifact_state",
-        lambda settings: SimpleNamespace(artifact_version="artifact"),
-    )
-    monkeypatch.setattr(
-        main_module,
-        "get_runtime_artifact",
-        lambda settings: artifact,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
     )
     monkeypatch.setattr(
         main_module,
@@ -681,7 +740,11 @@ def test_area_profile_endpoint_returns_additive_v1_contract(
         message="ready",
     )
     monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
-    monkeypatch.setattr(main_module, "get_runtime_artifact", lambda settings: artifact)
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
 
     response = TestClient(app).post(
         "/area-profile/custom-polygon",
@@ -717,7 +780,11 @@ def test_area_profile_endpoint_treats_geometry_failure_as_http_error(
         message="ready",
     )
     monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
-    monkeypatch.setattr(main_module, "get_runtime_artifact", lambda settings: artifact)
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
 
     response = TestClient(app).post(
         "/area-profile/custom-polygon",
@@ -752,13 +819,18 @@ def test_detailed_species_enqueue_storage_failure_returns_retryable_503(
         message="ready",
     )
     artifact = SimpleNamespace(
+        manifest={"artifact_version": "test-raster"},
         species_index=object(),
         solution_registry=SimpleNamespace(entries={"solution-1": object()}),
     )
     monkeypatch.setattr(main_module, "_DETAILED_SPECIES_QUEUE", FailingQueue())
     monkeypatch.setattr(main_module, "RuntimeSpeciesBitsetIndex", object)
     monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
-    monkeypatch.setattr(main_module, "get_runtime_artifact", lambda settings: artifact)
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
 
     response = TestClient(app).post(
         "/area-profile/custom-polygon/species-coverage/jobs",
@@ -840,3 +912,116 @@ def test_detailed_species_read_routes_translate_storage_failures_to_503(
     assert response.status_code == 503
     assert response.headers["retry-after"] == "10"
     assert response.json()["detail"]["status"] == "queue_storage_unavailable"
+
+
+def test_detailed_species_job_returns_stubbed_unavailable_for_sirap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.area_profile import species_inventory_unavailable_reason
+
+    class UnusedQueue:
+        def unavailable_reason(self) -> None:
+            return None
+
+        def enqueue(self, payload):
+            raise AssertionError("enqueue should not run for stubbed SIRAP species")
+
+    artifact = SimpleNamespace(
+        manifest={
+            "artifact_version": "sirap-fixture-v1",
+            "artifact_kind": "sirap-raster-custom-aoi/v1",
+            "species_matrices": {"status": "stubbed"},
+        },
+        species_matrices={},
+        species_index=None,
+        solution_registry=SimpleNamespace(entries={"eje-cafetero-fixture": object()}),
+    )
+    assert species_inventory_unavailable_reason(artifact) == "species_matrices_stubbed"
+    monkeypatch.setattr(main_module, "_DETAILED_SPECIES_QUEUE", UnusedQueue())
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
+
+    response = TestClient(app).post(
+        "/area-profile/custom-polygon/species-coverage/jobs",
+        json={
+            "geometry": POLYGON_LEFT_COLUMN,
+            "solution_id": "eje-cafetero-fixture",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["status"] == "species_matrices_stubbed"
+
+
+def test_detailed_species_job_uses_solution_artifact_version(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.job_queue import JobSnapshot
+
+    class RecordingQueue:
+        def unavailable_reason(self) -> None:
+            return None
+
+        def enqueue(self, payload):
+            self.last_payload = payload
+            return (
+                JobSnapshot(
+                    job_id="job-1",
+                    status="queued",
+                    queue_position=1,
+                    estimated_wait_seconds=1.0,
+                    created_at=0.0,
+                    started_at=None,
+                    completed_at=None,
+                    compute_ms=None,
+                    result=None,
+                    error_code=None,
+                ),
+                False,
+            )
+
+    national_artifact = SimpleNamespace(
+        manifest={"artifact_version": "national-fixture-v1"},
+        species_index=object(),
+        solution_registry=SimpleNamespace(entries={"solution-1": object()}),
+    )
+    sirap_artifact = SimpleNamespace(
+        manifest={"artifact_version": "sirap-fixture-v1"},
+        species_index=object(),
+        solution_registry=SimpleNamespace(entries={"eje-cafetero-fixture": object()}),
+    )
+    queue = RecordingQueue()
+    monkeypatch.setattr(main_module, "_DETAILED_SPECIES_QUEUE", queue)
+    monkeypatch.setattr(main_module, "RuntimeSpeciesBitsetIndex", object)
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: (
+            sirap_artifact if solution_id == "eje-cafetero-fixture" else national_artifact
+        ),
+    )
+
+    mismatch = TestClient(app).post(
+        "/area-profile/custom-polygon/species-coverage/jobs",
+        json={
+            "geometry": POLYGON_LEFT_COLUMN,
+            "solution_id": "eje-cafetero-fixture",
+            "artifact_version": "national-fixture-v1",
+        },
+    )
+    assert mismatch.status_code == 400
+    assert mismatch.json()["detail"]["status"] == "invalid_request"
+
+    accepted = TestClient(app).post(
+        "/area-profile/custom-polygon/species-coverage/jobs",
+        json={
+            "geometry": POLYGON_LEFT_COLUMN,
+            "solution_id": "eje-cafetero-fixture",
+            "artifact_version": "sirap-fixture-v1",
+        },
+    )
+    assert accepted.status_code == 202
+    assert queue.last_payload["artifact_version"] == "sirap-fixture-v1"

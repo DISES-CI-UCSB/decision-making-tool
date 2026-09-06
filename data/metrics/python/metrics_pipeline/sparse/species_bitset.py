@@ -23,7 +23,7 @@ import math
 import struct
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Mapping, Sequence
 
 import numpy as np
 from rasterio.crs import CRS
@@ -111,7 +111,7 @@ class _MatrixHeader:
 
 
 def build_species_bitset(
-    matrix_paths: dict[str, Path],
+    matrix_paths: Mapping[str, Path] | Sequence[tuple[str, Path]],
     data_path: Path,
     metadata_path: Path,
 ) -> SpeciesBitsetMetadata:
@@ -193,14 +193,16 @@ def rebuild_species_bitset_metadata(
 
 
 def _read_matrix_set(
-    matrix_paths: dict[str, Path],
+    matrix_paths: Mapping[str, Path] | Sequence[tuple[str, Path]],
 ) -> tuple[tuple[_MatrixHeader, ...], SparseMetadata, int]:
-    if not matrix_paths:
+    items = matrix_paths.items() if isinstance(matrix_paths, Mapping) else matrix_paths
+    ordered_items = sorted(items, key=lambda item: (item[0], str(item[1])))
+    if not ordered_items:
         raise SparseFormatError("species bitset requires at least one matrix")
 
     headers = tuple(
         _read_matrix_header(group, path)
-        for group, path in sorted(matrix_paths.items())
+        for group, path in ordered_items
     )
     grid = headers[0].grid
     for header in headers[1:]:

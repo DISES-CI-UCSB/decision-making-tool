@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -29,6 +29,10 @@ class PolygonMetricsRequest(BaseModel):
     artifact_version: str | None = Field(
         default=None,
         description="Optional artifact version pin requested by the client.",
+    )
+    solution_id: str | None = Field(
+        default=None,
+        description="Optional solution id used to route regional SIRAP artifacts.",
     )
 
 
@@ -91,10 +95,12 @@ class EcosystemAreaProfileRecord(BaseModel):
     id: str
     label: str
     area_km2: float
-    national_area_km2: float
+    national_area_km2: float | None = None
     share_of_classified_pct: float | None
     share_of_total_aoi_pct: float | None
-    share_of_national_class_pct: float | None
+    share_of_national_class_pct: float | None = None
+    sirap_area_km2: float | None = None
+    share_of_sirap_class_pct: float | None = None
     solution_covered_area_km2: float | None
     solution_covered_pct_of_aoi: float | None
     pre_existing_covered_area_km2: float | None
@@ -224,6 +230,7 @@ def _validate_ratio(
 class EcosystemAreaProfileSection(BaseModel):
     status: AreaProfileSectionStatus
     canonical_summary_view: Literal["broadEcosystem"] = "broadEcosystem"
+    reference_scope: Literal["national", "sirap"] = "national"
     classified_area_km2: float = 0.0
     views: list[EcosystemAreaProfileView] = Field(default_factory=list)
     solution_coverage: list[MesaAoiCoverageRecord] = Field(default_factory=list)
@@ -239,17 +246,49 @@ class CustomAreaProfileSelection(BaseModel):
     crs: str | None = None
 
 
+AreaProfileSection = Union[SpeciesAreaProfileSection, EcosystemAreaProfileSection]
+
+
+def _coerce_area_profile_section(
+    section_name: str,
+    section: Any,
+) -> AreaProfileSection:
+    if section_name == "species":
+        if isinstance(section, SpeciesAreaProfileSection):
+            return section
+        return SpeciesAreaProfileSection.model_validate(section)
+    if section_name == "ecosystems":
+        if isinstance(section, EcosystemAreaProfileSection):
+            return section
+        return EcosystemAreaProfileSection.model_validate(section)
+    raise ValueError(f"Unknown area profile section: {section_name}")
+
+
 class CustomAreaProfileResponse(BaseModel):
     format: Literal["custom-aoi-area-profile-v1"] = "custom-aoi-area-profile-v1"
     status: Literal["complete", "partial", "zero_cells"]
     artifact_version: str
     selection: CustomAreaProfileSelection
     requested_sections: list[AreaProfileSectionName]
-    sections: dict[
-        AreaProfileSectionName, SpeciesAreaProfileSection | EcosystemAreaProfileSection
-    ]
+    sections: dict[AreaProfileSectionName, AreaProfileSection]
     solution_id: str | None = None
     solution_raster_checksum: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_sections_by_name(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        sections = data.get("sections")
+        if not isinstance(sections, dict):
+            return data
+        return {
+            **data,
+            "sections": {
+                section_name: _coerce_area_profile_section(section_name, section)
+                for section_name, section in sections.items()
+            },
+        }
 
 
 class DetailedSpeciesCoverageRequest(BaseModel):

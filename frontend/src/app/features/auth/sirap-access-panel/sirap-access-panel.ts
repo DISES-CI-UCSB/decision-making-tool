@@ -10,7 +10,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { SIRAP_REGIONS, type SirapAccessRequestStatus, type SirapRegionId } from '@core/models';
+import {
+  SIRAP_ACCESS_REGIONS,
+  type SirapAccessRequestStatus,
+  type SirapRegionId,
+} from '@core/models';
 import { AuthService } from '@core/services/auth.service';
 import { AppStateService } from '@core/services/app-state.service';
 import {
@@ -32,7 +36,7 @@ export class SirapAccessPanelComponent implements OnInit {
   @Output() readonly closeRequested = new EventEmitter<void>();
   @ViewChild('panelCard') private readonly panelCardRef?: ElementRef<HTMLElement>;
 
-  protected readonly regions = SIRAP_REGIONS;
+  protected readonly regions = SIRAP_ACCESS_REGIONS;
   protected readonly requests = signal<SirapAccessRequestRecord[]>([]);
   protected readonly selectedSirapIds = signal<SirapRegionId[]>([]);
   protected readonly reason = signal('');

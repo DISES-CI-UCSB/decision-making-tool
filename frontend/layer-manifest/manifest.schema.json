@@ -407,6 +407,10 @@
         },
         "mecV2ByGeography": {
           "$ref": "#/$defs/mecGeographyUrls"
+        },
+        "mecNationalDenominator": {
+          "type": "string",
+          "format": "uri"
         }
       },
       "additionalProperties": {

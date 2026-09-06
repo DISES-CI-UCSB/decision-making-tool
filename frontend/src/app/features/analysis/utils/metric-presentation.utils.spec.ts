@@ -5,6 +5,7 @@ import {
   formatMetricDelta,
   formatMetricValue,
   formatNumber,
+  formatSpeciesCoveragePercent,
   isDisplayableMetricValue,
   metricAvailabilityNote,
 } from './metric-presentation.utils';
@@ -111,6 +112,19 @@ describe('metric presentation utilities', () => {
     expect(displayableMetricValue(marine)).toBeNull();
     expect(metricAvailabilityNote(complete)).toBeNull();
     expect(metricAvailabilityNote(marine)).toBeNull();
+  });
+});
+
+describe('formatSpeciesCoveragePercent', () => {
+  it('uses adaptive decimals so non-zero values never display as 0%', () => {
+    expect(formatSpeciesCoveragePercent(50, 'en')).toBe('50%');
+    expect(formatSpeciesCoveragePercent(0.148, 'en')).toBe('0.1%');
+    expect(formatSpeciesCoveragePercent(0.0148, 'en')).toBe('0.01%');
+    expect(formatSpeciesCoveragePercent(0, 'en')).toBe('0%');
+  });
+
+  it('formats small percentages with locale-aware separators', () => {
+    expect(formatSpeciesCoveragePercent(0.0148, 'es')).toBe('0,01%');
   });
 });
 

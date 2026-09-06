@@ -59,7 +59,7 @@ def validate_coverage_targets(
 
     validated: list[ValidatedCoverageTarget] = []
     normalized_features: set[str] = set()
-    counts = {"ecosystem": 0, "species": 0}
+    counts = {"ecosystem": 0, "species": 0, "strategic ecosystem": 0}
     for index, raw in enumerate(rows):
         if not isinstance(raw, Mapping):
             raise CoverageTargetValidationError(

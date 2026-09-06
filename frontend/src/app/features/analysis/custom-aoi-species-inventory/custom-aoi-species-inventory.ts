@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import type {
@@ -9,6 +10,8 @@ import type {
   GeographyLevel,
   HydratedSpeciesGoalsRecord,
 } from '@core/models';
+
+const NATIONAL_RANGE_LABEL_KEY = 'analysis.aoi.customProfile.species.nationalModeledRangeColombia';
 import { ApiService } from '@core/services/api.service';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
@@ -29,10 +32,49 @@ import {
   timer,
 } from 'rxjs';
 import { parseSpeciesSection } from '../custom-aoi-area-profile/custom-aoi-area-profile.utils';
+import { formatSpeciesCoveragePercent } from '../utils/metric-presentation.utils';
 
-type InventoryState =
-  | { status: 'idle' | 'loading' }
-  | { status: CustomAoiProfileSectionStatus; data: CustomAoiSpeciesSection | null };
+interface LoadedInventoryState {
+  status: CustomAoiProfileSectionStatus;
+  data: CustomAoiSpeciesSection | null;
+  reason?: string | null;
+}
+
+type InventoryState = { status: 'idle' | 'loading' } | LoadedInventoryState;
+
+export const LIVE_SPECIES_INVENTORY_UNAVAILABLE_REASONS = [
+  'species_matrices_stubbed',
+  'species_index_required',
+] as const;
+
+export function isLiveSpeciesInventoryUnavailableReason(
+  reason: string | null | undefined,
+): boolean {
+  if (!reason) {
+    return false;
+  }
+  return (
+    LIVE_SPECIES_INVENTORY_UNAVAILABLE_REASONS.includes(
+      reason as (typeof LIVE_SPECIES_INVENTORY_UNAVAILABLE_REASONS)[number],
+    ) || reason.startsWith('species_matrix_group_missing')
+  );
+}
+
+function isLoadedInventoryState(state: InventoryState): state is LoadedInventoryState {
+  return state.status !== 'idle' && state.status !== 'loading';
+}
+
+function isSpeciesCoverageUnavailableError(error: unknown): boolean {
+  if (!(error instanceof HttpErrorResponse) || error.status !== 503) {
+    return false;
+  }
+  const detail = error.error;
+  if (!detail || typeof detail !== 'object') {
+    return false;
+  }
+  const status = (detail as { status?: unknown }).status;
+  return status === 'species_index_required' || status === 'species_matrices_stubbed';
+}
 
 type CoverageState = 'idle' | 'submitting' | 'active' | 'failed' | 'cancelled';
 
@@ -47,12 +89,29 @@ interface SpeciesCoverageMetric {
   ariaLabel: string;
 }
 
+const NATIONAL_SPECIES_COVERAGE_METRIC_IDS = ['solution-coverage', 'pre-existing', 'new'] as const;
+const SIRAP_SPECIES_COVERAGE_METRIC_IDS = ['pre-existing', 'new', 'solution-coverage'] as const;
+
+interface SpeciesNationalRange {
+  formattedAmount: string;
+  ariaLabel: string;
+}
+
 interface SpeciesCoverageView {
+  nationalRange: SpeciesNationalRange;
   presence: SpeciesCoverageMetric;
   coverage: readonly SpeciesCoverageMetric[];
-  formattedNationalRangeArea: string;
   contributionToNationalCoveragePercent: number | null;
   contributionToNationalTargetPercent: number | null;
+}
+
+export function isNationalRangeUnavailable(
+  record: DetailedSpeciesCoverageRecord | HydratedSpeciesGoalsRecord,
+): boolean {
+  if ('availability' in record && record.availability === 'unavailable') {
+    return true;
+  }
+  return record.range_area_km2 === null || record.range_area_km2 === undefined;
 }
 
 export interface MesaSpeciesCoverageValues {
@@ -102,6 +161,7 @@ export function clampSpeciesBarPercent(value: number): number {
 export class CustomAoiSpeciesInventoryComponent {
   readonly geometry = input<CustomPolygonMetricsGeometry | null>(null);
   readonly solutionId = input<string | null>(null);
+  readonly useSirapCoverageColumnOrder = input(false);
   readonly geographyLevel = input<GeographyLevel | null>(null);
   readonly scopeId = input<string | null>(null);
   readonly preExistingCoverageColor = input('#2563eb');
@@ -125,12 +185,6 @@ export class CustomAoiSpeciesInventoryComponent {
   protected readonly speciesSearch = signal('');
   protected readonly speciesGroup = signal('all');
   protected readonly speciesIucn = signal('all');
-  private readonly percentNumberFormatter = computed(
-    () =>
-      new Intl.NumberFormat(this.appLocale.locale(), {
-        maximumFractionDigits: 1,
-      }),
-  );
   private readonly areaNumberFormatter = computed(
     () =>
       new Intl.NumberFormat(this.appLocale.locale(), {
@@ -185,6 +239,42 @@ export class CustomAoiSpeciesInventoryComponent {
   protected readonly canCancelCoverage = computed(() => {
     const status = this.coverageJob()?.status;
     return status === 'queued' || status === 'running';
+  });
+  protected readonly speciesCoverageUnavailable = computed(() => {
+    const reason = this.inventoryUnavailableReason();
+    return (
+      isLiveSpeciesInventoryUnavailableReason(reason) ||
+      this.precomputedCoverageRecords().length > 0
+    );
+  });
+  protected readonly inventoryUnavailableReason = computed((): string | null => {
+    const state = this.inventoryState();
+    if (!isLoadedInventoryState(state)) {
+      return null;
+    }
+    return state.reason ?? state.data?.reason ?? null;
+  });
+  protected readonly inventoryStateMessageKey = computed((): string => {
+    const state = this.inventoryState();
+    if (!isLoadedInventoryState(state)) {
+      return this.inventoryStateKey(state.status);
+    }
+    return this.inventoryStateKey(state.status, state.reason ?? state.data?.reason ?? null);
+  });
+  protected readonly coverageColumnIds = computed(() => {
+    const metricIds = this.useSirapCoverageColumnOrder()
+      ? SIRAP_SPECIES_COVERAGE_METRIC_IDS
+      : NATIONAL_SPECIES_COVERAGE_METRIC_IDS;
+    return metricIds.map((metricId) => {
+      switch (metricId) {
+        case 'solution-coverage':
+          return 'solutionCoverage';
+        case 'pre-existing':
+          return 'preExistingCoverage';
+        default:
+          return 'newCoverage';
+      }
+    });
   });
 
   constructor() {
@@ -251,13 +341,47 @@ export class CustomAoiSpeciesInventoryComponent {
                     ...(solutionId ? { solution_id: solutionId } : {}),
                   })
                   .pipe(
-                    map((response) => this.toInventoryState(parseSpeciesSection(response))),
-                    catchError(() =>
-                      of<InventoryState>({
+                    switchMap((response) => {
+                      const inventoryState = this.toInventoryState(parseSpeciesSection(response));
+                      if (
+                        isLoadedInventoryState(inventoryState) &&
+                        this.shouldFallbackToPrecomputedSpecies(
+                          inventoryState,
+                          geographyLevel,
+                          scopeId,
+                          solutionId,
+                        )
+                      ) {
+                        return this.loadPrecomputedInventory(
+                          solutionId!,
+                          geographyLevel!,
+                          scopeId!,
+                        );
+                      }
+                      return of(inventoryState);
+                    }),
+                    catchError((error) => {
+                      if (
+                        this.canFallbackToPrecomputedSpecies(geographyLevel, scopeId, solutionId)
+                      ) {
+                        return this.loadPrecomputedInventory(
+                          solutionId!,
+                          geographyLevel!,
+                          scopeId!,
+                        );
+                      }
+                      if (isSpeciesCoverageUnavailableError(error)) {
+                        return of<InventoryState>({
+                          status: 'unavailable',
+                          data: null,
+                          reason: 'species_index_required',
+                        });
+                      }
+                      return of<InventoryState>({
                         status: 'failed',
                         data: null,
-                      }),
-                    ),
+                      });
+                    }),
                   ),
               ),
             ),
@@ -271,12 +395,13 @@ export class CustomAoiSpeciesInventoryComponent {
   open(): void {
     this.modalOpen.set(true);
     this.modalOpenChange.emit(true);
-    if (this.geometry() && this.coverageState() === 'idle') {
+    if (this.geometry() && this.coverageState() === 'idle' && !this.speciesCoverageUnavailable()) {
       this.startDetailedSpeciesCoverage();
     }
   }
 
   protected close(): void {
+    this.cancelStaleCoverage();
     this.modalOpen.set(false);
     this.modalOpenChange.emit(false);
   }
@@ -321,7 +446,7 @@ export class CustomAoiSpeciesInventoryComponent {
   }
 
   protected formatPercent(value: number): string {
-    return `${this.percentNumberFormatter().format(value)}%`;
+    return formatSpeciesCoveragePercent(value, this.appLocale.locale());
   }
 
   protected formatAreaKm2(value: number): string {
@@ -332,7 +457,10 @@ export class CustomAoiSpeciesInventoryComponent {
     return value || this.translate.instant('analysis.aoi.customProfile.species.iucnNotReported');
   }
 
-  protected inventoryStateKey(status: InventoryState['status']): string {
+  protected inventoryStateKey(status: InventoryState['status'], reason?: string | null): string {
+    if (status === 'unavailable' && isLiveSpeciesInventoryUnavailableReason(reason)) {
+      return 'analysis.aoi.customProfile.species.stubbedUnavailable';
+    }
     return `analysis.aoi.customProfile.states.${status}`;
   }
 
@@ -365,7 +493,7 @@ export class CustomAoiSpeciesInventoryComponent {
     this.speciesGroup.set('all');
     this.speciesIucn.set('all');
     this.precomputedCoverageRecords.set([]);
-    if (this.modalOpen()) {
+    if (this.modalOpen() && !this.speciesCoverageUnavailable()) {
       this.startDetailedSpeciesCoverage();
     }
   }
@@ -373,7 +501,7 @@ export class CustomAoiSpeciesInventoryComponent {
   private startDetailedSpeciesCoverage(forceRestart = false): void {
     const geometry = this.geometry();
     const solutionId = this.solutionId();
-    if (!geometry || !solutionId) {
+    if (!geometry || !solutionId || this.speciesCoverageUnavailable()) {
       return;
     }
     if (!forceRestart && this.coverageState() !== 'idle') {
@@ -429,9 +557,9 @@ export class CustomAoiSpeciesInventoryComponent {
                 : 'active',
           );
         }),
-        catchError(() => {
+        catchError((error) => {
           if (version === this.contextVersion) {
-            this.coverageState.set('failed');
+            this.coverageState.set(isSpeciesCoverageUnavailableError(error) ? 'idle' : 'failed');
           }
           return of(null);
         }),
@@ -463,8 +591,53 @@ export class CustomAoiSpeciesInventoryComponent {
   }
 
   private buildCoverageView(record: DetailedSpeciesCoverageRecord): SpeciesCoverageView {
-    const mesaCoverage = this.geometry() ? mapMesaSpeciesCoverage(record) : null;
+    const mesaCoverage =
+      this.geometry() && this.hasMesaCoverageFields(record) ? mapMesaSpeciesCoverage(record) : null;
+    const coverageById = {
+      'solution-coverage': mesaCoverage
+        ? this.buildCoverageMetric(
+            'solution-coverage',
+            'analysis.aoi.customProfile.species.solutionCoverage',
+            'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
+            record.scientific_name,
+            mesaCoverage.coverageWithinAoiPercent,
+            record.solution_covered_in_aoi_area_km2,
+            '#475569',
+          )
+        : this.buildCoverageMetric(
+            'solution-coverage',
+            'analysis.aoi.customProfile.species.solutionCoverage',
+            'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
+            record.scientific_name,
+            record.solution_covered_in_aoi_pct,
+            record.solution_covered_in_aoi_area_km2,
+            '#475569',
+          ),
+      'pre-existing': this.buildCoverageMetric(
+        'pre-existing',
+        'analysis.aoi.customProfile.species.preExistingCoverage',
+        'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
+        record.scientific_name,
+        record.pre_existing_covered_in_aoi_pct,
+        record.pre_existing_covered_in_aoi_area_km2,
+        this.preExistingCoverageColor(),
+      ),
+      new: this.buildCoverageMetric(
+        'new',
+        'analysis.aoi.customProfile.species.newCoverage',
+        'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
+        record.scientific_name,
+        record.new_covered_in_aoi_pct,
+        record.new_covered_in_aoi_area_km2,
+        this.newCoverageColor(),
+      ),
+    } satisfies Record<'solution-coverage' | 'pre-existing' | 'new', SpeciesCoverageMetric>;
+    const metricIds = this.useSirapCoverageColumnOrder()
+      ? SIRAP_SPECIES_COVERAGE_METRIC_IDS
+      : NATIONAL_SPECIES_COVERAGE_METRIC_IDS;
+
     return {
+      nationalRange: this.buildNationalRange(record),
       presence: this.buildCoverageMetric(
         'range-in-aoi',
         'analysis.aoi.customProfile.species.rangeInAoi',
@@ -474,56 +647,25 @@ export class CustomAoiSpeciesInventoryComponent {
         record.range_in_aoi_area_km2,
         '#0284c7',
       ),
-      coverage: [
-        mesaCoverage
-          ? this.buildCoverageMetric(
-              'solution-coverage',
-              'analysis.aoi.customProfile.species.solutionCoverage',
-              'analysis.aoi.customProfile.species.ofMesaCellsInsideAoi',
-              record.scientific_name,
-              mesaCoverage.coverageWithinAoiPercent,
-              null,
-              '#475569',
-              mesaCoverage.heldInAoi === null || mesaCoverage.totalInAoi === null
-                ? this.translate.instant('analysis.common.valueUnavailable')
-                : this.translate.instant('analysis.aoi.customProfile.species.mesaCellCount', {
-                    held: this.areaNumberFormatter().format(mesaCoverage.heldInAoi),
-                    total: this.areaNumberFormatter().format(mesaCoverage.totalInAoi),
-                  }),
-            )
-          : this.buildCoverageMetric(
-              'solution-coverage',
-              'analysis.aoi.customProfile.species.solutionCoverage',
-              'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
-              record.scientific_name,
-              record.solution_covered_in_aoi_pct,
-              record.solution_covered_in_aoi_area_km2,
-              '#475569',
-            ),
-        this.buildCoverageMetric(
-          'pre-existing',
-          'analysis.aoi.customProfile.species.preExistingCoverage',
-          'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
-          record.scientific_name,
-          record.pre_existing_covered_in_aoi_pct,
-          record.pre_existing_covered_in_aoi_area_km2,
-          this.preExistingCoverageColor(),
-        ),
-        this.buildCoverageMetric(
-          'new',
-          'analysis.aoi.customProfile.species.newCoverage',
-          'analysis.aoi.customProfile.species.ofSpeciesRangeInsideAoi',
-          record.scientific_name,
-          record.new_covered_in_aoi_pct,
-          record.new_covered_in_aoi_area_km2,
-          this.newCoverageColor(),
-        ),
-      ],
-      formattedNationalRangeArea: this.formatAreaKm2(record.range_area_km2),
+      coverage: metricIds.map((metricId) => coverageById[metricId]),
       contributionToNationalCoveragePercent:
         mesaCoverage?.contributionToNationalCoveragePercent ?? null,
       contributionToNationalTargetPercent:
         mesaCoverage?.contributionToNationalTargetPercent ?? null,
+    };
+  }
+
+  private buildNationalRange(record: DetailedSpeciesCoverageRecord): SpeciesNationalRange {
+    const formattedAmount = isNationalRangeUnavailable(record)
+      ? this.translate.instant('analysis.common.valueUnavailable')
+      : this.formatAreaKm2(record.range_area_km2);
+    return {
+      formattedAmount,
+      ariaLabel: [
+        this.translate.instant(NATIONAL_RANGE_LABEL_KEY),
+        record.scientific_name,
+        formattedAmount,
+      ].join(', '),
     };
   }
 
@@ -578,7 +720,69 @@ export class CustomAoiSpeciesInventoryComponent {
   }
 
   private toInventoryState(section: CustomAoiSpeciesSection): InventoryState {
-    return { status: section.status, data: section };
+    return {
+      status: section.status,
+      data: section,
+      reason: section.reason ?? null,
+    };
+  }
+
+  private canFallbackToPrecomputedSpecies(
+    geographyLevel: GeographyLevel | null,
+    scopeId: string | null,
+    solutionId: string | null,
+  ): boolean {
+    return Boolean(solutionId && geographyLevel && scopeId);
+  }
+
+  private shouldFallbackToPrecomputedSpecies(
+    state: LoadedInventoryState,
+    geographyLevel: GeographyLevel | null,
+    scopeId: string | null,
+    solutionId: string | null,
+  ): boolean {
+    if (!this.canFallbackToPrecomputedSpecies(geographyLevel, scopeId, solutionId)) {
+      return false;
+    }
+    if (state.status === 'failed') {
+      return true;
+    }
+    if (state.status === 'unavailable') {
+      return isLiveSpeciesInventoryUnavailableReason(state.reason ?? state.data?.reason);
+    }
+    return false;
+  }
+
+  private loadPrecomputedInventory(
+    solutionId: string,
+    geographyLevel: GeographyLevel,
+    scopeId: string,
+  ) {
+    return this.speciesGoals.load(solutionId, geographyLevel, scopeId).pipe(
+      map((records) => {
+        if (records === null) {
+          return {
+            status: 'unavailable',
+            data: null,
+            reason: 'precomputed_species_unavailable',
+          } satisfies InventoryState;
+        }
+        this.precomputedCoverageRecords.set(records);
+        return {
+          status: records.length > 0 ? 'complete' : 'empty',
+          data: {
+            status: records.length > 0 ? 'complete' : 'empty',
+            records,
+          },
+        } satisfies InventoryState;
+      }),
+      catchError(() =>
+        of<InventoryState>({
+          status: 'failed',
+          data: null,
+        }),
+      ),
+    );
   }
 }
 

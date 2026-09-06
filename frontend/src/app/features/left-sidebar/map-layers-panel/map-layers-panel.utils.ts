@@ -9,11 +9,7 @@ export type PlanningDomain = 'land' | 'marine';
 export type LayerCatalogScope = PlanningDomain | 'both';
 export type LayerPlanningDomain = PlanningDomain | 'shared' | 'context';
 
-const MARINE_LAYER_ROW_IDS = new Set([
-  'layer-hhm',
-  'layer-marine_ecosystems',
-  'layer-mangroves',
-]);
+const MARINE_LAYER_ROW_IDS = new Set(['layer-hhm', 'layer-marine_ecosystems', 'layer-mangroves']);
 
 interface SelectableRowDto {
   id: string;
@@ -336,6 +332,11 @@ export function scenarioLayerStatus(
     ...normalizeLayerIdAliases(rowId),
     ...normalizeLayerIdAliases(manifestOverlayLayerId),
   ];
+  const isNationalNaturalParksRow = aliases.includes('runap_national_parks');
+  if (isNationalNaturalParksRow && consideredIds.has('runap')) {
+    return 'considered';
+  }
+
   return aliases.some((id) => consideredIds.has(id)) ? 'considered' : 'reference';
 }
 

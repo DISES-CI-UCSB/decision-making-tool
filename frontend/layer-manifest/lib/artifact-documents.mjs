@@ -440,14 +440,17 @@ function validateScopeState(state, geographyLevel, scopeId, context, label) {
       isSha256(state.boundary.sourceSha256) && isSha256(state.boundary.geometrySha256),
       `${label}.scopeState boundary hashes must be SHA-256`,
     );
-    assert(
-      state.boundary.sourceSha256 ===
-        context.provenance.boundaryProvenance.sources[geographyLevel].sha256,
-      `${label}.scopeState boundary source SHA mismatch`,
-    );
+    if (geographyLevel !== 'sirap') {
+      assert(
+        state.boundary.sourceSha256 ===
+          context.provenance.boundaryProvenance.sources[geographyLevel].sha256,
+        `${label}.scopeState boundary source SHA mismatch`,
+      );
+    }
   }
-  const expectedPolicy =
-    geographyLevel === 'national' ? NATIONAL_RASTERIZATION : BOUNDARY_RASTERIZATION;
+  const expectedPolicy = geographyLevel === 'sirap'
+    ? { boundaryInclusion: 'packet-grid', allTouched: false, referenceGrid: 'regional packet grid' }
+    : geographyLevel === 'national' ? NATIONAL_RASTERIZATION : BOUNDARY_RASTERIZATION;
   assert(
     recordsEqual(state.rasterizationPolicy, expectedPolicy),
     `${label}.scopeState.rasterizationPolicy is invalid`,
@@ -495,7 +498,11 @@ function validateMetricsProvenance(provenance, label, expected) {
     );
   }
   validateSpeciesTargetPolicy(provenance.speciesTargetPolicy, expected, label);
-  validateBoundaryProvenance(provenance.boundaryProvenance, label);
+  validateBoundaryProvenance(
+    provenance.boundaryProvenance,
+    label,
+    provenance.generationConfig.regionalPacket === true,
+  );
   return provenance;
 }
 
@@ -627,7 +634,7 @@ function validateDualThresholdMetric(metric, label, speciesException) {
   }
 }
 
-function validateBoundaryProvenance(boundaryProvenance, label) {
+function validateBoundaryProvenance(boundaryProvenance, label, regionalPacket = false) {
   const provenanceLabel = `${label}.metricsProvenance.boundaryProvenance`;
   assert(isRecord(boundaryProvenance), `${provenanceLabel} must be an object`);
   assert(
@@ -635,7 +642,10 @@ function validateBoundaryProvenance(boundaryProvenance, label) {
     `${provenanceLabel}.format is stale`,
   );
   assert(isRecord(boundaryProvenance.sources), `${provenanceLabel}.sources must be an object`);
-  for (const [level, expectedSource] of Object.entries(BOUNDARY_SOURCES)) {
+  const expectedSources = regionalPacket
+    ? Object.entries(BOUNDARY_SOURCES).filter(([level]) => ['departments', 'municipalities'].includes(level))
+    : Object.entries(BOUNDARY_SOURCES);
+  for (const [level, expectedSource] of expectedSources) {
     const source = boundaryProvenance.sources[level];
     assert(isRecord(source), `${provenanceLabel}.sources.${level} must be an object`);
     for (const [field, value] of Object.entries(expectedSource)) {
@@ -981,13 +991,20 @@ function validateGoalCount(summary, species, label) {
 }
 
 function validateCompleteGeographies(geographies, label, documentContext, validateMetrics) {
-  assertExactKeys(geographies, GEOGRAPHY_LEVELS, `${label}.geographies`);
-  const nationalState = geographies.national?.colombia?.scopeState;
-  assert(isRecord(nationalState), `${label}.national.colombia.scopeState must be an object`);
+  const primary = documentContext.provenance.regionalPrimaryGeography;
+  const sirapPrimary = primary?.level === 'sirap' && isNonEmptyString(primary.scopeId);
+  const expectedLevels = sirapPrimary
+    ? ['sirap', 'departments', 'municipalities']
+    : GEOGRAPHY_LEVELS;
+  assertExactKeys(geographies, expectedLevels, `${label}.geographies`);
+  const primaryState = sirapPrimary
+    ? geographies.sirap?.[primary.scopeId]?.scopeState
+    : geographies.national?.colombia?.scopeState;
+  assert(isRecord(primaryState), `${label} primary geography scopeState must be an object`);
   const context = {
     ...documentContext,
-    targetGridSha256: nationalState.targetGridSha256,
-    solutionValidityMaskSha256: nationalState.solutionValidityMaskSha256,
+    targetGridSha256: primaryState.targetGridSha256,
+    solutionValidityMaskSha256: primaryState.solutionValidityMaskSha256,
   };
   const alignment = documentContext.provenance.inputAlignment;
   if (isRecord(alignment)) {
@@ -996,7 +1013,7 @@ function validateCompleteGeographies(geographies, label, documentContext, valida
       `${label}.metricsProvenance.inputAlignment target grid SHA mismatch`,
     );
   }
-  for (const level of GEOGRAPHY_LEVELS) {
+  for (const level of expectedLevels) {
     const scopes = geographies[level];
     assert(
       isRecord(scopes) && Object.keys(scopes).length > 0,

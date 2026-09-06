@@ -10,7 +10,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { SIRAP_REGIONS, sirapRegionLabel, type SirapRegionId, UserTier } from '@core/models';
+import { SIRAP_ACCESS_REGIONS, sirapRegionLabel, type SirapRegionId, UserTier } from '@core/models';
 import {
   AdminAccessRequestsService,
   type AccessRequestRecord,
@@ -22,6 +22,7 @@ import {
   type CurrentSirapAdministrator,
   type SirapAccessRequestRecord,
 } from '../services/sirap-access.service';
+import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { environment } from '../../../../environments/environment';
 import {
   appendDevelopmentFakeDemoData,
@@ -45,6 +46,8 @@ interface CurrentSirapAccessGroup {
   administeredSirapIds: SirapRegionId[];
 }
 
+type AccessManagementTab = 'requests' | 'access' | 'users';
+
 @Component({
   selector: 'app-admin-access-requests-panel',
   standalone: true,
@@ -60,8 +63,9 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   });
   private readonly adminRequests = inject(AdminAccessRequestsService);
   private readonly sirapAccess = inject(SirapAccessService);
+  private readonly firebase = inject(FirebaseClientService);
   protected readonly UserTier = UserTier;
-  protected readonly sirapRegions = SIRAP_REGIONS;
+  protected readonly sirapRegions = SIRAP_ACCESS_REGIONS;
 
   @Output() readonly closeRequested = new EventEmitter<void>();
 
@@ -79,6 +83,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   protected readonly sirapSearchQuery = signal('');
   protected readonly currentSirapSearchQuery = signal('');
   protected readonly userSearchQuery = signal('');
+  protected readonly activeTab = signal<AccessManagementTab>('requests');
   protected readonly expandedRequestUid = signal<string | null>(null);
   protected readonly expandedSirapGroupUid = signal<string | null>(null);
   protected readonly expandedCurrentSirapUid = signal<string | null>(null);
@@ -202,7 +207,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     ),
   );
   protected readonly currentSirapAccessGroups = computed<CurrentSirapAccessGroup[]>(() =>
-    this.activeUsers()
+    this.currentSirapAccessUsers()
       .map((user) => ({
         user,
         allowedSirapIds: this.visibleSirapIds(user.allowedSirapIds),
@@ -211,6 +216,9 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
       .filter((group) => group.allowedSirapIds.length > 0),
   );
   protected readonly isSuperAdmin = computed(() => this.administrator()?.isSuperAdmin === true);
+  protected readonly administratorEmail = computed(
+    () => this.firebase.currentUser?.email ?? 'Signed-in administrator',
+  );
   protected readonly filteredUsers = computed(() => {
     const query = this.userSearchQuery().trim().toLowerCase();
     const users = this.activeUsers();
@@ -275,6 +283,42 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
 
   protected toggleActiveUsersSection(): void {
     this.activeUsersSectionExpanded.update((expanded) => !expanded);
+  }
+
+  protected selectTab(tab: AccessManagementTab): void {
+    this.activeTab.set(tab);
+    if (tab === 'requests') {
+      this.sirapRequestsSectionExpanded.set(true);
+    } else if (tab === 'access') {
+      this.currentSirapSectionExpanded.set(true);
+    } else {
+      this.activeUsersSectionExpanded.set(true);
+    }
+    this.expandedSirapGroupUid.set(null);
+    this.expandedCurrentSirapUid.set(null);
+    this.expandedActiveUserUid.set(null);
+  }
+
+  protected onTabKeydown(event: KeyboardEvent, currentTab: AccessManagementTab): void {
+    const tabs: AccessManagementTab[] = ['requests', 'access', 'users'];
+    const currentIndex = tabs.indexOf(currentTab);
+    const nextIndex =
+      event.key === 'ArrowRight'
+        ? (currentIndex + 1) % tabs.length
+        : event.key === 'ArrowLeft'
+          ? (currentIndex + tabs.length - 1) % tabs.length
+          : event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? tabs.length - 1
+              : null;
+    if (nextIndex === null) {
+      return;
+    }
+    event.preventDefault();
+    const nextTab = tabs[nextIndex];
+    this.selectTab(nextTab);
+    window.setTimeout(() => document.getElementById(`admin-access-panel-${nextTab}-tab`)?.focus());
   }
 
   protected toggleRequest(request: AccessRequestRecord): void {
@@ -557,7 +601,15 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     try {
       const grant = this.userGrantFor(user);
       if (!isFakeActiveUser(user.uid)) {
-        await this.adminRequests.updateUserAccess(user.uid, grant);
+        if (this.isSuperAdmin()) {
+          await this.adminRequests.updateUserAccess(user.uid, grant);
+        } else {
+          await this.adminRequests.updateRegionalUserAccess(
+            user.uid,
+            user.allowedSirapIds,
+            grant.allowedSirapIds,
+          );
+        }
       }
       this.activeUsers.update((users) =>
         users.map((candidate) =>
@@ -657,6 +709,12 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     return sirapRegionLabel(sirapId);
   }
 
+  private sirapIdListLabel(sirapIds: readonly SirapRegionId[]): string {
+    return sirapIds.length
+      ? sirapIds.map((sirapId) => this.sirapLabel(sirapId)).join(', ')
+      : 'None';
+  }
+
   protected formatRequestedAt(request: AccessRequestRecord): string {
     const date =
       request.requestedAt ?? (request.submittedAt ? new Date(request.submittedAt) : null);
@@ -724,24 +782,68 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     return `${this.tierLabel(grant.tier)} · ${this.adminLabel(grant.isAdmin)} · ${dataAccess} · ${administratorAccess}`;
   }
 
+  protected canManageUserSirap(sirapId: SirapRegionId): boolean {
+    const administrator = this.administrator();
+    return (
+      administrator?.isSuperAdmin === true ||
+      !!administrator?.administeredSirapIds.includes(sirapId)
+    );
+  }
+
+  protected administratorRoleLabel(): string {
+    const administrator = this.administrator();
+    if (administrator?.isSuperAdmin) {
+      return 'Super admin';
+    }
+    return administrator?.administeredSirapIds.length ? 'SIRAP administrator' : 'SIRAP user';
+  }
+
+  protected administratorAccessLabel(): string {
+    const administrator = this.administrator();
+    if (administrator?.isSuperAdmin) {
+      return 'All SIRAPs';
+    }
+    return this.sirapIdListLabel(administrator?.allowedSirapIds ?? []);
+  }
+
+  protected administratorAssignmentsLabel(): string {
+    const administrator = this.administrator();
+    if (administrator?.isSuperAdmin) {
+      return 'All SIRAPs';
+    }
+    return this.sirapIdListLabel(administrator?.administeredSirapIds ?? []);
+  }
+
   private async loadRequests(): Promise<void> {
     this.isLoading.set(true);
     this.loadingError.set(null);
     try {
-      const [administrator, realPendingRequests, realSirapRequests, realActiveUsers] =
-        await Promise.all([
-          this.sirapAccess.getCurrentAdministrator(),
-          this.adminRequests.listPendingRequests(),
-          this.sirapAccess.listRequestsForAdministrator(),
-          this.adminRequests.listActiveUsers(),
-        ]);
+      const administrator = await this.sirapAccess.getCurrentAdministrator();
+      this.administrator.set(administrator);
+      const [pendingResult, sirapResult, usersResult] = await Promise.allSettled([
+        this.adminRequests.listPendingRequests(),
+        this.sirapAccess.listRequestsForAdministrator(),
+        this.adminRequests.listActiveUsers(),
+      ]);
+      const failedSections = [
+        pendingResult.status === 'rejected' ? 'pending requests' : null,
+        sirapResult.status === 'rejected' ? 'SIRAP requests' : null,
+        usersResult.status === 'rejected' ? 'active users' : null,
+      ].filter((section): section is string => section !== null);
+      if (failedSections.length) {
+        this.loadingError.set(
+          `Could not load ${failedSections.join(', ')}. Your administrator status is shown above; refresh after confirming Firestore permissions.`,
+        );
+      }
+      const realPendingRequests = pendingResult.status === 'fulfilled' ? pendingResult.value : [];
+      const realSirapRequests = sirapResult.status === 'fulfilled' ? sirapResult.value : [];
+      const realActiveUsers = usersResult.status === 'fulfilled' ? usersResult.value : [];
       const { pendingRequests, sirapRequests, activeUsers } = appendDevelopmentFakeDemoData(
         realPendingRequests,
         realSirapRequests,
         realActiveUsers,
         shouldAppendFakeDemoData(environment.production),
       );
-      this.administrator.set(administrator);
       this.pendingRequests.set(pendingRequests);
       this.sirapRequests.set(sirapRequests);
       this.setActiveUsers(activeUsers);
@@ -1084,6 +1186,36 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
       return [...ids];
     }
     return ids.filter((id) => administrator.administeredSirapIds.includes(id));
+  }
+
+  private currentSirapAccessUsers(): AdminManagedUserRecord[] {
+    if (this.isSuperAdmin()) {
+      return this.activeUsers();
+    }
+
+    const users = new Map<string, AdminManagedUserRecord>();
+    for (const request of this.sirapRequests()) {
+      if (request.status !== 'approved') {
+        continue;
+      }
+      const user = users.get(request.uid) ?? {
+        uid: request.uid,
+        email: request.email,
+        displayName: request.displayName,
+        status: 'active' as const,
+        role: 'authorized_viewer',
+        tier: UserTier.DecisionMaker,
+        isAdmin: false,
+        administeredSirapIds: [],
+        allowedSirapIds: [],
+        updatedAt: null,
+      };
+      if (!user.allowedSirapIds.includes(request.sirapId)) {
+        user.allowedSirapIds.push(request.sirapId);
+      }
+      users.set(request.uid, user);
+    }
+    return [...users.values()];
   }
 
   private matchesNameOrEmail(normalizedQuery: string, displayName: string, email: string): boolean {

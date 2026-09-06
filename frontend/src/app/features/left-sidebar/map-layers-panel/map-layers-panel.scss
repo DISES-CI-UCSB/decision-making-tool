@@ -102,31 +102,7 @@
   line-height: 0;
 }
 
-.map-layers-info-icon-glyph {
-  display: inline-flex;
-  width: 16px;
-  height: 16px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  background: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  color: #64748b;
-  transition:
-    border-color 150ms ease,
-    background-color 150ms ease,
-    color 150ms ease;
-}
-
-.map-layers-layer-info-button:hover .map-layers-info-icon-glyph {
-  border-color: #7dd3fc;
-  background: #f0f9ff;
-  color: #0369a1;
-}
-
-.map-layers-layer-info-button:focus-visible .map-layers-info-icon-glyph {
+.map-layers-layer-info-button:focus-visible {
   outline: 2px solid #93c5fd;
   outline-offset: 1px;
 }
@@ -229,10 +205,6 @@
 }
 
 @supports (text-box-trim: trim-both) {
-  .map-layers-info-icon-glyph {
-    transform: none;
-  }
-
   .map-layers-scenario-status-label {
     text-box-trim: trim-both;
     text-box-edge: cap alphabetic;
@@ -476,12 +448,8 @@
     linear-gradient(
         to right,
         rgb(71 85 105) 0%,
-        rgb(71 85 105) calc(
-          var(--map-layers-slider-progress) + var(--map-layers-slider-fill-nudge)
-        ),
-        transparent calc(
-          var(--map-layers-slider-progress) + var(--map-layers-slider-fill-nudge)
-        ),
+        rgb(71 85 105) calc(var(--map-layers-slider-progress) + var(--map-layers-slider-fill-nudge)),
+        transparent calc(var(--map-layers-slider-progress) + var(--map-layers-slider-fill-nudge)),
         transparent 100%
       )
       center / calc(100% - var(--map-layers-slider-thumb-diameter)) 100% no-repeat,

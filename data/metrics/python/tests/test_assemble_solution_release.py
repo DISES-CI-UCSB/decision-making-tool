@@ -19,6 +19,7 @@ from compact_metrics import to_compact_document, to_verbose_document
 from metric_definitions import computable_metrics
 from metrics_contract import build_metrics_provenance
 from mec_compact import (
+    GEOGRAPHY_LEVELS,
     MEC_SIGNATURE_FORMAT,
     ROW_LAYOUT,
     SCOPE_STATS_FIELDS,
@@ -577,6 +578,135 @@ def test_all_recompute_assembly_needs_no_baseline_inventory(tmp_path: Path):
 
     assert summary["reusedArtifactCount"] == 0
     assert summary["recomputedArtifactCount"] == 216
+
+
+def test_assembly_mixes_national_and_sirap_scope_artifacts(tmp_path: Path):
+    def write_catalog(path: Path, release_id: str):
+        path.write_text(
+            json.dumps(
+                {
+                    "format": "solution-catalog-v1",
+                    "catalogVersion": "0.2.0",
+                    "releaseId": release_id,
+                    "expectedSolutionCount": 2,
+                    "expectedLandSolutionCount": 2,
+                    "expectedMarineSolutionCount": 0,
+                    "solutions": [
+                        {
+                            "solutionId": "national-land",
+                            "solutionBasename": "national-land.tif",
+                            "domain": "land",
+                            "rasterSha256": "a" * 64,
+                        },
+                        {
+                            "solutionId": "sirap-land",
+                            "solutionBasename": "sirap-land.tif",
+                            "domain": "land",
+                            "scope": "sirap",
+                            "rasterSha256": "b" * 64,
+                        },
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return load_solution_catalog(path)
+
+    baseline = write_catalog(tmp_path / "baseline.json", "baseline-release")
+    catalog = write_catalog(tmp_path / "catalog.json", "mixed-release")
+    signatures = {solution_id: _signature("a") for solution_id in catalog.solution_ids}
+    plan = build_release_plan(
+        catalog,
+        baseline=baseline,
+        input_signatures=signatures,
+        baseline_input_signatures=signatures,
+    )
+    plan_path = tmp_path / "plan.json"
+    plan_path.write_text(json.dumps(plan), encoding="utf-8")
+
+    baseline_root = tmp_path / "baseline-root"
+    baseline_artifacts = []
+    for component, solution_id, level in _expected_keys(catalog):
+        path = baseline_root / _local_relative_path(component, solution_id, level)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(
+                _document(
+                    component,
+                    baseline.by_id[solution_id],
+                    baseline,
+                    signatures[solution_id],
+                    level,
+                )
+            ),
+            encoding="utf-8",
+        )
+        baseline_artifacts.append(
+            {
+                "component": component,
+                "solutionId": solution_id,
+                "geographyLevel": level,
+                "path": path.relative_to(baseline_root).as_posix(),
+                "sha256": sha256_path(path),
+            }
+        )
+    inventory_path = tmp_path / "baseline-inventory.json"
+    inventory_path.write_text(
+        json.dumps(
+            {
+                "format": ARTIFACT_INVENTORY_FORMAT,
+                "releaseId": baseline.release_id,
+                "catalogSha256": baseline.sha256,
+                "artifacts": baseline_artifacts,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    inventory, summary = assemble_release(
+        catalog=catalog,
+        release_plan=plan_path,
+        baseline_inventory_path=inventory_path,
+        baseline_root=baseline_root,
+        release_root=tmp_path / "release-root",
+    )
+
+    assert summary["componentArtifactCounts"] == {
+        "regularVerbose": 2,
+        "regularCompact": 2,
+        "goals": 1,
+        "mecV2": len(GEOGRAPHY_LEVELS),
+    }
+    assert summary["complete"] is True
+    assert not any(
+        item["solutionId"] == "sirap-land"
+        and item["component"] in {"goals", "mecV2"}
+        for item in inventory["artifacts"]
+    )
+
+    missing_goals_inventory = {
+        "format": ARTIFACT_INVENTORY_FORMAT,
+        "releaseId": baseline.release_id,
+        "catalogSha256": baseline.sha256,
+        "artifacts": [
+            item
+            for item in baseline_artifacts
+            if not (
+                item["solutionId"] == "national-land"
+                and item["component"] == "goals"
+            )
+        ],
+    }
+    missing_goals_path = tmp_path / "missing-goals-inventory.json"
+    missing_goals_path.write_text(json.dumps(missing_goals_inventory), encoding="utf-8")
+    with pytest.raises(SolutionCatalogError, match="baseline inventory is missing"):
+        assemble_release(
+            catalog=catalog,
+            release_plan=plan_path,
+            baseline_inventory_path=missing_goals_path,
+            baseline_root=baseline_root,
+            release_root=tmp_path / "missing-goals-release-root",
+        )
 
 
 @pytest.mark.parametrize(

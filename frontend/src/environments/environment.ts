@@ -23,6 +23,9 @@ export const environment = {
   },
   googleClientId: '',
   manifestBlobUrl: '/data/layer-manifest/manifest.json',
+  catalogReleaseIndexBlobUrl:
+    'https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.0.5/catalog-release-index.json',
+  sirapManifestBlobUrl: '',
   blobAssetProxyPath: '',
   solutionCapabilityOverrides: {
     eco17_estr17_esprep17_runap_omec_iheh2030: { aoiCoverageMetrics: 'v2' },

@@ -203,6 +203,27 @@ describe('catalog-driven release validation', () => {
     );
   });
 
+  it('accepts SIRAP releases with goals, MEC, and regional species coverage', async () => {
+    const manifest = createReleaseManifest();
+    const solution = manifest.solutions[0];
+    const prefix = `${BLOB_HOST}/releases/${manifest.releaseId}`;
+    solution.scope = 'sirap';
+    solution.sirapId = 'eje-cafetero';
+    solution.finderInputs.scope = 'sirap';
+    solution.precomputedMetricUrls.speciesGoalsCatalog =
+      `${prefix}/species-goals/catalog/v1/catalog.json`;
+    solution.precomputedMetricUrls.speciesGoalsByGeography = Object.fromEntries(
+      ['siraps', 'departments', 'municipalities'].map((level) => [
+        level,
+        `${prefix}/species-goals/demo_solution/${level}.species-goals.compact.json`,
+      ]),
+    );
+
+    await assert.doesNotReject(
+      validateManifest(manifest, 'manifest.json', { catalog: createReleaseCatalog() }),
+    );
+  });
+
   it('rejects inherited layer-side metric claims in release manifests', async () => {
     const manifest = createReleaseManifest();
     addReleaseLayer(manifest);

@@ -51,21 +51,8 @@
                 id="master-legend-solution-section-title"
                 class="master-legend-section-label text-sm font-medium"
               >
-                {{
-                  isComparing()
-                    ? ('mapLegend.comparison' | translate)
-                    : (activeScenarioName() ??
-                      ('mapLegend.activeSolutionLabel' | translate))
-                }}
+                {{ isComparing() ? ('mapLegend.comparison' | translate) : activeScenarioName() }}
               </p>
-              @if (!isComparing() && shouldShowActiveSolutionName()) {
-                <p
-                  id="master-legend-solution-name"
-                  class="truncate text-sm font-medium text-slate-500"
-                >
-                  {{ sol.solution.name }}
-                </p>
-              }
             </div>
 
             @if (!isComparing()) {

@@ -10,6 +10,9 @@ import pytest
 from blob_manifest import (
     ManifestError,
     ResolvedManifest,
+    _SIRAP_LAYER_POLICIES,
+    _SIRAP_LEGEND_LAYER_IDS,
+    _SIRAP_SELECTED_VALUES,
     _validate_and_index,
     fetch_manifest,
 )
@@ -28,9 +31,41 @@ def _solution(solution_id: str, scope: str, *, domain: str | None = None) -> dic
     if domain is not None:
         solution["domain"] = domain
     if scope == "sirap":
+        layers = {}
+        for index, (layer_id, (layer_class, resampling)) in enumerate(
+            _SIRAP_LAYER_POLICIES.items()
+        ):
+            layer = {
+                "url": f"https://example.test/{layer_id}.tif",
+                "sha256": f"{index + 1:064x}",
+                "provenance": {
+                    "kind": "regional-authoritative-v1",
+                    "sourceScope": "regional",
+                    "authority": "Test authority",
+                    "artifactId": f"{layer_id}.tif",
+                    "approvedForRegionId": "orinoquia",
+                },
+                "alignment": {
+                    "layerClass": layer_class,
+                    "resampling": resampling,
+                    "targetGridSha256": "a" * 64,
+                },
+            }
+            if layer_id in _SIRAP_LEGEND_LAYER_IDS:
+                selected_value = _SIRAP_SELECTED_VALUES[layer_id]
+                layer["rendering"] = {
+                    "valueType": "binary",
+                    "selectedValue": selected_value,
+                }
+                layer["legend"] = {
+                    "url": "https://example.test/legend.csv",
+                    "sha256": "e" * 64,
+                    "classMap": {str(selected_value): "test"},
+                }
+            layers[layer_id] = layer
         solution["sirapId"] = "orinoquia"
         solution["regionalInputPacket"] = {
-            "format": "sirap-metric-input-packet-v1",
+            "format": "sirap-metric-input-packet-v2",
             "regionId": "orinoquia",
             "grid": {"sha256": "a" * 64},
             "authoritativeSummary": {
@@ -38,14 +73,20 @@ def _solution(solution_id: str, scope: str, *, domain: str | None = None) -> dic
                 "sha256": "b" * 64,
                 "schema": "prioritizr-summary-v1",
             },
-            "layers": {
-                "wetlands": {
-                    "url": "https://example.test/humedales-orinoquia.tif",
-                    "sha256": "c" * 64,
-                }
-            },
+            "layers": layers,
             "species": {
-                "universePolicy": "regional-summary",
+                "universePolicy": "regional-matrices-national-metadata",
+                "metadataLookup": {
+                    "url": "https://example.test/species.csv",
+                    "sha256": "f" * 64,
+                    "schema": "biomod-species-taxonomy-iucn-v1",
+                },
+                "nationalDenominator": {
+                    "nonFishCount": 8300,
+                    "excludedClasses": ["Actinopteri"],
+                    "lookupSha256": "f" * 64,
+                },
+                "joinPolicy": "normalized-formatting-only-fail-closed-v1",
                 "matrices": [
                     {
                         "taxonomicClass": "Amphibia",
@@ -131,6 +172,26 @@ def test_manifest_rejects_sirap_packet_with_mismatched_region():
     solution["regionalInputPacket"]["regionId"] = "eje-cafetero"
 
     with pytest.raises(ManifestError, match="does not match sirapId"):
+        _manifest([solution])
+
+
+def test_manifest_rejects_wrong_sirap_runap_category():
+    solution = _solution("regional", "sirap", domain="land")
+    solution["regionalInputPacket"]["layers"]["runap_parques"]["rendering"][
+        "selectedValue"
+    ] = 1
+
+    with pytest.raises(ManifestError, match="approved category 3"):
+        _manifest([solution])
+
+
+def test_manifest_rejects_non_nearest_sirap_land_cover_alignment():
+    solution = _solution("regional", "sirap", domain="land")
+    solution["regionalInputPacket"]["layers"][
+        "coberturas_agricultural_areas"
+    ]["alignment"]["resampling"] = "bilinear"
+
+    with pytest.raises(ManifestError, match="alignment contract"):
         _manifest([solution])
 
 

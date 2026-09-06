@@ -496,14 +496,14 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         metric_id="carbon_biomass_total",
         metric_number=39,
         label_key="metrics.tier1.carbon_biomass_total",
-        english_label="Total Carbon Biomass",
-        spanish_label="Biomasa de carbono total",
+        english_label="Total Carbon Biomass Conserved",
+        spanish_label="Biomasa total de carbono conservada",
         unit="Mg·km²",
         format_hint="number",
         source_note=(
             "Weighted sum of above+below-ground biomass layer × pixel area. "
-            "Uses the same layer as #5; soil organic carbon is tracked separately as #41. "
-            "Ideally combined with #41 for a total ecosystem carbon figure."
+            "Uses the same combined biomass-carbon source and aggregation convention "
+            "as #5; SIRAP reporting emits this metric as the sole carbon outcome."
         ),
         kind="weighted_sum",
         layer_id="biomasa",

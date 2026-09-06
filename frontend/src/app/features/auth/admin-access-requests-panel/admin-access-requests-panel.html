@@ -26,8 +26,57 @@
           Access management
         </h2>
         <p id="admin-access-panel-subtitle" class="mt-1 text-sm text-slate-500">
-          Review pending Firebase Auth requests, choose user tiers, and manage admin access.
+          Review SIRAP access requests and manage user permissions.
         </p>
+        <dl
+          id="admin-access-panel-administrator-status"
+          class="mt-3 grid gap-x-5 gap-y-1 text-xs text-slate-600 sm:grid-cols-2"
+        >
+          <div id="admin-access-panel-administrator-identity" class="min-w-0">
+            <dt
+              id="admin-access-panel-administrator-identity-label"
+              class="inline font-semibold text-slate-700"
+            >
+              Signed in as:
+            </dt>
+            <dd id="admin-access-panel-administrator-email" class="inline break-all">
+              {{ administratorEmail() }}
+            </dd>
+          </div>
+          <div id="admin-access-panel-administrator-role">
+            <dt
+              id="admin-access-panel-administrator-role-label"
+              class="inline font-semibold text-slate-700"
+            >
+              Role:
+            </dt>
+            <dd id="admin-access-panel-administrator-role-value" class="inline">
+              {{ administratorRoleLabel() }}
+            </dd>
+          </div>
+          <div id="admin-access-panel-administrator-data-access" class="min-w-0">
+            <dt
+              id="admin-access-panel-administrator-data-access-label"
+              class="inline font-semibold text-slate-700"
+            >
+              SIRAP access:
+            </dt>
+            <dd id="admin-access-panel-administrator-data-access-value" class="inline">
+              {{ administratorAccessLabel() }}
+            </dd>
+          </div>
+          <div id="admin-access-panel-administrator-assignments" class="min-w-0">
+            <dt
+              id="admin-access-panel-administrator-assignments-label"
+              class="inline font-semibold text-slate-700"
+            >
+              Administers:
+            </dt>
+            <dd id="admin-access-panel-administrator-assignments-value" class="inline">
+              {{ administratorAssignmentsLabel() }}
+            </dd>
+          </div>
+        </dl>
       </div>
 
       <div id="admin-access-panel-header-actions" class="flex shrink-0 items-center gap-2">
@@ -83,7 +132,55 @@
           Loading pending requests...
         </div>
       } @else {
-        @if (isSuperAdmin()) {
+        <nav
+          id="admin-access-panel-tabs"
+          class="mb-5 flex gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1"
+          aria-label="Access management views"
+        >
+          <button
+            id="admin-access-panel-requests-tab"
+            type="button"
+            class="min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold text-slate-600 transition"
+            [class.bg-white]="activeTab() === 'requests'"
+            [class.text-slate-900]="activeTab() === 'requests'"
+            [attr.aria-selected]="activeTab() === 'requests'"
+            aria-controls="admin-access-panel-sirap-requests-section"
+            role="tab"
+            (keydown)="onTabKeydown($event, 'requests')"
+            (click)="selectTab('requests')"
+          >
+            Pending SIRAP Requests
+          </button>
+          <button
+            id="admin-access-panel-access-tab"
+            type="button"
+            class="min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold text-slate-600 transition"
+            [class.bg-white]="activeTab() === 'access'"
+            [class.text-slate-900]="activeTab() === 'access'"
+            [attr.aria-selected]="activeTab() === 'access'"
+            aria-controls="admin-access-panel-approved-sirap-section"
+            role="tab"
+            (keydown)="onTabKeydown($event, 'access')"
+            (click)="selectTab('access')"
+          >
+            Current SIRAP Access
+          </button>
+          <button
+            id="admin-access-panel-users-tab"
+            type="button"
+            class="min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold text-slate-600 transition"
+            [class.bg-white]="activeTab() === 'users'"
+            [class.text-slate-900]="activeTab() === 'users'"
+            [attr.aria-selected]="activeTab() === 'users'"
+            aria-controls="admin-access-panel-users-section"
+            role="tab"
+            (keydown)="onTabKeydown($event, 'users')"
+            (click)="selectTab('users')"
+          >
+            Active Users
+          </button>
+        </nav>
+        @if (false) {
           <section
             id="admin-access-panel-pending-section"
             class="overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
@@ -732,712 +829,734 @@
           </section>
         }
 
-        <section
-          id="admin-access-panel-sirap-requests-section"
-          class="mt-8 overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
-        >
-          <div id="admin-access-panel-sirap-requests-section-header" class="bg-slate-100 px-5 py-3">
+        @if (activeTab() === 'requests') {
+          <section
+            id="admin-access-panel-sirap-requests-section"
+            class="mt-8 overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
+          >
             <div
-              id="admin-access-panel-sirap-requests-section-header-layout"
-              class="grid grid-cols-[minmax(0,1fr)_2.75rem] items-start gap-x-3 gap-y-2 lg:grid-cols-[minmax(0,1fr)_18rem_2.75rem] lg:gap-x-4 lg:gap-y-0"
+              id="admin-access-panel-sirap-requests-section-header"
+              class="bg-slate-100 px-5 py-3"
             >
               <div
-                id="admin-access-panel-sirap-requests-heading"
-                class="min-w-0 lg:col-start-1 lg:row-start-1"
+                id="admin-access-panel-sirap-requests-section-header-layout"
+                class="grid grid-cols-[minmax(0,1fr)_2.75rem] items-start gap-x-3 gap-y-2 lg:grid-cols-[minmax(0,1fr)_18rem_2.75rem] lg:gap-x-4 lg:gap-y-0"
               >
-                <h3
-                  id="admin-access-panel-sirap-requests-title"
-                  class="text-base font-semibold text-slate-900"
-                >
-                  Pending SIRAP requests
-                </h3>
-                @if (sirapRequestsSectionExpanded()) {
-                  <p
-                    id="admin-access-panel-sirap-requests-copy"
-                    class="mt-1 text-sm text-slate-500"
-                  >
-                    Requests are grouped by user. Approve or deny each SIRAP independently.
-                  </p>
-                } @else {
-                  <p
-                    id="admin-access-panel-sirap-requests-section-summary"
-                    class="mt-1 text-sm font-medium text-slate-600"
-                  >
-                    {{ sirapRequestGroups().length }} user group{{
-                      sirapRequestGroups().length === 1 ? '' : 's'
-                    }}
-                    with pending SIRAP requests
-                  </p>
-                }
-              </div>
-
-              <button
-                id="admin-access-panel-sirap-requests-section-toggle"
-                type="button"
-                class="col-start-2 row-start-1 flex h-11 w-11 shrink-0 items-center justify-center self-start rounded-md text-slate-600 transition hover:bg-slate-200 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:col-start-3 lg:row-start-1"
-                [attr.aria-expanded]="sirapRequestsSectionExpanded()"
-                [attr.aria-label]="
-                  sirapRequestsSectionExpanded()
-                    ? 'Collapse Pending SIRAP requests'
-                    : 'Expand Pending SIRAP requests'
-                "
-                aria-controls="admin-access-panel-sirap-requests-section-content"
-                (click)="toggleSirapRequestsSection()"
-              >
-                <svg
-                  id="admin-access-panel-sirap-requests-section-chevron"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  class="h-5 w-5 transition-transform"
-                  [class.rotate-180]="sirapRequestsSectionExpanded()"
-                  aria-hidden="true"
-                >
-                  <path
-                    id="admin-access-panel-sirap-requests-section-chevron-path"
-                    fill-rule="evenodd"
-                    d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-
-              @if (sirapRequestsSectionExpanded() && sirapRequestGroups().length > 0) {
                 <div
-                  id="admin-access-panel-sirap-search-row"
-                  class="col-span-2 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-1"
+                  id="admin-access-panel-sirap-requests-heading"
+                  class="min-w-0 lg:col-start-1 lg:row-start-1"
                 >
-                  <div id="admin-access-panel-sirap-search-field" class="w-full">
-                    <label
-                      id="admin-access-panel-sirap-search-label"
-                      for="admin-access-panel-sirap-search-input"
-                      class="block text-xs font-semibold text-slate-600"
-                    >
-                      Search by name
-                      <input
-                        id="admin-access-panel-sirap-search-input"
-                        type="search"
-                        class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                        placeholder="Name or email"
-                        [value]="sirapSearchQuery()"
-                        (input)="onSirapSearchChange($event)"
-                        (click)="$event.stopPropagation()"
-                      />
-                    </label>
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
-
-          @if (sirapRequestsSectionExpanded()) {
-            <div
-              id="admin-access-panel-sirap-requests-section-content"
-              role="region"
-              aria-labelledby="admin-access-panel-sirap-requests-section-toggle"
-              class="space-y-4 border-t border-slate-300 bg-white px-5 py-4"
-            >
-              @if (sirapRequestGroups().length === 0) {
-                <section
-                  id="admin-access-panel-sirap-requests-empty"
-                  class="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center"
-                >
-                  <h4
-                    id="admin-access-panel-sirap-requests-empty-title"
-                    class="text-sm font-semibold text-slate-900"
+                  <h3
+                    id="admin-access-panel-sirap-requests-title"
+                    class="text-base font-semibold text-slate-900"
                   >
-                    No pending SIRAP requests
-                  </h4>
-                </section>
-              } @else {
-                @if (filteredSirapRequestGroups().length === 0) {
-                  <section
-                    id="admin-access-panel-sirap-requests-no-results"
-                    class="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center"
-                  >
-                    <h4
-                      id="admin-access-panel-sirap-requests-no-results-title"
-                      class="text-sm font-semibold text-slate-900"
-                    >
-                      No matching SIRAP request groups
-                    </h4>
+                    Pending SIRAP requests
+                  </h3>
+                  @if (sirapRequestsSectionExpanded()) {
                     <p
-                      id="admin-access-panel-sirap-requests-no-results-copy"
+                      id="admin-access-panel-sirap-requests-copy"
                       class="mt-1 text-sm text-slate-500"
                     >
-                      Try a different name or email.
+                      Requests are grouped by user. Approve or deny each SIRAP independently.
                     </p>
-                  </section>
-                } @else {
-                  <section id="admin-access-panel-sirap-request-groups" class="space-y-2">
-                    @for (group of pagedSirapRequestGroups(); track group.uid) {
-                      <article
-                        [id]="'admin-access-panel-sirap-user-card-' + group.uid"
-                        class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
-                      >
-                        <button
-                          [id]="'admin-access-panel-sirap-user-toggle-' + group.uid"
-                          type="button"
-                          class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:grid-cols-[minmax(180px,1.2fr)_minmax(110px,0.55fr)_minmax(180px,0.9fr)_220px_2rem]"
-                          [attr.aria-expanded]="expandedSirapGroupUid() === group.uid"
-                          [attr.aria-controls]="
-                            'admin-access-panel-sirap-user-requests-' + group.uid
-                          "
-                          (click)="toggleSirapGroup(group)"
-                          (keydown)="onSirapGroupHeaderKeydown($event, group)"
-                        >
-                          <span
-                            [id]="'admin-access-panel-sirap-user-identity-' + group.uid"
-                            class="min-w-0 lg:col-start-1 lg:row-start-1"
-                          >
-                            <span
-                              [id]="'admin-access-panel-sirap-user-name-' + group.uid"
-                              class="block truncate text-sm font-semibold text-slate-950"
-                            >
-                              {{ group.displayName }}
-                            </span>
-                            <span
-                              [id]="'admin-access-panel-sirap-user-email-' + group.uid"
-                              class="block truncate text-xs text-slate-500"
-                            >
-                              {{ group.email }}
-                            </span>
-                          </span>
-                          <span
-                            [id]="'admin-access-panel-sirap-user-request-count-' + group.uid"
-                            class="col-start-1 row-start-2 min-w-0 truncate text-xs font-medium text-slate-600 lg:col-start-2 lg:row-start-1"
-                          >
-                            {{ group.requests.length }} requested SIRAP{{
-                              group.requests.length === 1 ? '' : 's'
-                            }}
-                          </span>
-                          <span
-                            [id]="'admin-access-panel-sirap-user-oldest-request-' + group.uid"
-                            class="col-span-2 row-start-3 min-w-0 truncate text-xs text-slate-600 lg:col-start-3 lg:col-span-1 lg:row-start-1"
-                          >
-                            Oldest request: {{ oldestSirapRequestDate(group) }}
-                          </span>
-                          <span
-                            [id]="'admin-access-panel-sirap-user-header-actions-' + group.uid"
-                            class="col-start-2 row-span-2 row-start-1 flex items-center justify-end gap-2 lg:contents"
-                          >
-                            <span
-                              [id]="'admin-access-panel-sirap-user-status-area-' + group.uid"
-                              class="flex min-w-0 flex-wrap items-center justify-end gap-2 lg:col-start-4 lg:row-start-1"
-                            >
-                              @if (isFakeSirapRequester(group.uid)) {
-                                <span
-                                  [id]="'admin-access-panel-sirap-user-demo-badge-' + group.uid"
-                                  class="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-800"
-                                >
-                                  Demo data
-                                </span>
-                              }
-                            </span>
-                            <svg
-                              [id]="'admin-access-panel-sirap-user-chevron-' + group.uid"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                              class="h-4 w-4 shrink-0 text-slate-500 transition-transform lg:col-start-5 lg:row-start-1"
-                              [class.rotate-180]="expandedSirapGroupUid() === group.uid"
-                              aria-hidden="true"
-                            >
-                              <path
-                                [id]="'admin-access-panel-sirap-user-chevron-path-' + group.uid"
-                                fill-rule="evenodd"
-                                d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
-                                clip-rule="evenodd"
-                              />
-                            </svg>
-                          </span>
-                        </button>
-
-                        <div
-                          [id]="'admin-access-panel-sirap-user-requests-' + group.uid"
-                          role="region"
-                          [attr.aria-labelledby]="
-                            'admin-access-panel-sirap-user-toggle-' + group.uid
-                          "
-                          [hidden]="expandedSirapGroupUid() !== group.uid"
-                          class="divide-y divide-slate-100 border-t border-slate-200"
-                        >
-                          @for (request of group.requests; track request.id) {
-                            <div
-                              [id]="'admin-access-panel-sirap-request-row-' + request.id"
-                              class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <div [id]="'admin-access-panel-sirap-request-copy-' + request.id">
-                                <p
-                                  [id]="'admin-access-panel-sirap-request-region-' + request.id"
-                                  class="text-sm font-semibold text-slate-800"
-                                >
-                                  {{ sirapLabel(request.sirapId) }}
-                                </p>
-                                <p
-                                  [id]="'admin-access-panel-sirap-request-meta-' + request.id"
-                                  class="mt-0.5 text-xs text-slate-500"
-                                >
-                                  {{ formatSirapRequestedAt(request) }}
-                                  @if (request.reason) {
-                                    · {{ request.reason }}
-                                  }
-                                </p>
-                              </div>
-                              <div
-                                [id]="'admin-access-panel-sirap-request-actions-' + request.id"
-                                class="flex gap-2"
-                              >
-                                <button
-                                  [id]="'admin-access-panel-sirap-deny-button-' + request.id"
-                                  type="button"
-                                  class="min-h-9 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
-                                  [disabled]="!!decidingSirapRequestId()"
-                                  (click)="decideSirapRequest(request, 'denied')"
-                                >
-                                  Deny
-                                </button>
-                                <button
-                                  [id]="'admin-access-panel-sirap-approve-button-' + request.id"
-                                  type="button"
-                                  class="min-h-9 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
-                                  [disabled]="!!decidingSirapRequestId()"
-                                  (click)="decideSirapRequest(request, 'approved')"
-                                >
-                                  {{
-                                    decidingSirapRequestId() === request.id ? 'Saving…' : 'Approve'
-                                  }}
-                                </button>
-                              </div>
-                            </div>
-                          }
-                        </div>
-                      </article>
-                    }
-                  </section>
-                  @if (filteredSirapRequestGroups().length > 5) {
-                    <nav
-                      id="admin-access-panel-sirap-pagination"
-                      class="flex flex-col gap-3 border-t border-slate-200 pt-3 sm:flex-row sm:items-center sm:justify-between"
-                      aria-label="Pending SIRAP requests pagination"
+                  } @else {
+                    <p
+                      id="admin-access-panel-sirap-requests-section-summary"
+                      class="mt-1 text-sm font-medium text-slate-600"
                     >
-                      <p
-                        id="admin-access-panel-sirap-range"
-                        class="text-xs font-medium text-slate-500"
-                      >
-                        Showing {{ sirapRangeStart() }}–{{ sirapRangeEnd() }} of
-                        {{ filteredSirapRequestGroups().length }}
-                      </p>
-                      <div
-                        id="admin-access-panel-sirap-pagination-controls"
-                        class="flex items-center justify-between gap-3 sm:justify-end"
-                      >
-                        <button
-                          id="admin-access-panel-sirap-previous-button"
-                          type="button"
-                          class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          [disabled]="sirapPage() === 1"
-                          (click)="goToSirapPage(sirapPage() - 1)"
-                        >
-                          Previous
-                        </button>
-                        <span
-                          id="admin-access-panel-sirap-page-status"
-                          class="text-xs font-medium text-slate-600"
-                        >
-                          Page {{ sirapPage() }} of {{ sirapPageCount() }}
-                        </span>
-                        <button
-                          id="admin-access-panel-sirap-next-button"
-                          type="button"
-                          class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          [disabled]="sirapPage() === sirapPageCount()"
-                          (click)="goToSirapPage(sirapPage() + 1)"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </nav>
+                      {{ sirapRequestGroups().length }} user group{{
+                        sirapRequestGroups().length === 1 ? '' : 's'
+                      }}
+                      with pending SIRAP requests
+                    </p>
                   }
-                  <p
-                    id="admin-access-panel-sirap-live-status"
-                    class="sr-only"
-                    aria-live="polite"
-                    aria-atomic="true"
-                  >
-                    {{ sirapStatusMessage() }}
-                  </p>
-                }
-              }
-            </div>
-          }
-        </section>
+                </div>
 
-        <section
-          id="admin-access-panel-approved-sirap-section"
-          class="mt-8 overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
-        >
-          <div id="admin-access-panel-approved-sirap-section-header" class="bg-slate-100 px-5 py-3">
-            <div
-              id="admin-access-panel-approved-sirap-section-header-layout"
-              class="grid grid-cols-[minmax(0,1fr)_2.75rem] items-start gap-x-3 gap-y-2 lg:grid-cols-[minmax(0,1fr)_18rem_2.75rem] lg:gap-x-4 lg:gap-y-0"
-            >
-              <div
-                id="admin-access-panel-approved-sirap-heading"
-                class="min-w-0 lg:col-start-1 lg:row-start-1"
-              >
-                <h3
-                  id="admin-access-panel-approved-sirap-title"
-                  class="text-base font-semibold text-slate-900"
+                <button
+                  id="admin-access-panel-sirap-requests-section-toggle"
+                  type="button"
+                  class="col-start-2 row-start-1 flex h-11 w-11 shrink-0 items-center justify-center self-start rounded-md text-slate-600 transition hover:bg-slate-200 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:col-start-3 lg:row-start-1"
+                  [attr.aria-expanded]="sirapRequestsSectionExpanded()"
+                  [attr.aria-label]="
+                    sirapRequestsSectionExpanded()
+                      ? 'Collapse Pending SIRAP requests'
+                      : 'Expand Pending SIRAP requests'
+                  "
+                  aria-controls="admin-access-panel-sirap-requests-section-content"
+                  (click)="toggleSirapRequestsSection()"
                 >
-                  Current SIRAP access
-                </h3>
-                @if (currentSirapSectionExpanded()) {
-                  <p
-                    id="admin-access-panel-approved-sirap-copy"
-                    class="mt-1 text-sm text-slate-500"
+                  <svg
+                    id="admin-access-panel-sirap-requests-section-chevron"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="h-5 w-5 transition-transform"
+                    [class.rotate-180]="sirapRequestsSectionExpanded()"
+                    aria-hidden="true"
                   >
-                    Revoke access one region at a time without deleting the user account.
-                  </p>
-                } @else {
-                  <p
-                    id="admin-access-panel-approved-sirap-section-summary"
-                    class="mt-1 text-sm font-medium text-slate-600"
+                    <path
+                      id="admin-access-panel-sirap-requests-section-chevron-path"
+                      fill-rule="evenodd"
+                      d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+
+                @if (sirapRequestsSectionExpanded() && sirapRequestGroups().length > 0) {
+                  <div
+                    id="admin-access-panel-sirap-search-row"
+                    class="col-span-2 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-1"
                   >
-                    {{ currentSirapAccessGroups().length }} user{{
-                      currentSirapAccessGroups().length === 1 ? '' : 's'
-                    }}
-                    with current SIRAP access
-                  </p>
+                    <div id="admin-access-panel-sirap-search-field" class="w-full">
+                      <label
+                        id="admin-access-panel-sirap-search-label"
+                        for="admin-access-panel-sirap-search-input"
+                        class="block text-xs font-semibold text-slate-600"
+                      >
+                        Search by name
+                        <input
+                          id="admin-access-panel-sirap-search-input"
+                          type="search"
+                          class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
+                          placeholder="Name or email"
+                          [value]="sirapSearchQuery()"
+                          (input)="onSirapSearchChange($event)"
+                          (click)="$event.stopPropagation()"
+                        />
+                      </label>
+                    </div>
+                  </div>
                 }
               </div>
-
-              <button
-                id="admin-access-panel-approved-sirap-section-toggle"
-                type="button"
-                class="col-start-2 row-start-1 flex h-11 w-11 shrink-0 items-center justify-center self-start rounded-md text-slate-600 transition hover:bg-slate-200 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:col-start-3 lg:row-start-1"
-                [attr.aria-expanded]="currentSirapSectionExpanded()"
-                [attr.aria-label]="
-                  currentSirapSectionExpanded()
-                    ? 'Collapse Current SIRAP access'
-                    : 'Expand Current SIRAP access'
-                "
-                aria-controls="admin-access-panel-approved-sirap-section-content"
-                (click)="toggleCurrentSirapSection()"
-              >
-                <svg
-                  id="admin-access-panel-approved-sirap-section-chevron"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  class="h-5 w-5 transition-transform"
-                  [class.rotate-180]="currentSirapSectionExpanded()"
-                  aria-hidden="true"
-                >
-                  <path
-                    id="admin-access-panel-approved-sirap-section-chevron-path"
-                    fill-rule="evenodd"
-                    d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-
-              @if (currentSirapSectionExpanded() && currentSirapAccessGroups().length > 0) {
-                <div
-                  id="admin-access-panel-current-sirap-search-row"
-                  class="col-span-2 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-1"
-                >
-                  <div id="admin-access-panel-current-sirap-search-field" class="w-full">
-                    <label
-                      id="admin-access-panel-current-sirap-search-label"
-                      for="admin-access-panel-current-sirap-search-input"
-                      class="block text-xs font-semibold text-slate-600"
-                    >
-                      Search by name
-                      <input
-                        id="admin-access-panel-current-sirap-search-input"
-                        type="search"
-                        class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                        placeholder="Name or email"
-                        [value]="currentSirapSearchQuery()"
-                        (input)="onCurrentSirapSearchChange($event)"
-                        (click)="$event.stopPropagation()"
-                      />
-                    </label>
-                  </div>
-                </div>
-              }
             </div>
-          </div>
 
-          @if (currentSirapSectionExpanded()) {
-            <div
-              id="admin-access-panel-approved-sirap-section-content"
-              role="region"
-              aria-labelledby="admin-access-panel-approved-sirap-section-toggle"
-              class="space-y-4 border-t border-slate-300 bg-white px-5 py-4"
-            >
-              @if (currentSirapAccessGroups().length === 0) {
-                <p
-                  id="admin-access-panel-approved-sirap-empty"
-                  class="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-6 text-center text-sm text-slate-500"
-                >
-                  No current SIRAP data grants in your administrative scope.
-                </p>
-              } @else {
-                @if (filteredCurrentSirapAccessGroups().length === 0) {
+            @if (sirapRequestsSectionExpanded()) {
+              <div
+                id="admin-access-panel-sirap-requests-section-content"
+                role="region"
+                aria-labelledby="admin-access-panel-sirap-requests-section-toggle"
+                class="space-y-4 border-t border-slate-300 bg-white px-5 py-4"
+              >
+                @if (sirapRequestGroups().length === 0) {
                   <section
-                    id="admin-access-panel-current-sirap-no-results"
+                    id="admin-access-panel-sirap-requests-empty"
                     class="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center"
                   >
                     <h4
-                      id="admin-access-panel-current-sirap-no-results-title"
+                      id="admin-access-panel-sirap-requests-empty-title"
                       class="text-sm font-semibold text-slate-900"
                     >
-                      No matching users with current SIRAP access
+                      No pending SIRAP requests
                     </h4>
-                    <p
-                      id="admin-access-panel-current-sirap-no-results-copy"
-                      class="mt-1 text-sm text-slate-500"
-                    >
-                      Try a different name or email.
-                    </p>
                   </section>
                 } @else {
-                  <div id="admin-access-panel-approved-sirap-groups" class="space-y-2">
-                    @for (group of pagedCurrentSirapAccessGroups(); track group.user.uid) {
-                      <article
-                        [id]="'admin-access-panel-current-sirap-user-' + group.user.uid"
-                        class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                  @if (filteredSirapRequestGroups().length === 0) {
+                    <section
+                      id="admin-access-panel-sirap-requests-no-results"
+                      class="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center"
+                    >
+                      <h4
+                        id="admin-access-panel-sirap-requests-no-results-title"
+                        class="text-sm font-semibold text-slate-900"
                       >
-                        <button
-                          [id]="'admin-access-panel-current-sirap-toggle-' + group.user.uid"
-                          type="button"
-                          class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:grid-cols-[minmax(180px,1.2fr)_minmax(110px,0.55fr)_minmax(180px,0.9fr)_220px_2rem]"
-                          [attr.aria-expanded]="expandedCurrentSirapUid() === group.user.uid"
-                          [attr.aria-controls]="
-                            'admin-access-panel-current-sirap-content-' + group.user.uid
-                          "
-                          (click)="toggleCurrentSirapGroup(group)"
-                          (keydown)="onCurrentSirapHeaderKeydown($event, group)"
+                        No matching SIRAP request groups
+                      </h4>
+                      <p
+                        id="admin-access-panel-sirap-requests-no-results-copy"
+                        class="mt-1 text-sm text-slate-500"
+                      >
+                        Try a different name or email.
+                      </p>
+                    </section>
+                  } @else {
+                    <section id="admin-access-panel-sirap-request-groups" class="space-y-2">
+                      @for (group of pagedSirapRequestGroups(); track group.uid) {
+                        <article
+                          [id]="'admin-access-panel-sirap-user-card-' + group.uid"
+                          class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
                         >
-                          <span
-                            [id]="'admin-access-panel-current-sirap-identity-' + group.user.uid"
-                            class="min-w-0 lg:col-start-1 lg:row-start-1"
-                          >
-                            <span
-                              [id]="'admin-access-panel-current-sirap-user-name-' + group.user.uid"
-                              class="block truncate text-sm font-semibold text-slate-950"
-                            >
-                              {{ group.user.displayName }}
-                            </span>
-                            <span
-                              [id]="'admin-access-panel-current-sirap-user-email-' + group.user.uid"
-                              class="block truncate text-xs text-slate-500"
-                            >
-                              {{ group.user.email }}
-                            </span>
-                          </span>
-                          <span
-                            [id]="'admin-access-panel-current-sirap-grant-count-' + group.user.uid"
-                            class="col-start-1 row-start-2 min-w-0 truncate text-xs font-medium text-slate-600 lg:col-start-2 lg:row-start-1"
-                          >
-                            {{ group.allowedSirapIds.length }} granted region{{
-                              group.allowedSirapIds.length === 1 ? '' : 's'
-                            }}
-                          </span>
-                          <span
-                            [id]="'admin-access-panel-current-sirap-admin-count-' + group.user.uid"
-                            class="col-span-2 row-start-3 min-w-0 truncate text-xs text-slate-600 lg:col-start-3 lg:col-span-1 lg:row-start-1"
-                          >
-                            {{ group.administeredSirapIds.length }} administrator assignment{{
-                              group.administeredSirapIds.length === 1 ? '' : 's'
-                            }}
-                          </span>
-                          <span
-                            [id]="
-                              'admin-access-panel-current-sirap-header-actions-' + group.user.uid
+                          <button
+                            [id]="'admin-access-panel-sirap-user-toggle-' + group.uid"
+                            type="button"
+                            class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:grid-cols-[minmax(180px,1.2fr)_minmax(110px,0.55fr)_minmax(180px,0.9fr)_220px_2rem]"
+                            [attr.aria-expanded]="expandedSirapGroupUid() === group.uid"
+                            [attr.aria-controls]="
+                              'admin-access-panel-sirap-user-requests-' + group.uid
                             "
-                            class="col-start-2 row-span-2 row-start-1 flex items-center justify-end gap-2 lg:contents"
+                            (click)="toggleSirapGroup(group)"
+                            (keydown)="onSirapGroupHeaderKeydown($event, group)"
                           >
                             <span
-                              [id]="
-                                'admin-access-panel-current-sirap-status-area-' + group.user.uid
-                              "
-                              class="flex min-w-0 flex-wrap items-center justify-end gap-2 lg:col-start-4 lg:row-start-1"
+                              [id]="'admin-access-panel-sirap-user-identity-' + group.uid"
+                              class="min-w-0 lg:col-start-1 lg:row-start-1"
                             >
-                              @if (isFakeActiveUser(group.user.uid)) {
-                                <span
-                                  [id]="
-                                    'admin-access-panel-current-sirap-demo-badge-' + group.user.uid
-                                  "
-                                  class="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-800"
-                                >
-                                  Demo data
-                                </span>
-                              }
-                            </span>
-                            <svg
-                              [id]="'admin-access-panel-current-sirap-chevron-' + group.user.uid"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                              class="h-4 w-4 shrink-0 text-slate-500 transition-transform lg:col-start-5 lg:row-start-1"
-                              [class.rotate-180]="expandedCurrentSirapUid() === group.user.uid"
-                              aria-hidden="true"
-                            >
-                              <path
-                                [id]="
-                                  'admin-access-panel-current-sirap-chevron-path-' + group.user.uid
-                                "
-                                fill-rule="evenodd"
-                                d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
-                                clip-rule="evenodd"
-                              />
-                            </svg>
-                          </span>
-                        </button>
-
-                        <div
-                          [id]="'admin-access-panel-current-sirap-content-' + group.user.uid"
-                          role="region"
-                          [attr.aria-labelledby]="
-                            'admin-access-panel-current-sirap-toggle-' + group.user.uid
-                          "
-                          [hidden]="expandedCurrentSirapUid() !== group.user.uid"
-                          class="border-t border-slate-200 p-4"
-                        >
-                          <div
-                            [id]="'admin-access-panel-current-sirap-rows-' + group.user.uid"
-                            class="space-y-2"
-                          >
-                            @for (sirapId of group.allowedSirapIds; track sirapId) {
-                              <div
-                                [id]="
-                                  'admin-access-panel-current-sirap-row-' +
-                                  group.user.uid +
-                                  '-' +
-                                  sirapId
-                                "
-                                class="flex items-center justify-between gap-3 rounded-lg bg-emerald-50 px-3 py-2"
+                              <span
+                                [id]="'admin-access-panel-sirap-user-name-' + group.uid"
+                                class="block truncate text-sm font-semibold text-slate-950"
                               >
-                                <span
-                                  [id]="
-                                    'admin-access-panel-current-sirap-region-' +
-                                    group.user.uid +
-                                    '-' +
-                                    sirapId
-                                  "
-                                  class="text-xs font-semibold text-emerald-900"
+                                {{ group.displayName }}
+                              </span>
+                              <span
+                                [id]="'admin-access-panel-sirap-user-email-' + group.uid"
+                                class="block truncate text-xs text-slate-500"
+                              >
+                                {{ group.email }}
+                              </span>
+                            </span>
+                            <span
+                              [id]="'admin-access-panel-sirap-user-request-count-' + group.uid"
+                              class="col-start-1 row-start-2 min-w-0 truncate text-xs font-medium text-slate-600 lg:col-start-2 lg:row-start-1"
+                            >
+                              {{ group.requests.length }} requested SIRAP{{
+                                group.requests.length === 1 ? '' : 's'
+                              }}
+                            </span>
+                            <span
+                              [id]="'admin-access-panel-sirap-user-oldest-request-' + group.uid"
+                              class="col-span-2 row-start-3 min-w-0 truncate text-xs text-slate-600 lg:col-start-3 lg:col-span-1 lg:row-start-1"
+                            >
+                              Oldest request: {{ oldestSirapRequestDate(group) }}
+                            </span>
+                            <span
+                              [id]="'admin-access-panel-sirap-user-header-actions-' + group.uid"
+                              class="col-start-2 row-span-2 row-start-1 flex items-center justify-end gap-2 lg:contents"
+                            >
+                              <span
+                                [id]="'admin-access-panel-sirap-user-status-area-' + group.uid"
+                                class="flex min-w-0 flex-wrap items-center justify-end gap-2 lg:col-start-4 lg:row-start-1"
+                              >
+                                @if (isFakeSirapRequester(group.uid)) {
+                                  <span
+                                    [id]="'admin-access-panel-sirap-user-demo-badge-' + group.uid"
+                                    class="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-800"
+                                  >
+                                    Demo data
+                                  </span>
+                                }
+                              </span>
+                              <svg
+                                [id]="'admin-access-panel-sirap-user-chevron-' + group.uid"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 shrink-0 text-slate-500 transition-transform lg:col-start-5 lg:row-start-1"
+                                [class.rotate-180]="expandedSirapGroupUid() === group.uid"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  [id]="'admin-access-panel-sirap-user-chevron-path-' + group.uid"
+                                  fill-rule="evenodd"
+                                  d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
+                                  clip-rule="evenodd"
+                                />
+                              </svg>
+                            </span>
+                          </button>
+
+                          <div
+                            [id]="'admin-access-panel-sirap-user-requests-' + group.uid"
+                            role="region"
+                            [attr.aria-labelledby]="
+                              'admin-access-panel-sirap-user-toggle-' + group.uid
+                            "
+                            [hidden]="expandedSirapGroupUid() !== group.uid"
+                            class="divide-y divide-slate-100 border-t border-slate-200"
+                          >
+                            @for (request of group.requests; track request.id) {
+                              <div
+                                [id]="'admin-access-panel-sirap-request-row-' + request.id"
+                                class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                              >
+                                <div [id]="'admin-access-panel-sirap-request-copy-' + request.id">
+                                  <p
+                                    [id]="'admin-access-panel-sirap-request-region-' + request.id"
+                                    class="text-sm font-semibold text-slate-800"
+                                  >
+                                    {{ sirapLabel(request.sirapId) }}
+                                  </p>
+                                  <p
+                                    [id]="'admin-access-panel-sirap-request-meta-' + request.id"
+                                    class="mt-0.5 text-xs text-slate-500"
+                                  >
+                                    {{ formatSirapRequestedAt(request) }}
+                                    @if (request.reason) {
+                                      · {{ request.reason }}
+                                    }
+                                  </p>
+                                </div>
+                                <div
+                                  [id]="'admin-access-panel-sirap-request-actions-' + request.id"
+                                  class="flex gap-2"
                                 >
-                                  {{ sirapLabel(sirapId) }}
-                                </span>
-                                <button
-                                  [id]="
-                                    'admin-access-panel-current-sirap-revoke-' +
-                                    group.user.uid +
-                                    '-' +
-                                    sirapId
-                                  "
-                                  type="button"
-                                  class="min-h-8 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
-                                  [disabled]="!!decidingSirapRequestId()"
-                                  (click)="revokeCurrentAccess(group.user, sirapId)"
-                                >
-                                  {{
-                                    decidingSirapRequestId() === group.user.uid + ':' + sirapId
-                                      ? 'Revoking…'
-                                      : 'Revoke'
-                                  }}
-                                </button>
+                                  <button
+                                    [id]="'admin-access-panel-sirap-deny-button-' + request.id"
+                                    type="button"
+                                    class="min-h-9 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                                    [disabled]="!!decidingSirapRequestId()"
+                                    (click)="decideSirapRequest(request, 'denied')"
+                                  >
+                                    Deny
+                                  </button>
+                                  <button
+                                    [id]="'admin-access-panel-sirap-approve-button-' + request.id"
+                                    type="button"
+                                    class="min-h-9 rounded-md bg-slate-900 px-3 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                                    [disabled]="!!decidingSirapRequestId()"
+                                    (click)="decideSirapRequest(request, 'approved')"
+                                  >
+                                    {{
+                                      decidingSirapRequestId() === request.id
+                                        ? 'Saving…'
+                                        : 'Approve'
+                                    }}
+                                  </button>
+                                </div>
                               </div>
                             }
                           </div>
-                          @if (group.administeredSirapIds.length > 0) {
-                            <p
-                              [id]="
-                                'admin-access-panel-current-sirap-admin-summary-' + group.user.uid
-                              "
-                              class="mt-3 text-xs text-slate-500"
+                        </article>
+                      }
+                    </section>
+                    @if (filteredSirapRequestGroups().length > 5) {
+                      <nav
+                        id="admin-access-panel-sirap-pagination"
+                        class="flex flex-col gap-3 border-t border-slate-200 pt-3 sm:flex-row sm:items-center sm:justify-between"
+                        aria-label="Pending SIRAP requests pagination"
+                      >
+                        <p
+                          id="admin-access-panel-sirap-range"
+                          class="text-xs font-medium text-slate-500"
+                        >
+                          Showing {{ sirapRangeStart() }}–{{ sirapRangeEnd() }} of
+                          {{ filteredSirapRequestGroups().length }}
+                        </p>
+                        <div
+                          id="admin-access-panel-sirap-pagination-controls"
+                          class="flex items-center justify-between gap-3 sm:justify-end"
+                        >
+                          <button
+                            id="admin-access-panel-sirap-previous-button"
+                            type="button"
+                            class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            [disabled]="sirapPage() === 1"
+                            (click)="goToSirapPage(sirapPage() - 1)"
+                          >
+                            Previous
+                          </button>
+                          <span
+                            id="admin-access-panel-sirap-page-status"
+                            class="text-xs font-medium text-slate-600"
+                          >
+                            Page {{ sirapPage() }} of {{ sirapPageCount() }}
+                          </span>
+                          <button
+                            id="admin-access-panel-sirap-next-button"
+                            type="button"
+                            class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            [disabled]="sirapPage() === sirapPageCount()"
+                            (click)="goToSirapPage(sirapPage() + 1)"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </nav>
+                    }
+                    <p
+                      id="admin-access-panel-sirap-live-status"
+                      class="sr-only"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    >
+                      {{ sirapStatusMessage() }}
+                    </p>
+                  }
+                }
+              </div>
+            }
+          </section>
+        }
+
+        @if (activeTab() === 'access') {
+          <section
+            id="admin-access-panel-approved-sirap-section"
+            class="mt-8 overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
+          >
+            <div
+              id="admin-access-panel-approved-sirap-section-header"
+              class="bg-slate-100 px-5 py-3"
+            >
+              <div
+                id="admin-access-panel-approved-sirap-section-header-layout"
+                class="grid grid-cols-[minmax(0,1fr)_2.75rem] items-start gap-x-3 gap-y-2 lg:grid-cols-[minmax(0,1fr)_18rem_2.75rem] lg:gap-x-4 lg:gap-y-0"
+              >
+                <div
+                  id="admin-access-panel-approved-sirap-heading"
+                  class="min-w-0 lg:col-start-1 lg:row-start-1"
+                >
+                  <h3
+                    id="admin-access-panel-approved-sirap-title"
+                    class="text-base font-semibold text-slate-900"
+                  >
+                    Current SIRAP access
+                  </h3>
+                  @if (currentSirapSectionExpanded()) {
+                    <p
+                      id="admin-access-panel-approved-sirap-copy"
+                      class="mt-1 text-sm text-slate-500"
+                    >
+                      Revoke access one region at a time without deleting the user account.
+                    </p>
+                  } @else {
+                    <p
+                      id="admin-access-panel-approved-sirap-section-summary"
+                      class="mt-1 text-sm font-medium text-slate-600"
+                    >
+                      {{ currentSirapAccessGroups().length }} user{{
+                        currentSirapAccessGroups().length === 1 ? '' : 's'
+                      }}
+                      with current SIRAP access
+                    </p>
+                  }
+                </div>
+
+                <button
+                  id="admin-access-panel-approved-sirap-section-toggle"
+                  type="button"
+                  class="col-start-2 row-start-1 flex h-11 w-11 shrink-0 items-center justify-center self-start rounded-md text-slate-600 transition hover:bg-slate-200 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:col-start-3 lg:row-start-1"
+                  [attr.aria-expanded]="currentSirapSectionExpanded()"
+                  [attr.aria-label]="
+                    currentSirapSectionExpanded()
+                      ? 'Collapse Current SIRAP access'
+                      : 'Expand Current SIRAP access'
+                  "
+                  aria-controls="admin-access-panel-approved-sirap-section-content"
+                  (click)="toggleCurrentSirapSection()"
+                >
+                  <svg
+                    id="admin-access-panel-approved-sirap-section-chevron"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="h-5 w-5 transition-transform"
+                    [class.rotate-180]="currentSirapSectionExpanded()"
+                    aria-hidden="true"
+                  >
+                    <path
+                      id="admin-access-panel-approved-sirap-section-chevron-path"
+                      fill-rule="evenodd"
+                      d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+
+                @if (currentSirapSectionExpanded() && currentSirapAccessGroups().length > 0) {
+                  <div
+                    id="admin-access-panel-current-sirap-search-row"
+                    class="col-span-2 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-1"
+                  >
+                    <div id="admin-access-panel-current-sirap-search-field" class="w-full">
+                      <label
+                        id="admin-access-panel-current-sirap-search-label"
+                        for="admin-access-panel-current-sirap-search-input"
+                        class="block text-xs font-semibold text-slate-600"
+                      >
+                        Search by name
+                        <input
+                          id="admin-access-panel-current-sirap-search-input"
+                          type="search"
+                          class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
+                          placeholder="Name or email"
+                          [value]="currentSirapSearchQuery()"
+                          (input)="onCurrentSirapSearchChange($event)"
+                          (click)="$event.stopPropagation()"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            @if (currentSirapSectionExpanded()) {
+              <div
+                id="admin-access-panel-approved-sirap-section-content"
+                role="region"
+                aria-labelledby="admin-access-panel-approved-sirap-section-toggle"
+                class="space-y-4 border-t border-slate-300 bg-white px-5 py-4"
+              >
+                @if (currentSirapAccessGroups().length === 0) {
+                  <p
+                    id="admin-access-panel-approved-sirap-empty"
+                    class="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-6 text-center text-sm text-slate-500"
+                  >
+                    No current SIRAP data grants in your administrative scope.
+                  </p>
+                } @else {
+                  @if (filteredCurrentSirapAccessGroups().length === 0) {
+                    <section
+                      id="admin-access-panel-current-sirap-no-results"
+                      class="rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center"
+                    >
+                      <h4
+                        id="admin-access-panel-current-sirap-no-results-title"
+                        class="text-sm font-semibold text-slate-900"
+                      >
+                        No matching users with current SIRAP access
+                      </h4>
+                      <p
+                        id="admin-access-panel-current-sirap-no-results-copy"
+                        class="mt-1 text-sm text-slate-500"
+                      >
+                        Try a different name or email.
+                      </p>
+                    </section>
+                  } @else {
+                    <div id="admin-access-panel-approved-sirap-groups" class="space-y-2">
+                      @for (group of pagedCurrentSirapAccessGroups(); track group.user.uid) {
+                        <article
+                          [id]="'admin-access-panel-current-sirap-user-' + group.user.uid"
+                          class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                        >
+                          <button
+                            [id]="'admin-access-panel-current-sirap-toggle-' + group.user.uid"
+                            type="button"
+                            class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:grid-cols-[minmax(180px,1.2fr)_minmax(110px,0.55fr)_minmax(180px,0.9fr)_220px_2rem]"
+                            [attr.aria-expanded]="expandedCurrentSirapUid() === group.user.uid"
+                            [attr.aria-controls]="
+                              'admin-access-panel-current-sirap-content-' + group.user.uid
+                            "
+                            (click)="toggleCurrentSirapGroup(group)"
+                            (keydown)="onCurrentSirapHeaderKeydown($event, group)"
+                          >
+                            <span
+                              [id]="'admin-access-panel-current-sirap-identity-' + group.user.uid"
+                              class="min-w-0 lg:col-start-1 lg:row-start-1"
                             >
-                              Administrator assignments:
-                              @for (
-                                sirapId of group.administeredSirapIds;
-                                track sirapId;
-                                let last = $last
-                              ) {
-                                <span
+                              <span
+                                [id]="
+                                  'admin-access-panel-current-sirap-user-name-' + group.user.uid
+                                "
+                                class="block truncate text-sm font-semibold text-slate-950"
+                              >
+                                {{ group.user.displayName }}
+                              </span>
+                              <span
+                                [id]="
+                                  'admin-access-panel-current-sirap-user-email-' + group.user.uid
+                                "
+                                class="block truncate text-xs text-slate-500"
+                              >
+                                {{ group.user.email }}
+                              </span>
+                            </span>
+                            <span
+                              [id]="
+                                'admin-access-panel-current-sirap-grant-count-' + group.user.uid
+                              "
+                              class="col-start-1 row-start-2 min-w-0 truncate text-xs font-medium text-slate-600 lg:col-start-2 lg:row-start-1"
+                            >
+                              {{ group.allowedSirapIds.length }} granted region{{
+                                group.allowedSirapIds.length === 1 ? '' : 's'
+                              }}
+                            </span>
+                            <span
+                              [id]="
+                                'admin-access-panel-current-sirap-admin-count-' + group.user.uid
+                              "
+                              class="col-span-2 row-start-3 min-w-0 truncate text-xs text-slate-600 lg:col-start-3 lg:col-span-1 lg:row-start-1"
+                            >
+                              {{ group.administeredSirapIds.length }} administrator assignment{{
+                                group.administeredSirapIds.length === 1 ? '' : 's'
+                              }}
+                            </span>
+                            <span
+                              [id]="
+                                'admin-access-panel-current-sirap-header-actions-' + group.user.uid
+                              "
+                              class="col-start-2 row-span-2 row-start-1 flex items-center justify-end gap-2 lg:contents"
+                            >
+                              <span
+                                [id]="
+                                  'admin-access-panel-current-sirap-status-area-' + group.user.uid
+                                "
+                                class="flex min-w-0 flex-wrap items-center justify-end gap-2 lg:col-start-4 lg:row-start-1"
+                              >
+                                @if (isFakeActiveUser(group.user.uid)) {
+                                  <span
+                                    [id]="
+                                      'admin-access-panel-current-sirap-demo-badge-' +
+                                      group.user.uid
+                                    "
+                                    class="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-800"
+                                  >
+                                    Demo data
+                                  </span>
+                                }
+                              </span>
+                              <svg
+                                [id]="'admin-access-panel-current-sirap-chevron-' + group.user.uid"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-4 w-4 shrink-0 text-slate-500 transition-transform lg:col-start-5 lg:row-start-1"
+                                [class.rotate-180]="expandedCurrentSirapUid() === group.user.uid"
+                                aria-hidden="true"
+                              >
+                                <path
                                   [id]="
-                                    'admin-access-panel-current-sirap-admin-region-' +
+                                    'admin-access-panel-current-sirap-chevron-path-' +
+                                    group.user.uid
+                                  "
+                                  fill-rule="evenodd"
+                                  d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
+                                  clip-rule="evenodd"
+                                />
+                              </svg>
+                            </span>
+                          </button>
+
+                          <div
+                            [id]="'admin-access-panel-current-sirap-content-' + group.user.uid"
+                            role="region"
+                            [attr.aria-labelledby]="
+                              'admin-access-panel-current-sirap-toggle-' + group.user.uid
+                            "
+                            [hidden]="expandedCurrentSirapUid() !== group.user.uid"
+                            class="border-t border-slate-200 p-4"
+                          >
+                            <div
+                              [id]="'admin-access-panel-current-sirap-rows-' + group.user.uid"
+                              class="space-y-2"
+                            >
+                              @for (sirapId of group.allowedSirapIds; track sirapId) {
+                                <div
+                                  [id]="
+                                    'admin-access-panel-current-sirap-row-' +
                                     group.user.uid +
                                     '-' +
                                     sirapId
                                   "
-                                  >{{ sirapLabel(sirapId) }}{{ last ? '' : ', ' }}</span
+                                  class="flex items-center justify-between gap-3 rounded-lg bg-emerald-50 px-3 py-2"
                                 >
+                                  <span
+                                    [id]="
+                                      'admin-access-panel-current-sirap-region-' +
+                                      group.user.uid +
+                                      '-' +
+                                      sirapId
+                                    "
+                                    class="text-xs font-semibold text-emerald-900"
+                                  >
+                                    {{ sirapLabel(sirapId) }}
+                                  </span>
+                                  <button
+                                    [id]="
+                                      'admin-access-panel-current-sirap-revoke-' +
+                                      group.user.uid +
+                                      '-' +
+                                      sirapId
+                                    "
+                                    type="button"
+                                    class="min-h-8 rounded-md border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                                    [disabled]="!!decidingSirapRequestId()"
+                                    (click)="revokeCurrentAccess(group.user, sirapId)"
+                                  >
+                                    {{
+                                      decidingSirapRequestId() === group.user.uid + ':' + sirapId
+                                        ? 'Revoking…'
+                                        : 'Revoke'
+                                    }}
+                                  </button>
+                                </div>
                               }
-                            </p>
-                          }
+                            </div>
+                            @if (group.administeredSirapIds.length > 0) {
+                              <p
+                                [id]="
+                                  'admin-access-panel-current-sirap-admin-summary-' + group.user.uid
+                                "
+                                class="mt-3 text-xs text-slate-500"
+                              >
+                                Administrator assignments:
+                                @for (
+                                  sirapId of group.administeredSirapIds;
+                                  track sirapId;
+                                  let last = $last
+                                ) {
+                                  <span
+                                    [id]="
+                                      'admin-access-panel-current-sirap-admin-region-' +
+                                      group.user.uid +
+                                      '-' +
+                                      sirapId
+                                    "
+                                    >{{ sirapLabel(sirapId) }}{{ last ? '' : ', ' }}</span
+                                  >
+                                }
+                              </p>
+                            }
+                          </div>
+                        </article>
+                      }
+                    </div>
+                    @if (filteredCurrentSirapAccessGroups().length > 5) {
+                      <nav
+                        id="admin-access-panel-current-sirap-pagination"
+                        class="flex flex-col gap-3 border-t border-slate-200 pt-3 sm:flex-row sm:items-center sm:justify-between"
+                        aria-label="Current SIRAP access pagination"
+                      >
+                        <p
+                          id="admin-access-panel-current-sirap-range"
+                          class="text-xs font-medium text-slate-500"
+                        >
+                          Showing {{ currentSirapRangeStart() }}–{{ currentSirapRangeEnd() }} of
+                          {{ filteredCurrentSirapAccessGroups().length }}
+                        </p>
+                        <div
+                          id="admin-access-panel-current-sirap-pagination-controls"
+                          class="flex items-center justify-between gap-3 sm:justify-end"
+                        >
+                          <button
+                            id="admin-access-panel-current-sirap-previous-button"
+                            type="button"
+                            class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            [disabled]="currentSirapPage() === 1"
+                            (click)="goToCurrentSirapPage(currentSirapPage() - 1)"
+                          >
+                            Previous
+                          </button>
+                          <span
+                            id="admin-access-panel-current-sirap-page-status"
+                            class="text-xs font-medium text-slate-600"
+                          >
+                            Page {{ currentSirapPage() }} of {{ currentSirapPageCount() }}
+                          </span>
+                          <button
+                            id="admin-access-panel-current-sirap-next-button"
+                            type="button"
+                            class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            [disabled]="currentSirapPage() === currentSirapPageCount()"
+                            (click)="goToCurrentSirapPage(currentSirapPage() + 1)"
+                          >
+                            Next
+                          </button>
                         </div>
-                      </article>
+                      </nav>
                     }
-                  </div>
-                  @if (filteredCurrentSirapAccessGroups().length > 5) {
-                    <nav
-                      id="admin-access-panel-current-sirap-pagination"
-                      class="flex flex-col gap-3 border-t border-slate-200 pt-3 sm:flex-row sm:items-center sm:justify-between"
-                      aria-label="Current SIRAP access pagination"
+                    <p
+                      id="admin-access-panel-current-sirap-live-status"
+                      class="sr-only"
+                      aria-live="polite"
+                      aria-atomic="true"
                     >
-                      <p
-                        id="admin-access-panel-current-sirap-range"
-                        class="text-xs font-medium text-slate-500"
-                      >
-                        Showing {{ currentSirapRangeStart() }}–{{ currentSirapRangeEnd() }} of
-                        {{ filteredCurrentSirapAccessGroups().length }}
-                      </p>
-                      <div
-                        id="admin-access-panel-current-sirap-pagination-controls"
-                        class="flex items-center justify-between gap-3 sm:justify-end"
-                      >
-                        <button
-                          id="admin-access-panel-current-sirap-previous-button"
-                          type="button"
-                          class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          [disabled]="currentSirapPage() === 1"
-                          (click)="goToCurrentSirapPage(currentSirapPage() - 1)"
-                        >
-                          Previous
-                        </button>
-                        <span
-                          id="admin-access-panel-current-sirap-page-status"
-                          class="text-xs font-medium text-slate-600"
-                        >
-                          Page {{ currentSirapPage() }} of {{ currentSirapPageCount() }}
-                        </span>
-                        <button
-                          id="admin-access-panel-current-sirap-next-button"
-                          type="button"
-                          class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          [disabled]="currentSirapPage() === currentSirapPageCount()"
-                          (click)="goToCurrentSirapPage(currentSirapPage() + 1)"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </nav>
+                      {{ currentSirapStatusMessage() }}
+                    </p>
                   }
-                  <p
-                    id="admin-access-panel-current-sirap-live-status"
-                    class="sr-only"
-                    aria-live="polite"
-                    aria-atomic="true"
-                  >
-                    {{ currentSirapStatusMessage() }}
-                  </p>
                 }
-              }
-            </div>
-          }
-        </section>
+              </div>
+            }
+          </section>
+        }
 
-        @if (isSuperAdmin()) {
+        @if (activeTab() === 'users') {
           <section
             id="admin-access-panel-users-section"
             class="mt-8 overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
@@ -1669,38 +1788,40 @@
                             [id]="'admin-access-panel-user-row-' + user.uid"
                             class="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_minmax(240px,0.85fr)_auto_auto] lg:items-end"
                           >
-                            <label
-                              [id]="'admin-access-panel-user-tier-label-' + user.uid"
-                              [attr.for]="'admin-access-panel-user-tier-select-' + user.uid"
-                              class="block text-xs font-semibold text-slate-600"
-                            >
-                              App tier
-                              <select
-                                [id]="'admin-access-panel-user-tier-select-' + user.uid"
-                                class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                                [value]="userGrantFor(user).tier.toString()"
-                                [disabled]="!!updatingUserUid()"
-                                (change)="onUserTierChange(user, $event)"
+                            @if (isSuperAdmin()) {
+                              <label
+                                [id]="'admin-access-panel-user-tier-label-' + user.uid"
+                                [attr.for]="'admin-access-panel-user-tier-select-' + user.uid"
+                                class="block text-xs font-semibold text-slate-600"
                               >
-                                <option value="2">Tier 2 - Approved user</option>
-                                <option value="3">Tier 3 - Publisher / scientist</option>
-                              </select>
-                            </label>
+                                App tier
+                                <select
+                                  [id]="'admin-access-panel-user-tier-select-' + user.uid"
+                                  class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
+                                  [value]="userGrantFor(user).tier.toString()"
+                                  [disabled]="!!updatingUserUid()"
+                                  (change)="onUserTierChange(user, $event)"
+                                >
+                                  <option value="2">Tier 2 - Approved user</option>
+                                  <option value="3">Tier 3 - Publisher / scientist</option>
+                                </select>
+                              </label>
 
-                            <label
-                              [id]="'admin-access-panel-user-admin-label-' + user.uid"
-                              class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm"
-                            >
-                              <input
-                                [id]="'admin-access-panel-user-admin-checkbox-' + user.uid"
-                                type="checkbox"
-                                class="h-4 w-4 rounded border-slate-300 text-slate-900"
-                                [checked]="userGrantFor(user).isAdmin"
-                                [disabled]="!!updatingUserUid()"
-                                (change)="onUserAdminChange(user, $event)"
-                              />
-                              Super admin
-                            </label>
+                              <label
+                                [id]="'admin-access-panel-user-admin-label-' + user.uid"
+                                class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm"
+                              >
+                                <input
+                                  [id]="'admin-access-panel-user-admin-checkbox-' + user.uid"
+                                  type="checkbox"
+                                  class="h-4 w-4 rounded border-slate-300 text-slate-900"
+                                  [checked]="userGrantFor(user).isAdmin"
+                                  [disabled]="!!updatingUserUid()"
+                                  (change)="onUserAdminChange(user, $event)"
+                                />
+                                Super admin
+                              </label>
+                            }
 
                             <button
                               [id]="'admin-access-panel-user-save-button-' + user.uid"
@@ -1762,7 +1883,9 @@
                                       [checked]="
                                         userGrantFor(user).allowedSirapIds.includes(region.id)
                                       "
-                                      [disabled]="!!updatingUserUid()"
+                                      [disabled]="
+                                        !!updatingUserUid() || !canManageUserSirap(region.id)
+                                      "
                                       (change)="toggleUserAllowedSirap(user, region.id)"
                                     />
                                     {{ region.label }}
@@ -1771,54 +1894,59 @@
                               </div>
                             </fieldset>
 
-                            <fieldset
-                              [id]="'admin-access-panel-user-administered-siraps-' + user.uid"
-                              class="rounded-lg border border-slate-200 bg-slate-50 p-3"
-                            >
-                              <legend
-                                [id]="
-                                  'admin-access-panel-user-administered-siraps-legend-' + user.uid
-                                "
-                                class="px-1 text-xs font-semibold text-slate-700"
+                            @if (isSuperAdmin()) {
+                              <fieldset
+                                [id]="'admin-access-panel-user-administered-siraps-' + user.uid"
+                                class="rounded-lg border border-slate-200 bg-slate-50 p-3"
                               >
-                                Administrator assignments
-                              </legend>
-                              <div
-                                [id]="
-                                  'admin-access-panel-user-administered-siraps-options-' + user.uid
-                                "
-                                class="mt-2 grid gap-2 sm:grid-cols-2"
-                              >
-                                @for (region of sirapRegions; track region.id) {
-                                  <label
-                                    [id]="
-                                      'admin-access-panel-user-administered-sirap-label-' +
-                                      user.uid +
-                                      '-' +
-                                      region.id
-                                    "
-                                    class="flex items-center gap-2 text-xs text-slate-700"
-                                  >
-                                    <input
+                                <legend
+                                  [id]="
+                                    'admin-access-panel-user-administered-siraps-legend-' + user.uid
+                                  "
+                                  class="px-1 text-xs font-semibold text-slate-700"
+                                >
+                                  Administrator assignments
+                                </legend>
+                                <div
+                                  [id]="
+                                    'admin-access-panel-user-administered-siraps-options-' +
+                                    user.uid
+                                  "
+                                  class="mt-2 grid gap-2 sm:grid-cols-2"
+                                >
+                                  @for (region of sirapRegions; track region.id) {
+                                    <label
                                       [id]="
-                                        'admin-access-panel-user-administered-sirap-checkbox-' +
+                                        'admin-access-panel-user-administered-sirap-label-' +
                                         user.uid +
                                         '-' +
                                         region.id
                                       "
-                                      type="checkbox"
-                                      class="h-4 w-4 rounded border-slate-300 text-sky-600"
-                                      [checked]="
-                                        userGrantFor(user).administeredSirapIds.includes(region.id)
-                                      "
-                                      [disabled]="!!updatingUserUid()"
-                                      (change)="toggleUserAdministeredSirap(user, region.id)"
-                                    />
-                                    {{ region.label }}
-                                  </label>
-                                }
-                              </div>
-                            </fieldset>
+                                      class="flex items-center gap-2 text-xs text-slate-700"
+                                    >
+                                      <input
+                                        [id]="
+                                          'admin-access-panel-user-administered-sirap-checkbox-' +
+                                          user.uid +
+                                          '-' +
+                                          region.id
+                                        "
+                                        type="checkbox"
+                                        class="h-4 w-4 rounded border-slate-300 text-sky-600"
+                                        [checked]="
+                                          userGrantFor(user).administeredSirapIds.includes(
+                                            region.id
+                                          )
+                                        "
+                                        [disabled]="!!updatingUserUid()"
+                                        (change)="toggleUserAdministeredSirap(user, region.id)"
+                                      />
+                                      {{ region.label }}
+                                    </label>
+                                  }
+                                </div>
+                              </fieldset>
+                            }
                           </div>
                         </div>
                       </article>
