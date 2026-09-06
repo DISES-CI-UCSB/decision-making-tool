@@ -82,6 +82,8 @@ legacy-r-shiny-app/Cambio_Global/**/*.lock
 /frontend/.angular/
 # Development-only cache refreshed from the Blob layer manifest.
 /frontend/public/data/layer-manifest/manifest.json
+# Local preview mount for unpublished species-goals artifacts.
+/frontend/public/releases/
 # Development-only goals previews generated from published summary CSVs.
 /frontend/public/data/metrics/goals/
 # Development-only styled manifest drafts saved from the local editor.

@@ -210,16 +210,31 @@ def test_solution_domain_normalizes_supported_values(solution, expected):
     assert solution_domain(solution) == expected
 
 
-def test_marine_metric_dispatch_loads_only_marine_layer(
+def test_marine_metric_dispatch_loads_coberturas_and_marine_values(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
     manifest = _manifest([_solution("marine", "marine", domain="marine")])
     loaded_value_layers: list[str] = []
 
-    class NoLandMasks:
-        def get(self, *args, **kwargs):
-            raise AssertionError("marine dispatch attempted to load a land mask")
+    coberturas_ids = {
+        "coberturas_artificial_surfaces",
+        "coberturas_agricultural_areas",
+        "coberturas_forests_and_semi_natural_areas",
+        "coberturas_wetlands",
+        "coberturas_water_bodies",
+    }
+    # Selected cells are [[True, False], [True, True]]. Forest overlap on those
+    # three cells must produce a real percentage, not a forced 0 / N/A.
+    forest_mask = np.array([[True, False], [True, True]], dtype=bool)
+
+    class CoberturasAndMarineMasks:
+        def get(self, layer_id, *args, **kwargs):
+            if layer_id == "coberturas_forests_and_semi_natural_areas":
+                return forest_mask
+            if layer_id in coberturas_ids:
+                return np.zeros((2, 2), dtype=bool)
+            raise AssertionError(f"marine dispatch attempted to load a land mask: {layer_id}")
 
     class MarineValues:
         def get(self, layer_id, *args, **kwargs):
@@ -236,7 +251,7 @@ def test_marine_metric_dispatch_loads_only_marine_layer(
         _raster(),
         manifest.batch_solutions[0],
         manifest,
-        NoLandMasks(),
+        CoberturasAndMarineMasks(),
         MarineValues(),
         tmp_path,
         False,
@@ -252,9 +267,19 @@ def test_marine_metric_dispatch_loads_only_marine_layer(
     assert by_id["conservation_goals_met"]["status"] == "ready"
     assert by_id["priority_area_in_region"]["status"] == "ready"
     assert by_id["national_contribution"]["status"] == "ready"
+    assert by_id["land_use_forests_and_semi_natural_areas_pct"]["status"] == "ready"
+    assert by_id["land_use_forests_and_semi_natural_areas_pct"]["value"] == 100
+    for land_use_id in (
+        "land_use_artificial_surfaces_pct",
+        "land_use_agricultural_areas_pct",
+        "land_use_wetlands_pct",
+        "land_use_water_bodies_pct",
+    ):
+        assert by_id[land_use_id]["status"] == "ready"
+        assert by_id[land_use_id]["value"] == 0
 
 
-def test_marine_subnational_preload_skips_all_land_layers(tmp_path: Path):
+def test_marine_subnational_preload_loads_coberturas_and_marine_values(tmp_path: Path):
     manifest = _manifest([_solution("marine", "marine", domain="marine")])
     mask_calls: list[str] = []
     value_calls: list[str] = []
@@ -288,8 +313,15 @@ def test_marine_subnational_preload_skips_all_land_layers(tmp_path: Path):
         "marine",
     )
 
-    assert masks == {}
-    assert mask_calls == []
+    coberturas_ids = {
+        "coberturas_artificial_surfaces",
+        "coberturas_agricultural_areas",
+        "coberturas_forests_and_semi_natural_areas",
+        "coberturas_wetlands",
+        "coberturas_water_bodies",
+    }
+    assert set(masks) == coberturas_ids
+    assert set(mask_calls) == coberturas_ids
     assert set(values) == {"marine_ecosystems"}
     assert value_calls == ["marine_ecosystems"]
 

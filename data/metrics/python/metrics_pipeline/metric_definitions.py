@@ -580,6 +580,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="coberturas_artificial_surfaces",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
         off_manifest_rendering={"valueType": "binary", "selectedValue": 1},
+        applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
         metric_id="land_use_agricultural_areas_pct",
@@ -594,6 +595,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="coberturas_agricultural_areas",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
         off_manifest_rendering={"valueType": "binary", "selectedValue": 2},
+        applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
         metric_id="land_use_forests_and_semi_natural_areas_pct",
@@ -608,6 +610,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="coberturas_forests_and_semi_natural_areas",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
         off_manifest_rendering={"valueType": "binary", "selectedValue": 3},
+        applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
         metric_id="land_use_wetlands_pct",
@@ -622,6 +625,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="coberturas_wetlands",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
         off_manifest_rendering={"valueType": "binary", "selectedValue": 4},
+        applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
         metric_id="land_use_water_bodies_pct",
@@ -636,6 +640,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         layer_id="coberturas_water_bodies",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
         off_manifest_rendering={"valueType": "binary", "selectedValue": 5},
+        applicable_domains=frozenset({"land", "marine"}),
     ),
     # --- T2 (continued) ---
     MetricDefinition(
