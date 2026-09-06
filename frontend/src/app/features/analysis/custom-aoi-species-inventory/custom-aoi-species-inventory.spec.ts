@@ -89,10 +89,17 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(compiled.querySelector('table#custom-aoi-species-inventory-table')).not.toBeNull();
     expect(compiled.querySelector('caption#custom-aoi-species-inventory-caption')).not.toBeNull();
     expect(
+      compiled.querySelector('#custom-aoi-species-inventory-modal-title')?.textContent,
+    ).toContain('analysis.aoi.customProfile.species.modalTitle');
+    expect(compiled.querySelector('#custom-aoi-species-inventory-species-heading')).not.toBeNull();
+    expect(
+      compiled.querySelector('#custom-aoi-species-inventory-species-heading-spacer'),
+    ).not.toBeNull();
+    expect(
       compiled.querySelectorAll('#custom-aoi-species-inventory-table-head th[scope="colgroup"]'),
     ).toHaveLength(2);
     expect(
-      compiled.querySelectorAll('#custom-aoi-species-inventory-table-head th[scope="col"]'),
+      compiled.querySelectorAll('#custom-aoi-species-inventory-column-heading-row th[scope="col"]'),
     ).toHaveLength(6);
     expect(
       compiled.querySelectorAll('#custom-aoi-species-inventory-table-body th[scope="row"]'),
@@ -106,6 +113,36 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(
       compiled.querySelector('#custom-aoi-species-inventory-group-heading-row')?.classList,
     ).toContain('h-8');
+  });
+
+  it('opens coverage heading tooltips toward the table so they do not extend scroll width', () => {
+    const fixture = createFixture(null);
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    const leftAlignedTooltipIds = [
+      'custom-aoi-species-inventory-species-heading-help-tooltip',
+      'custom-aoi-species-inventory-national-range-heading-help-tooltip',
+      'custom-aoi-species-inventory-range-in-aoi-heading-help-tooltip',
+    ];
+    for (const tooltipId of leftAlignedTooltipIds) {
+      expect(compiled.querySelector(`#${tooltipId}`)?.classList).toContain('left-0');
+      expect(compiled.querySelector(`#${tooltipId}`)?.classList).not.toContain('right-0');
+    }
+
+    const coverageTooltipIds = [
+      'custom-aoi-species-inventory-solutionCoverage-heading-help-tooltip',
+      'custom-aoi-species-inventory-preExistingCoverage-heading-help-tooltip',
+      'custom-aoi-species-inventory-newCoverage-heading-help-tooltip',
+    ];
+    for (const tooltipId of coverageTooltipIds) {
+      const tooltip = compiled.querySelector(`#${tooltipId}`);
+      expect(tooltip?.classList).toContain('right-0');
+      expect(tooltip?.classList).not.toContain('left-0');
+      expect(tooltip?.classList).toContain('hidden');
+      expect(tooltip?.classList).not.toContain('opacity-0');
+    }
   });
 
   it('loads predefined AOI sidecars without starting a custom runtime job', async () => {
@@ -249,6 +286,9 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(
       compiled.querySelector('#custom-aoi-species-national-range-value-0')?.className,
     ).not.toContain('text-right');
+    expect(
+      compiled.querySelector('#custom-aoi-species-inventory-national-range-heading')?.className,
+    ).toContain('text-left');
     expect(compiled.querySelector('#custom-aoi-species-national-range-context-0')).toBeNull();
     const expectedMetrics = [
       ['range-in-aoi', '10%', '10 km²'],

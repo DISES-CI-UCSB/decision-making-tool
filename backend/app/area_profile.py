@@ -201,10 +201,7 @@ def _ecosystems_section(
 
 
 def _is_sirap_artifact(artifact: RuntimeArtifact) -> bool:
-    return (
-        artifact.manifest.get("artifact_kind") == SIRAP_ARTIFACT_KIND
-        or artifact.sirap_coverage is not None
-    )
+    return artifact.manifest.get("artifact_kind") == SIRAP_ARTIFACT_KIND
 
 
 def _sirap_ecosystem_rows(

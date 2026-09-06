@@ -394,6 +394,7 @@
           "nationalNewSolutionCoverage": "Candidate conservation-area coverage of ecosystem area",
           "nationalTotalCoverage": "Total scenario coverage of ecosystem area",
           "nationalModeledRange": "National modeled range",
+          "nationalRangeGroup": "National range",
           "sirapModeledRange": "Modeled range within this SIRAP",
           "ofNationalModeledRange": "{{percent}} of national modeled range",
           "nationalEcosystemTypeArea": "National ecosystem extent (Colombia)",
@@ -737,7 +738,7 @@
           "explore": "Explore inventory",
           "exploreCoverage": "Explore species coverage breakdown",
           "exploreCoverageDescription": "Inspect modeled species and scenario coverage; inventory counts are distinct from taxa richness metrics.",
-          "modalTitle": "Species Coverage Breakdown in Area of Interest",
+          "modalTitle": "Species coverage breakdown in custom area of interest",
           "search": "Search scientific names",
           "group": "Filter by group",
           "iucn": "Filter by IUCN status",
@@ -913,6 +914,7 @@
         "modal": {
           "kicker": "MEC 2024 ecosystem map",
           "title": "Explore ecosystem coverage",
+          "customTitle": "Ecosystem coverage breakdown in custom area of interest",
           "description": "One mapped polygon can carry several classification labels. These views describe the same MEC map; they are not separate strategic ecosystem layers.",
           "customDescription": "Explore the live ecosystem composition and backend-calculated scenario coverage for this custom AOI.",
           "coverageRequiresSolution": "Select a land scenario to calculate coverage.",
@@ -967,8 +969,6 @@
               "extentContext": "How much of this ecosystem type is mapped in Colombia and in this SIRAP, and what share of each extent falls inside the AOI?"
             }
           },
-          "customTableCaption": "Coverage percentages use that ecosystem type’s area inside the AOI. Area values are shown in km².",
-          "customMesaTableCaption": "Coverage percentages use each ecosystem’s area inside the AOI. Area values are shown in km².",
           "mesaCellCount": "{{held}} km² of {{total}} km²",
           "mesaPlanningCellAmount": "{{count}} km²",
           "zeroDenominator": "No ecosystem cells in denominator",

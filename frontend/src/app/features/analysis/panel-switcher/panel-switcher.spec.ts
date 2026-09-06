@@ -1284,6 +1284,11 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-mec-modal-sort-additional')?.textContent).toContain(
       'analysis.aoi.mec.modal.sortNew',
     );
+    expect(compiled.querySelector('#aoi-mec-modal-heading-category')?.textContent).toContain(
+      'analysis.aoi.mec.levels.iavh',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-column-widths')).not.toBeNull();
+    expect(compiled.querySelectorAll('#aoi-mec-modal-column-widths col')).toHaveLength(7);
     expect(compiled.querySelector('#aoi-mec-modal-heading-presence-group')?.textContent).toContain(
       'analysis.aoi.mec.modal.presenceGroup',
     );
@@ -1396,9 +1401,75 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-mec-modal-row-andean-forest')?.textContent).not.toContain(
       'analysis.common.valueUnavailable',
     );
-    expect(compiled.querySelector('#aoi-mec-modal-table-caption')?.textContent).toContain(
-      'analysis.aoi.mec.modal.customMesaTableCaption',
+    expect(compiled.querySelector('#aoi-mec-modal-table-caption')).toBeNull();
+
+    (compiled.querySelector('#aoi-mec-modal-level-broad') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('#aoi-mec-modal-heading-category')?.textContent).toContain(
+      'analysis.aoi.mec.levels.broad',
     );
+  });
+
+  it('keeps MEC virtual-scroll headers and rows on one shared column track', async () => {
+    const geometry = buildTestGeometry();
+    const profile = buildCustomEcosystemProfileResponse();
+    const biomeRegionView = profile.sections.ecosystems?.views?.find(
+      (view) => view.id === 'biomeRegion',
+    );
+    const seedRecord = biomeRegionView?.records[0];
+    if (!biomeRegionView || !seedRecord) {
+      throw new Error('Expected biomeRegion fixture records');
+    }
+    biomeRegionView.records = Array.from({ length: 31 }, (_, index) => ({
+      ...seedRecord,
+      id: `biome-${index}`,
+      label: `Biome ${index}`,
+    }));
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 5 })),
+    );
+    vi.mocked(apiServiceSpy.getCustomAoiAreaProfile).mockImplementation((request) =>
+      of(
+        request.sections[0] === 'ecosystems'
+          ? profile
+          : {
+              ...profile,
+              sections: { species: { status: 'unavailable' as const, records: [] } },
+            },
+      ),
+    );
+    appState.activeSolution$.set(buildTestSolution());
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (compiled.querySelector('#aoi-mec-modal-level-iavh') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as unknown as {
+      mecModalUsesVirtualScroll(): boolean;
+    };
+    expect(component.mecModalUsesVirtualScroll()).toBe(true);
+    expect(compiled.querySelector('#aoi-mec-modal-table-head')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-virtual-viewport')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-virtual-viewport')?.className).toContain(
+      'overflow-x-hidden',
+    );
+    expect(compiled.querySelector('#aoi-mec-modal-virtual-inner-table')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-modal-column-widths')).not.toBeNull();
+    expect(compiled.querySelectorAll('#aoi-mec-modal-column-widths col')).toHaveLength(7);
+    expect(compiled.querySelector('#aoi-mec-modal-virtual-inner-column-widths')).not.toBeNull();
+    expect(
+      compiled.querySelectorAll('#aoi-mec-modal-virtual-inner-column-widths col'),
+    ).toHaveLength(7);
+    expect(compiled.querySelector('#aoi-mec-modal-heading-new-coverage')).not.toBeNull();
   });
 
   it('clamps custom ecosystem bar width without changing the displayed percentage', () => {
@@ -1427,6 +1498,24 @@ describe('PanelSwitcherComponent', () => {
 
     appState.setAreaDisplayUnit('hectares');
     expect(component.formatCustomMecAreaKm2(1.25)).toBe('1,3 km²');
+  });
+
+  it('formats goals modal tiny non-zero fractions without rounding to 0%', () => {
+    appLocale.setLocale('en');
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      formatGoalsModalPercent(value: number | null): string;
+      formatSpeciesTablePercent(value: number | null): string;
+    };
+
+    expect(component.formatGoalsModalPercent(null)).toBe('--');
+    expect(component.formatGoalsModalPercent(0)).toBe('0%');
+    expect(component.formatGoalsModalPercent(0.000148)).toBe('0.01%');
+    expect(component.formatGoalsModalPercent(0.00148)).toBe('0.1%');
+    expect(component.formatGoalsModalPercent(0.5)).toBe('50%');
+    expect(component.formatGoalsModalPercent(0.000148)).toBe(
+      component.formatSpeciesTablePercent(0.000148),
+    );
   });
 
   it('keeps one custom table visible and populates coverage after solution selection', async () => {
@@ -1462,6 +1551,9 @@ describe('PanelSwitcherComponent', () => {
 
     (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
     fixture.detectChanges();
+    expect(compiled.querySelector('#aoi-mec-classifications-modal-title')?.textContent).toContain(
+      'analysis.aoi.mec.modal.customTitle',
+    );
     const table = compiled.querySelector('#aoi-mec-modal-table');
     expect(table).not.toBeNull();
     expect(compiled.querySelectorAll('#aoi-mec-modal-table')).toHaveLength(1);
@@ -1496,9 +1588,7 @@ describe('PanelSwitcherComponent', () => {
         .querySelector('#aoi-mec-modal-heading-total-coverage-help-trigger')
         ?.getAttribute('aria-label'),
     ).toBe('analysis.aoi.mec.modal.columnQuestions.totalCoverage');
-    expect(compiled.querySelector('#aoi-mec-modal-table-caption')?.textContent).toContain(
-      'analysis.aoi.mec.modal.customTableCaption',
-    );
+    expect(compiled.querySelector('#aoi-mec-modal-table-caption')).toBeNull();
     expect(compiled.querySelector('#aoi-mec-modal-sort-coverage')?.textContent).toContain(
       'analysis.aoi.mec.modal.sortCoverage',
     );
@@ -1540,12 +1630,42 @@ describe('PanelSwitcherComponent', () => {
         .querySelector('#aoi-mec-modal-heading-total-coverage-help-trigger')
         ?.getAttribute('aria-label'),
     ).toBe('analysis.aoi.mec.modal.columnQuestions.totalCoverage');
-    expect(compiled.querySelector('#aoi-mec-modal-table-caption')?.textContent).toContain(
-      'analysis.aoi.mec.modal.customMesaTableCaption',
-    );
+    expect(compiled.querySelector('#aoi-mec-modal-table-caption')).toBeNull();
     expect(compiled.querySelector('#aoi-mec-modal-sort-coverage')?.textContent).toContain(
       'analysis.aoi.mec.modal.sortCoverage',
     );
+  });
+
+  it('hides the table caption in the SIRAP custom AOI MEC modal', async () => {
+    const solution = buildTestSolution();
+    mockSirapCatalogSolution(solution);
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 5 })),
+    );
+    vi.mocked(apiServiceSpy.getCustomAoiAreaProfile).mockImplementation((request) =>
+      of(
+        request.sections[0] === 'ecosystems'
+          ? buildCustomEcosystemProfileResponse(request.solution_id ?? null)
+          : {
+              ...buildCustomEcosystemProfileResponse(null),
+              sections: { species: { status: 'unavailable' as const, records: [] } },
+            },
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#aoi-mec-modal-table-caption')).toBeNull();
   });
 
   it.each([
@@ -2022,6 +2142,46 @@ describe('PanelSwitcherComponent', () => {
       'analysis.overview.goalsWidget.modal.sirapEcosystemsTitle',
     );
     expect(component.getGoalsModalTitleParams()).toEqual({ sirapName: 'SIRAP Orinoquía' });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+    const ecosystemGroupRow = compiled.querySelector(
+      '#conservation-goals-modal-ecosystem-virtual-heading-group-row',
+    ) as HTMLElement | null;
+    const ecosystemMetricsRow = compiled.querySelector(
+      '#conservation-goals-modal-ecosystem-virtual-heading-metrics-row',
+    ) as HTMLElement | null;
+    const ecosystemBodyRow = compiled.querySelector(
+      '#conservation-goals-modal-row-0',
+    ) as HTMLElement | null;
+    const sirapEcosystemCheckpointsTemplate =
+      'minmax(15rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(15rem, 1.2fr) minmax(10rem, 1fr)';
+    expect(ecosystemGroupRow).not.toBeNull();
+    expect(ecosystemMetricsRow).not.toBeNull();
+    expect(ecosystemBodyRow).not.toBeNull();
+    expect(ecosystemGroupRow?.style.gridTemplateColumns).toBe(
+      ecosystemMetricsRow?.style.gridTemplateColumns,
+    );
+    expect(ecosystemBodyRow?.style.gridTemplateColumns).toBe(
+      ecosystemGroupRow?.style.gridTemplateColumns,
+    );
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-heading-checkpoints'),
+    ).not.toBeNull();
+    expect(ecosystemGroupRow?.style.gridTemplateColumns).toBe(sirapEcosystemCheckpointsTemplate);
+    const ecosystemTable = compiled.querySelector(
+      '#conservation-goals-modal-ecosystem-virtual-table',
+    );
+    const ecosystemHead = compiled.querySelector(
+      '#conservation-goals-modal-ecosystem-virtual-table-head',
+    );
+    const ecosystemViewport = compiled.querySelector(
+      '#conservation-goals-modal-ecosystem-viewport',
+    );
+    expect(ecosystemTable?.className).toContain('min-w-min');
+    expect(ecosystemTable?.className).not.toContain('min-w-[1100px]');
+    expect(ecosystemHead?.className).not.toContain('overflow-x-hidden');
+    expect(ecosystemViewport?.className).toContain('overflow-x-hidden');
+    expect(ecosystemViewport?.className).toContain('overflow-y-auto');
     component.closeGoalsModal();
     fixture.detectChanges();
 
@@ -2879,15 +3039,9 @@ describe('PanelSwitcherComponent', () => {
       'analysis.overview.goalsWidget.modal.nationalSpeciesTitle',
     );
     expect(
-      compiled.querySelector('#conservation-goals-modal-national-virtual-heading-range')?.className,
-    ).toContain('text-left');
-    expect(
-      compiled.querySelector('#conservation-goals-modal-national-virtual-heading-coverage-group')
-        ?.className,
-    ).toContain('text-left');
-    expect(
-      compiled.querySelector('#conservation-goals-modal-national-range-0')?.className,
-    ).toContain('text-left');
+      compiled.querySelector('#conservation-goals-modal-national-virtual-heading-range-group')
+        ?.textContent,
+    ).toContain('analysis.overview.goalsWidget.modal.nationalRangeGroup');
     expect(
       compiled.querySelector('#conservation-goals-modal-national-virtual-heading-range'),
     ).not.toBeNull();
@@ -3357,6 +3511,13 @@ describe('PanelSwitcherComponent', () => {
       ).goalsModalSpeciesRows()[0]?.remainingRelativeHeld,
     ).toBe(0.75);
     expect(fixture.nativeElement.querySelector('#conservation-goals-modal')).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-virtual-table-head')
+        ?.className,
+    ).not.toContain('overflow-x-hidden');
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-species-viewport')?.className,
+    ).toContain('overflow-x-hidden');
   });
 
   it('shows species loading and recoverable error states', async () => {
@@ -3433,6 +3594,15 @@ describe('PanelSwitcherComponent', () => {
         .querySelector('#conservation-goals-modal-browser-title')
         ?.textContent?.replace(/\s+/g, ' '),
     ).toContain('analysis.aoi.mec.levels.iavh');
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-ecosystem-virtual-heading-feature-label')
+        ?.textContent?.replace(/\s+/g, ' '),
+    ).toContain('analysis.aoi.mec.levels.iavh');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-heading-metrics-row')
+        ?.className,
+    ).not.toContain('border-t');
     expect(compiled.querySelector('#conservation-goals-modal-met-value')?.textContent).toContain(
       '1 / 2',
     );
@@ -3443,6 +3613,23 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#conservation-goals-modal-ecosystem-area-0')?.textContent,
     ).toContain('10 km²');
     expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-heading-ecosystem-area'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector(
+        '#conservation-goals-modal-ecosystem-virtual-heading-pre-existing-coverage',
+      ),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-heading-new-coverage'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-heading-coverage'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-heading-metrics-row'),
+    ).not.toBeNull();
+    expect(
       compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-heading-ecosystem-area')
         ?.className,
     ).toContain('text-left');
@@ -3452,6 +3639,9 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#conservation-goals-modal-ecosystem-area-0')?.className,
     ).not.toContain('text-right');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-area-0')?.className,
+    ).toContain('content-center');
     expect(
       compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-0')?.textContent,
     ).toContain('10');
@@ -3480,6 +3670,11 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled
         .querySelector('#conservation-goals-modal-browser-title')
+        ?.textContent?.replace(/\s+/g, ' '),
+    ).toContain('analysis.aoi.mec.levels.broad');
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-ecosystem-virtual-heading-feature-label')
         ?.textContent?.replace(/\s+/g, ' '),
     ).toContain('analysis.aoi.mec.levels.broad');
     expect(
@@ -3517,6 +3712,12 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-table'),
     ).not.toBeNull();
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-virtual-table-head')?.className,
+    ).not.toContain('overflow-x-hidden');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-ecosystem-viewport')?.className,
+    ).toContain('overflow-x-hidden');
     expect(fixture.debugElement.query(By.directive(CdkVirtualScrollViewport))).not.toBeNull();
   });
 

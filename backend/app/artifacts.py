@@ -15,7 +15,12 @@ import numpy as np
 import rasterio
 from pydantic import BaseModel, Field
 
-from .config import SIRAP_ARTIFACT_KIND, Settings, resolve_sirap_id_from_solution_id
+from .config import (
+    SIRAP_ARTIFACT_KIND,
+    SIRAP_SOLUTION_ID_PREFIXES,
+    Settings,
+    resolve_sirap_id_from_solution_id,
+)
 from .coverage_target_validation import (
     CoverageTargetValidationError,
     MESA_V3_ECOSYSTEM_TARGET_COUNT,
@@ -1143,8 +1148,47 @@ def reset_runtime_artifact_cache() -> None:
         _SIRAP_RUNTIME_SETTINGS_KEY = None
 
 
+def _configured_sirap_ids() -> tuple[str, ...]:
+    return tuple(dict.fromkeys(sirap_id for _, sirap_id in SIRAP_SOLUTION_ID_PREFIXES))
+
+
+def build_sirap_artifact_health(settings: Settings) -> dict[str, dict[str, Any]]:
+    health: dict[str, dict[str, Any]] = {}
+    for sirap_id in _configured_sirap_ids():
+        manifest_path = settings.sirap_artifact_root / sirap_id / "manifest.json"
+        if not manifest_path.is_file():
+            health[sirap_id] = {
+                "status": "missing",
+                "has_sirap_coverage": False,
+            }
+            continue
+
+        artifact = get_sirap_runtime_artifact(settings, sirap_id)
+        if artifact is None:
+            health[sirap_id] = {
+                "status": "failed",
+                "has_sirap_coverage": False,
+            }
+            continue
+
+        health[sirap_id] = {
+            "status": "loaded",
+            "has_sirap_coverage": artifact.sirap_coverage is not None,
+            "artifact_version": artifact.manifest.get("artifact_version"),
+        }
+    return health
+
+
 def get_artifact_state(settings: Settings) -> ArtifactState:
-    return warmup_artifacts(settings)
+    state = warmup_artifacts(settings)
+    return state.model_copy(
+        update={
+            "metadata": {
+                **state.metadata,
+                "sirap_artifacts": build_sirap_artifact_health(settings),
+            }
+        }
+    )
 
 
 def get_runtime_artifact(settings: Settings) -> RuntimeArtifact | None:
