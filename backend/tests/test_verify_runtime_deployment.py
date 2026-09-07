@@ -17,7 +17,7 @@ def test_deployment_verifier_accepts_v3_readiness_and_openapi() -> None:
                 "required": True,
                 "available": True,
                 "metadata": {
-                    "species_index": {"species_count": 7_980},
+                    "species_index": {"species_count": 8_129},
                     "mesa_coverage": {
                         "status": "ready",
                         "contract": {
@@ -25,7 +25,7 @@ def test_deployment_verifier_accepts_v3_readiness_and_openapi() -> None:
                             "release_id": "solutions-v3-0-0",
                             "sha256": EXPECTED_CONTRACT_SHA256,
                             "ecosystem_feature_count": 417,
-                            "species_feature_count": 7_980,
+                            "species_feature_count": 8_129,
                             "golden_master_solution_id": (
                                 "eco17_estr17_esprep17_runap_iheh2022"
                             ),

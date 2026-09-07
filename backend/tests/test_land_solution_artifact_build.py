@@ -373,6 +373,88 @@ def test_v3_target_bundle_is_extracted_from_release_goals(
     assert bindings["fixture-solution"]["species_feature_count"] == 3
 
 
+def test_golden_goals_keep_catalog_amphibians(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    goals = tmp_path / "fixture.goals.json"
+    goals.write_text(
+        json.dumps(
+            {
+                "solutionId": "fixture-solution",
+                "features": {
+                    "ecosystems": [
+                        {
+                            "featureName": "Forest",
+                            "relativeTarget": 0.17,
+                            "evaluationSource": "prioritizr_model",
+                        },
+                        {
+                            "featureName": "Wetland",
+                            "relativeTarget": 0.17,
+                            "evaluationSource": "post_hoc",
+                        },
+                    ],
+                    "species": [
+                        {
+                            "featureName": "Rhinella marina",
+                            "relativeTarget": 0.17,
+                            "evaluationSource": "post-hoc",
+                            "taxonClass": "Amphibia",
+                        },
+                        {
+                            "featureName": "Pristimantis eriphus",
+                            "relativeTarget": 0.17,
+                            "evaluationSource": "prioritizr_model",
+                            "taxonClass": "Amphibia",
+                        },
+                    ],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    contract = CoverageParityContract(
+        path=tmp_path / "contract.json",
+        document={
+            "ecosystems": {"featureCount": 2},
+            "species": {"summaryFeatureCount": 7_980},
+            "goldenMaster": {"solutionId": "fixture-solution"},
+        },
+    )
+    monkeypatch.setattr(
+        builder,
+        "download_source",
+        lambda url, target, force: builder.DownloadedSource(
+            goals,
+            sha256_file(goals),
+            goals.stat().st_size,
+        ),
+    )
+
+    targets, bindings = builder._goals_targets_from_release(
+        [
+            {
+                "id": "fixture-solution",
+                "finderInputs": {"domain": "land"},
+                "precomputedMetricUrls": {"goals": "https://example.test/goals.json"},
+            }
+        ],
+        tmp_path / "scratch",
+        force=False,
+        parity_contract=contract,
+        packaged_species_count=2,
+    )
+
+    species_names = [
+        row["feature"]
+        for row in targets["fixture-solution"]
+        if row["feature_type"] == "species"
+    ]
+    assert species_names == ["Rhinella marina", "Pristimantis eriphus"]
+    assert bindings["fixture-solution"]["species_feature_count"] == 2
+
+
 def test_v3_target_bundle_accepts_zero_species_non_golden_solution(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -731,6 +813,10 @@ def build_tiny_land_solution_artifact(
             reference_grid="land-solution",
             reference_raster=pin.url,
             aligned_cache=cache_dir,
+            production_v3=False,
+            coverage_parity_contract=None,
+            species_overlap_cache=None,
+            species_exception=None,
         ),
     )
 
@@ -752,6 +838,7 @@ def test_land_solution_build_produces_a_loadable_artifact(
         Settings(
             artifact_dir=release_dir,
             artifact_manifest_path=release_dir / "manifest.json",
+            sirap_artifact_root=tmp_path / "sirap",
             artifact_required=True,
             artifact_schema_version="metrics-artifact-manifest/v1",
             solution_cache_dir=tmp_path / "solution-cache",
@@ -811,6 +898,7 @@ def test_production_runtime_rejects_land_artifact_without_v3_contract(
             Settings(
                 artifact_dir=release_dir,
                 artifact_manifest_path=release_dir / "manifest.json",
+                sirap_artifact_root=tmp_path / "sirap",
                 artifact_required=True,
                 artifact_schema_version="metrics-artifact-manifest/v1",
                 mesa_coverage_required=True,

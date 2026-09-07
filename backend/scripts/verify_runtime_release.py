@@ -17,6 +17,8 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.coverage_target_validation import (  # noqa: E402
+    CATALOG_301_AMPHIBIAN_COUNT,
+    CATALOG_301_GOLDEN_SPECIES_TARGET_COUNT,
     CoverageTargetValidationError,
     MESA_V3_ECOSYSTEM_TARGET_COUNT,
     MESA_V3_GOLDEN_SPECIES_TARGET_COUNT,
@@ -37,7 +39,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--require-mesa-v3",
         action="store_true",
-        help="Reject releases that do not contain the complete V3 Mesa contract.",
+        help="Reject releases that do not contain the complete V3 Mesa 7,980-species contract.",
+    )
+    parser.add_argument(
+        "--require-catalog-301",
+        action="store_true",
+        help=(
+            "Reject releases that do not contain the catalog 3.0.1 universe "
+            "(8,129 species, 158 amphibians, both coberturas agriculture aliases)."
+        ),
     )
     parser.add_argument(
         "--expected-release-id",
@@ -56,6 +66,7 @@ def main() -> None:
     artifact_version, file_count = verify_runtime_release(
         release_dir,
         require_mesa_v3=args.require_mesa_v3,
+        require_catalog_301=args.require_catalog_301,
         expected_release_id=args.expected_release_id,
         expected_contract_sha256=args.expected_contract_sha256,
     )
@@ -66,6 +77,7 @@ def verify_runtime_release(
     release_dir: Path,
     *,
     require_mesa_v3: bool = False,
+    require_catalog_301: bool = False,
     expected_release_id: str = "solutions-v3-0-0",
     expected_contract_sha256: str | None = None,
 ) -> tuple[str, int]:
@@ -123,6 +135,17 @@ def verify_runtime_release(
             manifest,
             expected_release_id=expected_release_id,
             expected_contract_sha256=expected_contract_sha256,
+            expected_species=MESA_V3_GOLDEN_SPECIES_TARGET_COUNT,
+        )
+    if require_catalog_301:
+        verify_mesa_v3_contract(
+            release_dir,
+            manifest,
+            expected_release_id=expected_release_id,
+            expected_contract_sha256=expected_contract_sha256,
+            expected_species=CATALOG_301_GOLDEN_SPECIES_TARGET_COUNT,
+            expected_amphibians=CATALOG_301_AMPHIBIAN_COUNT,
+            require_coberturas_aliases=True,
         )
     return (
         str(manifest.get("artifact_version") or "unknown release"),
@@ -136,13 +159,15 @@ def verify_mesa_v3_contract(
     *,
     expected_release_id: str,
     expected_contract_sha256: str | None,
+    expected_species: int = MESA_V3_GOLDEN_SPECIES_TARGET_COUNT,
+    expected_amphibians: int | None = None,
+    require_coberturas_aliases: bool = False,
 ) -> None:
     mesa = manifest.get("mesa_coverage")
     contract = mesa.get("contract") if isinstance(mesa, dict) else None
     if not isinstance(contract, dict):
         raise SystemExit("Runtime release has no V3 Mesa parity contract.")
     expected_ecosystems = MESA_V3_ECOSYSTEM_TARGET_COUNT
-    expected_species = MESA_V3_GOLDEN_SPECIES_TARGET_COUNT
     expected = {
         "format": "coverage-parity-contract-v1",
         "release_id": expected_release_id,
@@ -302,7 +327,32 @@ def verify_mesa_v3_contract(
         raise SystemExit("Runtime species metadata escapes the release directory.")
     species_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     if species_metadata.get("species_count") != expected_species:
-        raise SystemExit("Runtime species index does not contain 7,980 species.")
+        raise SystemExit(
+            f"Runtime species index does not contain {expected_species:,} species."
+        )
+    if expected_amphibians is not None:
+        species_rows = species_metadata.get("species")
+        amphibian_count = sum(
+            isinstance(row, dict) and row.get("group") == "amphibians"
+            for row in (species_rows if isinstance(species_rows, list) else [])
+        )
+        if amphibian_count != expected_amphibians:
+            raise SystemExit(
+                f"Runtime amphibians group must contain {expected_amphibians} species."
+            )
+    if require_coberturas_aliases:
+        raster_layers = manifest.get("raster_layers")
+        layer_ids = {
+            entry.get("layer_id")
+            for entry in (raster_layers if isinstance(raster_layers, list) else [])
+            if isinstance(entry, dict)
+        }
+        required_layers = {"coberturas_agriculture", "coberturas_agricultural_areas"}
+        if not required_layers <= layer_ids:
+            raise SystemExit(
+                "Runtime is missing coberturas_agriculture and "
+                "coberturas_agricultural_areas aliases."
+            )
 
 
 def resolve_release_file(release_dir: Path, raw_path: str, label: str) -> Path:

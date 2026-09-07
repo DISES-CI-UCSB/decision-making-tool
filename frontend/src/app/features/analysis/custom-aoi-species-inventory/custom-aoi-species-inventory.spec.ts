@@ -465,23 +465,76 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(compiled.querySelector('#custom-aoi-species-coverage-complete')).not.toBeNull();
   });
 
-  it('fails visibly instead of using legacy percentages when Mesa fields are absent', () => {
-    const legacyOnlyJob = job('complete');
-    delete legacyOnlyJob.result!.records[0].coverage_within_aoi;
-    api.createDetailedSpeciesCoverageJob.mockReturnValue(of(legacyOnlyJob));
+  it('renders live national coverage when Mesa contribution fields are absent', () => {
+    const liveOnlyJob = job('complete');
+    delete liveOnlyJob.result!.records[0].total_in_aoi;
+    delete liveOnlyJob.result!.records[0].held_in_aoi;
+    delete liveOnlyJob.result!.records[0].coverage_within_aoi;
+    delete liveOnlyJob.result!.records[0].contribution_to_national_coverage;
+    delete liveOnlyJob.result!.records[0].contribution_to_national_target;
+    api.createDetailedSpeciesCoverageJob.mockReturnValue(of(liveOnlyJob));
     const fixture = createFixture('solution-1');
 
     fixture.componentInstance.open();
     fixture.detectChanges();
 
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#custom-aoi-species-coverage-complete')).not.toBeNull();
+    expect(compiled.querySelector('#custom-aoi-species-coverage-failed')).toBeNull();
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector('#custom-aoi-species-coverage-failed'),
-    ).not.toBeNull();
+      compiled.querySelector('#custom-aoi-species-solution-coverage-percent-0')?.textContent,
+    ).toContain('50%');
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector(
-        '#custom-aoi-species-solution-coverage-0',
-      ),
-    ).toBeNull();
+      compiled.querySelector('#custom-aoi-species-pre-existing-percent-0')?.textContent,
+    ).toContain('20%');
+    expect(compiled.querySelector('#custom-aoi-species-new-percent-0')?.textContent).toContain(
+      '30%',
+    );
+  });
+
+  it('omits zero-range species from the live national inventory without failing coverage', () => {
+    const completedJob = job('complete');
+    completedJob.result!.records = [
+      completedJob.result!.records[0],
+      {
+        ...completedJob.result!.records[0],
+        id: 'amphibian-zero',
+        scientific_name: 'Zero range frog',
+        group: 'Amphibians',
+        range_in_aoi_area_km2: 0,
+        range_in_aoi_pct: 0,
+        solution_covered_in_aoi_area_km2: 0,
+        solution_covered_in_aoi_pct: 0,
+        pre_existing_covered_in_aoi_area_km2: 0,
+        pre_existing_covered_in_aoi_pct: 0,
+        new_covered_in_aoi_area_km2: 0,
+        new_covered_in_aoi_pct: 0,
+      },
+      {
+        ...completedJob.result!.records[0],
+        id: 'amphibian-live',
+        scientific_name: 'Atelopus nahumae',
+        group: 'Amphibians',
+        range_in_aoi_area_km2: 12,
+        range_in_aoi_pct: 4,
+      },
+    ];
+    api.createDetailedSpeciesCoverageJob.mockReturnValue(of(completedJob));
+    const fixture = createFixture('solution-1');
+
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const rowNames = [
+      ...compiled.querySelectorAll('[id^="custom-aoi-species-inventory-name-"]'),
+    ].map((node) => node.textContent?.trim());
+    expect(compiled.querySelector('#custom-aoi-species-coverage-complete')).not.toBeNull();
+    expect(compiled.querySelector('#custom-aoi-species-coverage-failed')).toBeNull();
+    expect(rowNames).toContain('Tremarctos ornatus');
+    expect(rowNames).toContain('Atelopus nahumae');
+    expect(rowNames).not.toContain('Zero range frog');
+    expect(rowNames).not.toContain('Rallus semiplumbeus');
   });
 
   it('restarts open coverage for changed geometry and ignores the stale completion', () => {
@@ -655,6 +708,36 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     ).toHaveLength(1);
   });
 
+  it('renders SIRAP live coverage without national contribution fields', async () => {
+    const completedJob = job('complete');
+    completedJob.result!.records[0].coverage_within_aoi = 0.9;
+    delete completedJob.result!.records[0].contribution_to_national_coverage;
+    delete completedJob.result!.records[0].contribution_to_national_target;
+    api.createDetailedSpeciesCoverageJob.mockReturnValue(of(completedJob));
+    const fixture = TestBed.createComponent(CustomAoiSpeciesInventoryComponent);
+    fixture.componentRef.setInput('geometry', geometry(0));
+    fixture.componentRef.setInput('solutionId', 'solution-1');
+    fixture.componentRef.setInput('useSirapCoverageColumnOrder', true);
+    fixture.detectChanges();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#custom-aoi-species-coverage-complete')).not.toBeNull();
+    expect(compiled.querySelector('#custom-aoi-species-coverage-failed')).toBeNull();
+    expect(
+      compiled.querySelector('#custom-aoi-species-solution-coverage-percent-0')?.textContent,
+    ).toContain('50%');
+    expect(
+      compiled.querySelector('#custom-aoi-species-pre-existing-percent-0')?.textContent,
+    ).toContain('20%');
+    expect(compiled.querySelector('#custom-aoi-species-new-percent-0')?.textContent).toContain(
+      '30%',
+    );
+  });
+
   it('does not mark coverage failed when species coverage jobs return species_index_required', async () => {
     const { HttpErrorResponse } = await import('@angular/common/http');
     api.createDetailedSpeciesCoverageJob.mockReturnValue(
@@ -755,6 +838,20 @@ describe('mapMesaSpeciesCoverage', () => {
     expect(() => mapMesaSpeciesCoverage(record)).toThrowError(
       'Missing Mesa coverage fields for species 1',
     );
+  });
+
+  it('treats omitted national contribution fields as unavailable', () => {
+    const record = job('complete').result!.records[0];
+    delete record.contribution_to_national_coverage;
+    delete record.contribution_to_national_target;
+
+    expect(mapMesaSpeciesCoverage(record)).toEqual({
+      totalInAoi: 10,
+      heldInAoi: 5,
+      coverageWithinAoiPercent: 50,
+      contributionToNationalCoveragePercent: null,
+      contributionToNationalTargetPercent: null,
+    });
   });
 });
 

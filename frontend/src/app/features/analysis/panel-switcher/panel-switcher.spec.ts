@@ -1007,6 +1007,213 @@ describe('PanelSwitcherComponent', () => {
     ).toContain('125 km²');
   });
 
+  it('renders live municipality land-use percents on the scenario chart without dummy 15/25/60', async () => {
+    const solution = buildTestSolution();
+    appState.setFillDummyAoiMetrics(true);
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedAoiMetricsDocument(solution.id, [
+          buildMetric('agricultural_area', 18, 'km²', 'number'),
+          ...buildLandUsePercentMetrics({
+            land_use_artificial_surfaces_pct: 8,
+            land_use_agricultural_areas_pct: 12,
+            land_use_forests_and_semi_natural_areas_pct: 70,
+            land_use_wetlands_pct: 5,
+            land_use_water_bodies_pct: 5,
+          }),
+        ]),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'municipality:11001',
+      name: 'Bogota',
+      type: 'municipality',
+      geometryUrl: '/boundaries/municipalities.geojson',
+      areaKm2: 20,
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelector('#aoi-stat-agricultural-conservation-area')?.textContent,
+    ).toContain('18 km²');
+    expect(
+      compiled.querySelector('#aoi-landuse-scenario-bar-val-artificial-surfaces')?.textContent,
+    ).toContain('8%');
+    expect(
+      compiled.querySelector('#aoi-landuse-scenario-bar-val-agricultural-areas')?.textContent,
+    ).toContain('12%');
+    expect(
+      compiled
+        .querySelector('#aoi-landuse-scenario-bar-fill-forests-and-semi-natural-areas')
+        ?.getAttribute('style'),
+    ).toContain('width: 70%');
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('15%');
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('25%');
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('60%');
+    expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
+    expect(compiled.querySelector('#aoi-landuse-aoi-bar-artificial-surfaces')).toBeNull();
+    expect(compiled.querySelector('#aoi-landuse-aoi-chart-empty-copy')?.textContent).toContain(
+      'analysis.aoi.landUseLabels.withinAoiUnavailable',
+    );
+  });
+
+  it.each([
+    {
+      label: 'municipality',
+      aoi: {
+        id: 'municipality:11001',
+        name: 'Bogota',
+        type: 'municipality' as const,
+        geometryUrl: '/boundaries/municipalities.geojson',
+        areaKm2: 20,
+      },
+    },
+    {
+      label: 'department',
+      aoi: {
+        id: 'department:50',
+        name: 'Meta',
+        type: 'department' as const,
+        geometryUrl: '/boundaries/departments.geojson',
+        areaKm2: 85_635,
+      },
+    },
+    {
+      label: 'SIRAP',
+      aoi: {
+        id: 'sirap:territorial_territorial_amazonia_3',
+        name: 'Territorial Amazonia',
+        type: 'sirap' as const,
+        geometryUrl: '/inputs/boundaries/sirap/example.geojson',
+        areaKm2: 120,
+      },
+    },
+  ])('does not POST $label geometry to custom-polygon for land use', async ({ aoi }) => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedAoiMetricsDocument(solution.id, [
+          buildMetric('agricultural_area', 18, 'km²', 'number'),
+          ...buildLandUsePercentMetrics({
+            land_use_artificial_surfaces_pct: 8,
+            land_use_agricultural_areas_pct: 12,
+            land_use_forests_and_semi_natural_areas_pct: 70,
+            land_use_wetlands_pct: 5,
+            land_use_water_bodies_pct: 5,
+          }),
+        ]),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(aoi);
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
+    expect(
+      compiled.querySelector('#aoi-landuse-scenario-bar-val-artificial-surfaces')?.textContent,
+    ).toContain('8%');
+    expect(compiled.querySelector('#aoi-landuse-aoi-bar-artificial-surfaces')).toBeNull();
+    expect(compiled.querySelector('#aoi-landuse-aoi-chart-empty-copy')?.textContent).toContain(
+      'analysis.aoi.landUseLabels.withinAoiUnavailable',
+    );
+  });
+
+  it('renders live custom-polygon land-use percents on the full-AOI chart', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(
+        buildCustomPolygonResponse({
+          agricultural_area: 4,
+          land_use_artificial_surfaces_pct: 10,
+          land_use_agricultural_areas_pct: 20,
+          land_use_forests_and_semi_natural_areas_pct: 55,
+          land_use_wetlands_pct: 10,
+          land_use_water_bodies_pct: 5,
+        }),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelector('#aoi-stat-agricultural-conservation-area')?.textContent,
+    ).toContain('4 km²');
+    expect(
+      compiled.querySelector('#aoi-landuse-aoi-bar-val-artificial-surfaces')?.textContent,
+    ).toContain('10%');
+    expect(
+      compiled.querySelector('#aoi-landuse-aoi-bar-val-agricultural-areas')?.textContent,
+    ).toContain('20%');
+    expect(
+      compiled
+        .querySelector('#aoi-landuse-aoi-bar-fill-forests-and-semi-natural-areas')
+        ?.getAttribute('style'),
+    ).toContain('width: 55%');
+    expect(compiled.querySelector('#aoi-landuse-scenario-bar-artificial-surfaces')).toBeNull();
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart-empty-copy')?.textContent).toContain(
+      'analysis.aoi.landUseLabels.scenarioAreaWithinAoiUnavailable',
+    );
+    expect(
+      compiled
+        .querySelector('#aoi-landuse-aoi-chart')
+        ?.classList.contains('aoi-landuse-chart-empty'),
+    ).toBe(false);
+  });
+
+  it('keeps a truthful empty state when municipality metrics omit land-use percents', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedAoiMetricsDocument(solution.id, [
+          buildMetric('agricultural_area', 125, 'km²', 'number'),
+        ]),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'municipality:11001',
+      name: 'Bogota',
+      type: 'municipality',
+      geometryUrl: '/boundaries/municipalities.geojson',
+      areaKm2: 20,
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#aoi-landuse-scenario-bar-artificial-surfaces')).toBeNull();
+    expect(compiled.querySelector('#aoi-landuse-aoi-bar-artificial-surfaces')).toBeNull();
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart-empty-copy')?.textContent).toContain(
+      'analysis.aoi.landUseLabels.scenarioAreaWithinAoiUnavailable',
+    );
+    expect(compiled.querySelector('#aoi-landuse-aoi-chart-empty-copy')?.textContent).toContain(
+      'analysis.aoi.landUseLabels.withinAoiUnavailable',
+    );
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('15%');
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('25%');
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('60%');
+  });
+
   it('renders real MEC rows for a fixed AOI with candidate-share preview values', async () => {
     const solution = buildTestSolution();
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
@@ -3407,26 +3614,97 @@ describe('PanelSwitcherComponent', () => {
     expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
   });
 
-  it('disables the species breakdown for a custom polygon without starting a runtime job', () => {
+  it('uses live custom polygon coverage for the national species breakdown', async () => {
+    const solution = buildTestSolution();
     goalsDocument = buildGoalsDocument();
+    const customCoverage = buildDetailedSpeciesJob('complete');
+    customCoverage.result!.records = [
+      buildNationalLiveSpeciesCoverageRecord(),
+      buildZeroRangeAmphibianCoverageRecord(),
+    ];
+    vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(of(customCoverage));
     vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
       of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
     );
-    appState.activeSolution$.set(buildTestSolution());
+    appState.activeSolution$.set(solution);
     appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
     appState.setRightSidebarMode('overview');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
     fixture.detectChanges();
+    await fixture.whenStable();
     const button = fixture.nativeElement.querySelector(
       '#right-sidebar-v3-overview-goals-additional-domain-view-species',
     ) as HTMLButtonElement;
 
-    expect(button.disabled).toBe(true);
-    expect(button.title).toContain('customSpeciesUnavailable');
+    expect(button.disabled).toBe(false);
+    expect(button.title).toBe('');
     button.click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
+      geometry: buildTestGeometry(),
+      solution_id: solution.id,
+    });
     expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('#conservation-goals-modal')).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-species-error'),
+    ).toBeNull();
+    expect(
+      (
+        fixture.componentInstance as unknown as {
+          goalsModalSpeciesRows(): { id: string; name: string }[];
+        }
+      ).goalsModalSpeciesRows(),
+    ).toEqual([expect.objectContaining({ id: 'species-1', name: 'Andean bear' })]);
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
+        ?.textContent,
+    ).toContain('25');
+  });
+
+  it('renders national custom AOI live coverage when Mesa fields are omitted', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildGoalsDocument();
+    const customCoverage = buildDetailedSpeciesJob('complete');
+    customCoverage.result!.records = [buildNationalLiveSpeciesCoverageRecord()];
+    vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(of(customCoverage));
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    (
+      fixture.componentInstance as unknown as {
+        openGoalsModal(domainId: string, source?: 'overview' | 'aoi'): void;
+      }
+    ).openGoalsModal('species', 'aoi');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-species-error'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
+        ?.textContent,
+    ).toContain('25');
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-pre-existing-coverage-0')
+        ?.textContent,
+    ).toContain('10');
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-new-coverage-0')?.textContent,
+    ).toContain('15');
   });
 
   it('uses custom geometry coverage instead of SIRAP sidecar coverage for SIRAP custom AOIs', async () => {
@@ -3518,6 +3796,85 @@ describe('PanelSwitcherComponent', () => {
     expect(
       fixture.nativeElement.querySelector('#conservation-goals-modal-species-viewport')?.className,
     ).toContain('overflow-x-hidden');
+  });
+
+  it('renders SIRAP custom AOI live coverage when national contribution fields are omitted', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildSirapGoalsDocument(solution.id);
+    mockSirapCatalogSolution(solution);
+    const customCoverage = buildDetailedSpeciesJob('complete');
+    customCoverage.result!.records = [buildSirapLiveSpeciesCoverageRecord()];
+    vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(of(customCoverage));
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    (
+      fixture.componentInstance as unknown as {
+        openGoalsModal(domainId: string, source?: 'overview' | 'aoi'): void;
+      }
+    ).openGoalsModal('species', 'aoi');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-species-error'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
+        ?.textContent,
+    ).toContain('25');
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-pre-existing-coverage-0')
+        ?.textContent,
+    ).toContain('10');
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-new-coverage-0')?.textContent,
+    ).toContain('15');
+  });
+
+  it('keeps SIRAP custom AOI live coverage when the range sidecar is missing', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildSirapGoalsDocument(solution.id);
+    mockSirapCatalogSolution(solution);
+    const customCoverage = buildDetailedSpeciesJob('complete');
+    customCoverage.result!.records = [buildSirapLiveSpeciesCoverageRecord()];
+    vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(of(customCoverage));
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(of(null));
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
+      of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectCustomAOI(buildTestGeometry(), { name: 'Drawn AOI', areaKm2: 10 });
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    (
+      fixture.componentInstance as unknown as {
+        openGoalsModal(domainId: string, source?: 'overview' | 'aoi'): void;
+      }
+    ).openGoalsModal('species', 'aoi');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-species-error'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
+        ?.textContent,
+    ).toContain('25');
   });
 
   it('shows species loading and recoverable error states', async () => {
@@ -4127,6 +4484,40 @@ function buildCustomSpeciesCoverageRecord(): DetailedSpeciesCoverageRecord {
     coverage_within_aoi: 0.25,
     contribution_to_national_coverage: 0.05,
     contribution_to_national_target: null,
+  };
+}
+
+function buildSirapLiveSpeciesCoverageRecord(): DetailedSpeciesCoverageRecord {
+  const record = buildCustomSpeciesCoverageRecord();
+  delete record.contribution_to_national_coverage;
+  delete record.contribution_to_national_target;
+  return record;
+}
+
+function buildNationalLiveSpeciesCoverageRecord(): DetailedSpeciesCoverageRecord {
+  const record = buildCustomSpeciesCoverageRecord();
+  delete record.total_in_aoi;
+  delete record.held_in_aoi;
+  delete record.coverage_within_aoi;
+  delete record.contribution_to_national_coverage;
+  delete record.contribution_to_national_target;
+  return record;
+}
+
+function buildZeroRangeAmphibianCoverageRecord(): DetailedSpeciesCoverageRecord {
+  return {
+    ...buildNationalLiveSpeciesCoverageRecord(),
+    id: 'amphibian-zero',
+    scientific_name: 'Zero range frog',
+    group: 'Amphibians',
+    range_in_aoi_area_km2: 0,
+    range_in_aoi_pct: 0,
+    solution_covered_in_aoi_area_km2: 0,
+    solution_covered_in_aoi_pct: 0,
+    pre_existing_covered_in_aoi_area_km2: 0,
+    pre_existing_covered_in_aoi_pct: 0,
+    new_covered_in_aoi_area_km2: 0,
+    new_covered_in_aoi_pct: 0,
   };
 }
 
@@ -4967,6 +5358,18 @@ function buildUnavailableMetric(
 function replaceMetric(metrics: MetricValue[], replacement: MetricValue): void {
   const index = metrics.findIndex((metric) => metric.metricId === replacement.metricId);
   metrics[index] = replacement;
+}
+
+function buildLandUsePercentMetrics(values: {
+  land_use_artificial_surfaces_pct: number;
+  land_use_agricultural_areas_pct: number;
+  land_use_forests_and_semi_natural_areas_pct: number;
+  land_use_wetlands_pct: number;
+  land_use_water_bodies_pct: number;
+}): MetricValue[] {
+  return Object.entries(values).map(([metricId, value]) =>
+    buildMetric(metricId, value, '%', 'percent'),
+  );
 }
 
 function buildMetric(

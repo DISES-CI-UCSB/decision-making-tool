@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import shutil
+import struct
 import sys
 import urllib.parse
 import urllib.request
@@ -32,10 +34,17 @@ from species_data import CLASS_BUCKETS, compute_pool_sizes, load_species_records
 from sparse.species_bitset import build_species_bitset  # noqa: E402
 
 from app.coverage_target_validation import (  # noqa: E402
+    CATALOG_301_AMPHIBIAN_COUNT,
+    CATALOG_301_GOLDEN_SPECIES_TARGET_COUNT,
     CoverageTargetValidationError,
     MESA_V3_ECOSYSTEM_TARGET_COUNT,
     MESA_V3_GOLDEN_SPECIES_TARGET_COUNT,
     validate_coverage_targets,
+)
+from scripts.build_species_matrices_from_overlap import (  # noqa: E402
+    CACHE_POSITIVE_AREA_EPSILON_M2,
+    ConversionError,
+    convert as convert_overlap_species_matrices,
 )
 from scripts.aligned_cache import (  # noqa: E402
     AlignedCacheError,
@@ -63,6 +72,23 @@ DEFAULT_V3_PARITY_CONTRACT = (
     / "coverage-parity-contract.json"
 )
 SPECIES_CSV_PATH = METRICS_PIPELINE / "artifacts" / "species" / "biomod_spp_ranges_updatedIUCN.csv"
+DEFAULT_SPECIES_OVERLAP_CACHE = (
+    REPO_ROOT
+    / "data"
+    / "metrics"
+    / "cache"
+    / "releases"
+    / "solutions-v3-0-1-20260903"
+    / "species-overlap"
+)
+DEFAULT_SPECIES_EXCEPTION = (
+    REPO_ROOT
+    / "data"
+    / "metrics"
+    / "release-specs"
+    / "solutions-v3-0-1-20260903"
+    / "species-exception.json"
+)
 SPECIES_MATRIX_GROUPS = (*CLASS_BUCKETS, "threatened")
 ECOSYSTEM_LAYER_ID = "ecosistemas_IAVH_2024"
 MESA_ECOSYSTEM_LAYER_ID = "mesa_ecosistemas_IAVH_2024"
@@ -270,6 +296,21 @@ def parse_args() -> argparse.Namespace:
             "reprojected here."
         ),
     )
+    parser.add_argument(
+        "--species-overlap-cache",
+        type=Path,
+        default=DEFAULT_SPECIES_OVERLAP_CACHE,
+        help=(
+            "3.0.1 species-exact-overlap cache used to package the 158-amphibian "
+            "national universe instead of the 9-species Mesa amphibians bundle."
+        ),
+    )
+    parser.add_argument(
+        "--species-exception",
+        type=Path,
+        default=DEFAULT_SPECIES_EXCEPTION,
+        help="Signed 3.0.1 species-exception.json for the overlap-cache catalogue.",
+    )
     args = parser.parse_args()
     if args.production_v3:
         args.reference_grid = "land-solution"
@@ -308,8 +349,25 @@ def main() -> None:
     ):
         raise SystemExit(
             "Production V3 coverage contract must declare exactly 417 ecosystems "
-            "and 7,980 golden-solution species."
+            "and 7,980 Mesa golden-solution species."
         )
+    overlap_cache = getattr(args, "species_overlap_cache", None)
+    species_exception = getattr(args, "species_exception", None)
+    use_overlap_amphibians = (
+        args.reference_grid == "land-solution"
+        and isinstance(overlap_cache, Path)
+        and overlap_cache.is_dir()
+    )
+    if production_v3 and not use_overlap_amphibians:
+        raise SystemExit(
+            "Catalog 3.0.1 amphibians require the national-grid species-overlap "
+            "cache; refusing to package the 9-species Mesa amphibians bundle."
+        )
+    packaged_species_count = (
+        CATALOG_301_GOLDEN_SPECIES_TARGET_COUNT
+        if production_v3 or use_overlap_amphibians
+        else None
+    )
     artifact_root = args.artifact_dir.resolve()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     artifact_version = f"colombia-custom-aoi-v1-{now.replace(':', '').replace('-', '')}"
@@ -433,30 +491,76 @@ def main() -> None:
             }
         )
 
-    species_entries: list[dict[str, Any]] = []
-    species_matrix_paths: dict[str, Path] = {}
-    for spec in species_specs:
-        cached = download_source(
-            spec.url,
-            sources_dir / "species-sparse" / f"species_{safe_filename(spec.group)}.smtx.gz",
+    amphibian_names: set[str] | None = None
+    if use_overlap_amphibians:
+        golden_solution_id = (
+            parity_contract.solution_id
+            if parity_contract is not None
+            else "eco17_estr17_esprep17_runap_iheh2022"
+        )
+        amphibian_names = load_golden_amphibian_names(
+            manifest.national_solutions,
+            sources_dir / "mesa-coverage" / f"{safe_filename(golden_solution_id)}.goals.json",
+            golden_solution_id=golden_solution_id,
             force=args.force,
         )
-        if parity_contract is not None and spec.group != "threatened":
-            expected_bundle = next(
-                entry
-                for entry in parity_contract.document["species"]["runtimeBundles"]
-                if entry["group"] == spec.group
+        print(
+            f"Packaging {len(amphibian_names)} catalog 3.0.1 amphibians from the "
+            "national-grid overlap cache."
+        )
+
+    species_entries: list[dict[str, Any]] = []
+    species_matrix_paths: dict[str, Path] = {}
+    mesa_grid_template: Path | None = None
+    ordered_species_specs = [
+        spec
+        for spec in species_specs
+        if not (spec.group == "amphibians" and use_overlap_amphibians)
+    ]
+    if use_overlap_amphibians:
+        ordered_species_specs.extend(
+            spec for spec in species_specs if spec.group == "amphibians"
+        )
+    for spec in ordered_species_specs:
+        destination = (
+            sources_dir / "species-sparse" / f"species_{safe_filename(spec.group)}.smtx.gz"
+        )
+        if spec.group == "amphibians" and use_overlap_amphibians:
+            cached = package_overlap_amphibians_matrix(
+                destination,
+                overlap_cache=overlap_cache,
+                species_exception=species_exception
+                if isinstance(species_exception, Path)
+                else DEFAULT_SPECIES_EXCEPTION,
+                amphibian_names=amphibian_names or set(),
+                grid_template_path=mesa_grid_template,
             )
-            if cached.sha256 != expected_bundle["sha256"]:
-                raise SystemExit(
-                    f"Mesa species bundle checksum mismatch for {spec.group}."
+            source_url = str(overlap_cache)
+        else:
+            cached = download_source(spec.url, destination, force=args.force)
+            source_url = spec.url
+            if (
+                parity_contract is not None
+                and spec.group != "threatened"
+                and spec.group != "amphibians"
+            ):
+                expected_bundle = next(
+                    entry
+                    for entry in parity_contract.document["species"]["runtimeBundles"]
+                    if entry["group"] == spec.group
                 )
+                if cached.sha256 != expected_bundle["sha256"]:
+                    raise SystemExit(
+                        f"Mesa species bundle checksum mismatch for {spec.group}."
+                    )
+            if spec.group in CLASS_BUCKETS and mesa_grid_template is None:
+                mesa_grid_template = cached.path
         file_entries.append(file_entry(cached.path, artifact_dir, cached.sha256, cached.bytes))
         species_entries.append(
             {
                 "group": spec.group,
                 "path": str(cached.path.relative_to(artifact_dir)),
-                "source_url": spec.url,
+                "source_url": source_url,
                 "metric_ids": list(spec.metric_ids),
                 "checksum": {"algorithm": "sha256", "value": cached.sha256},
                 "size_bytes": cached.bytes,
@@ -531,6 +635,7 @@ def main() -> None:
         force=args.force,
         parity_contract=parity_contract,
         resolved_reference_grid=resolved_reference_grid,
+        packaged_species_count=packaged_species_count,
     )
     if production_v3 and mesa_coverage is None:
         raise SystemExit("Production V3 runtime did not produce Mesa coverage metadata.")
@@ -774,17 +879,149 @@ def load_species_pool_sizes() -> dict[str, Any]:
     }
 
 
+def load_golden_amphibian_names(
+    solutions: list[dict[str, Any]],
+    destination: Path,
+    *,
+    golden_solution_id: str,
+    force: bool,
+) -> set[str]:
+    """Read the 158 catalog 3.0.1 Amphibia names from golden-master goals."""
+
+    solution = next(
+        (
+            entry
+            for entry in solutions
+            if str(entry.get("id") or "") == golden_solution_id
+        ),
+        None,
+    )
+    urls = solution.get("precomputedMetricUrls") if isinstance(solution, dict) else None
+    goals_url = urls.get("goals") if isinstance(urls, dict) else None
+    if not isinstance(goals_url, str) or not goals_url:
+        raise SystemExit(
+            f"{golden_solution_id} has no conservation goals URL for amphibian names."
+        )
+    downloaded = download_source(goals_url, destination, force=force)
+    try:
+        document = json.loads(downloaded.path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(
+            f"{golden_solution_id} conservation goals are invalid: {exc}"
+        ) from exc
+    features = document.get("features")
+    species = features.get("species") if isinstance(features, dict) else None
+    if not isinstance(species, list):
+        raise SystemExit(f"{golden_solution_id} has no species goals inventory.")
+    names = {
+        str(row.get("featureName") or "")
+        for row in species
+        if isinstance(row, dict) and str(row.get("taxonClass") or "") == "Amphibia"
+    }
+    names.discard("")
+    if len(names) != CATALOG_301_AMPHIBIAN_COUNT:
+        raise SystemExit(
+            f"{golden_solution_id} must list {CATALOG_301_AMPHIBIAN_COUNT} Amphibia "
+            f"rows; found {len(names)}."
+        )
+    destination.unlink(missing_ok=True)
+    return names
+
+
+def package_overlap_amphibians_matrix(
+    destination: Path,
+    *,
+    overlap_cache: Path,
+    species_exception: Path,
+    amphibian_names: set[str],
+    grid_template_path: Path | None = None,
+) -> DownloadedSource:
+    """Build the 158-amphibian national matrix from the 3.0.1 overlap cache."""
+
+    if not amphibian_names:
+        raise SystemExit("Catalog 3.0.1 amphibian names are required.")
+    if not species_exception.is_file():
+        raise SystemExit(f"Species exception is missing: {species_exception}")
+    try:
+        convert_overlap_species_matrices(
+            cache_dir=overlap_cache,
+            exception_path=species_exception,
+            species_csv=SPECIES_CSV_PATH,
+            output_dir=destination.parent,
+            min_overlap_m2=CACHE_POSITIVE_AREA_EPSILON_M2,
+            groups=("amphibians",),
+            expect_catalog_total=8300,
+            expect_available=8298,
+            allowed_scientific_names=amphibian_names,
+        )
+    except ConversionError as exc:
+        raise SystemExit(f"National amphibian overlap matrix failed: {exc}") from exc
+    if not destination.is_file():
+        raise SystemExit(f"Overlap amphibian matrix was not written: {destination}")
+    if grid_template_path is not None:
+        rewrite_species_matrix_grid(destination, grid_template_path)
+    return DownloadedSource(
+        destination,
+        sha256_file(destination),
+        destination.stat().st_size,
+    )
+
+
+def rewrite_species_matrix_grid(destination: Path, template_path: Path) -> None:
+    """Copy Mesa bundle grid identity onto an overlap matrix with the same shape."""
+
+    def read_toc(path: Path) -> tuple[bytes, dict[str, Any], bytes]:
+        with gzip.open(path, "rb") as handle:
+            magic = handle.read(4)
+            toc_length = struct.unpack("<I", handle.read(4))[0]
+            toc = json.loads(handle.read(toc_length).decode("utf-8"))
+            body = handle.read()
+        return magic, toc, body
+
+    source_magic, source_toc, body = read_toc(destination)
+    _, template_toc, _ = read_toc(template_path)
+    source_grid = source_toc.get("grid") if isinstance(source_toc, dict) else None
+    template_grid = template_toc.get("grid") if isinstance(template_toc, dict) else None
+    if not isinstance(source_grid, dict) or not isinstance(template_grid, dict):
+        raise SystemExit("Species matrix grid rewrite is missing a grid block.")
+    if source_grid.get("width") != template_grid.get("width") or source_grid.get(
+        "height"
+    ) != template_grid.get("height"):
+        raise SystemExit(
+            "Overlap amphibian grid shape does not match the Mesa species bundles."
+        )
+    source_toc["grid"] = template_grid
+    # Mesa runtime bundles omit exact area_km2. The bitset builder refuses a
+    # mixed exact/cell-count set, so drop overlap-only areas and keep occupancy.
+    species_rows = source_toc.get("species")
+    if isinstance(species_rows, list):
+        for row in species_rows:
+            if isinstance(row, dict):
+                row.pop("area_km2", None)
+    toc_json = json.dumps(source_toc, separators=(",", ":")).encode("utf-8")
+    temporary = destination.with_name(f".{destination.name}.grid.tmp")
+    try:
+        with temporary.open("wb") as raw_handle:
+            with gzip.GzipFile(fileobj=raw_handle, mode="wb", mtime=0) as stream:
+                stream.write(source_magic + struct.pack("<I", len(toc_json)) + toc_json)
+                stream.write(body)
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def _goals_targets_from_release(
     solutions: list[dict[str, Any]],
     scratch_dir: Path,
     *,
     force: bool,
     parity_contract: CoverageParityContract,
+    packaged_species_count: int | None = None,
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[str, dict[str, Any]]]:
     targets: dict[str, list[dict[str, Any]]] = {}
     source_bindings: dict[str, dict[str, Any]] = {}
     expected_ecosystems = parity_contract.ecosystem_feature_count
-    expected_species = parity_contract.species_feature_count
+    expected_species = packaged_species_count or parity_contract.species_feature_count
 
     try:
         for solution in solutions:
@@ -823,7 +1060,8 @@ def _goals_targets_from_release(
                 and len(species) != expected_species
             ):
                 raise SystemExit(
-                    f"The golden solution must contain {expected_species} V3 species rows."
+                    f"The golden solution must contain {expected_species} species "
+                    f"rows; goals had {len(species)}."
                 )
             canonical_rows: list[dict[str, Any]] = []
             for feature_type, raw_features in (
@@ -896,6 +1134,7 @@ def build_mesa_coverage_artifact(
     force: bool,
     parity_contract: CoverageParityContract | None = None,
     resolved_reference_grid: ResolvedReferenceGrid,
+    packaged_species_count: int | None = None,
 ) -> dict[str, Any] | None:
     """Package parity metadata only when v3 summary coverage is available."""
 
@@ -908,6 +1147,7 @@ def build_mesa_coverage_artifact(
             sources_dir / ".mesa-goals-cache",
             force=force,
             parity_contract=parity_contract,
+            packaged_species_count=packaged_species_count,
         )
     else:
         targets = {
@@ -985,7 +1225,11 @@ def build_mesa_coverage_artifact(
                     "release_id": parity_contract.release_id,
                     "sha256": sha256_file(parity_contract.path),
                     "ecosystem_feature_count": parity_contract.ecosystem_feature_count,
-                    "species_feature_count": parity_contract.species_feature_count,
+                    "species_feature_count": (
+                        packaged_species_count
+                        if packaged_species_count is not None
+                        else parity_contract.species_feature_count
+                    ),
                     "golden_master_solution_id": parity_contract.solution_id,
                     "grid": resolved_reference_grid.parity_contract_grid(),
                 }

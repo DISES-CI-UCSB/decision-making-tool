@@ -250,6 +250,9 @@ describe('AppStateService', () => {
 
     expect(service.customAOIGeometry$()).toBeNull();
     expect(service.selectedAOI$()).toEqual(fixedAoi);
+
+    service.selectCustomAOI(geometry, { name: 'Drawn again', areaKm2: 8 });
+    expect(service.customAOIGeometry$()).toEqual(geometry);
   });
 
   it('tracks custom AOI drawing requests and status for map listeners', () => {
