@@ -438,6 +438,19 @@ const CUSTOM_AOI_SPECIES_EXTENDED_STAGE_MS = 60_000;
 const GOALS_MODAL_VIRTUAL_ROW_SIZE_PX = 57;
 const GOALS_MODAL_VIRTUAL_MIN_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 4;
 const GOALS_MODAL_VIRTUAL_MAX_BUFFER_PX = GOALS_MODAL_VIRTUAL_ROW_SIZE_PX * 8;
+const GOALS_MODAL_GRID_FEATURE_COL = 'minmax(15rem, 1fr)';
+const GOALS_MODAL_GRID_CHECKPOINT_COL = 'minmax(10rem, 1fr)';
+const GOALS_MODAL_GRID_SPECIES_TARGET_STATUS_COLS = 'minmax(8rem, 1fr) minmax(7rem, 1fr)';
+const GOALS_MODAL_GRID_ECOSYSTEM_TARGET_STATUS_COLS = 'minmax(8rem, 1fr) minmax(8rem, 1fr)';
+const GOALS_MODAL_GRID_NATIONAL_SPECIES_METRIC_COLS =
+  'minmax(11rem, 1fr) minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(15rem, 1.2fr)';
+const GOALS_MODAL_GRID_EXPANDED_SPECIES_METRIC_COLS =
+  'minmax(11rem, 1fr) minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(12rem, 1fr)';
+const GOALS_MODAL_GRID_COMPACT_SPECIES_METRIC_COLS = 'minmax(15rem, 1.2fr)';
+const GOALS_MODAL_GRID_NATIONAL_ECOSYSTEM_METRIC_COLS =
+  'minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(15rem, 1.2fr)';
+const GOALS_MODAL_GRID_SIRAP_ECOSYSTEM_METRIC_COLS =
+  'minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(15rem, 1.2fr)';
 const MEC_MODAL_VIRTUAL_ROW_SIZE_PX = 57;
 const MEC_MODAL_VIRTUAL_MIN_BUFFER_PX = MEC_MODAL_VIRTUAL_ROW_SIZE_PX * 4;
 const MEC_MODAL_VIRTUAL_MAX_BUFFER_PX = MEC_MODAL_VIRTUAL_ROW_SIZE_PX * 8;
@@ -1128,6 +1141,12 @@ export class PanelSwitcherComponent {
       this.knownAoiCoverageMetricsV2() ||
       this.isSirapPrimaryGoalsModal() ||
       this.usesGoalsModalCustomSirapCoverage(),
+  );
+  protected readonly goalsModalSpeciesGridTemplate = computed(() =>
+    this.buildGoalsModalGridTemplate('species'),
+  );
+  protected readonly goalsModalEcosystemGridTemplate = computed(() =>
+    this.buildGoalsModalGridTemplate('ecosystems'),
   );
   protected readonly customAoiSpeciesSolutionId = computed(() =>
     this.isMarineSolution() ? null : this.activeSolutionId(),
@@ -2847,6 +2866,26 @@ export class PanelSwitcherComponent {
     return this.goalsModalScope() === 'selected-aoi' && this.supportsSirapCustomAoiMetrics();
   }
 
+  private buildGoalsModalGridTemplate(kind: 'species' | 'ecosystems'): string {
+    const targeted = this.goalsModalDomain()?.targeted === true;
+    const trailing = targeted
+      ? kind === 'ecosystems'
+        ? GOALS_MODAL_GRID_ECOSYSTEM_TARGET_STATUS_COLS
+        : GOALS_MODAL_GRID_SPECIES_TARGET_STATUS_COLS
+      : GOALS_MODAL_GRID_CHECKPOINT_COL;
+    let metricCols = GOALS_MODAL_GRID_COMPACT_SPECIES_METRIC_COLS;
+    if (kind === 'ecosystems') {
+      metricCols = this.isSirapPrimaryGoalsModal()
+        ? GOALS_MODAL_GRID_SIRAP_ECOSYSTEM_METRIC_COLS
+        : GOALS_MODAL_GRID_NATIONAL_ECOSYSTEM_METRIC_COLS;
+    } else if (this.isNationalGoalsModal()) {
+      metricCols = GOALS_MODAL_GRID_NATIONAL_SPECIES_METRIC_COLS;
+    } else if (this.goalsModalUsesExpandedCoverageLayout()) {
+      metricCols = GOALS_MODAL_GRID_EXPANDED_SPECIES_METRIC_COLS;
+    }
+    return `${GOALS_MODAL_GRID_FEATURE_COL} ${metricCols} ${trailing}`;
+  }
+
   protected getGoalsModalDescriptionKey(domain: OverviewGoalsDomainEntry): string {
     if (domain.featureType === 'ecosystems') {
       return domain.targeted
@@ -2966,7 +3005,7 @@ export class PanelSwitcherComponent {
     if (value === null || value === undefined) {
       return '--';
     }
-    return this.getGoalsPercentLabel(Math.round(value * 1000) / 10);
+    return formatSpeciesCoveragePercent(value * 100, this.appLocale.locale());
   }
 
   protected formatGoalsModalSharePercent(value: number | null | undefined): string {
@@ -3096,6 +3135,12 @@ export class PanelSwitcherComponent {
 
   protected updateMecSort(event: Event): void {
     this.mecSortId.set((event.target as HTMLSelectElement).value as MecSortId);
+  }
+
+  protected getMecModalTitleKey(): string {
+    return this.isCustomMecState()
+      ? 'analysis.aoi.mec.modal.customTitle'
+      : 'analysis.aoi.mec.modal.title';
   }
 
   protected isCustomMecState(): boolean {

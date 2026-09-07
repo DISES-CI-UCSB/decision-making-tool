@@ -432,6 +432,36 @@ def test_species_inventory_unavailable_reason_treats_empty_sirap_matrices_as_stu
     assert species_inventory_unavailable_reason(artifact) == "species_matrices_stubbed"
 
 
+def test_national_kind_with_sirap_coverage_is_not_treated_as_sirap(
+    tmp_path: Path,
+) -> None:
+    artifact = replace(
+        _sirap_artifact(tmp_path),
+        manifest={
+            "artifact_version": "national-fixture-v1",
+            "artifact_kind": "colombia-raster-custom-aoi/v1",
+            "species_matrices": {"status": "stubbed"},
+        },
+    )
+    solution_path = write_tif(
+        tmp_path / "solution.tif",
+        np.array([[2, 1], [0, 0]], dtype=np.uint8),
+        nodata=255,
+    )
+
+    sections, _, _ = calculate_custom_area_profile(
+        artifact,
+        POLYGON_LEFT_COLUMN,
+        ["ecosystems"],
+        read_solution_raster(solution_path),
+        SOLUTION_ID,
+    )
+
+    assert artifact.sirap_coverage is not None
+    assert sections["ecosystems"]["reference_scope"] == "national"
+    assert sections["ecosystems"]["solution_coverage"] == []
+
+
 def test_sirap_area_profile_returns_ecosystems_and_stubbed_species(
     tmp_path: Path,
 ) -> None:

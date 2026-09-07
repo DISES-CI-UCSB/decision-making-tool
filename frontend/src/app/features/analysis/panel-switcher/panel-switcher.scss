@@ -2747,20 +2747,61 @@
 
 .aoi-mec-modal-table-wrapper-custom table {
   table-layout: fixed;
-  min-width: 920px;
+  width: 100%;
+  min-width: 900px;
 }
 
-.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-heading {
-  width: 180px;
+.aoi-mec-modal-table-wrapper-custom #aoi-mec-modal-virtual-viewport {
+  overflow-x: hidden;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.aoi-mec-modal-table-wrapper-custom #aoi-mec-modal-virtual-inner-table {
+  width: 100%;
+  min-width: 100%;
+  table-layout: fixed;
+}
+
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-col-category,
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-heading,
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-cell {
+  width: 22%;
+  min-width: 180px;
+}
+
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-col-data,
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-data-heading,
+.aoi-mec-modal-table-wrapper-custom tbody td:not([colspan]) {
+  width: 13%;
+  min-width: 120px;
+  max-width: none;
+}
+
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-heading,
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-cell {
+  overflow-wrap: anywhere;
+}
+
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-cell {
+  display: table-cell;
+}
+
+.aoi-mec-modal-table-wrapper-custom thead th {
+  vertical-align: bottom;
+  text-align: left;
 }
 
 .aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-data-heading {
-  min-width: 104px;
-  max-width: 132px;
-  vertical-align: bottom;
   white-space: normal;
-  text-align: left;
   line-height: 1.35;
+}
+
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-heading app-table-header-tooltip,
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-data-heading app-table-header-tooltip {
+  display: flex;
+  align-items: flex-end;
+  min-height: 100%;
 }
 
 .aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-data-heading [id$='-content'],
@@ -2768,6 +2809,12 @@
   display: block;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.aoi-mec-modal-table-wrapper-custom .aoi-mec-measure {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
 }
 
 .aoi-mec-modal-table-wrapper-custom td[id^='aoi-mec-modal-available-'] {
@@ -2787,8 +2834,14 @@
     grid-template-columns: 1fr;
   }
 
-  .aoi-mec-modal-table-wrapper-custom table {
+  .aoi-mec-modal-table-wrapper-custom table,
+  .aoi-mec-modal-table-wrapper-custom #aoi-mec-modal-virtual-inner-table {
     min-width: 0;
+    table-layout: auto;
+  }
+
+  .aoi-mec-modal-table-wrapper-custom colgroup {
+    display: none;
   }
 
   .aoi-mec-modal-table-wrapper-custom tbody,
@@ -2796,6 +2849,9 @@
   .aoi-mec-modal-table-wrapper-custom td,
   .aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-cell {
     display: block;
+    width: auto;
+    min-width: 0;
+    max-width: none;
   }
 
   .aoi-mec-modal-table-wrapper-custom tr {
@@ -2804,7 +2860,6 @@
 
   .aoi-mec-modal-table-wrapper-custom .aoi-mec-modal-category-cell {
     position: static;
-    min-width: 0;
   }
 
   .aoi-mec-modal-table-wrapper-custom td {

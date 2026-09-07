@@ -206,16 +206,24 @@
       </p>
       <div
         id="custom-aoi-species-inventory-list"
-        class="min-h-40 flex-1 overflow-auto rounded-md border border-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+        class="min-h-40 flex-1 overflow-x-auto overflow-y-auto rounded-md border border-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
         tabindex="0"
         role="region"
         [attr.aria-label]="'analysis.aoi.customProfile.species.tableScrollLabel' | translate"
       >
         <table
           id="custom-aoi-species-inventory-table"
-          class="w-full min-w-[1120px] border-collapse text-[11px] max-[760px]:min-w-0"
+          class="w-full table-fixed border-collapse text-[11px] max-[760px]:table-auto max-[760px]:min-w-0"
           aria-describedby="custom-aoi-species-inventory-caption custom-aoi-species-coverage-status"
         >
+          <colgroup id="custom-aoi-species-inventory-column-widths">
+            <col id="custom-aoi-species-inventory-col-species" class="w-[18%]" />
+            <col id="custom-aoi-species-inventory-col-national-range" class="w-[12%]" />
+            <col id="custom-aoi-species-inventory-col-range-in-aoi" class="w-[18%]" />
+            <col id="custom-aoi-species-inventory-col-solution-coverage" class="w-[17%]" />
+            <col id="custom-aoi-species-inventory-col-pre-existing" class="w-[17%]" />
+            <col id="custom-aoi-species-inventory-col-new-coverage" class="w-[18%]" />
+          </colgroup>
           <caption
             id="custom-aoi-species-inventory-caption"
             class="bg-sky-50 px-3 py-2 text-left text-xs leading-5 text-sky-950"
@@ -227,10 +235,33 @@
           <thead id="custom-aoi-species-inventory-table-head">
             <tr id="custom-aoi-species-inventory-group-heading-row" class="h-8 max-[760px]:sr-only">
               <th
-                id="custom-aoi-species-inventory-species-heading"
-                class="sticky left-0 top-0 z-[4] min-w-[180px] border-b border-slate-200 bg-white px-3 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                id="custom-aoi-species-inventory-species-heading-spacer"
+                class="sticky left-0 top-0 z-[4] border-b border-slate-200 bg-white px-3 py-0"
                 scope="col"
-                rowspan="2"
+                aria-hidden="true"
+              ></th>
+              <th
+                id="custom-aoi-species-inventory-presence-group-heading"
+                class="sticky top-0 z-[3] h-8 border-b border-slate-200 bg-white px-3 py-0 text-left align-bottom text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                scope="colgroup"
+                colspan="2"
+              >
+                {{ 'analysis.aoi.customProfile.species.speciesRangeContext' | translate }}
+              </th>
+              <th
+                id="custom-aoi-species-inventory-coverage-group-heading"
+                class="sticky top-0 z-[3] h-8 border-b border-slate-200 bg-white px-3 py-0 text-left align-bottom text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                scope="colgroup"
+                colspan="3"
+              >
+                {{ 'analysis.aoi.customProfile.species.coverageOfRangeInsideAoi' | translate }}
+              </th>
+            </tr>
+            <tr id="custom-aoi-species-inventory-column-heading-row" class="max-[760px]:sr-only">
+              <th
+                id="custom-aoi-species-inventory-species-heading"
+                class="sticky left-0 top-8 z-[4] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
+                scope="col"
               >
                 <app-table-header-tooltip
                   idBase="custom-aoi-species-inventory-species-heading"
@@ -240,43 +271,27 @@
                 ></app-table-header-tooltip>
               </th>
               <th
-                id="custom-aoi-species-inventory-presence-group-heading"
-                class="sticky top-0 z-[3] h-8 border-b border-slate-200 bg-white px-3 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-600"
-                scope="colgroup"
-                colspan="2"
-              >
-                {{ 'analysis.aoi.customProfile.species.speciesRangeContext' | translate }}
-              </th>
-              <th
-                id="custom-aoi-species-inventory-coverage-group-heading"
-                class="sticky top-0 z-[3] h-8 border-b border-slate-200 bg-white px-3 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-600"
-                scope="colgroup"
-                colspan="3"
-              >
-                {{ 'analysis.aoi.customProfile.species.coverageOfRangeInsideAoi' | translate }}
-              </th>
-            </tr>
-            <tr id="custom-aoi-species-inventory-column-heading-row" class="max-[760px]:sr-only">
-              <th
                 id="custom-aoi-species-inventory-national-range-heading"
-                class="sticky top-8 z-[3] min-w-[150px] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
+                class="sticky top-8 z-[3] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
                 scope="col"
               >
                 <app-table-header-tooltip
                   idBase="custom-aoi-species-inventory-national-range-heading"
                   labelKey="analysis.aoi.customProfile.species.nationalModeledRangeColombia"
                   questionKey="analysis.aoi.customProfile.species.columnQuestions.nationalModeledRangeColombia"
+                  align="start"
                 ></app-table-header-tooltip>
               </th>
               <th
                 id="custom-aoi-species-inventory-range-in-aoi-heading"
-                class="sticky top-8 z-[3] min-w-[205px] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
+                class="sticky top-8 z-[3] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
                 scope="col"
               >
                 <app-table-header-tooltip
                   idBase="custom-aoi-species-inventory-range-in-aoi-heading"
                   labelKey="analysis.aoi.customProfile.species.rangeInAoi"
                   questionKey="analysis.aoi.customProfile.species.columnQuestions.rangeInAoi"
+                  align="start"
                 ></app-table-header-tooltip>
                 <span
                   id="custom-aoi-species-inventory-range-in-aoi-heading-denominator"
@@ -288,14 +303,14 @@
               @for (metricId of coverageColumnIds(); track metricId) {
                 <th
                   [id]="'custom-aoi-species-inventory-' + metricId + '-heading'"
-                  class="sticky top-8 z-[3] min-w-[190px] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
+                  class="sticky top-8 z-[3] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
                   scope="col"
                 >
                   <app-table-header-tooltip
                     [idBase]="'custom-aoi-species-inventory-' + metricId + '-heading'"
                     [labelKey]="'analysis.aoi.customProfile.species.' + metricId"
                     [questionKey]="'analysis.aoi.customProfile.species.columnQuestions.' + metricId"
-                    align="start"
+                    align="end"
                   ></app-table-header-tooltip>
                 </th>
               }
@@ -305,11 +320,11 @@
             @for (record of filteredSpecies(); track record.id; let index = $index) {
               <tr
                 [id]="'custom-aoi-species-inventory-row-' + index"
-                class="border-b border-slate-100 align-top last:border-0 max-[760px]:m-2 max-[760px]:block max-[760px]:rounded-md max-[760px]:border max-[760px]:border-slate-200"
+                class="border-b border-slate-100 align-bottom last:border-0 max-[760px]:m-2 max-[760px]:block max-[760px]:rounded-md max-[760px]:border max-[760px]:border-slate-200"
               >
                 <th
                   [id]="'custom-aoi-species-inventory-name-block-' + index"
-                  class="sticky left-0 z-[1] min-w-[180px] bg-white px-3 py-2 text-left font-normal max-[760px]:static max-[760px]:block max-[760px]:min-w-0 max-[760px]:border-b max-[760px]:border-slate-200"
+                  class="sticky left-0 z-[1] bg-white px-3 py-2 text-left align-bottom font-normal max-[760px]:static max-[760px]:block max-[760px]:border-b max-[760px]:border-slate-200"
                   scope="row"
                 >
                   <span
@@ -336,7 +351,7 @@
                 @if (speciesCoverageView(record.id); as coverageView) {
                   <td
                     [id]="'custom-aoi-species-national-range-' + index"
-                    class="px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-center max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100"
+                    class="align-bottom px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-end max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100"
                     [attr.data-label]="
                       'analysis.aoi.customProfile.species.nationalModeledRangeColombia' | translate
                     "
@@ -360,7 +375,7 @@
                   </td>
                   <td
                     [id]="'custom-aoi-species-range-in-aoi-' + index"
-                    class="px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-center max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100"
+                    class="align-bottom px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-end max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100"
                     [attr.data-label]="coverageView.presence.labelKey | translate"
                   >
                     <span
@@ -371,7 +386,7 @@
                     </span>
                     <div
                       [id]="'custom-aoi-species-range-in-aoi-value-' + index"
-                      class="grid min-w-0 grid-cols-[minmax(2.5rem,1fr)_auto] items-center gap-x-2 gap-y-1"
+                      class="grid min-w-0 grid-cols-[minmax(2.5rem,1fr)_auto] items-end gap-x-2 gap-y-1"
                     >
                       <div
                         [id]="'custom-aoi-species-range-in-aoi-bar-' + index"
@@ -404,7 +419,7 @@
                   @for (metric of coverageView.coverage; track metric.id) {
                     <td
                       [id]="'custom-aoi-species-' + metric.id + '-' + index"
-                      class="px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-center max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100 max-[760px]:last:border-0"
+                      class="px-3 py-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] max-[760px]:items-end max-[760px]:gap-3 max-[760px]:border-b max-[760px]:border-slate-100 max-[760px]:last:border-0"
                       [attr.data-label]="metric.labelKey | translate"
                     >
                       <span
@@ -415,7 +430,7 @@
                       </span>
                       <div
                         [id]="'custom-aoi-species-' + metric.id + '-value-' + index"
-                        class="grid min-w-0 grid-cols-[minmax(2.5rem,1fr)_auto] items-center gap-x-2 gap-y-1"
+                        class="grid min-w-0 grid-cols-[minmax(2.5rem,1fr)_auto] items-end gap-x-2 gap-y-1"
                       >
                         <div
                           [id]="'custom-aoi-species-' + metric.id + '-bar-' + index"
