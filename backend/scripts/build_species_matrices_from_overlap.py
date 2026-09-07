@@ -474,6 +474,7 @@ def convert(
     groups: Sequence[str],
     expect_catalog_total: int | None = None,
     expect_available: int | None = None,
+    allowed_scientific_names: set[str] | None = None,
 ) -> dict[str, Any]:
     overlap_index = index_overlap_cache(cache_dir)
     exception = load_species_exception(exception_path)
@@ -485,6 +486,40 @@ def convert(
         expect_catalog_total=expect_catalog_total,
         expect_available=expect_available,
     )
+    available_by_name = {record.scientific_name: record for record in available}
+    if allowed_scientific_names is not None:
+        missing = sorted(allowed_scientific_names - set(available_by_name))
+        if missing:
+            raise ConversionError(
+                f"{len(missing)} allowed species are absent from the overlap catalogue, "
+                f"starting with {missing[:5]}."
+            )
+
+    group_records: dict[str, list[SpeciesRecord]] = {}
+    selected_records: list[SpeciesRecord] = []
+    seen_filenames: set[str] = set()
+    for group in groups:
+        selected = records_for_group(available, group)
+        if allowed_scientific_names is not None:
+            selected = [
+                record
+                for record in selected
+                if record.scientific_name in allowed_scientific_names
+            ]
+        group_records[group] = selected
+        for record in selected:
+            if record.blob_filename in seen_filenames:
+                continue
+            seen_filenames.add(record.blob_filename)
+            selected_records.append(record)
+    if allowed_scientific_names is not None:
+        kept = {record.scientific_name for record in selected_records}
+        unused = sorted(allowed_scientific_names - kept)
+        if unused:
+            raise ConversionError(
+                f"{len(unused)} allowed species are not in the requested groups, "
+                f"starting with {unused[:5]}."
+            )
 
     reference = next(iter(overlap_index.values()))
     grid = grid_from_target_grid(reference.target_grid)
@@ -492,7 +527,8 @@ def convert(
     cell_area_m2 = abs(grid.x_scale * grid.y_scale)
     print(
         f"[species-9377] grid {grid.width}x{grid.height} {grid.crs} "
-        f"cell_area={cell_area_m2:,.4f} m^2; species available={len(available):,}"
+        f"cell_area={cell_area_m2:,.4f} m^2; species available={len(available):,}; "
+        f"matrix species={len(selected_records):,}"
     )
     print(f"[species-9377] threshold: overlap area > {min_overlap_m2:g} m^2")
 
@@ -500,9 +536,9 @@ def convert(
     conversions: dict[str, SpeciesConversion] = {}
     counts: dict[str, int] = {}
     exact_areas: dict[str, float] = {}
-    for position, record in enumerate(available, start=1):
+    for position, record in enumerate(selected_records, start=1):
         if position % 1000 == 0:
-            print(f"[species-9377]   validated {position:,}/{len(available):,}")
+            print(f"[species-9377]   validated {position:,}/{len(selected_records):,}")
         entry = overlap_index[record.blob_filename]
         cell_ids, exact_area_km2 = read_overlap_cells(
             entry.artifact_path,
@@ -549,10 +585,9 @@ def convert(
 
     group_report: dict[str, Any] = {}
     for group in groups:
-        selected = records_for_group(available, group)
         planned = [
             (record, counts[record.blob_filename], exact_areas[record.blob_filename])
-            for record in selected
+            for record in group_records[group]
         ]
         destination = output_dir / f"species_{group}.smtx.gz"
         size_bytes = write_species_matrix(destination, grid, planned, cells_for)

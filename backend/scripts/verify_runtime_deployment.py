@@ -57,7 +57,7 @@ def verify_readiness(payload: dict[str, Any]) -> None:
         "release_id": EXPECTED_RELEASE_ID,
         "sha256": EXPECTED_CONTRACT_SHA256,
         "ecosystem_feature_count": 417,
-        "species_feature_count": 7_980,
+        "species_feature_count": 8_129,
         "golden_master_solution_id": "eco17_estr17_esprep17_runap_iheh2022",
     }
     for key, value in expected.items():
@@ -66,9 +66,9 @@ def verify_readiness(payload: dict[str, Any]) -> None:
     species_index = metadata.get("species_index")
     if (
         not isinstance(species_index, dict)
-        or species_index.get("species_count") != 7_980
+        or species_index.get("species_count") != 8_129
     ):
-        raise SystemExit("Deployed runtime species index does not contain 7,980 species.")
+        raise SystemExit("Deployed runtime species index does not contain 8,129 species.")
 
 
 def verify_openapi(payload: dict[str, Any]) -> None:

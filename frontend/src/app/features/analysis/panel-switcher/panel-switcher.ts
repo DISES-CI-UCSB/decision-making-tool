@@ -339,6 +339,7 @@ interface AoiLandUseBar {
   metricId: CustomPolygonMetricId;
   label: string;
   percent: number;
+  displayValue: string;
   color: string;
 }
 
@@ -627,37 +628,37 @@ export class PanelSwitcherComponent {
     id: string;
     metricId: CustomPolygonMetricId;
     labelKey: string;
-    percent: number;
+    dummyPercent: number;
   }[] = [
     {
       id: 'artificial-surfaces',
       metricId: 'land_use_artificial_surfaces_pct',
       labelKey: 'analysis.aoi.landUseLabels.artificialSurfaces',
-      percent: 15,
+      dummyPercent: 15,
     },
     {
       id: 'agricultural-areas',
       metricId: 'land_use_agricultural_areas_pct',
       labelKey: 'analysis.aoi.landUseLabels.agriculturalAreas',
-      percent: 25,
+      dummyPercent: 25,
     },
     {
       id: 'forests-and-semi-natural-areas',
       metricId: 'land_use_forests_and_semi_natural_areas_pct',
       labelKey: 'analysis.aoi.landUseLabels.forestsAndSemiNaturalAreas',
-      percent: 60,
+      dummyPercent: 60,
     },
     {
       id: 'wetlands',
       metricId: 'land_use_wetlands_pct',
       labelKey: 'analysis.aoi.landUseLabels.wetlands',
-      percent: 0,
+      dummyPercent: 0,
     },
     {
       id: 'water-bodies',
       metricId: 'land_use_water_bodies_pct',
       labelKey: 'analysis.aoi.landUseLabels.waterBodies',
-      percent: 0,
+      dummyPercent: 0,
     },
   ];
   private readonly appState = inject(AppStateService);
@@ -1140,7 +1141,7 @@ export class PanelSwitcherComponent {
     () =>
       this.knownAoiCoverageMetricsV2() ||
       this.isSirapPrimaryGoalsModal() ||
-      this.usesGoalsModalCustomSirapCoverage(),
+      this.usesGoalsModalCustomCoverage(),
   );
   protected readonly goalsModalSpeciesGridTemplate = computed(() =>
     this.buildGoalsModalGridTemplate('species'),
@@ -1450,22 +1451,33 @@ export class PanelSwitcherComponent {
       return Math.max(maxValue, item.count);
     }, 0),
   );
-  protected readonly aoiLandUseBars = computed<AoiLandUseBar[]>(() => {
-    const palette = this.chartPalette().colors;
-    const greenSlot = this.getGreenPaletteSlot();
-    const fallbackColor = palette[0] ?? '#64748b';
-    const alternateSlots = [0, 1, 2, 3, 4].filter((slot) => slot !== greenSlot);
-
-    return this.aoiLandUseBaseBars.map((bar, index) => {
-      const slot = index === 0 ? greenSlot : (alternateSlots[index - 1] ?? 0);
-      return {
-        id: bar.id,
-        metricId: bar.metricId,
-        label: this.localizedText(bar.labelKey),
-        percent: bar.percent,
-        color: palette[slot] ?? fallbackColor,
-      };
-    });
+  protected readonly hasLiveAoiLandUseBreakdown = computed(() =>
+    this.aoiLandUseBaseBars.some((bar) =>
+      isDisplayableMetricValue(this.aoiMetricsById().get(bar.metricId)),
+    ),
+  );
+  /** Cached land_use_*_pct for known AOIs. Custom polygons leave this empty unless a second mix is already in the live response. */
+  protected readonly aoiLandUseScenarioBars = computed<AoiLandUseBar[]>(() => {
+    if (this.isCustomAoiSelected()) {
+      return [];
+    }
+    if (this.hasLiveAoiLandUseBreakdown()) {
+      return this.buildAoiLandUseBars('live');
+    }
+    if (this.fillDummyAoiMetrics()) {
+      return this.buildAoiLandUseBars('dummy');
+    }
+    return [];
+  });
+  /**
+   * Whole-AOI composition from live custom-polygon metrics.
+   * Known admin/SIRAP AOIs stay on cached compact JSON and show empty copy until land_use_*_pct_of_aoi exists.
+   */
+  protected readonly aoiLandUseAoiBars = computed<AoiLandUseBar[]>(() => {
+    if (this.isCustomAoiSelected() && this.hasLiveAoiLandUseBreakdown()) {
+      return this.buildAoiLandUseBars('live');
+    }
+    return [];
   });
   protected readonly aoiHeroPriorityBarColor = computed(() =>
     this.getPaletteColorBySlot(this.getGreenPaletteSlot()),
@@ -2486,7 +2498,7 @@ export class PanelSwitcherComponent {
       domainId === 'species' &&
       source !== 'overview' &&
       this.selectedAoi()?.type === 'custom' &&
-      !this.supportsSirapCustomAoiMetrics()
+      !this.customAoiGeometry()
     ) {
       return;
     }
@@ -2572,9 +2584,7 @@ export class PanelSwitcherComponent {
 
   protected isGoalsBreakdownDisabled(domainId: string): boolean {
     return (
-      domainId === 'species' &&
-      this.selectedAoi()?.type === 'custom' &&
-      !this.supportsSirapCustomAoiMetrics()
+      domainId === 'species' && this.selectedAoi()?.type === 'custom' && !this.customAoiGeometry()
     );
   }
 
@@ -2584,14 +2594,14 @@ export class PanelSwitcherComponent {
 
   private loadGoalsModalSpecies(): void {
     const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
-    const useCustomSirap = this.usesGoalsModalCustomSirapCoverage();
+    const useCustomCoverage = this.usesGoalsModalCustomCoverage();
     const selectedAoi = this.selectedAoi();
-    if (useCustomSirap && (!this.customAoiGeometry() || selectedAoi?.type !== 'custom')) {
+    if (useCustomCoverage && (!this.customAoiGeometry() || selectedAoi?.type !== 'custom')) {
       this.goalsModalSpeciesLoading.set(false);
       return;
     }
-    const context = useCustomSirap ? null : this.resolveGoalsModalSpeciesContext();
-    if ((!useCustomSirap && !context) || !solutionId) {
+    const context = useCustomCoverage ? null : this.resolveGoalsModalSpeciesContext();
+    if ((!useCustomCoverage && !context) || !solutionId) {
       this.goalsModalSpeciesLoading.set(false);
       this.goalsModalSpeciesLoadFailed.set(true);
       return;
@@ -2605,7 +2615,7 @@ export class PanelSwitcherComponent {
     // The selected records must describe the current custom geometry. The SIRAP
     // sidecar below is only a reference denominator for the "of SIRAP range"
     // annotation; it must never replace the polygon-intersection results.
-    const selected = useCustomSirap
+    const selected = useCustomCoverage
       ? this.loadCustomAoiDetailedSpeciesGoals(this.customAoiGeometry()!, solutionId)
       : this.speciesGoals.load(solutionId, context!.geographyLevel, context!.scopeId);
     const loadSirapRangeContext =
@@ -2613,7 +2623,7 @@ export class PanelSwitcherComponent {
       this.goalsModalScope() === 'selected-aoi' &&
       this.selectedAoi() &&
       sirapId &&
-      (this.selectedAoi()?.type !== 'custom' || useCustomSirap);
+      (this.selectedAoi()?.type !== 'custom' || this.usesGoalsModalCustomSirapCoverage());
     const records = loadSirapRangeContext
       ? forkJoin({
           selected,
@@ -2624,15 +2634,16 @@ export class PanelSwitcherComponent {
       if (requestId !== this.goalsModalSpeciesRequestId || !this.goalsModalOpen()) {
         return;
       }
-      if (selected === null || (loadSirapRangeContext && !sirap)) {
+      if (selected === null) {
         this.goalsModalSpeciesLoadFailed.set(true);
       } else {
         const sirapRangeBySpecies = new Map(
           (sirap ?? []).map((record) => [record.id, record.range_in_aoi_area_km2] as const),
         );
-        const visibleRecords = this.isSirapScopedSolution()
-          ? selected.filter((record) => record.range_in_aoi_area_km2 > 0)
-          : selected;
+        const visibleRecords =
+          this.isSirapScopedSolution() || useCustomCoverage
+            ? selected.filter((record) => record.range_in_aoi_area_km2 > 0)
+            : selected;
         this.goalsModalSpeciesRows.set(
           visibleRecords.map((record) =>
             this.toSpeciesGoalsModalRow(record, sirapRangeBySpecies.get(record.id) ?? null),
@@ -2709,11 +2720,9 @@ export class PanelSwitcherComponent {
 
   private hasDetailedSpeciesCoverageFields(record: DetailedSpeciesCoverageRecord): boolean {
     return (
-      record.total_in_aoi !== undefined &&
-      record.held_in_aoi !== undefined &&
-      record.coverage_within_aoi !== undefined &&
-      record.contribution_to_national_coverage !== undefined &&
-      record.contribution_to_national_target !== undefined
+      record.solution_covered_in_aoi_pct !== undefined &&
+      record.pre_existing_covered_in_aoi_pct !== undefined &&
+      record.new_covered_in_aoi_pct !== undefined
     );
   }
 
@@ -2856,14 +2865,22 @@ export class PanelSwitcherComponent {
       return 'solution-overview';
     }
     const aoi = this.selectedAoi();
-    if (aoi && aoi.type !== 'custom') {
+    if (aoi && (aoi.type !== 'custom' || this.customAoiGeometry())) {
       return 'selected-aoi';
     }
     return 'solution-overview';
   }
 
+  private usesGoalsModalCustomCoverage(): boolean {
+    return (
+      this.goalsModalScope() === 'selected-aoi' &&
+      this.selectedAoi()?.type === 'custom' &&
+      this.customAoiGeometry() !== null
+    );
+  }
+
   private usesGoalsModalCustomSirapCoverage(): boolean {
-    return this.goalsModalScope() === 'selected-aoi' && this.supportsSirapCustomAoiMetrics();
+    return this.usesGoalsModalCustomCoverage() && this.supportsSirapCustomAoiMetrics();
   }
 
   private buildGoalsModalGridTemplate(kind: 'species' | 'ecosystems'): string {
@@ -3560,6 +3577,42 @@ export class PanelSwitcherComponent {
       return Math.max(0, Math.min(100, percent));
     }
     return this.fillDummyAoiMetrics() ? fallbackWhenMissing : 0;
+  }
+
+  private buildAoiLandUseBars(
+    mode: 'live' | 'dummy',
+    metricsById: Map<string, MetricValue> = this.aoiMetricsById(),
+  ): AoiLandUseBar[] {
+    const palette = this.chartPalette().colors;
+    const greenSlot = this.getGreenPaletteSlot();
+    const fallbackColor = palette[0] ?? '#64748b';
+    const alternateSlots = [0, 1, 2, 3, 4].filter((slot) => slot !== greenSlot);
+
+    return this.aoiLandUseBaseBars.map((bar, index) => {
+      const slot = index === 0 ? greenSlot : (alternateSlots[index - 1] ?? 0);
+      const color = palette[slot] ?? fallbackColor;
+      if (mode === 'dummy') {
+        return {
+          id: bar.id,
+          metricId: bar.metricId,
+          label: this.localizedText(bar.labelKey),
+          percent: bar.dummyPercent,
+          displayValue: `${bar.dummyPercent}%`,
+          color,
+        };
+      }
+
+      const metric = metricsById.get(bar.metricId);
+      const livePercent = displayableMetricValue(metric);
+      return {
+        id: bar.id,
+        metricId: bar.metricId,
+        label: this.localizedText(bar.labelKey),
+        percent: livePercent === null ? 0 : Math.max(0, Math.min(100, livePercent)),
+        displayValue: isDisplayableMetricValue(metric) ? this.formatMetricForPanel(metric) : '--',
+        color,
+      };
+    });
   }
 
   private getMarineCoveragePercent(metricId: string): number | null {

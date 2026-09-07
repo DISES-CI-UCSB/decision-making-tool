@@ -257,6 +257,63 @@ def test_raster_custom_polygon_returns_real_area_and_overlap_metrics(tmp_path: P
     assert metadata["metric_source"] == "colombia-raster-geometry-mask-v1"
 
 
+def raster_artifact_with_coberturas(tmp_path: Path) -> RuntimeArtifact:
+    artifact = raster_artifact(tmp_path)
+    coberturas = write_tif(
+        tmp_path / "coberturas.tif",
+        np.array([[1, 2], [3, 4]], dtype=np.uint8),
+        nodata=255,
+    )
+    coberturas_layers = {
+        "coberturas_artificial_surfaces": (1, "land_use_artificial_surfaces_pct"),
+        "coberturas_agricultural_areas": (2, "land_use_agricultural_areas_pct"),
+        "coberturas_forests_and_semi_natural_areas": (
+            3,
+            "land_use_forests_and_semi_natural_areas_pct",
+        ),
+        "coberturas_wetlands": (4, "land_use_wetlands_pct"),
+        "coberturas_water_bodies": (5, "land_use_water_bodies_pct"),
+    }
+    raster_layers = dict(artifact.raster_layers)
+    for layer_id, (selected_value, metric_id) in coberturas_layers.items():
+        raster_layers[layer_id] = RuntimeRasterLayer(
+            layer_id=layer_id,
+            path=coberturas,
+            kind="categorical",
+            rendering={"valueType": "binary", "selectedValue": selected_value},
+            metric_ids=(metric_id,),
+        )
+    return RuntimeArtifact(
+        manifest=artifact.manifest,
+        reference_raster_path=artifact.reference_raster_path,
+        raster_layers=raster_layers,
+    )
+
+
+def test_custom_polygon_land_use_percents_are_of_polygon_cells_not_solution_selection(
+    tmp_path: Path,
+) -> None:
+    metrics, metadata = calculate_custom_polygon_metrics(
+        raster_artifact_with_coberturas(tmp_path),
+        POLYGON_LEFT_COLUMN,
+        [
+            "land_use_artificial_surfaces_pct",
+            "land_use_agricultural_areas_pct",
+            "land_use_forests_and_semi_natural_areas_pct",
+            "land_use_wetlands_pct",
+            "land_use_water_bodies_pct",
+        ],
+    )
+
+    # Left column cells are class 1 (top) and class 3 (bottom).
+    assert metrics["land_use_artificial_surfaces_pct"] == pytest.approx(50.0)
+    assert metrics["land_use_agricultural_areas_pct"] == pytest.approx(0.0)
+    assert metrics["land_use_forests_and_semi_natural_areas_pct"] == pytest.approx(50.0)
+    assert metrics["land_use_wetlands_pct"] == pytest.approx(0.0)
+    assert metrics["land_use_water_bodies_pct"] == pytest.approx(0.0)
+    assert metadata["matched_cell_count"] == 2
+
+
 @pytest.mark.parametrize(
     ("case", "coastal", "geometry", "expected_national_contribution"),
     [

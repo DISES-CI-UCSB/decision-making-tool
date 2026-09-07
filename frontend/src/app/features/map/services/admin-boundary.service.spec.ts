@@ -662,6 +662,9 @@ describe('AdminBoundaryService', () => {
           boundaryGeometrySelection: 'whole-feature',
         }),
       );
+      expect(appState.selectAOI).toHaveBeenCalledWith(
+        expect.objectContaining({ id: `sirap:${sirapId}` }),
+      );
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       expect(view.goTo).toHaveBeenCalledOnce();
     },

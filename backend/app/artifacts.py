@@ -22,9 +22,9 @@ from .config import (
     resolve_sirap_id_from_solution_id,
 )
 from .coverage_target_validation import (
+    CATALOG_301_GOLDEN_SPECIES_TARGET_COUNT,
     CoverageTargetValidationError,
     MESA_V3_ECOSYSTEM_TARGET_COUNT,
-    MESA_V3_GOLDEN_SPECIES_TARGET_COUNT,
     validate_coverage_targets,
 )
 from .solution_registry import (
@@ -676,11 +676,11 @@ def _validate_required_mesa_coverage(
             "DMT_EXPECTED_COVERAGE_CONTRACT_SHA256."
         )
     expected_ecosystems = MESA_V3_ECOSYSTEM_TARGET_COUNT
-    expected_species = MESA_V3_GOLDEN_SPECIES_TARGET_COUNT
+    expected_species = CATALOG_301_GOLDEN_SPECIES_TARGET_COUNT
     if contract.get("ecosystem_feature_count") != expected_ecosystems:
         raise ArtifactValidationError("Mesa ecosystem inventory must contain 417 rows.")
     if contract.get("species_feature_count") != expected_species:
-        raise ArtifactValidationError("Mesa species inventory must contain 7,980 rows.")
+        raise ArtifactValidationError("Mesa species inventory must contain 8,129 rows.")
     golden_solution_id = contract.get("golden_master_solution_id")
     if not isinstance(golden_solution_id, str) or not golden_solution_id:
         raise ArtifactValidationError("Mesa golden-master solution identity is missing.")
@@ -693,7 +693,7 @@ def _validate_required_mesa_coverage(
         or species_index.species_count != expected_species
     ):
         raise ArtifactValidationError(
-            "Runtime species bitset must contain the approved 7,980-species universe."
+            "Runtime species bitset must contain the catalog 3.0.1 8,129-species universe."
         )
 
     grid = contract.get("grid")

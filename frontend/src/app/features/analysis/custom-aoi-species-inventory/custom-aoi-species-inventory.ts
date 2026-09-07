@@ -125,13 +125,7 @@ export interface MesaSpeciesCoverageValues {
 export function mapMesaSpeciesCoverage(
   record: DetailedSpeciesCoverageRecord,
 ): MesaSpeciesCoverageValues {
-  const fields = [
-    record.total_in_aoi,
-    record.held_in_aoi,
-    record.coverage_within_aoi,
-    record.contribution_to_national_coverage,
-    record.contribution_to_national_target,
-  ];
+  const fields = [record.total_in_aoi, record.held_in_aoi, record.coverage_within_aoi];
   if (fields.some((value) => value === undefined)) {
     throw new Error(`Missing Mesa coverage fields for species ${record.id}`);
   }
@@ -193,6 +187,15 @@ export class CustomAoiSpeciesInventoryComponent {
   );
 
   protected readonly speciesRecords = computed(() => {
+    if (this.coverageJob()?.status === 'complete') {
+      return (this.coverageJob()?.result?.records ?? []).filter(
+        (record) => record.range_in_aoi_area_km2 > 0,
+      );
+    }
+    const precomputed = this.precomputedCoverageRecords();
+    if (precomputed.length > 0) {
+      return precomputed.filter((record) => record.range_in_aoi_area_km2 > 0);
+    }
     const state = this.inventoryState();
     return 'data' in state ? (state.data?.records ?? []) : [];
   });
@@ -533,17 +536,12 @@ export class CustomAoiSpeciesInventoryComponent {
           if (version !== this.contextVersion) {
             return;
           }
-          if (
-            job.status === 'complete' &&
-            (!job.result ||
-              job.result.solution_id !== solutionId ||
-              job.result.records.some((record) => !this.hasMesaCoverageFields(record)))
-          ) {
+          if (job.status === 'complete' && (!job.result || job.result.solution_id !== solutionId)) {
             this.coverageJob.set({
               ...job,
               status: 'failed',
               result: null,
-              error_code: 'mesa_coverage_fields_missing',
+              error_code: 'species_coverage_result_invalid',
             });
             this.coverageState.set('failed');
             return;
@@ -592,7 +590,9 @@ export class CustomAoiSpeciesInventoryComponent {
 
   private buildCoverageView(record: DetailedSpeciesCoverageRecord): SpeciesCoverageView {
     const mesaCoverage =
-      this.geometry() && this.hasMesaCoverageFields(record) ? mapMesaSpeciesCoverage(record) : null;
+      this.geometry() && !this.useSirapCoverageColumnOrder() && this.hasMesaCoverageFields(record)
+        ? mapMesaSpeciesCoverage(record)
+        : null;
     const coverageById = {
       'solution-coverage': mesaCoverage
         ? this.buildCoverageMetric(
@@ -713,9 +713,7 @@ export class CustomAoiSpeciesInventoryComponent {
     return (
       record.total_in_aoi !== undefined &&
       record.held_in_aoi !== undefined &&
-      record.coverage_within_aoi !== undefined &&
-      record.contribution_to_national_coverage !== undefined &&
-      record.contribution_to_national_target !== undefined
+      record.coverage_within_aoi !== undefined
     );
   }
 

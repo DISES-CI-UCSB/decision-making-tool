@@ -994,6 +994,7 @@
         "wetlands": "Wetlands",
         "waterBodies": "Water Bodies",
         "scenarioAreaWithinAoi": "% of Scenario Area within AOI",
+        "scenarioAreaWithinAoiUnavailable": "Land-use composition of the selected scenario area is not available for this AOI.",
         "withinAoi": "% within AOI",
         "withinAoiUnavailable": "Land-use composition across the full AOI is not available yet."
       },

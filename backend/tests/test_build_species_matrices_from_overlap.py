@@ -249,6 +249,21 @@ def test_group_membership_and_threatened_union(tmp_path: Path) -> None:
     assert report["groups"]["plants"]["cell_references"] == 2
 
 
+def test_allowlist_keeps_only_named_amphibians(tmp_path: Path) -> None:
+    report = run_convert(
+        tmp_path,
+        groups=("amphibians",),
+        allowed_scientific_names={"Epsilon five"},
+    )
+    matrices = tmp_path / "matrices"
+    decoded = decode_species_matrix_bytes(
+        (matrices / "species_amphibians.smtx.gz").read_bytes()
+    )
+    assert [entry.name for entry in decoded.entries] == ["Epsilon five"]
+    assert report["groups"]["amphibians"]["species_count"] == 1
+    assert not (matrices / "species_mammals.smtx.gz").exists()
+
+
 def test_zero_cell_species_is_preserved_as_an_empty_entry(tmp_path: Path) -> None:
     cache_dir = tmp_path / "species-overlap"
     build_standard_cache(cache_dir)

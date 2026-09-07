@@ -497,9 +497,9 @@ def test_production_validation_rejects_missing_golden_solution() -> None:
 @pytest.mark.parametrize(
     "binding",
     [
-        CoverageSourceBinding("http://example.test/goals", "a" * 64, 417, 7_980),
-        CoverageSourceBinding("https://example.test/goals", "A" * 64, 417, 7_980),
-        CoverageSourceBinding("https://example.test/goals", "a" * 64, 416, 7_980),
+        CoverageSourceBinding("http://example.test/goals", "a" * 64, 417, 8_129),
+        CoverageSourceBinding("https://example.test/goals", "A" * 64, 417, 8_129),
+        CoverageSourceBinding("https://example.test/goals", "a" * 64, 416, 8_129),
     ],
 )
 def test_production_validation_rejects_invalid_source_bindings(
@@ -589,7 +589,7 @@ def _production_coverage_fixture() -> tuple[
     )
     species = tuple(
         CoverageTarget(f"species-{index}", "species", None, 0.5, None)
-        for index in range(7_980)
+        for index in range(8_129)
     )
     coverage = RuntimeMesaCoverage(
         ecosystem_raster_path=Path("ecosystems.tif"),
@@ -603,7 +603,7 @@ def _production_coverage_fixture() -> tuple[
                 "https://example.test/golden",
                 "a" * 64,
                 417,
-                7_980,
+                8_129,
             ),
             "sparse": CoverageSourceBinding(
                 "https://example.test/sparse",
@@ -626,7 +626,7 @@ def _production_coverage_fixture() -> tuple[
                 "release_id": "solutions-v3-0-0",
                 "sha256": "d" * 64,
                 "ecosystem_feature_count": 417,
-                "species_feature_count": 7_980,
+                "species_feature_count": 8_129,
                 "golden_master_solution_id": "golden",
                 "grid": {
                     "crs": fingerprint.crs,
@@ -646,6 +646,7 @@ def _production_settings() -> Settings:
     return Settings(
         artifact_dir=Path("runtime-artifacts"),
         artifact_manifest_path=Path("runtime-artifacts/manifest.json"),
+        sirap_artifact_root=Path("runtime-artifacts/sirap"),
         artifact_required=True,
         artifact_schema_version="metrics-artifact-manifest/v1",
         mesa_coverage_required=True,
@@ -654,7 +655,7 @@ def _production_settings() -> Settings:
 
 
 def _production_species_index(
-    species_count: int = 7_980,
+    species_count: int = 8_129,
 ) -> RuntimeSpeciesBitsetIndex:
     return RuntimeSpeciesBitsetIndex(
         metadata_document=SimpleNamespace(species_count=species_count),

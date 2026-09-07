@@ -911,6 +911,7 @@
         "wetlands": "Áreas húmedas",
         "waterBodies": "Superficies de agua",
         "scenarioAreaWithinAoi": "% del área del escenario dentro del AOI",
+        "scenarioAreaWithinAoiUnavailable": "La composición del uso del suelo del área seleccionada del escenario no está disponible para este AOI.",
         "withinAoi": "% dentro del AOI",
         "withinAoiUnavailable": "La composición del uso del suelo en todo el AOI aún no está disponible."
       },

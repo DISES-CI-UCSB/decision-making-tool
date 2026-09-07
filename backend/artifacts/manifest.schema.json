@@ -143,7 +143,7 @@
               "const": 417
             },
             "species_feature_count": {
-              "const": 7980
+              "const": 8129
             },
             "golden_master_solution_id": {
               "type": "string"
