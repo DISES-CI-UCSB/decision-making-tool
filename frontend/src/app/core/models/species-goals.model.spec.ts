@@ -188,7 +188,10 @@ describe('species goals contracts', () => {
   });
 
   it('hydrates when catalog and compact provenance releaseIds differ', () => {
-    const sharedCatalog = { ...catalog, provenance: { ...catalog.provenance, releaseId: 'prior-release' } };
+    const sharedCatalog = {
+      ...catalog,
+      provenance: { ...catalog.provenance, releaseId: 'prior-release' },
+    };
     const currentCompact = compact();
     currentCompact.provenance.releaseId = 'current-release';
 

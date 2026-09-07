@@ -33,7 +33,10 @@ export class MecMetricsLoaderService {
   private readonly http = inject(HttpClient);
   private readonly catalog = inject(SolutionCatalogService);
   private readonly cache = new Map<string, Observable<MecMetricsLoadResult>>();
-  private readonly denominatorCache = new Map<string, Observable<MecNationalDenominatorLoadResult>>();
+  private readonly denominatorCache = new Map<
+    string,
+    Observable<MecNationalDenominatorLoadResult>
+  >();
 
   resolveMecUrls(solutionId: string, geographyLevel: GeographyLevel): MecUrlCandidates {
     const urls = this.catalog.getById(solutionId)?.precomputedMetricUrls;
@@ -114,7 +117,9 @@ export class MecMetricsLoaderService {
         }
         return { status: 'loaded', document };
       }),
-      catchError(() => of<MecNationalDenominatorLoadResult>({ status: 'error', document: null, error: 'http' })),
+      catchError(() =>
+        of<MecNationalDenominatorLoadResult>({ status: 'error', document: null, error: 'http' }),
+      ),
       shareReplay({ bufferSize: 1, refCount: false }),
     );
     this.denominatorCache.set(url, request);

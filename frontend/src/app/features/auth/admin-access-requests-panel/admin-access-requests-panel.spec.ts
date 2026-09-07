@@ -59,7 +59,9 @@ describe('AdminAccessRequestsPanelComponent', () => {
     expect(fixture.nativeElement.querySelector('#admin-access-panel-requests-tab')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#admin-access-panel-access-tab')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#admin-access-panel-users-tab')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#admin-access-panel-sirap-requests-section')).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#admin-access-panel-sirap-requests-section'),
+    ).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#admin-access-panel-pending-section')).toBeNull();
   });
 

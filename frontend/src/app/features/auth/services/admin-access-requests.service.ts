@@ -110,10 +110,10 @@ export class AdminAccessRequestsService {
         .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
     }
 
-    return (await getDocs(
-      query(collection(firestore, 'userDirectory'), where('status', '==', 'active')),
-    ))
-      .docs.map((directoryDoc) => this.parseDirectoryUser(directoryDoc.id, directoryDoc.data()))
+    return (
+      await getDocs(query(collection(firestore, 'userDirectory'), where('status', '==', 'active')))
+    ).docs
+      .map((directoryDoc) => this.parseDirectoryUser(directoryDoc.id, directoryDoc.data()))
       .filter((user) => user !== null)
       .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
   }

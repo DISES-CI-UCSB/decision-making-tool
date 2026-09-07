@@ -336,8 +336,8 @@ interface AoiBiodiversityBar {
 
 interface AoiLandUseBar {
   id: string;
-  label: string;
   metricId: CustomPolygonMetricId;
+  label: string;
   percent: number;
   color: string;
 }
@@ -625,38 +625,38 @@ export class PanelSwitcherComponent {
   ];
   private readonly aoiLandUseBaseBars: readonly {
     id: string;
-    labelKey: string;
     metricId: CustomPolygonMetricId;
+    labelKey: string;
     percent: number;
   }[] = [
     {
       id: 'artificial-surfaces',
-      labelKey: 'analysis.aoi.landUseLabels.artificialSurfaces',
       metricId: 'land_use_artificial_surfaces_pct',
+      labelKey: 'analysis.aoi.landUseLabels.artificialSurfaces',
       percent: 15,
     },
     {
       id: 'agricultural-areas',
-      labelKey: 'analysis.aoi.landUseLabels.agriculturalAreas',
       metricId: 'land_use_agricultural_areas_pct',
+      labelKey: 'analysis.aoi.landUseLabels.agriculturalAreas',
       percent: 25,
     },
     {
       id: 'forests-and-semi-natural-areas',
-      labelKey: 'analysis.aoi.landUseLabels.forestsAndSemiNaturalAreas',
       metricId: 'land_use_forests_and_semi_natural_areas_pct',
+      labelKey: 'analysis.aoi.landUseLabels.forestsAndSemiNaturalAreas',
       percent: 60,
     },
     {
       id: 'wetlands',
-      labelKey: 'analysis.aoi.landUseLabels.wetlands',
       metricId: 'land_use_wetlands_pct',
+      labelKey: 'analysis.aoi.landUseLabels.wetlands',
       percent: 0,
     },
     {
       id: 'water-bodies',
-      labelKey: 'analysis.aoi.landUseLabels.waterBodies',
       metricId: 'land_use_water_bodies_pct',
+      labelKey: 'analysis.aoi.landUseLabels.waterBodies',
       percent: 0,
     },
   ];
@@ -1460,8 +1460,8 @@ export class PanelSwitcherComponent {
       const slot = index === 0 ? greenSlot : (alternateSlots[index - 1] ?? 0);
       return {
         id: bar.id,
-        label: this.localizedText(bar.labelKey),
         metricId: bar.metricId,
+        label: this.localizedText(bar.labelKey),
         percent: bar.percent,
         color: palette[slot] ?? fallbackColor,
       };

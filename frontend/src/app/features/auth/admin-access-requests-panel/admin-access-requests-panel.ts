@@ -10,12 +10,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import {
-  SIRAP_ACCESS_REGIONS,
-  sirapRegionLabel,
-  type SirapRegionId,
-  UserTier,
-} from '@core/models';
+import { SIRAP_ACCESS_REGIONS, sirapRegionLabel, type SirapRegionId, UserTier } from '@core/models';
 import {
   AdminAccessRequestsService,
   type AccessRequestRecord,
@@ -715,7 +710,9 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   }
 
   private sirapIdListLabel(sirapIds: readonly SirapRegionId[]): string {
-    return sirapIds.length ? sirapIds.map((sirapId) => this.sirapLabel(sirapId)).join(', ') : 'None';
+    return sirapIds.length
+      ? sirapIds.map((sirapId) => this.sirapLabel(sirapId)).join(', ')
+      : 'None';
   }
 
   protected formatRequestedAt(request: AccessRequestRecord): string {
@@ -787,7 +784,10 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
 
   protected canManageUserSirap(sirapId: SirapRegionId): boolean {
     const administrator = this.administrator();
-    return administrator?.isSuperAdmin === true || !!administrator?.administeredSirapIds.includes(sirapId);
+    return (
+      administrator?.isSuperAdmin === true ||
+      !!administrator?.administeredSirapIds.includes(sirapId)
+    );
   }
 
   protected administratorRoleLabel(): string {

@@ -174,7 +174,11 @@ export class AuthRequestService {
    */
   async attemptLogin(payload: LoginAttemptPayload): Promise<LoginAttemptResult> {
     if (payload.provider === 'google' && payload.uid && this.firebase.isEnabled) {
-      await this.ensureFirebaseBaseAccount(payload.uid, payload.email, payload.displayName ?? payload.email);
+      await this.ensureFirebaseBaseAccount(
+        payload.uid,
+        payload.email,
+        payload.displayName ?? payload.email,
+      );
       return 'active';
     }
 

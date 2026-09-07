@@ -10,7 +10,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { SIRAP_ACCESS_REGIONS, type SirapAccessRequestStatus, type SirapRegionId } from '@core/models';
+import {
+  SIRAP_ACCESS_REGIONS,
+  type SirapAccessRequestStatus,
+  type SirapRegionId,
+} from '@core/models';
 import { AuthService } from '@core/services/auth.service';
 import { AppStateService } from '@core/services/app-state.service';
 import {

@@ -41,10 +41,7 @@ export class SpeciesGoalsLoaderService {
       return of(null);
     }
     const releaseId = releaseIdFromUrl(partitionUrl);
-    if (
-      !releaseId ||
-      (targetOverlayUrl && releaseIdFromUrl(targetOverlayUrl) !== releaseId)
-    ) {
+    if (!releaseId || (targetOverlayUrl && releaseIdFromUrl(targetOverlayUrl) !== releaseId)) {
       return of(null);
     }
 

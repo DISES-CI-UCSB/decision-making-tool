@@ -286,11 +286,20 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     run = PublishRun(started_at=_utc_now_iso(), report_path=report_path, dry_run=args.dry_run)
+    pending = [
+        entry
+        for entry in entries
+        if not solution_ids or str(entry.get("solutionId") or "") in solution_ids
+    ]
+    total = len(pending)
+    print(
+        f"[tier1-publish] starting {'dry-run' if args.dry_run else 'upload'} "
+        f"of {total} artifacts from {report_path}",
+        flush=True,
+    )
 
-    for entry in entries:
+    for index, entry in enumerate(pending, start=1):
         solution_id = str(entry.get("solutionId") or "")
-        if solution_ids and solution_id not in solution_ids:
-            continue
 
         cache_raw = entry.get("cachePath")
         blob_path = entry.get("expectedBlobPath")
@@ -302,6 +311,11 @@ def main(argv: list[str] | None = None) -> int:
                 bytes=0,
                 error="entry missing cachePath or expectedBlobPath",
             ))
+            print(
+                f"[tier1-publish] {index}/{total} FAILED {solution_id}: "
+                "entry missing cachePath or expectedBlobPath",
+                flush=True,
+            )
             continue
 
         local_path = _resolve_cache_path(repo_root, cache_raw)
@@ -313,6 +327,11 @@ def main(argv: list[str] | None = None) -> int:
                 bytes=0,
                 error=f"cache file missing: {local_path}",
             ))
+            print(
+                f"[tier1-publish] {index}/{total} FAILED {solution_id}: "
+                f"cache file missing: {local_path}",
+                flush=True,
+            )
             continue
 
         file_bytes = local_path.stat().st_size
@@ -350,6 +369,16 @@ def main(argv: list[str] | None = None) -> int:
                 bytes=file_bytes,
                 uploaded_url=uploaded_url,
             ))
+            action = (
+                "skip-identical"
+                if remote_sha256 == local_sha256
+                else ("would-upload" if args.dry_run else "uploaded")
+            )
+            print(
+                f"[tier1-publish] {index}/{total} {action} "
+                f"{solution_id} ({file_bytes:,} B) -> {blob_path}",
+                flush=True,
+            )
         except (OSError, RuntimeError) as exc:
             run.uploads.append(UploadResult(
                 solution_id=solution_id,
@@ -358,6 +387,10 @@ def main(argv: list[str] | None = None) -> int:
                 bytes=file_bytes,
                 error=str(exc),
             ))
+            print(
+                f"[tier1-publish] {index}/{total} FAILED {solution_id}: {exc}",
+                flush=True,
+            )
 
     _print_publish_report(run, elapsed_seconds=time.time() - started)
     return 0 if run.fail_count == 0 else 1
