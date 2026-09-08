@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { primaryPartnerLogos, secondaryPartnerLogos } from '@core/config/partner-logos';
+import { aboutPartnerSections } from '@core/config/partner-logos';
 
 @Component({
   selector: 'app-about-page',
@@ -10,6 +10,5 @@ import { primaryPartnerLogos, secondaryPartnerLogos } from '@core/config/partner
   styleUrl: './about-page.scss',
 })
 export class AboutPageComponent {
-  protected readonly primaryPartnerLogos = primaryPartnerLogos;
-  protected readonly secondaryPartnerLogos = secondaryPartnerLogos;
+  protected readonly partnerSections = aboutPartnerSections;
 }

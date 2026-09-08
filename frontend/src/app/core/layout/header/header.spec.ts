@@ -35,13 +35,26 @@ describe('HeaderComponent auth state', () => {
 
     TestBed.inject(TranslateService).setTranslation('en', {
       header: {
-        appTitle: 'Decision Making Tool',
+        appTitle: 'Eco Plan Tool',
         logout: 'Logout',
         loginRegister: 'Login / Register',
         pendingAccess: 'Signed in · Access pending',
         tierChip: 'Tier {{tier}}',
       },
     });
+  });
+
+  it('shows the app logo with translated alt text instead of a visible title', () => {
+    const fixture = TestBed.createComponent(HeaderComponent);
+    fixture.detectChanges();
+
+    const logo = fixture.nativeElement.querySelector(
+      '#foundation-header-app-logo',
+    ) as HTMLImageElement;
+    expect(logo).not.toBeNull();
+    expect(logo.getAttribute('src')).toBe('/images/institutions/ecoplan.png');
+    expect(logo.getAttribute('alt')).toBe('Eco Plan Tool');
+    expect(fixture.nativeElement.querySelector('#foundation-header-home-link')).not.toBeNull();
   });
 
   it('shows login controls only for anonymous users', () => {

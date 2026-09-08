@@ -25,74 +25,70 @@
       </a>
     </div>
 
-    <section id="about-page-primary-partners-section" class="mt-12">
-      <div id="about-page-primary-partners-heading" class="max-w-3xl">
-        <h2 id="about-page-primary-partners-title" class="text-xl font-semibold text-slate-950">
-          {{ 'about.primaryPartnersTitle' | translate }}
-        </h2>
-        <p
-          id="about-page-primary-partners-description"
-          class="mt-2 text-sm leading-6 text-slate-600"
-        >
-          {{ 'about.primaryPartnersDescription' | translate }}
-        </p>
-      </div>
-
-      <ul
-        id="about-page-primary-partners-list"
-        class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+    @for (section of partnerSections; track section.id; let first = $first) {
+      <section
+        id="about-page-{{ section.id }}-section"
+        [class]="first ? 'mt-12' : 'mt-14 border-t border-slate-200 pt-10'"
       >
-        @for (logo of primaryPartnerLogos; track logo.id) {
-          <li
-            id="about-page-primary-partner-{{ logo.id }}"
-            class="flex min-h-32 items-center justify-center rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-          >
-            <img
-              id="about-page-primary-partner-logo-{{ logo.id }}"
-              [src]="logo.src"
-              [alt]="logo.name"
-              class="max-h-20 max-w-full object-contain"
-            />
-          </li>
-        }
-      </ul>
-    </section>
+        <div id="about-page-{{ section.id }}-heading" class="max-w-3xl">
+          <h2 id="about-page-{{ section.id }}-title" class="text-xl font-semibold text-slate-950">
+            {{ section.titleKey | translate }}
+          </h2>
+          @if (section.descriptionKey) {
+            <p
+              id="about-page-{{ section.id }}-description"
+              class="mt-2 text-sm leading-6 text-slate-600"
+            >
+              {{ section.descriptionKey | translate }}
+            </p>
+          }
+        </div>
 
-    <section
-      id="about-page-secondary-partners-section"
-      class="mt-14 border-t border-slate-200 pt-10"
-    >
-      <div id="about-page-secondary-partners-heading" class="max-w-3xl">
-        <h2 id="about-page-secondary-partners-title" class="text-xl font-semibold text-slate-950">
-          {{ 'about.secondaryPartnersTitle' | translate }}
-        </h2>
-        <p
-          id="about-page-secondary-partners-description"
-          class="mt-2 text-sm leading-6 text-slate-600"
-        >
-          {{ 'about.secondaryPartnersDescription' | translate }}
-        </p>
-      </div>
-
-      <ul
-        id="about-page-secondary-partners-list"
-        class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-      >
-        @for (logo of secondaryPartnerLogos; track logo.id) {
-          <li
-            id="about-page-secondary-partner-{{ logo.id }}"
-            class="flex min-h-28 items-center justify-center rounded-xl border border-slate-200 bg-white p-4"
+        @if (section.logos.length > 0) {
+          <ul
+            id="about-page-{{ section.id }}-list"
+            [class]="
+              section.id === 'regional-corporations'
+                ? 'mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                : section.id === 'national-institutions' || section.id === 'allies'
+                  ? 'mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6'
+                  : 'mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'
+            "
           >
-            <img
-              id="about-page-secondary-partner-logo-{{ logo.id }}"
-              [src]="logo.src"
-              [alt]="logo.name"
-              class="max-h-18 max-w-full object-contain"
-              loading="lazy"
-            />
-          </li>
+            @for (logo of section.logos; track logo.id) {
+              <li
+                id="about-page-{{ section.id }}-partner-{{ logo.id }}"
+                [class]="
+                  section.id === 'regional-corporations'
+                    ? 'flex min-h-28 items-center justify-center rounded-xl border border-slate-200 bg-white p-4'
+                    : 'flex min-h-32 items-center justify-center rounded-xl border border-slate-200 bg-white p-5 shadow-sm'
+                "
+              >
+                <img
+                  id="about-page-{{ section.id }}-partner-logo-{{ logo.id }}"
+                  [src]="logo.src"
+                  [alt]="logo.name"
+                  [class]="
+                    section.id === 'funders'
+                      ? 'max-h-24 max-w-full object-contain'
+                      : section.id === 'regional-corporations'
+                        ? 'max-h-18 max-w-full object-contain'
+                        : 'max-h-20 max-w-full object-contain'
+                  "
+                  [loading]="section.id === 'regional-corporations' ? 'lazy' : null"
+                />
+              </li>
+            }
+          </ul>
+        } @else if (section.emptyMessageKey) {
+          <p
+            id="about-page-{{ section.id }}-empty-message"
+            class="mt-6 rounded-xl border border-dashed border-slate-300 bg-white px-5 py-8 text-sm leading-6 text-slate-500"
+          >
+            {{ section.emptyMessageKey | translate }}
+          </p>
         }
-      </ul>
-    </section>
+      </section>
+    }
   </section>
 </main>

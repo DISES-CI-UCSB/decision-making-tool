@@ -20,7 +20,7 @@
     }
   },
   "header": {
-    "appTitle": "Herramienta de Toma de Decisiones",
+    "appTitle": "Herramienta Eco Plan",
     "about": "Acerca de",
     "primaryPartnersLabel": "Organizaciones aliadas principales",
     "primaryPartnersPrevious": "Mostrar organizaciones aliadas anteriores",
@@ -40,10 +40,17 @@
     "title": "Organizaciones que apoyan la planificación de la conservación en Colombia",
     "description": "Esta herramienta de apoyo a la toma de decisiones es posible gracias a la experiencia, los datos y la colaboración de las organizaciones que se muestran a continuación.",
     "backToMap": "Volver al mapa",
-    "primaryPartnersTitle": "Organizaciones aliadas principales",
-    "primaryPartnersDescription": "Estas doce organizaciones se destacan en el encabezado de la herramienta.",
-    "secondaryPartnersTitle": "Organizaciones aliadas adicionales",
-    "secondaryPartnersDescription": "Las siguientes organizaciones también contribuyen a la colaboración más amplia de planificación para la conservación."
+    "nationalInstitutionsTitle": "Instituciones nacionales",
+    "nationalInstitutionsDescription": "Entidades nacionales colombianas que aportan datos, experiencia y respaldo institucional.",
+    "fundersTitle": "Financiadores",
+    "fundersDescription": "Organizaciones que apoyan el desarrollo y financiamiento de esta herramienta.",
+    "alliesTitle": "Aliados",
+    "alliesDescription": "Organizaciones de conservación que colaboran en la planificación y la implementación.",
+    "sirapTitle": "Sistemas regionales de áreas protegidas",
+    "sirapDescription": "Sistemas regionales de áreas protegidas que contribuyen a la planificación territorial.",
+    "sirapEmptyMessage": "Los logos de los SIRAP aún no están disponibles. Se agregarán cuando se reciban los archivos.",
+    "regionalCorporationsTitle": "Corporaciones autónomas regionales",
+    "regionalCorporationsDescription": "Autoridades ambientales regionales que participan en la colaboración más amplia de planificación para la conservación."
   },
   "common": {
     "close": "Cerrar"
