@@ -2,12 +2,12 @@
 
 Source layer: coberturas.tif (CORINE Land Cover Level 1, 5 classes).
 
-Authoritative class-ID mapping (TIF values 1-5):
-    1 = Territorios Artificializados    (urban / artificial)
+Authoritative class-ID mapping for the current national coberturas.tif:
+    1 = Bosques y Áreas Seminaturales  (forest / semi-natural)
     2 = Territorios Agrícolas           (agriculture)
-    3 = Bosques y Áreas Seminaturales  (forest / semi-natural)
-    4 = Áreas Húmedas                   (wetlands)
-    5 = Superficies de Agua             (water)
+    3 = Áreas Húmedas                   (wetlands)
+    4 = Superficies de Agua             (water)
+    5 = Territorios Artificializados    (urban / artificial)
 """
 
 from __future__ import annotations
@@ -24,6 +24,19 @@ def _pct_of_selected(raster: SolutionRaster, layer_mask: np.ndarray) -> float | 
     return overlap_km2(raster.selected_mask, layer_mask, raster.pixel_area_km2_per_row) / sel * 100.0
 
 
+def _pct_of_aoi(raster: SolutionRaster, layer_mask: np.ndarray) -> float | None:
+    """Percent of planning-valid AOI cells in one CORINE class.
+
+    After ``with_boundary_mask``, ``valid_mask`` is the municipality / department
+    / SIRAP (or custom polygon) support. Full replay and incremental backfill
+    must both call this function.
+    """
+    aoi = raster.valid_area_km2
+    if aoi == 0.0:
+        return None
+    return overlap_km2(raster.valid_mask, layer_mask, raster.pixel_area_km2_per_row) / aoi * 100.0
+
+
 # --- #9 — Conservation Area on Agricultural Land (km²) ---
 
 def agricultural_area_km2(raster: SolutionRaster, layer_mask: np.ndarray) -> float:
@@ -36,3 +49,8 @@ def agricultural_area_km2(raster: SolutionRaster, layer_mask: np.ndarray) -> flo
 def corine_level_1_pct(raster: SolutionRaster, layer_mask: np.ndarray) -> float | None:
     """Return the selected-area percentage for one verified CORINE class mask."""
     return _pct_of_selected(raster, layer_mask)
+
+
+def corine_level_1_pct_of_aoi(raster: SolutionRaster, layer_mask: np.ndarray) -> float | None:
+    """Return the whole-AOI percentage for one verified CORINE class mask."""
+    return _pct_of_aoi(raster, layer_mask)

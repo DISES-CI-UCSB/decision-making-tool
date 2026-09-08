@@ -55,6 +55,7 @@ def wgs84_box(min_x: float, min_y: float, max_x: float, max_y: float) -> dict:
 
 POLYGON_LEFT_COLUMN = wgs84_box(0.0, 0.0, 1000.0, 2000.0)
 POLYGON_RIGHT_COLUMN = wgs84_box(1000.0, 0.0, 2000.0, 2000.0)
+POLYGON_FULL_GRID = wgs84_box(0.0, 0.0, 2000.0, 2000.0)
 POLYGON_OUTSIDE_GRID = wgs84_box(3000.0, 0.0, 4000.0, 1000.0)
 
 
@@ -257,6 +258,11 @@ def test_raster_custom_polygon_returns_real_area_and_overlap_metrics(tmp_path: P
     assert metadata["metric_source"] == "colombia-raster-geometry-mask-v1"
 
 
+NATIONAL_COBERTURAS_URL = (
+    "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.tif"
+)
+
+
 def raster_artifact_with_coberturas(tmp_path: Path) -> RuntimeArtifact:
     artifact = raster_artifact(tmp_path)
     coberturas = write_tif(
@@ -264,6 +270,8 @@ def raster_artifact_with_coberturas(tmp_path: Path) -> RuntimeArtifact:
         np.array([[1, 2], [3, 4]], dtype=np.uint8),
         nodata=255,
     )
+    # Artifact rendering is the stale classic IDEAM legend (1=artificial).
+    # National coberturas.tif uses the remapped IDs; adapters must prefer catalog.
     coberturas_layers = {
         "coberturas_artificial_surfaces": (1, "land_use_artificial_surfaces_pct"),
         "coberturas_agricultural_areas": (2, "land_use_agricultural_areas_pct"),
@@ -281,6 +289,7 @@ def raster_artifact_with_coberturas(tmp_path: Path) -> RuntimeArtifact:
             path=coberturas,
             kind="categorical",
             rendering={"valueType": "binary", "selectedValue": selected_value},
+            source_url=NATIONAL_COBERTURAS_URL,
             metric_ids=(metric_id,),
         )
     return RuntimeArtifact(
@@ -305,13 +314,240 @@ def test_custom_polygon_land_use_percents_are_of_polygon_cells_not_solution_sele
         ],
     )
 
-    # Left column cells are class 1 (top) and class 3 (bottom).
-    assert metrics["land_use_artificial_surfaces_pct"] == pytest.approx(50.0)
+    # Left column cells are class 1 (forest) and class 3 (wetlands).
+    # Stale artifact rendering still says 1=artificial; catalog must win.
+    assert metrics["land_use_artificial_surfaces_pct"] == pytest.approx(0.0)
     assert metrics["land_use_agricultural_areas_pct"] == pytest.approx(0.0)
     assert metrics["land_use_forests_and_semi_natural_areas_pct"] == pytest.approx(50.0)
-    assert metrics["land_use_wetlands_pct"] == pytest.approx(0.0)
+    assert metrics["land_use_wetlands_pct"] == pytest.approx(50.0)
     assert metrics["land_use_water_bodies_pct"] == pytest.approx(0.0)
     assert metadata["matched_cell_count"] == 2
+
+
+def test_custom_polygon_land_use_of_aoi_uses_polygon_as_the_aoi_denominator(
+    tmp_path: Path,
+) -> None:
+    metrics, metadata = calculate_custom_polygon_metrics(
+        raster_artifact_with_coberturas(tmp_path),
+        POLYGON_LEFT_COLUMN,
+        [
+            "land_use_artificial_surfaces_pct_of_aoi",
+            "land_use_agricultural_areas_pct_of_aoi",
+            "land_use_forests_and_semi_natural_areas_pct_of_aoi",
+            "land_use_wetlands_pct_of_aoi",
+            "land_use_water_bodies_pct_of_aoi",
+        ],
+    )
+
+    assert metrics["land_use_artificial_surfaces_pct_of_aoi"] == pytest.approx(0.0)
+    assert metrics["land_use_agricultural_areas_pct_of_aoi"] == pytest.approx(0.0)
+    assert metrics["land_use_forests_and_semi_natural_areas_pct_of_aoi"] == pytest.approx(50.0)
+    assert metrics["land_use_wetlands_pct_of_aoi"] == pytest.approx(50.0)
+    assert metrics["land_use_water_bodies_pct_of_aoi"] == pytest.approx(0.0)
+    assert metadata["matched_cell_count"] == 2
+
+
+def test_custom_polygon_selected_land_use_uses_solution_intersection(
+    tmp_path: Path,
+) -> None:
+    from raster_metrics import read_solution_raster
+
+    artifact = raster_artifact_with_coberturas(tmp_path)
+    solution_path = write_tif(
+        tmp_path / "solution.tif",
+        np.array([[1, 0], [0, 0]], dtype=np.uint8),
+        nodata=255,
+    )
+    solution_raster = read_solution_raster(solution_path)
+    metric_ids = [
+        "land_use_artificial_surfaces_pct",
+        "land_use_agricultural_areas_pct",
+        "land_use_forests_and_semi_natural_areas_pct",
+        "land_use_wetlands_pct",
+        "land_use_water_bodies_pct",
+        "land_use_artificial_surfaces_pct_of_aoi",
+        "land_use_agricultural_areas_pct_of_aoi",
+        "land_use_forests_and_semi_natural_areas_pct_of_aoi",
+        "land_use_wetlands_pct_of_aoi",
+        "land_use_water_bodies_pct_of_aoi",
+        "priority_area_pct_of_region",
+    ]
+
+    metrics, metadata = calculate_custom_polygon_metrics(
+        artifact,
+        POLYGON_LEFT_COLUMN,
+        metric_ids,
+        solution_raster,
+    )
+
+    # Top-left cell is forest and selected; left column is forest + wetlands.
+    assert metrics["land_use_forests_and_semi_natural_areas_pct"] == pytest.approx(100.0)
+    assert metrics["land_use_wetlands_pct"] == pytest.approx(0.0)
+    assert metrics["land_use_forests_and_semi_natural_areas_pct_of_aoi"] == pytest.approx(50.0)
+    assert metrics["land_use_wetlands_pct_of_aoi"] == pytest.approx(50.0)
+    assert metrics["priority_area_pct_of_region"] == pytest.approx(100.0)
+    assert metadata["matched_cell_count"] == 2
+    assert metadata["selected_in_aoi_cell_count"] == 1
+
+
+SIRAP_COBERTURAS_URL = (
+    "https://aagibolq28slyfof.public.blob.vercel-storage.com/"
+    "releases/sirap-2026-09-02-v6/packets/eje-cafetero/coberturas.tif"
+)
+SIRAP_COBERTURAS_FILE_URL = "file:///packet/eje-cafetero/coberturas.tif"
+
+
+def raster_artifact_with_sirap_coberturas(
+    tmp_path: Path,
+    *,
+    source_url: str = SIRAP_COBERTURAS_URL,
+    reference: Path | None = None,
+) -> RuntimeArtifact:
+    """Classic IDEAM CLC Level 1 on a packet URL that must not trigger catalog remap.
+
+    1=artificial, 2=agri, 3=forest, 4=wetlands, 5=water.
+    """
+    artifact = raster_artifact(tmp_path)
+    coberturas = write_tif(
+        tmp_path / "sirap-coberturas.tif",
+        np.array([[1, 2], [3, 4]], dtype=np.uint8),
+        nodata=255,
+    )
+    coberturas_layers = {
+        "coberturas_artificial_surfaces": (1, "land_use_artificial_surfaces_pct"),
+        "coberturas_agricultural_areas": (2, "land_use_agricultural_areas_pct"),
+        "coberturas_forests_and_semi_natural_areas": (
+            3,
+            "land_use_forests_and_semi_natural_areas_pct",
+        ),
+        "coberturas_wetlands": (4, "land_use_wetlands_pct"),
+        "coberturas_water_bodies": (5, "land_use_water_bodies_pct"),
+    }
+    raster_layers = dict(artifact.raster_layers)
+    for layer_id, (selected_value, metric_id) in coberturas_layers.items():
+        raster_layers[layer_id] = RuntimeRasterLayer(
+            layer_id=layer_id,
+            path=coberturas,
+            kind="categorical",
+            rendering={"valueType": "binary", "selectedValue": selected_value},
+            source_url=source_url,
+            metric_ids=(metric_id,),
+        )
+    return RuntimeArtifact(
+        manifest=artifact.manifest,
+        reference_raster_path=reference or artifact.reference_raster_path,
+        raster_layers=raster_layers,
+    )
+
+
+@pytest.mark.parametrize(
+    "source_url",
+    [SIRAP_COBERTURAS_URL, SIRAP_COBERTURAS_FILE_URL],
+)
+def test_custom_polygon_sirap_land_use_keeps_classic_class_ids(
+    tmp_path: Path,
+    source_url: str,
+) -> None:
+    from raster_metrics import read_solution_raster
+
+    artifact = raster_artifact_with_sirap_coberturas(tmp_path, source_url=source_url)
+    # Bottom-left cell is classic forest (class 3).
+    solution_path = write_tif(
+        tmp_path / "sirap-solution.tif",
+        np.array([[0, 0], [1, 0]], dtype=np.uint8),
+        nodata=255,
+    )
+    solution_raster = read_solution_raster(solution_path)
+    metric_ids = [
+        "land_use_artificial_surfaces_pct",
+        "land_use_agricultural_areas_pct",
+        "land_use_forests_and_semi_natural_areas_pct",
+        "land_use_wetlands_pct",
+        "land_use_water_bodies_pct",
+        "land_use_artificial_surfaces_pct_of_aoi",
+        "land_use_agricultural_areas_pct_of_aoi",
+        "land_use_forests_and_semi_natural_areas_pct_of_aoi",
+        "land_use_wetlands_pct_of_aoi",
+        "land_use_water_bodies_pct_of_aoi",
+        "priority_area_pct_of_region",
+    ]
+
+    metrics, metadata = calculate_custom_polygon_metrics(
+        artifact,
+        POLYGON_LEFT_COLUMN,
+        metric_ids,
+        solution_raster,
+    )
+
+    # Selected mix is polygon ∩ solution: only the forest cell.
+    assert metrics["land_use_forests_and_semi_natural_areas_pct"] == pytest.approx(100.0)
+    assert metrics["land_use_artificial_surfaces_pct"] == pytest.approx(0.0)
+    # Whole-AOI mix stays the left-column classic legend: artificial + forest.
+    assert metrics["land_use_artificial_surfaces_pct_of_aoi"] == pytest.approx(50.0)
+    assert metrics["land_use_forests_and_semi_natural_areas_pct_of_aoi"] == pytest.approx(
+        50.0
+    )
+    assert metrics["priority_area_pct_of_region"] == pytest.approx(100.0)
+    assert metadata["matched_cell_count"] == 2
+    assert metadata["selected_in_aoi_cell_count"] == 1
+
+
+def test_custom_polygon_sirap_of_aoi_includes_coberturas_outside_solution_valid(
+    tmp_path: Path,
+) -> None:
+    from raster_metrics import read_solution_raster
+
+    # SIRAP sample references only store selected planning cells (1/2).
+    # Coberturas still classifies the rest of the grid.
+    sparse_reference = write_tif(
+        tmp_path / "sirap-sparse-reference.tif",
+        np.array([[1, 0], [1, 0]], dtype=np.uint8),
+        nodata=0,
+    )
+    artifact = raster_artifact_with_sirap_coberturas(
+        tmp_path,
+        source_url=SIRAP_COBERTURAS_FILE_URL,
+        reference=sparse_reference,
+    )
+    solution_path = write_tif(
+        tmp_path / "sirap-sparse-solution.tif",
+        np.array([[0, 0], [1, 0]], dtype=np.uint8),
+        nodata=0,
+    )
+    solution_raster = read_solution_raster(solution_path)
+    metric_ids = [
+        "land_use_artificial_surfaces_pct",
+        "land_use_agricultural_areas_pct",
+        "land_use_forests_and_semi_natural_areas_pct",
+        "land_use_wetlands_pct",
+        "land_use_water_bodies_pct",
+        "land_use_artificial_surfaces_pct_of_aoi",
+        "land_use_agricultural_areas_pct_of_aoi",
+        "land_use_forests_and_semi_natural_areas_pct_of_aoi",
+        "land_use_wetlands_pct_of_aoi",
+        "land_use_water_bodies_pct_of_aoi",
+    ]
+
+    metrics, metadata = calculate_custom_polygon_metrics(
+        artifact,
+        POLYGON_FULL_GRID,
+        metric_ids,
+        solution_raster,
+    )
+
+    # Selected mix is only the forest planning cell.
+    assert metrics["land_use_forests_and_semi_natural_areas_pct"] == pytest.approx(100.0)
+    assert metrics["land_use_artificial_surfaces_pct"] == pytest.approx(0.0)
+    # Whole-AOI mix includes all four classic CLC cells in the drawn polygon.
+    assert metrics["land_use_artificial_surfaces_pct_of_aoi"] == pytest.approx(25.0)
+    assert metrics["land_use_agricultural_areas_pct_of_aoi"] == pytest.approx(25.0)
+    assert metrics["land_use_forests_and_semi_natural_areas_pct_of_aoi"] == pytest.approx(
+        25.0
+    )
+    assert metrics["land_use_wetlands_pct_of_aoi"] == pytest.approx(25.0)
+    assert metadata["matched_cell_count"] == 2
+    assert metadata["polygon_cell_count"] == 4
+    assert metadata["selected_in_aoi_cell_count"] == 1
 
 
 @pytest.mark.parametrize(

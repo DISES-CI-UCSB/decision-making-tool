@@ -56,6 +56,8 @@ _SIRAP_LEGEND_LAYER_IDS = frozenset(
         "runap_parques",
     }
 )
+# SIRAP regional coberturas packets still use classic IDEAM Level 1
+# (1=artificial … 5=water). Do not reuse the remapped national coberturas.tif IDs.
 _SIRAP_SELECTED_VALUES = {
     "coberturas_artificial_surfaces": 1,
     "coberturas_agriculture": 2,
@@ -65,6 +67,7 @@ _SIRAP_SELECTED_VALUES = {
     "coberturas_water_bodies": 5,
     "runap_parques": 3,
 }
+SIRAP_CLASSIC_IDEAM_SELECTED_VALUES = _SIRAP_SELECTED_VALUES
 
 
 def is_sirap_solution(solution: dict[str, Any]) -> bool:

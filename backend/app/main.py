@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import secrets
@@ -82,6 +83,11 @@ def _load_solution_overlay(
             status_code=status_code,
             detail={"status": "solution_unavailable", "message": error},
         ) from exc
+
+
+def _http_detail(model: Any) -> dict[str, Any]:
+    """JSON-safe error body. Python model_dump() keeps NaN, which Starlette rejects."""
+    return json.loads(model.model_dump_json())
 
 
 def _loaded_artifact_version(artifact: Any) -> str | None:
@@ -173,15 +179,17 @@ def ready() -> ReadinessResponse:
     if not artifact_ready(settings, state):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=ReadinessResponse(status="not_ready", artifact_state=state).model_dump(),
+            detail=_http_detail(ReadinessResponse(status="not_ready", artifact_state=state)),
         )
 
     unavailable_reason = _detailed_species_unavailable_reason()
     if unavailable_reason is not None:
-        detail = ReadinessResponse(
-            status="not_ready",
-            artifact_state=state,
-        ).model_dump()
+        detail = _http_detail(
+            ReadinessResponse(
+                status="not_ready",
+                artifact_state=state,
+            )
+        )
         detail["detailed_species_status"] = unavailable_reason
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -221,7 +229,7 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
         )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=response.model_dump(),
+            detail=_http_detail(response),
         )
 
     loaded_artifact_version = _loaded_artifact_version(artifact)
@@ -233,13 +241,33 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
             requested_metrics=request.metrics,
             metadata={"request_ms": round((time.perf_counter() - started) * 1000, 3)},
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=response.model_dump())
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=_http_detail(response),
+        )
+
+    solution_raster = None
+    if request.solution_id and artifact.solution_registry is not None:
+        try:
+            solution_raster, _ = artifact.solution_registry.load(request.solution_id)
+        except SolutionRegistryError as exc:
+            error = str(exc)
+            status_code = (
+                status.HTTP_400_BAD_REQUEST
+                if error.startswith("solution_not_registered:")
+                else status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+            raise HTTPException(
+                status_code=status_code,
+                detail={"status": "solution_unavailable", "message": error},
+            ) from exc
 
     try:
         metrics, metadata = calculate_custom_polygon_metrics(
             artifact,
             request.geometry,
             request.metrics,
+            solution_raster,
         )
     except PolygonMetricError as exc:
         response = PolygonMetricsResponse(
@@ -249,7 +277,7 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
             requested_metrics=request.metrics,
             metadata={"request_ms": round((time.perf_counter() - started) * 1000, 3)},
         )
-        raise HTTPException(status_code=422, detail=response.model_dump())
+        raise HTTPException(status_code=422, detail=_http_detail(response))
 
     total_ms = round((time.perf_counter() - started) * 1000, 3)
     metadata["total_request_ms"] = total_ms

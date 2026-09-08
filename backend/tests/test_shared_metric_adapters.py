@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from app.artifacts import json_safe_nodata
 from app.metric_adapters import (
     AREA_METRIC_IDS,
     KNOWN_METRIC_IDS,
@@ -60,7 +61,7 @@ def test_backend_registers_each_authoritative_corine_level_1_percentage() -> Non
     expected = {
         "land_use_artificial_surfaces_pct": (
             "coberturas_artificial_surfaces",
-            1,
+            5,
             "Artificial Surfaces",
             "Territorios Artificializados",
         ),
@@ -72,16 +73,46 @@ def test_backend_registers_each_authoritative_corine_level_1_percentage() -> Non
         ),
         "land_use_forests_and_semi_natural_areas_pct": (
             "coberturas_forests_and_semi_natural_areas",
-            3,
+            1,
             "Forests and Semi-natural Areas",
             "Bosques y Áreas Seminaturales",
         ),
-        "land_use_wetlands_pct": ("coberturas_wetlands", 4, "Wetlands", "Áreas Húmedas"),
+        "land_use_wetlands_pct": ("coberturas_wetlands", 3, "Wetlands", "Áreas Húmedas"),
         "land_use_water_bodies_pct": (
             "coberturas_water_bodies",
-            5,
+            4,
             "Water Bodies",
             "Superficies de Agua",
+        ),
+        "land_use_artificial_surfaces_pct_of_aoi": (
+            "coberturas_artificial_surfaces",
+            5,
+            "Artificial Surfaces (percent of AOI)",
+            "Territorios Artificializados (% del AOI)",
+        ),
+        "land_use_agricultural_areas_pct_of_aoi": (
+            "coberturas_agricultural_areas",
+            2,
+            "Agricultural Areas (percent of AOI)",
+            "Territorios Agrícolas (% del AOI)",
+        ),
+        "land_use_forests_and_semi_natural_areas_pct_of_aoi": (
+            "coberturas_forests_and_semi_natural_areas",
+            1,
+            "Forests and Semi-natural Areas (percent of AOI)",
+            "Bosques y Áreas Seminaturales (% del AOI)",
+        ),
+        "land_use_wetlands_pct_of_aoi": (
+            "coberturas_wetlands",
+            3,
+            "Wetlands (percent of AOI)",
+            "Áreas Húmedas (% del AOI)",
+        ),
+        "land_use_water_bodies_pct_of_aoi": (
+            "coberturas_water_bodies",
+            4,
+            "Water Bodies (percent of AOI)",
+            "Superficies de Agua (% del AOI)",
         ),
     }
 
@@ -93,3 +124,50 @@ def test_backend_registers_each_authoritative_corine_level_1_percentage() -> Non
         assert definition.english_label == english_label
         assert definition.spanish_label == spanish_label
         assert layer_id in _OVERLAP_PERCENT_CALCULATORS
+
+
+def test_resolved_layer_rendering_uses_catalog_only_for_national_coberturas() -> None:
+    from pathlib import Path
+
+    from app.artifacts import RuntimeRasterLayer
+    from app.metric_adapters import _resolved_layer_rendering
+
+    definition = METRIC_DEFINITIONS_BY_ID["land_use_forests_and_semi_natural_areas_pct"]
+    classic_rendering = {"valueType": "binary", "selectedValue": 3}
+
+    national = RuntimeRasterLayer(
+        layer_id="coberturas_forests_and_semi_natural_areas",
+        path=Path("/virtual/coberturas.tif"),
+        kind="categorical",
+        rendering=classic_rendering,
+        source_url=(
+            "https://aagibolq28slyfof.public.blob.vercel-storage.com/boundaries/coberturas.tif"
+        ),
+    )
+    sirap_packet = RuntimeRasterLayer(
+        layer_id="coberturas_forests_and_semi_natural_areas",
+        path=Path("/virtual/sirap-coberturas.tif"),
+        kind="categorical",
+        rendering=classic_rendering,
+        source_url=(
+            "https://aagibolq28slyfof.public.blob.vercel-storage.com/"
+            "releases/sirap-2026-09-02-v6/packets/eje-cafetero/coberturas.tif"
+        ),
+    )
+    sirap_file = RuntimeRasterLayer(
+        layer_id="coberturas_forests_and_semi_natural_areas",
+        path=Path("/virtual/sirap-coberturas-file.tif"),
+        kind="categorical",
+        rendering=classic_rendering,
+        source_url="file:///packet/eje-cafetero/coberturas.tif",
+    )
+
+    assert _resolved_layer_rendering(national, definition)["selectedValue"] == 1
+    assert _resolved_layer_rendering(sirap_packet, definition) == classic_rendering
+    assert _resolved_layer_rendering(sirap_file, definition) == classic_rendering
+
+
+def test_json_safe_nodata_turns_nan_into_none() -> None:
+    assert json_safe_nodata(float("nan")) is None
+    assert json_safe_nodata(None) is None
+    assert json_safe_nodata(255) == 255

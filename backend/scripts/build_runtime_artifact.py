@@ -38,7 +38,10 @@ from coverage_parity_contract import (  # noqa: E402
     CoverageParityContract,
     load_coverage_parity_contract,
 )
-from metric_definitions import METRIC_CATALOG  # noqa: E402
+from metric_definitions import (  # noqa: E402
+    COBERTURAS_SELECTED_VALUE_BY_LAYER_ID,
+    METRIC_CATALOG,
+)
 from species_data import CLASS_BUCKETS, compute_pool_sizes, load_species_records  # noqa: E402
 from sparse.species_bitset import build_species_bitset  # noqa: E402
 
@@ -835,17 +838,20 @@ def build_layer_specs(
                     layer_id,
                     f"{PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
                     "categorical",
-                    {"valueType": "binary", "selectedValue": selected_value},
+                    {
+                        "valueType": "binary",
+                        "selectedValue": COBERTURAS_SELECTED_VALUE_BY_LAYER_ID[layer_id],
+                    },
                     metric_ids_for_layer(layer_id),
                     ALIGNMENT_CLASS_BY_LAYER_ID[layer_id],
                 )
-                for layer_id, selected_value in (
-                    ("coberturas_artificial_surfaces", 1),
-                    ("coberturas_agricultural_areas", 2),
-                    ("coberturas_forests_and_semi_natural_areas", 3),
-                    ("coberturas_wetlands", 4),
-                    ("coberturas_water_bodies", 5),
-                    ("coberturas_agriculture", 2),
+                for layer_id in (
+                    "coberturas_artificial_surfaces",
+                    "coberturas_agricultural_areas",
+                    "coberturas_forests_and_semi_natural_areas",
+                    "coberturas_wetlands",
+                    "coberturas_water_bodies",
+                    "coberturas_agriculture",
                 )
             ],
             LayerSpec(

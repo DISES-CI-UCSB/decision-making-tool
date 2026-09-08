@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AOI_LAND_USE_OF_AOI_METRIC_IDS,
   COMPARISON_METRIC_BLUEPRINTS,
   COMPARISON_SECTION_META,
   COMPARISON_SECTION_ORDER,
@@ -72,6 +73,21 @@ describe('panel switcher metric configuration', () => {
       ]),
     );
     expect(CUSTOM_AOI_FAST_METRIC_IDS).not.toContain('land_use_other_pct');
+  });
+
+  it('requests whole-AOI land-use percents from the custom-polygon job', () => {
+    expect(AOI_LAND_USE_OF_AOI_METRIC_IDS).toEqual([
+      'land_use_artificial_surfaces_pct_of_aoi',
+      'land_use_agricultural_areas_pct_of_aoi',
+      'land_use_forests_and_semi_natural_areas_pct_of_aoi',
+      'land_use_wetlands_pct_of_aoi',
+      'land_use_water_bodies_pct_of_aoi',
+    ]);
+    for (const metricId of AOI_LAND_USE_OF_AOI_METRIC_IDS) {
+      expect(CUSTOM_AOI_METRIC_DEFINITIONS[metricId]?.metricId).toBe(metricId);
+      expect(CUSTOM_AOI_METRIC_DEFINITIONS[metricId]?.unit).toBe('%');
+      expect(CUSTOM_AOI_FAST_METRIC_IDS).toContain(metricId);
+    }
   });
 });
 

@@ -29,6 +29,14 @@ _OVERLAP_AREA_BY_LAYER: dict[str, Calculator] = {
     "coberturas_agriculture": calc_land_cover.agricultural_area_km2,
 }
 
+_OVERLAP_PERCENT_OF_AOI_BY_METRIC_ID: dict[str, Calculator] = {
+    "land_use_artificial_surfaces_pct_of_aoi": calc_land_cover.corine_level_1_pct_of_aoi,
+    "land_use_agricultural_areas_pct_of_aoi": calc_land_cover.corine_level_1_pct_of_aoi,
+    "land_use_forests_and_semi_natural_areas_pct_of_aoi": calc_land_cover.corine_level_1_pct_of_aoi,
+    "land_use_wetlands_pct_of_aoi": calc_land_cover.corine_level_1_pct_of_aoi,
+    "land_use_water_bodies_pct_of_aoi": calc_land_cover.corine_level_1_pct_of_aoi,
+}
+
 _OVERLAP_PERCENT_BY_LAYER: dict[str, Calculator] = {
     "runap_parques": calc_protected.national_parks_percent_of_selected,
     "resguardos": calc_protected.indigenous_territory_percent_of_selected,
@@ -69,6 +77,10 @@ def overlap_area_calculator(layer_id: str) -> Calculator | None:
 
 def overlap_percent_calculator(layer_id: str) -> Calculator | None:
     return _OVERLAP_PERCENT_BY_LAYER.get(layer_id)
+
+
+def overlap_percent_of_aoi_calculator(metric_id: str) -> Calculator | None:
+    return _OVERLAP_PERCENT_OF_AOI_BY_METRIC_ID.get(metric_id)
 
 
 def categorical_area_calculator(metric_id: str) -> Calculator | None:
