@@ -60,6 +60,20 @@ LOGGER = logging.getLogger(__name__)
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
+def json_safe_nodata(value: Any) -> float | int | None:
+    """JSON cannot encode NaN; rasterio often reports nodata as NaN."""
+    if value is None:
+        return None
+    try:
+        if np.isnan(value):
+            return None
+    except TypeError:
+        return value
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
 class ArtifactState(BaseModel):
     required: bool
     available: bool
@@ -825,6 +839,40 @@ def _validate_ecosystem_grid_alignment(
         ) from exc
 
 
+def _solution_rasters_with_local_sample(
+    raw_entries: Any,
+    *,
+    manifest: dict[str, Any],
+    reference_path: Path,
+) -> Any:
+    """Bind the packaged SIRAP sample raster so load() does not need blob.
+
+    National artifacts use a planning-template reference grid, not a solution
+    TIFF, so they must keep downloading registered solutions from blob.
+    """
+    if not isinstance(raw_entries, list):
+        return raw_entries
+    if manifest.get("artifact_kind") != SIRAP_ARTIFACT_KIND:
+        return raw_entries
+    sample_solution_id = (manifest.get("source_manifest") or {}).get("sample_solution_id")
+    if not isinstance(sample_solution_id, str) or not sample_solution_id:
+        sample_solution_id = (manifest.get("reference_grid") or {}).get(
+            "sample_solution_id"
+        )
+    if not isinstance(sample_solution_id, str) or not sample_solution_id:
+        return raw_entries
+    if not reference_path.is_file():
+        return raw_entries
+
+    patched: list[Any] = []
+    for raw in raw_entries:
+        if not isinstance(raw, dict) or raw.get("solution_id") != sample_solution_id:
+            patched.append(raw)
+            continue
+        patched.append({**raw, "local_path": str(reference_path)})
+    return patched
+
+
 def _load_raster_artifact(
     settings: Settings,
     manifest_path: Path,
@@ -864,7 +912,7 @@ def _load_raster_artifact(
                 "height": dataset.height,
                 "crs": str(dataset.crs) if dataset.crs else None,
                 "bounds": [dataset.bounds.left, dataset.bounds.bottom, dataset.bounds.right, dataset.bounds.top],
-                "nodata": dataset.nodata,
+                "nodata": json_safe_nodata(dataset.nodata),
                 "valid_cell_count": reference_valid_cell_count,
             }
     except Exception as exc:
@@ -880,7 +928,11 @@ def _load_raster_artifact(
         )
     try:
         solution_registry = build_solution_registry(
-            manifest.get("solution_rasters"),
+            _solution_rasters_with_local_sample(
+                manifest.get("solution_rasters"),
+                manifest=manifest,
+                reference_path=resolved_reference,
+            ),
             cache_dir=settings.solution_cache_dir,
             reference_fingerprint=reference_fingerprint,
             public_blob_host=(

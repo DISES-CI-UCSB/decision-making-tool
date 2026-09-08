@@ -13,7 +13,7 @@ import rasterio
 from fastapi.testclient import TestClient
 
 from app import artifacts as artifacts_module
-from app.solution_registry import RasterFingerprint, build_solution_registry
+from app.solution_registry import RasterFingerprint, SolutionRegistryError, build_solution_registry
 from app.config import (
     SIRAP_ARTIFACT_KIND,
     get_settings,
@@ -218,6 +218,7 @@ def write_minimal_raster_manifest(
     artifact_version: str,
     sirap_id: str | None = None,
     solution_ids: list[str],
+    sample_solution_id: str | None = None,
 ) -> Path:
     artifact_dir.mkdir(parents=True, exist_ok=True)
     reference = write_tif(
@@ -247,6 +248,11 @@ def write_minimal_raster_manifest(
             "url": "https://example.invalid/manifest.json",
             "public_blob_host": "https://example.invalid",
             "purpose": "Fixture runtime artifact for routing tests.",
+            **(
+                {"sample_solution_id": sample_solution_id}
+                if sample_solution_id is not None
+                else {}
+            ),
         },
         "reference_raster_path": "reference.tif",
         "reference_raster_checksum": {"algorithm": "sha256", "value": reference_sha},
@@ -452,3 +458,46 @@ def test_custom_polygon_area_profile_returns_ecosystems_for_sirap(
     assert ecosystems["status"] == "complete"
     assert ecosystems["solution_coverage"]
     assert ecosystems["solution_coverage"][0]["feature"] == "Forest"
+
+
+def test_sirap_sample_solution_loads_from_packaged_reference(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sirap_root = tmp_path / "sirap"
+    write_minimal_raster_manifest(
+        sirap_root / "eje-cafetero",
+        artifact_kind=SIRAP_ARTIFACT_KIND,
+        artifact_version="eje-cafetero-local-sample-v1",
+        sirap_id="eje-cafetero",
+        solution_ids=["eje-cafetero-001", "eje-cafetero-002"],
+        sample_solution_id="eje-cafetero-001",
+    )
+    os.environ["DMT_ARTIFACT_REQUIRED"] = "true"
+    os.environ["DMT_ARTIFACT_DIR"] = str(tmp_path / "national-unused")
+    os.environ["DMT_ARTIFACT_MANIFEST"] = str(tmp_path / "missing.json")
+    os.environ["DMT_SIRAP_ARTIFACT_ROOT"] = str(sirap_root)
+    os.environ["DMT_SOLUTION_CACHE_DIR"] = str(tmp_path / "empty-cache")
+    artifacts_module.reset_runtime_artifact_cache()
+
+    def urlopen(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("sample solution must load from packaged reference")
+
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    settings = get_settings()
+    artifact = artifacts_module.get_sirap_runtime_artifact(settings, "eje-cafetero")
+
+    assert artifact is not None
+    assert artifact.solution_registry is not None
+    assert set(artifact.solution_registry.entries) == {
+        "eje-cafetero-001",
+        "eje-cafetero-002",
+    }
+    raster, _checksum = artifact.solution_registry.load("eje-cafetero-001")
+    assert raster.selected_cells > 0
+    assert artifact.solution_registry.metadata()["locally_bound_solution_ids"] == [
+        "eje-cafetero-001"
+    ]
+
+    with pytest.raises(SolutionRegistryError, match="solution_raster_download_failed"):
+        artifact.solution_registry.load("eje-cafetero-002")

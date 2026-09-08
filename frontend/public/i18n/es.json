@@ -79,7 +79,14 @@
     },
     "custom_polygon_area": "Área del AOI dibujada",
     "priority_area_total": "Área prioritaria",
-    "national_contribution": "Porcentaje de Colombia seleccionado"
+    "national_contribution": "Porcentaje de Colombia seleccionado",
+    "tier1": {
+      "land_use_artificial_surfaces_pct_of_aoi": "Territorios Artificializados (% del AOI)",
+      "land_use_agricultural_areas_pct_of_aoi": "Territorios Agrícolas (% del AOI)",
+      "land_use_forests_and_semi_natural_areas_pct_of_aoi": "Bosques y Áreas Seminaturales (% del AOI)",
+      "land_use_wetlands_pct_of_aoi": "Áreas Húmedas (% del AOI)",
+      "land_use_water_bodies_pct_of_aoi": "Superficies de Agua (% del AOI)"
+    }
   },
   "mapLegend": {
     "title": "Leyenda",

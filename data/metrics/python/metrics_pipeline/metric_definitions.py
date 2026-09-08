@@ -15,7 +15,7 @@ T6 metrics added (17 additional):
   Water:              6, 44
   Protected areas:    63, 64, 66
   AOI percentage:     19
-  Land cover:         9, 51, 52, 54, 55, 56  (coberturas.tif — class IDs 1=artificial, 2=agri, 3=forest/semi-natural, 4=wetland, 5=water)
+  Land cover:         9, 51, 52, 54, 55, 56  (coberturas.tif — class IDs 1=forest/semi-natural, 2=agri, 3=wetland, 4=water, 5=artificial)
   Comparison:         70, 71, 72  (deferred pairwise)
 
 T10 metrics added (8 additional, species):
@@ -46,6 +46,8 @@ MetricKind = Literal[
     "aoi_percent",
     "binary_overlap_area",
     "binary_overlap_percent_of_selected",
+    # Percentage of planning-valid AOI cells (boundary / nation), not solution-selected cells.
+    "binary_overlap_percent_of_aoi",
     # Categorical layer: selected area whose class ID belongs to the metric's class set.
     "categorical_overlap_area",
     # Continuous layer: sum(pixel_value × pixel_area_km²) for selected cells.
@@ -92,6 +94,26 @@ class MetricDefinition:
     species_bucket: SpeciesBucket | None = None
     # Domains where this metric may be computed. Existing metrics default to land.
     applicable_domains: frozenset[SolutionDomain] = frozenset({"land"})
+
+
+# Current national coberturas.tif encoding. Classic IDEAM CLC Level 1 was
+# 1=artificial … 5=water; this raster is remapped and class 2 stayed agri.
+COBERTURAS_SELECTED_VALUE_BY_LAYER_ID: dict[str, int] = {
+    "coberturas_forests_and_semi_natural_areas": 1,
+    "coberturas_agricultural_areas": 2,
+    "coberturas_agriculture": 2,
+    "coberturas_wetlands": 3,
+    "coberturas_water_bodies": 4,
+    "coberturas_artificial_surfaces": 5,
+}
+NATIONAL_COBERTURAS_BLOB_PATH = "boundaries/coberturas.tif"
+
+
+def coberturas_binary_rendering(layer_id: str) -> dict[str, Any]:
+    return {
+        "valueType": "binary",
+        "selectedValue": COBERTURAS_SELECTED_VALUE_BY_LAYER_ID[layer_id],
+    }
 
 
 # Order here is the order written into the per-solution JSON output.
@@ -216,13 +238,12 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         source_note=(
             "km² of selected area classified as Territorios Agrícolas (class 2) in coberturas.tif. "
             "CORINE Land Cover Level 1 adapted for Colombia. "
-            "Note: original CSV had classes 1 and 3 swapped; corrected version in blob. "
             "Class 2 = agriculture (pasture + crops combined at Level 1 resolution)."
         ),
         kind="binary_overlap_area",
         layer_id="coberturas_agriculture",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
-        off_manifest_rendering={"valueType": "binary", "selectedValue": 2},
+        off_manifest_rendering=coberturas_binary_rendering("coberturas_agriculture"),
     ),
     # --- T2 (continued) ---
     MetricDefinition(
@@ -575,11 +596,11 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         spanish_label="Territorios Artificializados",
         unit="%",
         format_hint="percent",
-        source_note="% of selected area in coberturas.tif value 1: Territorios Artificializados.",
+        source_note="% of selected area in coberturas.tif value 5: Territorios Artificializados.",
         kind="binary_overlap_percent_of_selected",
         layer_id="coberturas_artificial_surfaces",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
-        off_manifest_rendering={"valueType": "binary", "selectedValue": 1},
+        off_manifest_rendering=coberturas_binary_rendering("coberturas_artificial_surfaces"),
         applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
@@ -594,7 +615,7 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         kind="binary_overlap_percent_of_selected",
         layer_id="coberturas_agricultural_areas",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
-        off_manifest_rendering={"valueType": "binary", "selectedValue": 2},
+        off_manifest_rendering=coberturas_binary_rendering("coberturas_agricultural_areas"),
         applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
@@ -605,11 +626,13 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         spanish_label="Bosques y Áreas Seminaturales",
         unit="%",
         format_hint="percent",
-        source_note="% of selected area in coberturas.tif value 3: Bosques y Áreas Seminaturales.",
+        source_note="% of selected area in coberturas.tif value 1: Bosques y Áreas Seminaturales.",
         kind="binary_overlap_percent_of_selected",
         layer_id="coberturas_forests_and_semi_natural_areas",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
-        off_manifest_rendering={"valueType": "binary", "selectedValue": 3},
+        off_manifest_rendering=coberturas_binary_rendering(
+            "coberturas_forests_and_semi_natural_areas"
+        ),
         applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
@@ -620,11 +643,11 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         spanish_label="Áreas Húmedas",
         unit="%",
         format_hint="percent",
-        source_note="% of selected area in coberturas.tif value 4: Áreas Húmedas.",
+        source_note="% of selected area in coberturas.tif value 3: Áreas Húmedas.",
         kind="binary_overlap_percent_of_selected",
         layer_id="coberturas_wetlands",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
-        off_manifest_rendering={"valueType": "binary", "selectedValue": 4},
+        off_manifest_rendering=coberturas_binary_rendering("coberturas_wetlands"),
         applicable_domains=frozenset({"land", "marine"}),
     ),
     MetricDefinition(
@@ -635,11 +658,11 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         spanish_label="Superficies de Agua",
         unit="%",
         format_hint="percent",
-        source_note="% of selected area in coberturas.tif value 5: Superficies de Agua.",
+        source_note="% of selected area in coberturas.tif value 4: Superficies de Agua.",
         kind="binary_overlap_percent_of_selected",
         layer_id="coberturas_water_bodies",
         off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
-        off_manifest_rendering={"valueType": "binary", "selectedValue": 5},
+        off_manifest_rendering=coberturas_binary_rendering("coberturas_water_bodies"),
         applicable_domains=frozenset({"land", "marine"}),
     ),
     # --- T2 (continued) ---
@@ -719,6 +742,83 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         kind="binary_overlap_percent_of_selected",
         layer_id="resguardos",
     ),
+    MetricDefinition(
+        metric_id="land_use_artificial_surfaces_pct_of_aoi",
+        metric_number=73,
+        label_key="metrics.tier1.land_use_artificial_surfaces_pct_of_aoi",
+        english_label="Artificial Surfaces (percent of AOI)",
+        spanish_label="Territorios Artificializados (% del AOI)",
+        unit="%",
+        format_hint="percent",
+        source_note="% of AOI planning cells in coberturas.tif value 5: Territorios Artificializados. Denominator is the AOI, not selected scenario cells.",
+        kind="binary_overlap_percent_of_aoi",
+        layer_id="coberturas_artificial_surfaces",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering=coberturas_binary_rendering("coberturas_artificial_surfaces"),
+        applicable_domains=frozenset({"land", "marine"}),
+    ),
+    MetricDefinition(
+        metric_id="land_use_agricultural_areas_pct_of_aoi",
+        metric_number=74,
+        label_key="metrics.tier1.land_use_agricultural_areas_pct_of_aoi",
+        english_label="Agricultural Areas (percent of AOI)",
+        spanish_label="Territorios Agrícolas (% del AOI)",
+        unit="%",
+        format_hint="percent",
+        source_note="% of AOI planning cells in coberturas.tif value 2. Denominator is the AOI, not selected scenario cells.",
+        kind="binary_overlap_percent_of_aoi",
+        layer_id="coberturas_agricultural_areas",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering=coberturas_binary_rendering("coberturas_agricultural_areas"),
+        applicable_domains=frozenset({"land", "marine"}),
+    ),
+    MetricDefinition(
+        metric_id="land_use_forests_and_semi_natural_areas_pct_of_aoi",
+        metric_number=75,
+        label_key="metrics.tier1.land_use_forests_and_semi_natural_areas_pct_of_aoi",
+        english_label="Forests and Semi-natural Areas (percent of AOI)",
+        spanish_label="Bosques y Áreas Seminaturales (% del AOI)",
+        unit="%",
+        format_hint="percent",
+        source_note="% of AOI planning cells in coberturas.tif value 1: Bosques y Áreas Seminaturales. Denominator is the AOI, not selected scenario cells.",
+        kind="binary_overlap_percent_of_aoi",
+        layer_id="coberturas_forests_and_semi_natural_areas",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering=coberturas_binary_rendering(
+            "coberturas_forests_and_semi_natural_areas"
+        ),
+        applicable_domains=frozenset({"land", "marine"}),
+    ),
+    MetricDefinition(
+        metric_id="land_use_wetlands_pct_of_aoi",
+        metric_number=76,
+        label_key="metrics.tier1.land_use_wetlands_pct_of_aoi",
+        english_label="Wetlands (percent of AOI)",
+        spanish_label="Áreas Húmedas (% del AOI)",
+        unit="%",
+        format_hint="percent",
+        source_note="% of AOI planning cells in coberturas.tif value 3: Áreas Húmedas. Denominator is the AOI, not selected scenario cells.",
+        kind="binary_overlap_percent_of_aoi",
+        layer_id="coberturas_wetlands",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering=coberturas_binary_rendering("coberturas_wetlands"),
+        applicable_domains=frozenset({"land", "marine"}),
+    ),
+    MetricDefinition(
+        metric_id="land_use_water_bodies_pct_of_aoi",
+        metric_number=77,
+        label_key="metrics.tier1.land_use_water_bodies_pct_of_aoi",
+        english_label="Water Bodies (percent of AOI)",
+        spanish_label="Superficies de Agua (% del AOI)",
+        unit="%",
+        format_hint="percent",
+        source_note="% of AOI planning cells in coberturas.tif value 4: Superficies de Agua. Denominator is the AOI, not selected scenario cells.",
+        kind="binary_overlap_percent_of_aoi",
+        layer_id="coberturas_water_bodies",
+        off_manifest_url=f"{_PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+        off_manifest_rendering=coberturas_binary_rendering("coberturas_water_bodies"),
+        applicable_domains=frozenset({"land", "marine"}),
+    ),
     # --- Deferred pairwise comparison metrics (#70, #71, #72) ---
     # Calculator functions are available in calculators.comparison; values are not cached
     # per-solution since they require two solution rasters.  These entries exist for
@@ -796,6 +896,20 @@ def is_species_metric_kind(kind: str) -> bool:
 def computable_metrics() -> tuple[MetricDefinition, ...]:
     """All metrics that should appear in the per-solution cached output."""
     return tuple(m for m in METRIC_CATALOG if m.kind != "deferred_pairwise")
+
+
+LAND_USE_OF_AOI_METRIC_IDS: tuple[str, ...] = tuple(
+    definition.metric_id
+    for definition in METRIC_CATALOG
+    if definition.kind == "binary_overlap_percent_of_aoi"
+)
+LAND_USE_SELECTED_PCT_METRIC_IDS: tuple[str, ...] = tuple(
+    definition.metric_id
+    for definition in METRIC_CATALOG
+    if definition.kind == "binary_overlap_percent_of_selected"
+    and str(definition.layer_id or "").startswith("coberturas_")
+    and definition.metric_id.startswith("land_use_")
+)
 
 
 def required_layer_ids() -> tuple[str, ...]:
