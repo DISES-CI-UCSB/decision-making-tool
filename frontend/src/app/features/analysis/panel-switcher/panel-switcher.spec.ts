@@ -1057,6 +1057,27 @@ describe('PanelSwitcherComponent', () => {
         .querySelector('#aoi-landuse-scenario-bar-fill-forests-and-semi-natural-areas')
         ?.getAttribute('style'),
     ).toContain('width: 70%');
+    expect(
+      (
+        compiled.querySelector(
+          '#aoi-landuse-scenario-bar-fill-forests-and-semi-natural-areas',
+        ) as HTMLElement | null
+      )?.style.backgroundColor,
+    ).toBe('rgb(22, 163, 74)');
+    expect(
+      (
+        compiled.querySelector(
+          '#aoi-landuse-scenario-bar-fill-agricultural-areas',
+        ) as HTMLElement | null
+      )?.style.backgroundColor,
+    ).toBe('rgb(214, 162, 58)');
+    expect(
+      (
+        compiled.querySelector(
+          '#aoi-landuse-scenario-bar-fill-artificial-surfaces',
+        ) as HTMLElement | null
+      )?.style.backgroundColor,
+    ).toBe('rgb(148, 163, 184)');
     expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('15%');
     expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('25%');
     expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('60%');
@@ -1119,6 +1140,25 @@ describe('PanelSwitcherComponent', () => {
         .querySelector('#aoi-landuse-aoi-bar-fill-forests-and-semi-natural-areas')
         ?.getAttribute('style'),
     ).toContain('width: 40%');
+    expect(
+      (
+        compiled.querySelector(
+          '#aoi-landuse-aoi-bar-fill-forests-and-semi-natural-areas',
+        ) as HTMLElement | null
+      )?.style.backgroundColor,
+    ).toBe('rgb(22, 163, 74)');
+    expect(
+      (compiled.querySelector('#aoi-landuse-aoi-bar-fill-agricultural-areas') as HTMLElement | null)
+        ?.style.backgroundColor,
+    ).toBe('rgb(214, 162, 58)');
+    expect(
+      (compiled.querySelector('#aoi-landuse-aoi-bar-fill-wetlands') as HTMLElement | null)?.style
+        .backgroundColor,
+    ).toBe('rgb(45, 212, 191)');
+    expect(
+      (compiled.querySelector('#aoi-landuse-aoi-bar-fill-water-bodies') as HTMLElement | null)
+        ?.style.backgroundColor,
+    ).toBe('rgb(37, 99, 235)');
     expect(compiled.querySelector('#aoi-landuse-aoi-chart')?.textContent).not.toContain('8%');
     expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('30%');
     expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
