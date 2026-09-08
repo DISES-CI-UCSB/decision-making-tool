@@ -276,7 +276,7 @@ def test_runtime_artifact_preserves_each_corine_level_1_land_use_class() -> None
 
     expected_land_use_layers = {
         "coberturas_artificial_surfaces": (
-            1,
+            5,
             "land_use_artificial_surfaces_pct",
         ),
         "coberturas_agricultural_areas": (
@@ -284,11 +284,11 @@ def test_runtime_artifact_preserves_each_corine_level_1_land_use_class() -> None
             "land_use_agricultural_areas_pct",
         ),
         "coberturas_forests_and_semi_natural_areas": (
-            3,
+            1,
             "land_use_forests_and_semi_natural_areas_pct",
         ),
-        "coberturas_wetlands": (4, "land_use_wetlands_pct"),
-        "coberturas_water_bodies": (5, "land_use_water_bodies_pct"),
+        "coberturas_wetlands": (3, "land_use_wetlands_pct"),
+        "coberturas_water_bodies": (4, "land_use_water_bodies_pct"),
         "coberturas_agriculture": (2, "agricultural_area"),
     }
 
@@ -296,7 +296,9 @@ def test_runtime_artifact_preserves_each_corine_level_1_land_use_class() -> None
     for layer_id, (selected_value, metric_id) in expected_land_use_layers.items():
         layer = layers[layer_id]
         assert layer.rendering["selectedValue"] == selected_value
-        assert layer.metric_ids == (metric_id,)
+        assert metric_id in layer.metric_ids
+        if layer_id != "coberturas_agriculture":
+            assert f"{metric_id}_of_aoi" in layer.metric_ids
 
 
 def test_v3_target_bundle_is_extracted_from_release_goals(

@@ -532,6 +532,7 @@ describe('PanelSwitcherComponent', () => {
     expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
       geometry,
       metrics: expect.arrayContaining(['priority_area_in_region', 'carbon_storage_biomass']),
+      solution_id: solution.id,
     });
     expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalledWith({
       geometry,
@@ -547,6 +548,7 @@ describe('PanelSwitcherComponent', () => {
     expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
       geometry,
       metrics: expect.arrayContaining(['species_richness_mammals']),
+      solution_id: solution.id,
     });
     expect(compiled.querySelector('#aoi-custom-metrics-status')).toBeNull();
     expect(compiled.querySelector('#aoi-custom-metrics-summary-grid')).toBeNull();
@@ -701,6 +703,7 @@ describe('PanelSwitcherComponent', () => {
     expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
       geometry,
       metrics: expect.arrayContaining(['species_richness_mammals']),
+      solution_id: solution.id,
     });
     const speciesRequest = vi
       .mocked(apiServiceSpy.getCustomPolygonMetrics)
@@ -776,6 +779,7 @@ describe('PanelSwitcherComponent', () => {
     expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
       geometry,
       metrics: expect.arrayContaining(['species_richness_mammals']),
+      solution_id: solution.id,
     });
 
     speciesMetrics$.error(new Error('species request timed out'));
@@ -1063,38 +1067,7 @@ describe('PanelSwitcherComponent', () => {
     );
   });
 
-  it.each([
-    {
-      label: 'municipality',
-      aoi: {
-        id: 'municipality:11001',
-        name: 'Bogota',
-        type: 'municipality' as const,
-        geometryUrl: '/boundaries/municipalities.geojson',
-        areaKm2: 20,
-      },
-    },
-    {
-      label: 'department',
-      aoi: {
-        id: 'department:50',
-        name: 'Meta',
-        type: 'department' as const,
-        geometryUrl: '/boundaries/departments.geojson',
-        areaKm2: 85_635,
-      },
-    },
-    {
-      label: 'SIRAP',
-      aoi: {
-        id: 'sirap:territorial_territorial_amazonia_3',
-        name: 'Territorial Amazonia',
-        type: 'sirap' as const,
-        geometryUrl: '/inputs/boundaries/sirap/example.geojson',
-        areaKm2: 120,
-      },
-    },
-  ])('does not POST $label geometry to custom-polygon for land use', async ({ aoi }) => {
+  it('renders compact of-AOI land-use percents on the within-AOI chart for known municipalities', async () => {
     const solution = buildTestSolution();
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
       of(
@@ -1107,11 +1080,24 @@ describe('PanelSwitcherComponent', () => {
             land_use_wetlands_pct: 5,
             land_use_water_bodies_pct: 5,
           }),
+          ...buildLandUseOfAoiPercentMetrics({
+            land_use_artificial_surfaces_pct_of_aoi: 30,
+            land_use_agricultural_areas_pct_of_aoi: 22,
+            land_use_forests_and_semi_natural_areas_pct_of_aoi: 40,
+            land_use_wetlands_pct_of_aoi: 4,
+            land_use_water_bodies_pct_of_aoi: 4,
+          }),
         ]),
       ),
     );
     appState.activeSolution$.set(solution);
-    appState.selectAOI(aoi);
+    appState.selectAOI({
+      id: 'municipality:11001',
+      name: 'Bogota',
+      type: 'municipality',
+      geometryUrl: '/boundaries/municipalities.geojson',
+      areaKm2: 20,
+    });
     appState.setRightSidebarMode('aoi');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
@@ -1119,15 +1105,108 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
     expect(
       compiled.querySelector('#aoi-landuse-scenario-bar-val-artificial-surfaces')?.textContent,
     ).toContain('8%');
-    expect(compiled.querySelector('#aoi-landuse-aoi-bar-artificial-surfaces')).toBeNull();
-    expect(compiled.querySelector('#aoi-landuse-aoi-chart-empty-copy')?.textContent).toContain(
-      'analysis.aoi.landUseLabels.withinAoiUnavailable',
-    );
+    expect(
+      compiled.querySelector('#aoi-landuse-aoi-bar-val-artificial-surfaces')?.textContent,
+    ).toContain('30%');
+    expect(
+      compiled.querySelector('#aoi-landuse-aoi-bar-val-agricultural-areas')?.textContent,
+    ).toContain('22%');
+    expect(
+      compiled
+        .querySelector('#aoi-landuse-aoi-bar-fill-forests-and-semi-natural-areas')
+        ?.getAttribute('style'),
+    ).toContain('width: 40%');
+    expect(compiled.querySelector('#aoi-landuse-aoi-chart')?.textContent).not.toContain('8%');
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toContain('30%');
+    expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
   });
+
+  it.each([
+    {
+      label: 'municipality',
+      aoi: {
+        id: 'municipality:11001',
+        name: 'Bogota',
+        type: 'municipality' as const,
+        geometryUrl: '/boundaries/municipalities.geojson',
+        areaKm2: 20,
+      },
+      buildDocument: (solutionId: string, metrics: MetricValue[]) =>
+        buildCachedAoiMetricsDocument(solutionId, metrics),
+    },
+    {
+      label: 'department',
+      aoi: {
+        id: 'department:50',
+        name: 'Meta',
+        type: 'department' as const,
+        geometryUrl: '/boundaries/departments.geojson',
+        areaKm2: 85_635,
+      },
+      buildDocument: (solutionId: string, metrics: MetricValue[]) =>
+        buildCachedDepartmentMetricsDocument(solutionId, metrics),
+    },
+    {
+      label: 'SIRAP',
+      aoi: {
+        id: 'sirap:territorial_territorial_amazonia_3',
+        name: 'Territorial Amazonia',
+        type: 'sirap' as const,
+        geometryUrl: '/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+        boundarySourceLayerKey: 'siraps',
+        boundarySourceId: 'aoi-siraps-combined-colombia',
+        boundaryGeometrySelection: 'whole-feature' as const,
+        areaKm2: 120,
+      },
+      buildDocument: (solutionId: string, metrics: MetricValue[]) =>
+        buildCachedSirapMetricsDocument(solutionId, metrics),
+    },
+  ])(
+    'does not POST $label geometry to custom-polygon for land use',
+    async ({ aoi, buildDocument }) => {
+      const solution = buildTestSolution();
+      const landUseMetrics = [
+        buildMetric('agricultural_area', 18, 'km²', 'number'),
+        ...buildLandUsePercentMetrics({
+          land_use_artificial_surfaces_pct: 8,
+          land_use_agricultural_areas_pct: 12,
+          land_use_forests_and_semi_natural_areas_pct: 70,
+          land_use_wetlands_pct: 5,
+          land_use_water_bodies_pct: 5,
+        }),
+        ...buildLandUseOfAoiPercentMetrics({
+          land_use_artificial_surfaces_pct_of_aoi: 30,
+          land_use_agricultural_areas_pct_of_aoi: 22,
+          land_use_forests_and_semi_natural_areas_pct_of_aoi: 40,
+          land_use_wetlands_pct_of_aoi: 4,
+          land_use_water_bodies_pct_of_aoi: 4,
+        }),
+      ];
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildDocument(solution.id, landUseMetrics)),
+      );
+      appState.activeSolution$.set(solution);
+      appState.selectAOI(aoi);
+      appState.setRightSidebarMode('aoi');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const compiled = fixture.nativeElement as HTMLElement;
+
+      expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
+      expect(
+        compiled.querySelector('#aoi-landuse-scenario-bar-val-artificial-surfaces')?.textContent,
+      ).toContain('8%');
+      expect(
+        compiled.querySelector('#aoi-landuse-aoi-bar-val-artificial-surfaces')?.textContent,
+      ).toContain('30%');
+      expect(compiled.querySelector('#aoi-landuse-aoi-chart-empty-copy')).toBeNull();
+    },
+  );
 
   it('renders live custom-polygon land-use percents on the full-AOI chart', async () => {
     const solution = buildTestSolution();
@@ -1140,6 +1219,11 @@ describe('PanelSwitcherComponent', () => {
           land_use_forests_and_semi_natural_areas_pct: 55,
           land_use_wetlands_pct: 10,
           land_use_water_bodies_pct: 5,
+          land_use_artificial_surfaces_pct_of_aoi: 12,
+          land_use_agricultural_areas_pct_of_aoi: 22,
+          land_use_forests_and_semi_natural_areas_pct_of_aoi: 50,
+          land_use_wetlands_pct_of_aoi: 8,
+          land_use_water_bodies_pct_of_aoi: 8,
         }),
       ),
     );
@@ -1157,19 +1241,23 @@ describe('PanelSwitcherComponent', () => {
     ).toContain('4 km²');
     expect(
       compiled.querySelector('#aoi-landuse-aoi-bar-val-artificial-surfaces')?.textContent,
-    ).toContain('10%');
+    ).toContain('12%');
     expect(
       compiled.querySelector('#aoi-landuse-aoi-bar-val-agricultural-areas')?.textContent,
-    ).toContain('20%');
+    ).toContain('22%');
     expect(
       compiled
         .querySelector('#aoi-landuse-aoi-bar-fill-forests-and-semi-natural-areas')
         ?.getAttribute('style'),
-    ).toContain('width: 55%');
-    expect(compiled.querySelector('#aoi-landuse-scenario-bar-artificial-surfaces')).toBeNull();
-    expect(compiled.querySelector('#aoi-landuse-scenario-chart-empty-copy')?.textContent).toContain(
-      'analysis.aoi.landUseLabels.scenarioAreaWithinAoiUnavailable',
-    );
+    ).toContain('width: 50%');
+    expect(
+      compiled.querySelector('#aoi-landuse-scenario-bar-val-artificial-surfaces')?.textContent,
+    ).toContain('10%');
+    expect(
+      compiled.querySelector('#aoi-landuse-scenario-bar-val-forests-and-semi-natural-areas')
+        ?.textContent,
+    ).toContain('55%');
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart-empty-copy')).toBeNull();
     expect(
       compiled
         .querySelector('#aoi-landuse-aoi-chart')
@@ -5272,6 +5360,25 @@ function buildCachedAoiMetricsDocument(
   };
 }
 
+function buildCachedDepartmentMetricsDocument(
+  solutionId: string,
+  metrics: MetricValue[],
+): CachedSolutionMetricsDocument {
+  return {
+    solutionId,
+    generatedAt: '2026-06-04T00:00:00.000Z',
+    geographies: {
+      national: { colombia: { metrics: [] } },
+      departments: {
+        '50': {
+          name: 'Meta',
+          metrics,
+        },
+      },
+    },
+  };
+}
+
 function buildCachedSirapMetricsDocument(
   solutionId: string,
   metrics: MetricValue[],
@@ -5366,6 +5473,18 @@ function buildLandUsePercentMetrics(values: {
   land_use_forests_and_semi_natural_areas_pct: number;
   land_use_wetlands_pct: number;
   land_use_water_bodies_pct: number;
+}): MetricValue[] {
+  return Object.entries(values).map(([metricId, value]) =>
+    buildMetric(metricId, value, '%', 'percent'),
+  );
+}
+
+function buildLandUseOfAoiPercentMetrics(values: {
+  land_use_artificial_surfaces_pct_of_aoi: number;
+  land_use_agricultural_areas_pct_of_aoi: number;
+  land_use_forests_and_semi_natural_areas_pct_of_aoi: number;
+  land_use_wetlands_pct_of_aoi: number;
+  land_use_water_bodies_pct_of_aoi: number;
 }): MetricValue[] {
   return Object.entries(values).map(([metricId, value]) =>
     buildMetric(metricId, value, '%', 'percent'),

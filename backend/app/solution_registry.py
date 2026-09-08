@@ -49,6 +49,7 @@ class RuntimeSolutionEntry:
     solution_id: str
     source_url: str
     release_id: str
+    local_path: Path | None = None
 
 
 @dataclass
@@ -98,10 +99,17 @@ class RuntimeSolutionRegistry:
             return raster, checksum
 
     def metadata(self) -> dict[str, Any]:
+        locally_bound = [
+            solution_id
+            for solution_id, entry in self.entries.items()
+            if entry.local_path is not None
+        ]
         return {
             "status": "ready",
             "registered_solution_count": len(self.entries),
             "loaded_solution_count": len(self._loaded),
+            "locally_bound_solution_count": len(locally_bound),
+            "locally_bound_solution_ids": locally_bound,
             "category_semantics": {
                 "1": "new_prioritizr",
                 "2": "pre_existing_aggregate",
@@ -115,6 +123,9 @@ class RuntimeSolutionRegistry:
         self,
         entry: RuntimeSolutionEntry,
     ) -> tuple[Path, str]:
+        if entry.local_path is not None and entry.local_path.is_file():
+            return entry.local_path, _sha256(entry.local_path)
+
         cache_key = hashlib.sha256(
             f"{entry.release_id}\0{entry.solution_id}\0{entry.source_url}".encode()
         ).hexdigest()
@@ -206,10 +217,17 @@ def build_solution_registry(
             raise SolutionRegistryError(
                 f"solution_registry_duplicate_id:{solution_id}"
             )
+        raw_local_path = raw.get("local_path")
+        local_path = (
+            Path(raw_local_path)
+            if isinstance(raw_local_path, str) and raw_local_path
+            else None
+        )
         entries[solution_id] = RuntimeSolutionEntry(
             solution_id=solution_id,
             source_url=source_url,
             release_id=release_id,
+            local_path=local_path,
         )
     return RuntimeSolutionRegistry(
         entries=entries,

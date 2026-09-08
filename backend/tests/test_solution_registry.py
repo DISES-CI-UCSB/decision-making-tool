@@ -59,6 +59,39 @@ def test_solution_registry_downloads_validates_and_reuses_raster(
     assert first.new_prioritizr_mask.tolist() == [[False, True], [False, False]]
 
 
+def test_solution_registry_uses_local_path_without_download(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "packaged-sample.tif"
+    _write_solution(source)
+
+    def urlopen(*_args: object, **_kwargs: object) -> _Response:
+        raise AssertionError("local_path solutions must not download from blob")
+
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    registry = build_solution_registry(
+        [
+            {
+                "solution_id": "eje-cafetero-001",
+                "source_url": "https://blob.example/solutions/eje-cafetero-001.tif",
+                "local_path": str(source),
+            }
+        ],
+        cache_dir=tmp_path / "cache",
+        reference_fingerprint=_fingerprint(),
+        public_blob_host="https://blob.example",
+        release_id="release-1",
+    )
+    assert registry is not None
+
+    raster, checksum = registry.load("eje-cafetero-001")
+
+    assert checksum
+    assert raster.pre_existing_mask.tolist() == [[True, False], [False, False]]
+    assert registry.metadata()["locally_bound_solution_ids"] == ["eje-cafetero-001"]
+
+
 def test_solution_registry_rejects_untrusted_source() -> None:
     with pytest.raises(SolutionRegistryError, match="source_not_allowed"):
         build_solution_registry(

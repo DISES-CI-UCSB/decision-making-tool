@@ -627,36 +627,42 @@ export class PanelSwitcherComponent {
   private readonly aoiLandUseBaseBars: readonly {
     id: string;
     metricId: CustomPolygonMetricId;
+    ofAoiMetricId: CustomPolygonMetricId;
     labelKey: string;
     dummyPercent: number;
   }[] = [
     {
       id: 'artificial-surfaces',
       metricId: 'land_use_artificial_surfaces_pct',
+      ofAoiMetricId: 'land_use_artificial_surfaces_pct_of_aoi',
       labelKey: 'analysis.aoi.landUseLabels.artificialSurfaces',
       dummyPercent: 15,
     },
     {
       id: 'agricultural-areas',
       metricId: 'land_use_agricultural_areas_pct',
+      ofAoiMetricId: 'land_use_agricultural_areas_pct_of_aoi',
       labelKey: 'analysis.aoi.landUseLabels.agriculturalAreas',
       dummyPercent: 25,
     },
     {
       id: 'forests-and-semi-natural-areas',
       metricId: 'land_use_forests_and_semi_natural_areas_pct',
+      ofAoiMetricId: 'land_use_forests_and_semi_natural_areas_pct_of_aoi',
       labelKey: 'analysis.aoi.landUseLabels.forestsAndSemiNaturalAreas',
       dummyPercent: 60,
     },
     {
       id: 'wetlands',
       metricId: 'land_use_wetlands_pct',
+      ofAoiMetricId: 'land_use_wetlands_pct_of_aoi',
       labelKey: 'analysis.aoi.landUseLabels.wetlands',
       dummyPercent: 0,
     },
     {
       id: 'water-bodies',
       metricId: 'land_use_water_bodies_pct',
+      ofAoiMetricId: 'land_use_water_bodies_pct_of_aoi',
       labelKey: 'analysis.aoi.landUseLabels.waterBodies',
       dummyPercent: 0,
     },
@@ -1456,26 +1462,34 @@ export class PanelSwitcherComponent {
       isDisplayableMetricValue(this.aoiMetricsById().get(bar.metricId)),
     ),
   );
-  /** Cached land_use_*_pct for known AOIs. Custom polygons leave this empty unless a second mix is already in the live response. */
+  protected readonly hasCompactAoiLandUseOfAoiBreakdown = computed(() =>
+    this.aoiLandUseBaseBars.some((bar) =>
+      isDisplayableMetricValue(this.aoiMetricsById().get(bar.ofAoiMetricId)),
+    ),
+  );
+  /** land_use_*_pct: scenario ∩ AOI mix. Compact for known AOIs, live for custom polygons. */
   protected readonly aoiLandUseScenarioBars = computed<AoiLandUseBar[]>(() => {
-    if (this.isCustomAoiSelected()) {
-      return [];
-    }
     if (this.hasLiveAoiLandUseBreakdown()) {
       return this.buildAoiLandUseBars('live');
     }
-    if (this.fillDummyAoiMetrics()) {
+    if (this.fillDummyAoiMetrics() && !this.isCustomAoiSelected()) {
       return this.buildAoiLandUseBars('dummy');
     }
     return [];
   });
   /**
-   * Whole-AOI composition from live custom-polygon metrics.
-   * Known admin/SIRAP AOIs stay on cached compact JSON and show empty copy until land_use_*_pct_of_aoi exists.
+   * Whole-AOI mix: compact land_use_*_pct_of_aoi for known admin/SIRAP,
+   * live of_aoi (falling back to live land_use_*_pct) for custom polygons.
    */
   protected readonly aoiLandUseAoiBars = computed<AoiLandUseBar[]>(() => {
+    if (this.isCustomAoiSelected() && this.hasCompactAoiLandUseOfAoiBreakdown()) {
+      return this.buildAoiLandUseBars('live', this.aoiMetricsById(), 'ofAoi');
+    }
     if (this.isCustomAoiSelected() && this.hasLiveAoiLandUseBreakdown()) {
       return this.buildAoiLandUseBars('live');
+    }
+    if (!this.isCustomAoiSelected() && this.hasCompactAoiLandUseOfAoiBreakdown()) {
+      return this.buildAoiLandUseBars('live', this.aoiMetricsById(), 'ofAoi');
     }
     return [];
   });
@@ -3582,6 +3596,7 @@ export class PanelSwitcherComponent {
   private buildAoiLandUseBars(
     mode: 'live' | 'dummy',
     metricsById: Map<string, MetricValue> = this.aoiMetricsById(),
+    metricKind: 'selectedShare' | 'ofAoi' = 'selectedShare',
   ): AoiLandUseBar[] {
     const palette = this.chartPalette().colors;
     const greenSlot = this.getGreenPaletteSlot();
@@ -3591,10 +3606,11 @@ export class PanelSwitcherComponent {
     return this.aoiLandUseBaseBars.map((bar, index) => {
       const slot = index === 0 ? greenSlot : (alternateSlots[index - 1] ?? 0);
       const color = palette[slot] ?? fallbackColor;
+      const metricId = metricKind === 'ofAoi' ? bar.ofAoiMetricId : bar.metricId;
       if (mode === 'dummy') {
         return {
           id: bar.id,
-          metricId: bar.metricId,
+          metricId,
           label: this.localizedText(bar.labelKey),
           percent: bar.dummyPercent,
           displayValue: `${bar.dummyPercent}%`,
@@ -3602,11 +3618,11 @@ export class PanelSwitcherComponent {
         };
       }
 
-      const metric = metricsById.get(bar.metricId);
+      const metric = metricsById.get(metricId);
       const livePercent = displayableMetricValue(metric);
       return {
         id: bar.id,
-        metricId: bar.metricId,
+        metricId,
         label: this.localizedText(bar.labelKey),
         percent: livePercent === null ? 0 : Math.max(0, Math.min(100, livePercent)),
         displayValue: isDisplayableMetricValue(metric) ? this.formatMetricForPanel(metric) : '--',
@@ -4721,9 +4737,7 @@ export class PanelSwitcherComponent {
       .getCustomPolygonMetrics({
         geometry,
         metrics,
-        ...(this.isSirapScopedSolution() && this.activeSolutionId()
-          ? { solution_id: this.activeSolutionId()! }
-          : {}),
+        ...(this.activeSolutionId() ? { solution_id: this.activeSolutionId()! } : {}),
       })
       .pipe(
         map((response) => {

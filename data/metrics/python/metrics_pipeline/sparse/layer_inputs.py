@@ -90,10 +90,11 @@ _OFF_MANIFEST_LAYERS: tuple[SparseLayerInput, ...] = (
         layer_type="binary",
     ),
     SparseLayerInput(
-        # CORINE Level 1 land cover: 1=artificial surfaces, 2=agricultural
-        # areas, 3=forests and semi-natural areas, 4=wetlands, 5=water
-        # bodies. A single artifact serves agricultural area (#9) and all
-        # five Level 1 percentage metrics (#51, #52, #54–56).
+        # CORINE Level 1 land cover in the current national raster:
+        # 1=forests and semi-natural areas, 2=agricultural areas,
+        # 3=wetlands, 4=water bodies, 5=artificial surfaces. A single
+        # artifact serves agricultural area (#9) and all five Level 1
+        # percentage metrics (#51, #52, #54–56).
         layer_id="coberturas",
         tif_pathname="boundaries/coberturas.tif",
         sparse_pathname="boundaries/coberturas.sparse.gz",

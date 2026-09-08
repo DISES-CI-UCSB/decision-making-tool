@@ -72,7 +72,14 @@
     },
     "custom_polygon_area": "Drawn AOI area",
     "priority_area_total": "Candidate conservation area",
-    "national_contribution": "Share of Colombia selected"
+    "national_contribution": "Share of Colombia selected",
+    "tier1": {
+      "land_use_artificial_surfaces_pct_of_aoi": "Artificial Surfaces (percent of AOI)",
+      "land_use_agricultural_areas_pct_of_aoi": "Agricultural Areas (percent of AOI)",
+      "land_use_forests_and_semi_natural_areas_pct_of_aoi": "Forests and Semi-natural Areas (percent of AOI)",
+      "land_use_wetlands_pct_of_aoi": "Wetlands (percent of AOI)",
+      "land_use_water_bodies_pct_of_aoi": "Water Bodies (percent of AOI)"
+    }
   },
   "mapLegend": {
     "title": "Legend",

@@ -45,11 +45,17 @@ from calculators import land_cover as calc_land_cover  # noqa: E402
 from calculators import protected_areas as calc_protected  # noqa: E402
 from calculators import social_governance as calc_social  # noqa: E402
 from calculators import water as calc_water  # noqa: E402
-from metric_definitions import METRIC_CATALOG, MetricDefinition  # noqa: E402
+from calculator_registry import overlap_percent_of_aoi_calculator  # noqa: E402
+from metric_definitions import (  # noqa: E402
+    METRIC_CATALOG,
+    NATIONAL_COBERTURAS_BLOB_PATH,
+    MetricDefinition,
+)
 from raster_metrics import (  # noqa: E402
     RasterError,
     RasterFingerprint,
     SolutionRaster,
+    overlap_km2,
     read_layer_mask,
     read_layer_values,
     read_reference_raster,
@@ -139,6 +145,7 @@ IMPLEMENTED_RASTER_METRIC_IDS = tuple(
         "aoi_percent",
         "binary_overlap_area",
         "binary_overlap_percent_of_selected",
+        "binary_overlap_percent_of_aoi",
         "weighted_sum",
         "weighted_percent_of_national",
     }
@@ -240,6 +247,32 @@ def metric_ids_for_request(metrics: list[str] | None, *, raster_artifact: bool) 
     return deduped
 
 
+def rasterize_custom_polygon_mask(
+    reference_raster_path: Path,
+    geometry: dict[str, Any],
+    *,
+    source_crs: Any = DEFAULT_BOUNDARY_CRS,
+) -> tuple[SolutionRaster, np.ndarray]:
+    """Rasterize a drawn AOI and keep the unclipped polygon mask.
+
+    ``selected_mask`` is clipped to the reference/planning valid cells so area
+    and selected-percent metrics stay on the solution grid. The returned
+    polygon mask is the raw rasterized geometry, including coberturas cells
+    that the SIRAP sample solution does not mark as valid.
+    """
+    base = read_reference_raster(reference_raster_path)
+    polygon_mask = rasterize_boundary(geometry, base.fingerprint, source_crs=source_crs)
+    selected = polygon_mask & base.valid_mask
+    raster = replace(
+        base,
+        selected_mask=selected,
+        new_prioritizr_mask=selected.copy(),
+        pre_existing_mask=np.zeros_like(selected),
+        selected_cells=int(selected.sum()),
+    )
+    return raster, polygon_mask
+
+
 def build_custom_aoi_raster(
     reference_raster_path: Path,
     geometry: dict[str, Any],
@@ -251,16 +284,12 @@ def build_custom_aoi_raster(
     Delegates to the metrics pipeline's boundary rasterizer so precomputed
     boundary metrics and live custom-AOI metrics discretize identically.
     """
-    base = read_reference_raster(reference_raster_path)
-    selected = rasterize_boundary(geometry, base.fingerprint, source_crs=source_crs)
-    selected &= base.valid_mask
-    return replace(
-        base,
-        selected_mask=selected,
-        new_prioritizr_mask=selected.copy(),
-        pre_existing_mask=np.zeros_like(selected),
-        selected_cells=int(selected.sum()),
+    raster, _polygon_mask = rasterize_custom_polygon_mask(
+        reference_raster_path,
+        geometry,
+        source_crs=source_crs,
     )
+    return raster
 
 
 def calculate_raster_metrics_for_aoi(
@@ -270,6 +299,9 @@ def calculate_raster_metrics_for_aoi(
     species_index: RuntimeSpeciesQueryIndex | None,
     species_pool_sizes: dict[str, Any],
     metric_ids: list[str],
+    *,
+    aoi_mask: np.ndarray | None = None,
+    selected_raster: SolutionRaster | None = None,
 ) -> tuple[dict[str, float | None], dict[str, Any]]:
     metrics: dict[str, float | None] = {}
     unavailable: list[dict[str, str]] = []
@@ -345,10 +377,22 @@ def calculate_raster_metrics_for_aoi(
             continue
 
         try:
-            if definition.kind in {"binary_overlap_area", "binary_overlap_percent_of_selected"}:
-                mask = _layer_mask(layer, raster, mask_cache)
+            if definition.kind in {
+                "binary_overlap_area",
+                "binary_overlap_percent_of_selected",
+                "binary_overlap_percent_of_aoi",
+            }:
+                mask = _layer_mask(layer, raster, mask_cache, definition)
                 used_layers.add(layer_id)
-                metrics[metric_id] = _calculate_overlap_metric(definition, raster, mask)
+                metrics[metric_id] = _calculate_overlap_metric(
+                    definition,
+                    raster,
+                    mask,
+                    aoi_mask=aoi_mask,
+                    selected_raster=selected_raster,
+                    layer=layer,
+                    value_cache=value_cache,
+                )
                 continue
             if definition.kind in {"weighted_sum", "weighted_percent_of_national"}:
                 values = _layer_values(layer, raster, value_cache)
@@ -386,14 +430,27 @@ def calculate_raster_metrics_for_aoi(
     return metrics, coverage
 
 
+def _resolved_layer_rendering(
+    layer: RuntimeRasterLayer,
+    definition: MetricDefinition,
+) -> dict[str, Any]:
+    catalog_rendering = definition.off_manifest_rendering
+    source_url = layer.source_url or ""
+    if catalog_rendering and NATIONAL_COBERTURAS_BLOB_PATH in source_url:
+        return catalog_rendering
+    return layer.rendering
+
+
 def _layer_mask(
     layer: RuntimeRasterLayer,
     raster: SolutionRaster,
     cache: dict[str, np.ndarray],
+    definition: MetricDefinition,
 ) -> np.ndarray:
-    key = f"{layer.path}:{layer.rendering}"
+    rendering = _resolved_layer_rendering(layer, definition)
+    key = f"{layer.path}:{rendering}"
     if key not in cache:
-        cache[key] = read_layer_mask(layer.path, raster.fingerprint, rendering=layer.rendering)
+        cache[key] = read_layer_mask(layer.path, raster.fingerprint, rendering=rendering)
     return cache[key]
 
 
@@ -412,13 +469,41 @@ def _calculate_overlap_metric(
     definition: MetricDefinition,
     raster: SolutionRaster,
     mask: np.ndarray,
+    *,
+    aoi_mask: np.ndarray | None = None,
+    selected_raster: SolutionRaster | None = None,
+    layer: RuntimeRasterLayer | None = None,
+    value_cache: dict[str, np.ndarray] | None = None,
 ) -> float | None:
     layer_id = definition.layer_id or ""
+    if definition.kind == "binary_overlap_percent_of_aoi":
+        calc_fn = overlap_percent_of_aoi_calculator(definition.metric_id)
+        if calc_fn is None:
+            raise ValueError(f"No AOI-percent calculator registered for {definition.metric_id}.")
+        # Whole-AOI mix uses the drawn polygon, not the solution selection.
+        boundary = aoi_mask if aoi_mask is not None else raster.selected_mask
+        if layer is not None and definition.metric_id.startswith("land_use_"):
+            # (polygon ∩ class) / (polygon ∩ classified coberturas cells).
+            # SIRAP sample-solution references mark only selected planning
+            # cells as valid; coberturas still covers the rest of the grid.
+            classified = np.isfinite(_layer_values(layer, raster, value_cache or {}))
+            aoi = np.asarray(boundary, dtype=bool) & classified
+            aoi_area = overlap_km2(aoi, np.ones(aoi.shape, dtype=bool), raster.pixel_area_km2_per_row)
+            if aoi_area == 0.0:
+                return None
+            return overlap_km2(aoi, mask, raster.pixel_area_km2_per_row) / aoi_area * 100.0
+        scoped = raster.with_boundary_mask(boundary)
+        return calc_fn(scoped, mask)
     if definition.kind == "binary_overlap_percent_of_selected":
         calc_fn = _OVERLAP_PERCENT_CALCULATORS.get(layer_id)
         if calc_fn is None:
             raise ValueError(f"No percent calculator registered for {layer_id}.")
-        return calc_fn(raster, mask)
+        # Land-use mix is (polygon ∩ solution ∩ class) / (polygon ∩ solution).
+        # water_regulation and other selected-percent metrics stay polygon-as-selected.
+        use_solution_intersection = (
+            selected_raster is not None and definition.metric_id.startswith("land_use_")
+        )
+        return calc_fn(selected_raster if use_solution_intersection else raster, mask)
 
     calc_fn = _OVERLAP_CALCULATORS.get(layer_id)
     if calc_fn is None:

@@ -66,11 +66,25 @@ export const CUSTOM_AOI_FAST_METRIC_IDS: CustomPolygonMetricId[] = [
   'land_use_forests_and_semi_natural_areas_pct',
   'land_use_wetlands_pct',
   'land_use_water_bodies_pct',
+  'land_use_artificial_surfaces_pct_of_aoi',
+  'land_use_agricultural_areas_pct_of_aoi',
+  'land_use_forests_and_semi_natural_areas_pct_of_aoi',
+  'land_use_wetlands_pct_of_aoi',
+  'land_use_water_bodies_pct_of_aoi',
   'indigenous_reservations_area',
   'community_councils_area',
   'protected_area_runap_km2',
   'national_parks_pct',
   'indigenous_territory_pct',
+];
+
+/** Whole-AOI mix. Known AOIs read these from compact JSON; custom AOIs request them live. */
+export const AOI_LAND_USE_OF_AOI_METRIC_IDS: CustomPolygonMetricId[] = [
+  'land_use_artificial_surfaces_pct_of_aoi',
+  'land_use_agricultural_areas_pct_of_aoi',
+  'land_use_forests_and_semi_natural_areas_pct_of_aoi',
+  'land_use_wetlands_pct_of_aoi',
+  'land_use_water_bodies_pct_of_aoi',
 ];
 
 export const CUSTOM_AOI_SPECIES_METRIC_IDS: CustomPolygonMetricId[] = [
@@ -259,6 +273,36 @@ export const CUSTOM_AOI_METRIC_DEFINITIONS: Partial<
     metricId: 'land_use_water_bodies_pct',
     unit: '%',
     labelKey: 'metrics.tier1.land_use_water_bodies_pct',
+    formatHint: 'percent',
+  },
+  land_use_artificial_surfaces_pct_of_aoi: {
+    metricId: 'land_use_artificial_surfaces_pct_of_aoi',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_artificial_surfaces_pct_of_aoi',
+    formatHint: 'percent',
+  },
+  land_use_agricultural_areas_pct_of_aoi: {
+    metricId: 'land_use_agricultural_areas_pct_of_aoi',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_agricultural_areas_pct_of_aoi',
+    formatHint: 'percent',
+  },
+  land_use_forests_and_semi_natural_areas_pct_of_aoi: {
+    metricId: 'land_use_forests_and_semi_natural_areas_pct_of_aoi',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_forests_and_semi_natural_areas_pct_of_aoi',
+    formatHint: 'percent',
+  },
+  land_use_wetlands_pct_of_aoi: {
+    metricId: 'land_use_wetlands_pct_of_aoi',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_wetlands_pct_of_aoi',
+    formatHint: 'percent',
+  },
+  land_use_water_bodies_pct_of_aoi: {
+    metricId: 'land_use_water_bodies_pct_of_aoi',
+    unit: '%',
+    labelKey: 'metrics.tier1.land_use_water_bodies_pct_of_aoi',
     formatHint: 'percent',
   },
   indigenous_reservations_area: {

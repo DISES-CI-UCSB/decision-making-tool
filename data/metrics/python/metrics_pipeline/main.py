@@ -111,6 +111,7 @@ from calculator_registry import (
     categorical_area_calculator,
     overlap_area_calculator,
     overlap_percent_calculator,
+    overlap_percent_of_aoi_calculator,
     weighted_percent_calculator,
     weighted_sum_calculator,
 )
@@ -2558,6 +2559,32 @@ def _compute_overlap_from_mask(
             notes=f"(Selected ∩ '{layer_id}') / selected_area × 100.",
             source=f"raster:{layer_id}",
         )
+    if definition.kind == "binary_overlap_percent_of_aoi":
+        calc_fn = overlap_percent_of_aoi_calculator(definition.metric_id)
+        if calc_fn is None:
+            return _metric_value(
+                definition,
+                value=None,
+                status="pending",
+                notes=f"No AOI-percent calculator registered for '{definition.metric_id}'.",
+                source=f"raster:{layer_id}",
+            )
+        pct = calc_fn(raster, layer_mask)
+        if pct is None:
+            return _metric_value(
+                definition,
+                value=None,
+                status="blocked",
+                notes="AOI area is zero; cannot compute percent.",
+                source=f"raster:{layer_id}",
+            )
+        return _metric_value(
+            definition,
+            value=pct,
+            status="ready",
+            notes=f"(AOI ∩ '{layer_id}') / aoi_area × 100.",
+            source=f"raster:{layer_id}",
+        )
 
     # binary_overlap_area
     calc_fn = overlap_area_calculator(layer_id)
@@ -3909,7 +3936,11 @@ def _build_metrics(
         elif defn.kind == "blocked_no_data":
             results.append(_blocked_no_data(defn))
 
-        elif defn.kind in ("binary_overlap_area", "binary_overlap_percent_of_selected"):
+        elif defn.kind in (
+            "binary_overlap_area",
+            "binary_overlap_percent_of_selected",
+            "binary_overlap_percent_of_aoi",
+        ):
             layer_id = defn.layer_id or ""
             if preloaded_layer_masks and layer_id in preloaded_layer_masks:
                 rendering = _layer_rendering(manifest, solution, layer_id)
@@ -4131,7 +4162,11 @@ def _preload_layer_masks(
     """
     # Determine which layer_ids are used by mask-based metric kinds.
     mask_kinds = frozenset(
-        {"binary_overlap_area", "binary_overlap_percent_of_selected"}
+        {
+            "binary_overlap_area",
+            "binary_overlap_percent_of_selected",
+            "binary_overlap_percent_of_aoi",
+        }
     )
     mask_layer_ids = {
         m.layer_id
@@ -4625,7 +4660,12 @@ def _process_solution(
             1
             for m in definitions
             if m.layer_id
-            and m.kind in ("binary_overlap_area", "binary_overlap_percent_of_selected")
+            and m.kind
+            in (
+                "binary_overlap_area",
+                "binary_overlap_percent_of_selected",
+                "binary_overlap_percent_of_aoi",
+            )
         )
         value_count = sum(
             1

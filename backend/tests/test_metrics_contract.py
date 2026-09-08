@@ -110,3 +110,29 @@ def test_custom_polygon_handles_unsupported_metric() -> None:
     detail = response.json()["detail"]
     assert detail["status"] == "invalid_request"
     assert "Unsupported metric ids" in detail["message"]
+
+
+def test_custom_polygon_unsupported_metric_returns_422_when_nodata_is_nan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    use_tiny_artifact(required=True)
+    from app import main as main_module
+    from app.artifacts import get_artifact_state as real_get_artifact_state
+
+    def nan_nodata_state(settings):
+        state = real_get_artifact_state(settings)
+        metadata = dict(state.metadata)
+        metadata["reference_raster"] = {"nodata": float("nan")}
+        return state.model_copy(update={"metadata": metadata})
+
+    monkeypatch.setattr(main_module, "get_artifact_state", nan_nodata_state)
+    client = TestClient(app)
+    request = {**POLYGON_REQUEST, "metrics": ["carbon"]}
+
+    response = client.post("/metrics/custom-polygon", json=request)
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["status"] == "invalid_request"
+    assert "Unsupported metric ids" in detail["message"]
+    assert detail["artifact_state"]["metadata"]["reference_raster"]["nodata"] is None

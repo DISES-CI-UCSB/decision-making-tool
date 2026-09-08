@@ -16,6 +16,10 @@ def test_every_layer_metric_has_a_registered_calculator():
             calculator = overlap_area_calculator(definition.layer_id or "")
         elif definition.kind == "binary_overlap_percent_of_selected":
             calculator = overlap_percent_calculator(definition.layer_id or "")
+        elif definition.kind == "binary_overlap_percent_of_aoi":
+            from calculator_registry import overlap_percent_of_aoi_calculator
+
+            calculator = overlap_percent_of_aoi_calculator(definition.metric_id)
         elif definition.kind == "categorical_overlap_area":
             calculator = categorical_area_calculator(definition.metric_id)
         elif definition.kind == "weighted_sum":
@@ -33,11 +37,16 @@ def test_every_layer_metric_has_a_registered_calculator():
 
 def test_corine_level_1_definitions_use_authoritative_class_ids():
     expected_class_ids = {
-        "land_use_artificial_surfaces_pct": 1,
+        "land_use_artificial_surfaces_pct": 5,
         "land_use_agricultural_areas_pct": 2,
-        "land_use_forests_and_semi_natural_areas_pct": 3,
-        "land_use_wetlands_pct": 4,
-        "land_use_water_bodies_pct": 5,
+        "land_use_forests_and_semi_natural_areas_pct": 1,
+        "land_use_wetlands_pct": 3,
+        "land_use_water_bodies_pct": 4,
+        "land_use_artificial_surfaces_pct_of_aoi": 5,
+        "land_use_agricultural_areas_pct_of_aoi": 2,
+        "land_use_forests_and_semi_natural_areas_pct_of_aoi": 1,
+        "land_use_wetlands_pct_of_aoi": 3,
+        "land_use_water_bodies_pct_of_aoi": 4,
     }
     definitions = {definition.metric_id: definition for definition in METRIC_CATALOG}
 

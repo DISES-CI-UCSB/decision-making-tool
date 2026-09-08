@@ -6,7 +6,8 @@ from typing import Any, Iterable
 from .artifacts import RuntimeArtifact
 from .metric_adapters import (
     AREA_METRIC_IDS,
-    build_custom_aoi_raster,
+    SolutionRaster,
+    rasterize_custom_polygon_mask,
     calculate_area_metrics_from_masks,
     calculate_raster_metrics_for_aoi,
     metric_ids_for_request,
@@ -21,6 +22,7 @@ def calculate_custom_polygon_metrics(
     artifact: RuntimeArtifact,
     geometry: dict[str, Any],
     requested_metrics: list[str] | None,
+    solution_raster: SolutionRaster | None = None,
 ) -> tuple[dict[str, float | None], dict[str, Any]]:
     started = time.perf_counter()
     polygons = validate_polygon_geometry(geometry)
@@ -37,7 +39,17 @@ def calculate_custom_polygon_metrics(
         raise PolygonMetricError(str(exc)) from exc
 
     try:
-        raster = build_custom_aoi_raster(artifact.reference_raster_path, geometry)
+        raster, polygon_mask = rasterize_custom_polygon_mask(
+            artifact.reference_raster_path,
+            geometry,
+        )
+        selected_in_aoi = None
+        if solution_raster is not None:
+            if not solution_raster.fingerprint.matches(raster.fingerprint):
+                raise PolygonMetricError(
+                    "Solution raster grid does not match the custom AOI reference grid."
+                )
+            selected_in_aoi = solution_raster.with_boundary_mask(polygon_mask)
         metrics, coverage = calculate_raster_metrics_for_aoi(
             raster,
             artifact.raster_layers,
@@ -45,7 +57,11 @@ def calculate_custom_polygon_metrics(
             artifact.species_index,
             artifact.species_pool_sizes,
             metric_ids,
+            aoi_mask=polygon_mask,
+            selected_raster=selected_in_aoi,
         )
+    except PolygonMetricError:
+        raise
     except Exception as exc:
         raise PolygonMetricError(f"Custom polygon raster calculation failed: {exc}") from exc
 
@@ -57,6 +73,9 @@ def calculate_custom_polygon_metrics(
         "metric_source": "colombia-raster-geometry-mask-v1",
         "metric_coverage": coverage,
     }
+    metadata["polygon_cell_count"] = int(polygon_mask.sum())
+    if selected_in_aoi is not None:
+        metadata["selected_in_aoi_cell_count"] = int(selected_in_aoi.selected_cells)
     return metrics, metadata
 
 
