@@ -170,6 +170,6 @@ The script reports whether `BLOB_READ_WRITE_TOKEN` is present as `true` or `fals
 
 ## Real Runtime Artifact Builder
 
-Use `backend/scripts/build_runtime_artifact.py` on the VM to create the live custom AOI artifact from public Blob source rasters. The builder uses `ecosistemas` as the Colombia reference grid, reuses downloaded source files for duplicate layer views, and writes coverage groups for implemented, feasible-next, blocked, and unsuitable metrics.
+Use `backend/scripts/build_runtime_artifact.py` on the VM to create the live custom AOI artifact from public Blob source rasters. The builder uses the EPSG:9377 land-solution grid as the Colombia reference grid by default, reuses downloaded source files for duplicate layer views, and writes coverage groups for implemented, feasible-next, blocked, and unsuitable metrics.
 
 The current real artifact implements 23 metric ids: `priority_area_in_region`, `national_contribution`, `priority_area_pct_of_region`, ecosystem overlaps, land-cover percentages/area, protected-area overlaps, social/governance overlaps, water regulation metrics, and carbon weighted metrics. It intentionally leaves species metrics for a later species accumulator artifact, leaves manifest-only solution metadata unavailable for arbitrary polygons, and leaves pairwise comparison metrics out of the live custom polygon path.

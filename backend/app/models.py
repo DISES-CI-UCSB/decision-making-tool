@@ -305,12 +305,12 @@ class DetailedSpeciesCoverageRecord(BaseModel):
     range_area_km2: float
     range_in_aoi_area_km2: float
     range_in_aoi_pct: float
-    solution_covered_in_aoi_area_km2: float
-    solution_covered_in_aoi_pct: float
-    pre_existing_covered_in_aoi_area_km2: float
-    pre_existing_covered_in_aoi_pct: float
-    new_covered_in_aoi_area_km2: float
-    new_covered_in_aoi_pct: float
+    solution_covered_in_aoi_area_km2: float | None = None
+    solution_covered_in_aoi_pct: float | None = None
+    pre_existing_covered_in_aoi_area_km2: float | None = None
+    pre_existing_covered_in_aoi_pct: float | None = None
+    new_covered_in_aoi_area_km2: float | None = None
+    new_covered_in_aoi_pct: float | None = None
     total_in_aoi: float | None = None
     held_in_aoi: float | None = None
     coverage_within_aoi: float | None = None
@@ -321,7 +321,7 @@ class DetailedSpeciesCoverageRecord(BaseModel):
 class DetailedSpeciesCoverageResult(BaseModel):
     artifact_version: str
     solution_id: str
-    solution_raster_checksum: str
+    solution_raster_checksum: str | None = None
     records: list[DetailedSpeciesCoverageRecord]
 
 

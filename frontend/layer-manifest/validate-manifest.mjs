@@ -5,6 +5,7 @@ import {
   LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
   PUBLIC_BLOB_HOST,
 } from '../shared/runtime-manifest.constants.mjs';
+import { assertHydrationPackage } from '../shared/hydration-package.mjs';
 import { readSolutionCatalog, validateManifestAgainstCatalog } from './lib/solution-catalog.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -315,6 +316,9 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
   assert(Array.isArray(manifest.categories), 'categories must be an array');
   assert(Array.isArray(manifest.layers), 'layers must be an array');
   assert(Array.isArray(manifest.solutions), 'solutions must be an array');
+  if ('hydrationPackage' in manifest) {
+    assertHydrationPackage(manifest.hydrationPackage);
+  }
 
   const subcategoryIdsByCategoryId = new Map();
   const categoryIds = manifest.categories.map((category, index) => {

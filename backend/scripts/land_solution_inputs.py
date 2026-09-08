@@ -1,12 +1,15 @@
 """Published EPSG:9377 land-solution inputs and the pinned reference raster.
 
-The custom AOI backend can run on two reference grids. The legacy ``ecosistemas``
-grid is EPSG:4326 and reads the blob objects directly under
+The custom AOI backend can run on two reference grids. Local Docker hydrate and
+``python -m scripts.build_runtime_artifact`` default to ``land-solution``
+(EPSG:9377 1353x1838 1 km, shared with the precomputed v0.2 metrics) and read
+objects under the ``land-solution-9377/`` sub-prefix of
 ``inputs/features/ecosystems/`` and ``inputs/features/species-sparse/``. The
-``land-solution`` grid is the EPSG:9377 1353x1838 1 km grid shared with the
-precomputed v0.2 metrics, and reads its own objects under the
-``land-solution-9377/`` sub-prefix of those same directories. The two sets never
-share a pathname, so republishing one cannot disturb the other.
+legacy ``ecosistemas`` grid is EPSG:4326 and remains an opt-in
+``--reference-grid ecosistemas`` path that reads the 4326 objects directly
+under those same directories. The two sets never share a pathname, so
+republishing one cannot disturb the other. ``--production-v3`` is a separate
+fail-closed Mesa/immutable-release profile, not the local default.
 
 Reference raster
 ----------------
@@ -61,8 +64,8 @@ ECOSYSTEM_BLOB_PATHS = {
     "provenance": f"{ECOSYSTEM_BLOB_DIR}/ecosistemas_IDEAM_MEC_2024.provenance.json",
 }
 
-# The EPSG:4326 objects the currently deployed backend rebuilds itself from.
-# Recorded here so the publish step can assert it is not writing over them.
+# The EPSG:4326 objects the legacy ``--reference-grid ecosistemas`` path still
+# reads. Recorded here so the publish step can assert it is not writing over them.
 LEGACY_4326_BLOB_PATHS = (
     "inputs/features/ecosystems/ecosistemas_IDEAM_MEC_2024.tif",
     "inputs/features/ecosystems/ecosistemas_IDs_IDEAM_MEC_2024.csv",

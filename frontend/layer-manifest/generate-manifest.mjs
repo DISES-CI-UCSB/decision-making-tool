@@ -18,6 +18,7 @@ import {
   readSolutionCatalog,
   validateManifestAgainstCatalog,
 } from './lib/solution-catalog.mjs';
+import { buildHydrationPackage } from '../shared/hydration-package.mjs';
 import {
   LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
   PUBLIC_BLOB_HOST,
@@ -2639,6 +2640,7 @@ async function main() {
     categories,
     layers,
     solutions,
+    hydrationPackage: buildHydrationPackage(PUBLIC_BLOB_HOST),
     referenceData: {
       speciesLookup: {
         description:

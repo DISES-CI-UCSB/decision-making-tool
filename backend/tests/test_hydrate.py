@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.main import cors_origins
-from scripts.hydrate import prepend_default_args
+from scripts.hydrate import _sirap_artifact_root, prepend_default_args
 
 
 def test_hydrate_adds_artifact_dir_from_env(monkeypatch) -> None:
@@ -18,6 +18,8 @@ def test_hydrate_adds_artifact_dir_from_env(monkeypatch) -> None:
 
 def test_hydrate_keeps_explicit_artifact_dir(monkeypatch) -> None:
     monkeypatch.setenv("DMT_ARTIFACT_DIR", "/tmp/runtime-artifacts")
+    monkeypatch.delenv("MANIFEST_BLOB_URL", raising=False)
+    monkeypatch.delenv("DMT_MANIFEST_URL", raising=False)
 
     assert prepend_default_args(["--artifact-dir", "/custom", "--force"]) == [
         "--artifact-dir",
@@ -47,6 +49,16 @@ def test_cors_origins_include_docker_frontend_and_extras() -> None:
     assert "http://127.0.0.1:8084" in origins
     assert "https://app.parques.example" in origins
     assert "https://preview.example" in origins
+
+
+def test_sirap_artifact_root_defaults_under_national_dir(monkeypatch) -> None:
+    monkeypatch.delenv("DMT_SIRAP_ARTIFACT_ROOT", raising=False)
+    assert _sirap_artifact_root("/backend/runtime-artifacts") == "/backend/runtime-artifacts/sirap"
+
+
+def test_sirap_artifact_root_uses_env(monkeypatch) -> None:
+    monkeypatch.setenv("DMT_SIRAP_ARTIFACT_ROOT", "/custom/sirap")
+    assert _sirap_artifact_root("/backend/runtime-artifacts") == "/custom/sirap"
 
 
 def test_hydrate_progress_helpers() -> None:

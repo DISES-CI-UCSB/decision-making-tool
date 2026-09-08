@@ -1,6 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  RUNTIME_CATALOG_RELEASE_INDEX_BLOB_URL,
+  RUNTIME_MANIFEST_BLOB_URL,
+} from '../../shared/runtime-manifest.constants.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,8 +48,10 @@ export const environment = {
     accessRequestNotificationEmail: ${toTsString(readOptionalEnv('ACCESS_REQUEST_NOTIFICATION_EMAIL'))},
   },
   googleClientId: ${toTsString(readOptionalEnv('GOOGLE_CLIENT_ID'))},
-  manifestBlobUrl: ${toTsString(readOptionalEnv('MANIFEST_BLOB_URL'))},
-  catalogReleaseIndexBlobUrl: ${toTsString(readOptionalEnv('CATALOG_RELEASE_INDEX_BLOB_URL'))},
+  manifestBlobUrl: ${toTsString(readOptionalEnv('MANIFEST_BLOB_URL') || RUNTIME_MANIFEST_BLOB_URL)},
+  catalogReleaseIndexBlobUrl: ${toTsString(
+    readOptionalEnv('CATALOG_RELEASE_INDEX_BLOB_URL') || RUNTIME_CATALOG_RELEASE_INDEX_BLOB_URL,
+  )},
   sirapManifestBlobUrl: ${toTsString(readOptionalEnv('SIRAP_MANIFEST_BLOB_URL'))},
   blobAssetProxyPath: ${toTsString(readOptionalEnv('BLOB_ASSET_PROXY_PATH'))},
   solutionCapabilityOverrides: {},

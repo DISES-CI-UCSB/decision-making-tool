@@ -14,6 +14,7 @@ from scripts.aligned_cache import (
     RESAMPLING_BY_LAYER_CLASS,
     AlignedCacheError,
     AlignedRasterCache,
+    align_layer_to_reference,
     grid_descriptor,
     sha256_file,
 )
@@ -201,19 +202,26 @@ def test_ecosystem_layer_is_the_authoritative_iavh_raster() -> None:
     assert not any(spec.layer_id == "ecosistemas" for spec in specs)
 
 
-@pytest.mark.parametrize(
-    "argv",
-    [
-        ["build", "--reference-grid", "land-solution"],
-        ["build", "--reference-grid", "land-solution", "--reference-raster", "solution.tif"],
-        ["build", "--reference-raster", "solution.tif"],
-    ],
-)
-def test_land_solution_build_requires_an_aligned_cache(
-    argv: list[str],
+def test_land_solution_build_does_not_require_an_aligned_cache(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(sys, "argv", argv)
+    monkeypatch.setattr(sys, "argv", ["build", "--reference-grid", "land-solution"])
+
+    args = parse_args()
+
+    assert args.reference_grid == "land-solution"
+    assert args.aligned_cache is None
+    assert args.reference_raster == LAND_SOLUTION_REFERENCE_PIN.url
+
+
+def test_reference_raster_is_rejected_for_the_ecosistemas_grid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["build", "--reference-grid", "ecosistemas", "--reference-raster", "solution.tif"],
+    )
 
     with pytest.raises(SystemExit):
         parse_args()
@@ -234,11 +242,55 @@ def test_land_solution_build_defaults_to_the_pinned_reference_raster(
     assert args.reference_raster == LAND_SOLUTION_REFERENCE_PIN.url
 
 
-def test_default_build_still_targets_the_ecosistemas_grid(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_default_build_targets_the_land_solution_grid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "argv", ["build"])
+
+    args = parse_args()
+
+    assert args.reference_grid == "land-solution"
+    assert args.aligned_cache is None
+    assert getattr(args, "production_v3", False) is False
+    assert args.reference_raster == LAND_SOLUTION_REFERENCE_PIN.url
+
+
+def test_ecosistemas_build_leaves_reference_raster_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sys, "argv", ["build", "--reference-grid", "ecosistemas"])
 
     args = parse_args()
 
     assert args.reference_grid == "ecosistemas"
     assert args.reference_raster is None
     assert args.aligned_cache is None
+
+
+def test_align_layer_to_reference_warps_onto_target_grid(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.tif"
+    dest_path = tmp_path / "aligned.tif"
+    with rasterio.open(
+        source_path,
+        "w",
+        driver="GTiff",
+        width=3,
+        height=4,
+        count=1,
+        dtype="uint8",
+        crs="EPSG:4326",
+        transform=Affine(0.5, 0.0, -75.0, 0.0, -0.5, 6.0),
+        nodata=0,
+    ) as dataset:
+        dataset.write(np.ones((4, 3), dtype=np.uint8), 1)
+
+    align_layer_to_reference(
+        source_path,
+        dest_path,
+        layer_id="biomasa",
+        layer_class="fraction_or_density",
+        reference=TARGET,
+    )
+
+    with rasterio.open(dest_path) as aligned:
+        assert aligned.width == TARGET.width
+        assert aligned.height == TARGET.height
+        assert str(aligned.crs) == TARGET.crs

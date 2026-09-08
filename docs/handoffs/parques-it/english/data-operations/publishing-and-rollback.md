@@ -299,15 +299,23 @@ There is no automatic metrics archive. If no prior local generation directory/re
 
 ### Backend runtime artifacts
 
-1. Select the prior manifest URL/source set and rebuild it into the VM artifact directory (**supported builder**):
+1. Select the prior manifest URL/source set and rebuild it (**supported builder**). Local Docker default is flagless except `--force` when replacing existing volume files:
 
    ```bash
-   backend/.venv/bin/python backend/scripts/build_runtime_artifact.py
+   docker compose run --rm --build backend hydrate --force
    ```
 
-   Use the supported `--manifest-url`, `--solution-id`, `--artifact-dir`, or `--force` options when required by the recorded release.
+   That reads live `manifest/manifest.json` (`hydrationPackage`, EPSG:9377). Pass `--manifest-url` only when restoring a recorded prior catalog. `--production-v3` is the optional Mesa/immutable production profile, not the local default. `--aligned-cache` is optional. Do not pass `--reference-grid ecosistemas` unless you intentionally want the legacy EPSG:4326 grid.
 
-2. Recreate the service with required artifacts (**supported**):
+   Host equivalent: `backend/.venv/bin/python backend/scripts/build_runtime_artifact.py`. Use `--manifest-url`, `--solution-id`, `--artifact-dir`, or `--force` when the recorded release requires them.
+
+2. Recreate the service with required artifacts (**supported**). Local Docker:
+
+   ```bash
+   docker compose up -d --build --force-recreate
+   ```
+
+   Production VM:
 
    ```bash
    DMT_ARTIFACT_REQUIRED=true \
@@ -317,7 +325,7 @@ There is no automatic metrics archive. If no prior local generation directory/re
 3. Inspect logs and readiness (**supported**):
 
    ```bash
-   docker compose -f backend/docker-compose.yml logs --tail=100 backend
+   docker compose logs --tail=100 backend
    curl http://127.0.0.1:8000/ready
    ```
 

@@ -19,7 +19,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import rasterio
+from rasterio.transform import Affine
+from rasterio.warp import Resampling, reproject
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
@@ -39,6 +42,67 @@ RESAMPLING_BY_LAYER_CLASS = {
     "fraction_or_density": "average",
     "extensive": "sum",
 }
+_RESAMPLING = {
+    "nearest": Resampling.nearest,
+    "bilinear": Resampling.bilinear,
+    "average": Resampling.average,
+    "sum": Resampling.sum,
+}
+
+
+def align_layer_to_reference(
+    source_path: Path,
+    dest_path: Path,
+    *,
+    layer_id: str,
+    layer_class: str,
+    reference: RasterFingerprint,
+) -> None:
+    """Warp one source raster onto the custom-AOI reference grid."""
+    if reference.crs is None:
+        raise AlignedCacheError(f"Reference grid for {layer_id!r} has no CRS.")
+    resampling_name = RESAMPLING_BY_LAYER_CLASS.get(layer_class)
+    if resampling_name is None:
+        raise AlignedCacheError(f"Layer {layer_id!r} has unknown layer class {layer_class!r}.")
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest_path.with_name(f".{dest_path.name}.part")
+    with rasterio.open(source_path) as source:
+        if source.count != 1:
+            raise AlignedCacheError(f"Layer {layer_id!r} must have exactly one band.")
+        if source.crs is None:
+            raise AlignedCacheError(f"Layer {layer_id!r} has no CRS.")
+        nodata = source.nodata
+        destination = np.full(
+            (reference.height, reference.width),
+            nodata if nodata is not None else 0,
+            dtype=source.dtypes[0],
+        )
+        reproject(
+            source=source.read(1),
+            destination=destination,
+            src_transform=source.transform,
+            src_crs=source.crs,
+            src_nodata=source.nodata,
+            dst_transform=Affine(*reference.transform),
+            dst_crs=reference.crs,
+            dst_nodata=source.nodata,
+            resampling=_RESAMPLING[resampling_name],
+            init_dest_nodata=True,
+        )
+        profile = source.profile.copy()
+        profile.update(
+            {
+                "driver": "GTiff",
+                "height": reference.height,
+                "width": reference.width,
+                "transform": Affine(*reference.transform),
+                "crs": reference.crs,
+                "count": 1,
+            }
+        )
+        with rasterio.open(tmp, "w", **profile) as output:
+            output.write(destination, 1)
+    tmp.replace(dest_path)
 
 
 class AlignedCacheError(RuntimeError):

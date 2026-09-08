@@ -1178,7 +1178,13 @@ def get_runtime_artifact_for_solution(
     if solution_id:
         sirap_id = resolve_sirap_id_from_solution_id(solution_id)
         if sirap_id is not None:
-            return get_sirap_runtime_artifact(settings, sirap_id)
+            artifact = get_sirap_runtime_artifact(settings, sirap_id)
+            if artifact is not None:
+                return artifact
+            LOGGER.warning(
+                "SIRAP runtime artifact missing; using national kit for custom AOI",
+                extra={"sirap_id": sirap_id, "solution_id": solution_id},
+            )
     return get_runtime_artifact(settings)
 
 

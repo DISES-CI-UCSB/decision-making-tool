@@ -14,6 +14,7 @@ import {
 } from '@core/models/layer-manifest.model';
 import {
   LOCAL_RUNTIME_MANIFEST_PUBLIC_PATH,
+  RUNTIME_CATALOG_RELEASE_INDEX_BLOB_URL,
   RUNTIME_MANIFEST_BLOB_URL,
 } from '@core/config/runtime-manifest.constants';
 import { environment } from '../../../environments/environment';
@@ -242,7 +243,11 @@ export class LayerManifestService {
   private resolveCatalogReleaseIndexUrl(): string | null {
     const runtimeWindow = globalThis as RuntimeManifestWindow;
     const runtimeBlobUrl = runtimeWindow.__CATALOG_RELEASE_INDEX_BLOB_URL__?.trim();
-    return runtimeBlobUrl || environment.catalogReleaseIndexBlobUrl?.trim() || null;
+    return (
+      runtimeBlobUrl ||
+      environment.catalogReleaseIndexBlobUrl?.trim() ||
+      RUNTIME_CATALOG_RELEASE_INDEX_BLOB_URL
+    );
   }
 
   private resolveSirapManifestUrl(): string | null {

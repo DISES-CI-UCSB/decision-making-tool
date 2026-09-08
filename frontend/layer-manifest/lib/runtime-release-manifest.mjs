@@ -1,3 +1,4 @@
+import { buildHydrationPackage } from '../../shared/hydration-package.mjs';
 import {
   createSolutionDisplayCogUrl,
   createSolutionPrecomputedMetricUrls,
@@ -406,6 +407,9 @@ export function buildRuntimeReleaseManifest({
       }),
     ),
     solutions,
+    hydrationPackage: structuredClone(
+      baseManifest.hydrationPackage ?? buildHydrationPackage(baseManifest.publicBlobHost),
+    ),
     ...(baseManifest.referenceData
       ? { referenceData: structuredClone(baseManifest.referenceData) }
       : {}),

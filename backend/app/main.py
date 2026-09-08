@@ -47,15 +47,33 @@ LOGGER = logging.getLogger(__name__)
 _DETAILED_SPECIES_QUEUE: DetailedSpeciesJobQueue | None = None
 
 
+def _try_load_solution_overlay(
+    artifact: Any,
+    solution_id: str | None,
+) -> tuple[Any, str | None]:
+    """Load a solution overlay, or None when it cannot be aligned to the AOI grid."""
+    if not solution_id or artifact.solution_registry is None:
+        return None, None
+    try:
+        return artifact.solution_registry.load(solution_id)
+    except SolutionRegistryError as exc:
+        error = str(exc)
+        if error.startswith("solution_raster_grid_mismatch:") or error.startswith(
+            "solution_not_registered:"
+        ):
+            LOGGER.warning("Skipping custom AOI solution overlay: %s", error)
+            return None, None
+        raise
+
+
 def _load_solution_overlay(
     artifact: Any,
     solution_id: str | None,
 ) -> tuple[Any, str | None]:
     """Load a solution raster for custom AOI overlays.
 
-    Grid mismatch is expected on the default ecosistemas hydrate, which
-    registers national land-solution TIFFs that do not share the AOI grid.
-    Skip the overlay instead of failing the whole profile.
+    Grid mismatch is aligned at load time when possible. If alignment is
+    still impossible, skip the overlay instead of failing the whole profile.
     """
     if not solution_id:
         return None, None
@@ -68,20 +86,11 @@ def _load_solution_overlay(
             },
         )
     try:
-        return artifact.solution_registry.load(solution_id)
+        return _try_load_solution_overlay(artifact, solution_id)
     except SolutionRegistryError as exc:
-        error = str(exc)
-        if error.startswith("solution_raster_grid_mismatch:"):
-            LOGGER.warning("Skipping custom AOI solution overlay: %s", error)
-            return None, None
-        status_code = (
-            status.HTTP_400_BAD_REQUEST
-            if error.startswith("solution_not_registered:")
-            else status.HTTP_503_SERVICE_UNAVAILABLE
-        )
         raise HTTPException(
-            status_code=status_code,
-            detail={"status": "solution_unavailable", "message": error},
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"status": "solution_unavailable", "message": str(exc)},
         ) from exc
 
 
@@ -248,19 +257,7 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
 
     solution_raster = None
     if request.solution_id and artifact.solution_registry is not None:
-        try:
-            solution_raster, _ = artifact.solution_registry.load(request.solution_id)
-        except SolutionRegistryError as exc:
-            error = str(exc)
-            status_code = (
-                status.HTTP_400_BAD_REQUEST
-                if error.startswith("solution_not_registered:")
-                else status.HTTP_503_SERVICE_UNAVAILABLE
-            )
-            raise HTTPException(
-                status_code=status_code,
-                detail={"status": "solution_unavailable", "message": error},
-            ) from exc
+        solution_raster, _ = _load_solution_overlay(artifact, request.solution_id)
 
     try:
         metrics, metadata = calculate_custom_polygon_metrics(
@@ -428,31 +425,8 @@ def create_detailed_species_job(
                 "message": "The requested solution is not registered.",
             },
         )
-    load_overlay = getattr(artifact.solution_registry, "load", None)
-    if callable(load_overlay):
-        try:
-            load_overlay(request.solution_id)
-        except SolutionRegistryError as exc:
-            error = str(exc)
-            if error.startswith("solution_raster_grid_mismatch:"):
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail={
-                        "status": "solution_raster_grid_mismatch",
-                        "message": (
-                            "The active scenario raster does not match this custom AOI grid."
-                        ),
-                    },
-                ) from exc
-            if error.startswith("solution_not_registered:"):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail={"status": "solution_unavailable", "message": error},
-                ) from exc
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail={"status": "solution_unavailable", "message": error},
-            ) from exc
+    # Grid mismatch is aligned at load time when possible. If it still cannot
+    # be loaded, enqueue anyway so range-in-AOI can be computed without overlay.
     if loaded_artifact_version is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -591,7 +565,12 @@ def _calculate_detailed_species_coverage(
     if artifact.solution_registry is None:
         raise RuntimeError("solution_registry_required")
 
-    solution_raster, solution_checksum = artifact.solution_registry.load(solution_id)
+    try:
+        solution_raster, solution_checksum = _try_load_solution_overlay(
+            artifact, solution_id
+        )
+    except SolutionRegistryError as exc:
+        raise RuntimeError(str(exc)) from exc
     aoi_raster = build_custom_aoi_raster(
         artifact.reference_raster_path,
         payload["geometry"],

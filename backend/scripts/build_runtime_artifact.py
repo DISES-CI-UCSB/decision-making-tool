@@ -44,6 +44,8 @@ from metric_definitions import (  # noqa: E402
 )
 from species_data import CLASS_BUCKETS, compute_pool_sizes, load_species_records  # noqa: E402
 from sparse.species_bitset import build_species_bitset  # noqa: E402
+from scripts.hydration_package import load_hydration_package  # noqa: E402
+from scripts.species_bitset_cache import ensure_species_bitset  # noqa: E402
 
 from app.coverage_target_validation import (  # noqa: E402
     CATALOG_301_AMPHIBIAN_COUNT,
@@ -62,6 +64,7 @@ from scripts.aligned_cache import (  # noqa: E402
     AlignedCacheError,
     AlignedRaster,
     AlignedRasterCache,
+    align_layer_to_reference,
     read_fingerprint,
     sha256_file,
 )
@@ -114,8 +117,8 @@ MESA_ECOSYSTEM_CATALOG_URL = (
 )
 
 # The MEC ecosystem bundle and the species matrices exist once per reference
-# grid. The EPSG:4326 objects the deployed backend rebuilds from stay exactly
-# where they are; the EPSG:9377 grid reads its own `land-solution-9377/` objects.
+# grid. The EPSG:4326 objects stay where they are for the opt-in ecosistemas
+# path; the default land-solution grid reads its own `land-solution-9377/` objects.
 ECOSYSTEM_SOURCE_URLS_BY_GRID = {
     "ecosistemas": {
         "raster": (
@@ -331,8 +334,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--reference-grid",
         choices=sorted(REFERENCE_GRIDS),
-        default="ecosistemas",
-        help="Which grid the custom AOI is rasterized on.",
+        default="land-solution",
+        help="Which grid the custom AOI is rasterized on. Defaults to the EPSG:9377 land-solution grid.",
     )
     parser.add_argument(
         "--reference-raster",
@@ -348,8 +351,8 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Metrics pipeline cache directory holding aligned/<key[:2]>/<key>.tif. "
-            "Required with --reference-grid land-solution, whose layers are never "
-            "reprojected here."
+            "Optional. Without it, land-solution layers are warped onto the "
+            "EPSG:9377 reference grid during hydrate."
         ),
     )
     parser.add_argument(
@@ -376,8 +379,6 @@ def parse_args() -> argparse.Namespace:
     if args.reference_grid == "land-solution":
         if not args.reference_raster and args.coverage_parity_contract is None:
             args.reference_raster = LAND_SOLUTION_REFERENCE_PIN.url
-        if args.aligned_cache is None:
-            parser.error("--reference-grid land-solution requires --aligned-cache.")
     elif args.reference_raster:
         parser.error("--reference-raster only applies to --reference-grid land-solution.")
     return args
@@ -441,6 +442,24 @@ def main() -> None:
     _log(f"[hydrate] writing artifacts to {artifact_dir}")
     _log("[hydrate] 1/8 fetching layer manifest")
     manifest = fetch_manifest(args.manifest_url)
+    hydration_package = load_hydration_package(manifest.raw)
+    if hydration_package is None and "manifest/manifest.json" in args.manifest_url:
+        raise SystemExit(
+            "Published catalog is missing hydrationPackage. "
+            "Republish manifest.json with the EPSG:9377 land-solution recipe."
+        )
+    if hydration_package is not None:
+        _log(
+            "[hydrate] catalog hydrationPackage "
+            f"{hydration_package.default_reference_grid} "
+            f"{hydration_package.reference_grid(args.reference_grid).get('crs')}"
+        )
+        packaged_reference = hydration_package.reference_raster_url(args.reference_grid)
+        if packaged_reference and args.reference_raster in {
+            None,
+            LAND_SOLUTION_REFERENCE_PIN.url,
+        }:
+            args.reference_raster = packaged_reference
     solution = select_solution(manifest.national_solutions, args.solution_id)
     reference_grid = REFERENCE_GRIDS[args.reference_grid]
     reference_source_url = resolve_reference_source_url(args, manifest.layers_by_id)
@@ -497,10 +516,12 @@ def main() -> None:
         manifest.layers_by_id,
         reference_grid.name,
         parity_contract,
+        hydration_package,
     )
     species_specs = build_species_matrix_specs(
         reference_grid.name,
         parity_contract,
+        hydration_package,
     )
     layer_entries: list[dict[str, Any]] = []
     file_entries = [file_entry(reference.path, artifact_dir, reference.sha256, reference.bytes)]
@@ -515,9 +536,9 @@ def main() -> None:
         cached = sources_by_url.get(spec.url)
         if cached is None:
             target = sources_dir / f"{safe_filename(spec.layer_id)}.tif"
-            if aligned_cache is None or spec.layer_id == MESA_ECOSYSTEM_LAYER_ID:
+            if spec.layer_id == MESA_ECOSYSTEM_LAYER_ID:
                 cached = download_source(spec.url, target, force=args.force)
-            else:
+            elif aligned_cache is not None:
                 try:
                     aligned = aligned_cache.lookup(
                         spec.layer_id,
@@ -532,6 +553,13 @@ def main() -> None:
                 print(
                     f"Reused aligned {spec.layer_id} "
                     f"({aligned.layer_class}/{aligned.resampling}) from {aligned.cache_key[:12]}"
+                )
+            else:
+                cached = _download_and_align_layer(
+                    spec,
+                    target,
+                    reference_fingerprint=reference_fingerprint,
+                    force=args.force,
                 )
             sources_by_url[spec.url] = cached
             file_entries.append(file_entry(cached.path, artifact_dir, cached.sha256, cached.bytes))
@@ -643,13 +671,21 @@ def main() -> None:
     species_bitset_dir = sources_dir / "species-bitset"
     species_bitset_data = species_bitset_dir / "species.cells.bits"
     species_bitset_metadata = species_bitset_dir / "species.cells.json"
-    _log("[hydrate] 6/8 building species bitset (CPU-heavy, can take several minutes)")
-    build_species_bitset(
-        species_matrix_paths,
-        species_bitset_data,
-        species_bitset_metadata,
+    _log("[hydrate] 6/8 species bitset")
+    ensure_species_bitset(
+        kit_id=(
+            hydration_package.species_bitset_kit_id(args.reference_grid)
+            if hydration_package is not None
+            else f"national-{args.reference_grid}"
+        ),
+        matrix_paths=species_matrix_paths,
+        data_path=species_bitset_data,
+        metadata_path=species_bitset_metadata,
+        force=args.force,
+        download=download_source,
+        build=build_species_bitset,
+        log=_log,
     )
-    _log("[hydrate] species bitset ready")
     species_bitset: dict[str, Any] = {}
     for key, path in {
         "data": species_bitset_data,
@@ -681,7 +717,12 @@ def main() -> None:
     # These URLs are mutable publication targets, so refresh the small MEC bundle
     # on every build rather than silently pairing stale files with a new manifest.
     _log("[hydrate] 7/8 packaging ecosystem inventory")
-    for source_name, source_url in ECOSYSTEM_SOURCE_URLS_BY_GRID[reference_grid.name].items():
+    ecosystem_source_urls = (
+        hydration_package.ecosystem_inventory_urls(reference_grid.name)
+        if hydration_package is not None
+        else ECOSYSTEM_SOURCE_URLS_BY_GRID[reference_grid.name]
+    )
+    for source_name, source_url in ecosystem_source_urls.items():
         suffix = {
             "raster": ".tif",
             "crosswalk": ".csv",
@@ -774,15 +815,31 @@ def select_solution(solutions: list[dict[str, Any]], solution_id: str | None) ->
     raise SystemExit(f"Solution id not found in manifest: {solution_id}")
 
 
+def _packaged_or_fallback_url(
+    layer_id: str,
+    fallback: str,
+    hydration_package: Any | None,
+) -> str:
+    if hydration_package is None:
+        return fallback
+    packaged = hydration_package.metric_layer_url(layer_id)
+    return packaged or fallback
+
+
 def build_layer_specs(
     layers_by_id: dict[str, dict[str, Any]],
-    reference_grid_name: str = "ecosistemas",
+    reference_grid_name: str = "land-solution",
     parity_contract: CoverageParityContract | None = None,
+    hydration_package: Any | None = None,
 ) -> list[LayerSpec]:
     specs: list[LayerSpec] = [
         LayerSpec(
             ECOSYSTEM_LAYER_ID,
-            off_manifest_url(ECOSYSTEM_LAYER_ID),
+            _packaged_or_fallback_url(
+                ECOSYSTEM_LAYER_ID,
+                off_manifest_url(ECOSYSTEM_LAYER_ID),
+                hydration_package,
+            ),
             "categorical",
             {"valueType": "categorical"},
             metric_ids_for_layer(ECOSYSTEM_LAYER_ID),
@@ -827,7 +884,11 @@ def build_layer_specs(
         [
             LayerSpec(
                 "recarga_agua",
-                f"{PUBLIC_BLOB_HOST}/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+                _packaged_or_fallback_url(
+                    "recarga_agua",
+                    f"{PUBLIC_BLOB_HOST}/inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+                    hydration_package,
+                ),
                 "binary",
                 {"valueType": "binary", "selectedValue": 1},
                 metric_ids_for_layer("recarga_agua"),
@@ -836,7 +897,11 @@ def build_layer_specs(
             *[
                 LayerSpec(
                     layer_id,
-                    f"{PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+                    _packaged_or_fallback_url(
+                        layer_id,
+                        f"{PUBLIC_BLOB_HOST}/boundaries/coberturas.tif",
+                        hydration_package,
+                    ),
                     "categorical",
                     {
                         "valueType": "binary",
@@ -856,7 +921,11 @@ def build_layer_specs(
             ],
             LayerSpec(
                 "runap_protegidas",
-                f"{PUBLIC_BLOB_HOST}/inputs/includes/runap_protected_areas.tif",
+                _packaged_or_fallback_url(
+                    "runap_protegidas",
+                    f"{PUBLIC_BLOB_HOST}/inputs/includes/runap_protected_areas.tif",
+                    hydration_package,
+                ),
                 "categorical",
                 {},
                 metric_ids_for_layer("runap_protegidas"),
@@ -864,7 +933,11 @@ def build_layer_specs(
             ),
             LayerSpec(
                 "runap_parques",
-                f"{PUBLIC_BLOB_HOST}/inputs/includes/runap_protected_areas.tif",
+                _packaged_or_fallback_url(
+                    "runap_parques",
+                    f"{PUBLIC_BLOB_HOST}/inputs/includes/runap_protected_areas.tif",
+                    hydration_package,
+                ),
                 "categorical",
                 {"valueType": "binary", "selectedValue": 3},
                 metric_ids_for_layer("runap_parques"),
@@ -872,7 +945,11 @@ def build_layer_specs(
             ),
             LayerSpec(
                 "biomasa",
-                f"{PUBLIC_BLOB_HOST}/inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
+                _packaged_or_fallback_url(
+                    "biomasa",
+                    f"{PUBLIC_BLOB_HOST}/inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
+                    hydration_package,
+                ),
                 "continuous",
                 {"valueType": "continuous"},
                 metric_ids_for_layer("biomasa"),
@@ -880,7 +957,11 @@ def build_layer_specs(
             ),
             LayerSpec(
                 "carbono_organico",
-                f"{PUBLIC_BLOB_HOST}/inputs/features/carbon/carbono_organico.tif",
+                _packaged_or_fallback_url(
+                    "carbono_organico",
+                    f"{PUBLIC_BLOB_HOST}/inputs/features/carbon/carbono_organico.tif",
+                    hydration_package,
+                ),
                 "continuous",
                 {"valueType": "continuous"},
                 metric_ids_for_layer("carbono_organico"),
@@ -905,6 +986,7 @@ def off_manifest_url(layer_id: str) -> str:
 def build_species_matrix_specs(
     reference_grid_name: str,
     parity_contract: CoverageParityContract | None = None,
+    hydration_package: Any | None = None,
 ) -> list[SpeciesMatrixSpec]:
     """Resolve the species matrices published for one reference grid.
 
@@ -912,7 +994,13 @@ def build_species_matrix_specs(
     mismatch here would silently discard the exact per-species range areas the
     9377 matrices carry and emit a cell-count bitset instead.
     """
-    url_for = SPECIES_MATRIX_URL_BUILDERS[reference_grid_name]
+    builtin_url_for = SPECIES_MATRIX_URL_BUILDERS[reference_grid_name]
+
+    def url_for(group: str) -> str:
+        if hydration_package is not None:
+            return hydration_package.species_matrix_url(reference_grid_name, group)
+        return builtin_url_for(group)
+
     if parity_contract is not None and reference_grid_name == "land-solution":
         bundles = parity_contract.document["species"]["runtimeBundles"]
         specs = [
@@ -1342,6 +1430,34 @@ class DownloadedSource:
     path: Path
     sha256: str
     bytes: int
+
+
+def _download_and_align_layer(
+    spec: LayerSpec,
+    target: Path,
+    *,
+    reference_fingerprint: RasterFingerprint,
+    force: bool,
+) -> DownloadedSource:
+    """Download a layer and warp it onto the reference grid when needed."""
+    raw_target = target.with_name(f"raw_{target.name}")
+    downloaded = download_source(spec.url, raw_target, force=force)
+    if read_fingerprint(downloaded.path) == reference_fingerprint:
+        if downloaded.path != target:
+            return copy_source(downloaded.path, target)
+        return downloaded
+    _log(f"[hydrate] aligning {spec.layer_id} to {reference_fingerprint.crs}")
+    try:
+        align_layer_to_reference(
+            downloaded.path,
+            target,
+            layer_id=spec.layer_id,
+            layer_class=spec.alignment_class,
+            reference=reference_fingerprint,
+        )
+    except AlignedCacheError as exc:
+        raise SystemExit(str(exc)) from exc
+    return DownloadedSource(target, sha256_file(target), target.stat().st_size)
 
 
 def download_source(url: str, target: Path, *, force: bool) -> DownloadedSource:

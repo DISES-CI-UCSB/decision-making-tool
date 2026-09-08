@@ -420,6 +420,22 @@ def test_get_runtime_artifact_for_solution_routes_national_and_regional(
     assert orinoquia is not eje
 
 
+def test_missing_sirap_artifact_falls_back_to_national(
+    routing_fixture_root: Path,
+) -> None:
+    os.environ["DMT_SIRAP_ARTIFACT_ROOT"] = str(routing_fixture_root / "missing-sirap")
+    artifacts_module.reset_runtime_artifact_cache()
+    settings = get_settings()
+
+    artifact = artifacts_module.get_runtime_artifact_for_solution(
+        settings,
+        "sirap-orinoquia-estr17-cong17-sab17-runap-iheh2022",
+    )
+
+    assert artifact is not None
+    assert artifact.manifest["artifact_version"] == "national-fixture-v1"
+
+
 def test_sirap_artifact_load_skips_required_mesa_validation(
     routing_fixture_root: Path,
     monkeypatch: pytest.MonkeyPatch,

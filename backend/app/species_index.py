@@ -73,12 +73,12 @@ class SpeciesCoverageRecord:
     range_area_km2: float
     range_in_aoi_area_km2: float
     range_in_aoi_pct: float
-    solution_covered_in_aoi_area_km2: float
-    solution_covered_in_aoi_pct: float
-    pre_existing_covered_in_aoi_area_km2: float
-    pre_existing_covered_in_aoi_pct: float
-    new_covered_in_aoi_area_km2: float
-    new_covered_in_aoi_pct: float
+    solution_covered_in_aoi_area_km2: float | None
+    solution_covered_in_aoi_pct: float | None
+    pre_existing_covered_in_aoi_area_km2: float | None
+    pre_existing_covered_in_aoi_pct: float | None
+    new_covered_in_aoi_area_km2: float | None
+    new_covered_in_aoi_pct: float | None
     total_in_aoi: float | None = None
     held_in_aoi: float | None = None
     coverage_within_aoi: float | None = None
@@ -278,12 +278,14 @@ class RuntimeSpeciesBitsetIndex:
     def detailed_coverage_records(
         self,
         aoi_raster: SolutionRaster,
-        solution_raster: SolutionRaster,
+        solution_raster: SolutionRaster | None,
         is_cancelled: Callable[[], bool] | None = None,
         *,
         target_for_species: Callable[[str], float | None] | None = None,
     ) -> list[SpeciesCoverageRecord]:
-        if not aoi_raster.fingerprint.matches(solution_raster.fingerprint):
+        if solution_raster is not None and not aoi_raster.fingerprint.matches(
+            solution_raster.fingerprint
+        ):
             raise SpeciesIndexQueryError("solution_raster_grid_mismatch")
 
         grid = self.metadata_document.grid
@@ -292,24 +294,30 @@ class RuntimeSpeciesBitsetIndex:
             grid,
             "cell-major",
         )
-        solution_window = _array_window_for_species_grid(
-            solution_raster.selected_mask,
-            solution_raster,
-            grid,
-            "solution",
-        )
-        pre_existing_window = _array_window_for_species_grid(
-            solution_raster.pre_existing_mask,
-            solution_raster,
-            grid,
-            "solution",
-        )
-        new_window = _array_window_for_species_grid(
-            solution_raster.new_prioritizr_mask,
-            solution_raster,
-            grid,
-            "solution",
-        )
+        if solution_raster is None:
+            empty = np.zeros(aoi_window.shape, dtype=bool)
+            solution_window = empty
+            pre_existing_window = empty
+            new_window = empty
+        else:
+            solution_window = _array_window_for_species_grid(
+                solution_raster.selected_mask,
+                solution_raster,
+                grid,
+                "solution",
+            )
+            pre_existing_window = _array_window_for_species_grid(
+                solution_raster.pre_existing_mask,
+                solution_raster,
+                grid,
+                "solution",
+            )
+            new_window = _array_window_for_species_grid(
+                solution_raster.new_prioritizr_mask,
+                solution_raster,
+                grid,
+                "solution",
+            )
         selected_cell_ids = np.flatnonzero(aoi_window).astype(np.uint32, copy=False)
         if selected_cell_ids.size == 0:
             return []
@@ -351,6 +359,7 @@ class RuntimeSpeciesBitsetIndex:
                 @ presence
             )
 
+        overlay_available = solution_raster is not None
         within_area, covered_area, pre_existing_area, new_area = areas
         within_cells, held_cells = cell_counts
 
@@ -375,28 +384,58 @@ class RuntimeSpeciesBitsetIndex:
             # orders can invert them. Holding the nesting keeps every reported
             # percentage at or below 100.
             within = min(float(within_area[species_index]) * density, range_area)
-            covered = min(float(covered_area[species_index]) * density, within)
-            pre_existing = min(float(pre_existing_area[species_index]) * density, within)
-            new = min(float(new_area[species_index]) * density, within)
-            target = (
-                target_for_species(entry.scientific_name)
-                if target_for_species is not None
-                else None
-            )
             total_in_aoi = float(within_cells[species_index])
-            held_in_aoi = float(held_cells[species_index])
             national_total = float(entry.range_cell_count)
-            mesa_row = (
-                mesa_aoi_coverage_row(
-                    feature=entry.scientific_name,
-                    total_amount_aoi=total_in_aoi,
-                    absolute_held_aoi=held_in_aoi,
-                    national_total=national_total,
-                    national_target=target,
+            if overlay_available:
+                covered = min(float(covered_area[species_index]) * density, within)
+                pre_existing = min(
+                    float(pre_existing_area[species_index]) * density,
+                    within,
                 )
-                if target is not None
-                else None
-            )
+                new = min(float(new_area[species_index]) * density, within)
+                held_in_aoi = float(held_cells[species_index])
+                target = (
+                    target_for_species(entry.scientific_name)
+                    if target_for_species is not None
+                    else None
+                )
+                mesa_row = (
+                    mesa_aoi_coverage_row(
+                        feature=entry.scientific_name,
+                        total_amount_aoi=total_in_aoi,
+                        absolute_held_aoi=held_in_aoi,
+                        national_total=national_total,
+                        national_target=target,
+                    )
+                    if target is not None
+                    else None
+                )
+                covered_pct = _percentage(covered, within)
+                pre_existing_pct = _percentage(pre_existing, within)
+                new_pct = _percentage(new, within)
+                coverage_within_aoi = _ratio(held_in_aoi, total_in_aoi)
+                contribution_to_national_coverage = _ratio(
+                    held_in_aoi,
+                    national_total,
+                )
+                contribution_to_national_target = (
+                    mesa_row.contribution_to_national_target
+                    if mesa_row is not None
+                    else None
+                )
+            else:
+                # Empty overlay masks would report 0% coverage. That is a lie
+                # when the solution could not be aligned to the AOI grid.
+                covered = None
+                pre_existing = None
+                new = None
+                held_in_aoi = None
+                covered_pct = None
+                pre_existing_pct = None
+                new_pct = None
+                coverage_within_aoi = None
+                contribution_to_national_coverage = None
+                contribution_to_national_target = None
             records.append(
                 SpeciesCoverageRecord(
                     id=species_dataset_id(entry.scientific_name),
@@ -407,23 +446,16 @@ class RuntimeSpeciesBitsetIndex:
                     range_in_aoi_area_km2=within,
                     range_in_aoi_pct=_percentage(within, range_area),
                     solution_covered_in_aoi_area_km2=covered,
-                    solution_covered_in_aoi_pct=_percentage(covered, within),
+                    solution_covered_in_aoi_pct=covered_pct,
                     pre_existing_covered_in_aoi_area_km2=pre_existing,
-                    pre_existing_covered_in_aoi_pct=_percentage(pre_existing, within),
+                    pre_existing_covered_in_aoi_pct=pre_existing_pct,
                     new_covered_in_aoi_area_km2=new,
-                    new_covered_in_aoi_pct=_percentage(new, within),
+                    new_covered_in_aoi_pct=new_pct,
                     total_in_aoi=total_in_aoi,
                     held_in_aoi=held_in_aoi,
-                    coverage_within_aoi=_ratio(held_in_aoi, total_in_aoi),
-                    contribution_to_national_coverage=_ratio(
-                        held_in_aoi,
-                        national_total,
-                    ),
-                    contribution_to_national_target=(
-                        mesa_row.contribution_to_national_target
-                        if mesa_row is not None
-                        else None
-                    ),
+                    coverage_within_aoi=coverage_within_aoi,
+                    contribution_to_national_coverage=contribution_to_national_coverage,
+                    contribution_to_national_target=contribution_to_national_target,
                 )
             )
         records.sort(

@@ -13,6 +13,8 @@ services:
     environment:
       DMT_ARTIFACT_DIR: ${DMT_ARTIFACT_DIR:-/backend/runtime-artifacts}
       DMT_ARTIFACT_MANIFEST: ${DMT_ARTIFACT_MANIFEST:-/backend/runtime-artifacts/manifest.json}
+      DMT_SIRAP_ARTIFACT_ROOT: ${DMT_SIRAP_ARTIFACT_ROOT:-/backend/runtime-artifacts/sirap}
+      DMT_SPECIES_BITSET_INDEX_URL: ${DMT_SPECIES_BITSET_INDEX_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/runtime-artifacts/species-bitsets/index.json}
       DMT_ARTIFACT_REQUIRED: ${DMT_ARTIFACT_REQUIRED:-true}
       DMT_MESA_COVERAGE_REQUIRED: ${DMT_MESA_COVERAGE_REQUIRED:-false}
       DMT_EXPECTED_COVERAGE_RELEASE_ID: ${DMT_EXPECTED_COVERAGE_RELEASE_ID:-}
@@ -46,7 +48,7 @@ services:
         ACCESS_REQUEST_NOTIFICATION_EMAIL: ${ACCESS_REQUEST_NOTIFICATION_EMAIL:-}
         GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
         MANIFEST_BLOB_URL: ${MANIFEST_BLOB_URL:-}
-        CATALOG_RELEASE_INDEX_BLOB_URL: ${CATALOG_RELEASE_INDEX_BLOB_URL:-}
+        CATALOG_RELEASE_INDEX_BLOB_URL: ${CATALOG_RELEASE_INDEX_BLOB_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.0.6/catalog-release-index.json}
         SIRAP_MANIFEST_BLOB_URL: ${SIRAP_MANIFEST_BLOB_URL:-}
         BLOB_ASSET_PROXY_PATH: ${BLOB_ASSET_PROXY_PATH:-}
     environment:

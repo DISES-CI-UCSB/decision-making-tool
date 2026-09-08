@@ -281,6 +281,47 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
     assert bird.contribution_to_national_target is None
 
 
+def test_detailed_species_coverage_without_overlay_leaves_coverage_null(
+    tmp_path: Path,
+) -> None:
+    artifact = raster_artifact_with_species(tmp_path)
+    matrix_paths = {
+        group: matrix.path
+        for group, matrix in artifact.species_matrices.items()
+        if group != "threatened"
+    }
+    data_path = tmp_path / "species.cells.bits"
+    metadata_path = tmp_path / "species.cells.json"
+    build_species_bitset(matrix_paths, data_path, metadata_path)
+    cell_major = load_runtime_species_bitset_index(data_path, metadata_path)
+
+    from app.metric_adapters import build_custom_aoi_raster
+
+    aoi = build_custom_aoi_raster(
+        artifact.reference_raster_path,
+        POLYGON_LEFT_COLUMN,
+    )
+    records = {
+        record.scientific_name: record
+        for record in cell_major.detailed_coverage_records(aoi, None)
+    }
+
+    mammal = records["Present mammal"]
+    assert mammal.range_in_aoi_area_km2 == pytest.approx(1.0)
+    assert mammal.range_in_aoi_pct == pytest.approx(50.0)
+    assert mammal.total_in_aoi == 1
+    assert mammal.solution_covered_in_aoi_area_km2 is None
+    assert mammal.solution_covered_in_aoi_pct is None
+    assert mammal.pre_existing_covered_in_aoi_area_km2 is None
+    assert mammal.pre_existing_covered_in_aoi_pct is None
+    assert mammal.new_covered_in_aoi_area_km2 is None
+    assert mammal.new_covered_in_aoi_pct is None
+    assert mammal.held_in_aoi is None
+    assert mammal.coverage_within_aoi is None
+    assert mammal.contribution_to_national_coverage is None
+    assert mammal.contribution_to_national_target is None
+
+
 def test_detailed_species_coverage_cancels_during_row_construction(
     tmp_path: Path,
 ) -> None:
@@ -845,6 +886,49 @@ def test_area_profile_skips_grid_mismatched_solution_overlay(
     assert body["sections"]["species"]["status"] in {"complete", "empty"}
 
 
+def test_custom_polygon_metrics_skips_grid_mismatched_solution_overlay(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class MismatchRegistry:
+        def load(self, solution_id: str):
+            raise SolutionRegistryError(f"solution_raster_grid_mismatch:{solution_id}")
+
+    artifact = replace(
+        raster_artifact_with_species(tmp_path),
+        solution_registry=MismatchRegistry(),
+    )
+    state = ArtifactState(
+        required=True,
+        available=True,
+        manifest_path="test-manifest.json",
+        artifact_version="test-raster",
+        message="ready",
+    )
+    monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
+    monkeypatch.setattr(main_module, "get_runtime_artifact", lambda settings: artifact)
+
+    response = TestClient(app).post(
+        "/metrics/custom-polygon",
+        json={
+            "geometry": POLYGON_LEFT_COLUMN,
+            "metrics": ["area"],
+            "artifact_version": "test-raster",
+            "solution_id": "eco17_estr17_esprep17_runap_iheh2022",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["metrics"]["priority_area_in_region"] is not None
+
+
 def test_detailed_species_enqueue_storage_failure_returns_retryable_503(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -890,9 +974,11 @@ def test_detailed_species_enqueue_storage_failure_returns_retryable_503(
     assert response.json()["detail"]["status"] == "queue_storage_unavailable"
 
 
-def test_detailed_species_grid_mismatch_returns_503(
+def test_detailed_species_grid_mismatch_still_enqueues(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from app.job_queue import JobSnapshot
+
     class MismatchRegistry:
         entries = {"solution-1": object()}
 
@@ -904,7 +990,22 @@ def test_detailed_species_grid_mismatch_returns_503(
             return None
 
         def enqueue(self, payload):
-            raise AssertionError("mismatched solutions must not be enqueued")
+            self.last_payload = payload
+            return (
+                JobSnapshot(
+                    job_id="job-mismatch",
+                    status="queued",
+                    queue_position=1,
+                    estimated_wait_seconds=1.0,
+                    created_at=0.0,
+                    started_at=None,
+                    completed_at=None,
+                    compute_ms=None,
+                    result=None,
+                    error_code=None,
+                ),
+                False,
+            )
 
     state = ArtifactState(
         required=True,
@@ -918,7 +1019,8 @@ def test_detailed_species_grid_mismatch_returns_503(
         species_index=object(),
         solution_registry=MismatchRegistry(),
     )
-    monkeypatch.setattr(main_module, "_DETAILED_SPECIES_QUEUE", IdleQueue())
+    queue = IdleQueue()
+    monkeypatch.setattr(main_module, "_DETAILED_SPECIES_QUEUE", queue)
     monkeypatch.setattr(main_module, "RuntimeSpeciesBitsetIndex", object)
     monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
     monkeypatch.setattr(
@@ -936,8 +1038,9 @@ def test_detailed_species_grid_mismatch_returns_503(
         },
     )
 
-    assert response.status_code == 503
-    assert response.json()["detail"]["status"] == "solution_raster_grid_mismatch"
+    assert response.status_code == 202
+    assert response.json()["status"] == "queued"
+    assert queue.last_payload["solution_id"] == "solution-1"
 
 
 def test_detailed_species_endpoint_reports_dead_worker_unavailable(

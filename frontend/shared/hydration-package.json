@@ -1,0 +1,110 @@
+{
+  "format": "dmt-hydration-package/v1",
+  "defaultReferenceGrid": "land-solution",
+  "speciesBitsetIndexPathname": "runtime-artifacts/species-bitsets/index.json",
+  "referenceGrids": {
+    "land-solution": {
+      "crs": "EPSG:9377",
+      "width": 1353,
+      "height": 1838,
+      "validCellCount": 1140924,
+      "speciesBitsetKitId": "national-land-solution",
+      "summary": "v0.2 land solution grid shared with the precomputed metrics (1353x1838, 1000 m).",
+      "referenceRaster": {
+        "pathname": "inputs/features/ecosystems/land-solution-9377/ecosistemas_IDEAM_MEC_2024.tif",
+        "sha256": "f0c964382576da10dccd55fe49cc740f3825f796bcc8297c2189ce58d9f33e64",
+        "sizeBytes": 503836
+      },
+      "ecosystemInventory": {
+        "raster": "inputs/features/ecosystems/land-solution-9377/ecosistemas_IDEAM_MEC_2024.tif",
+        "crosswalk": "inputs/features/ecosystems/land-solution-9377/ecosistemas_IDs_IDEAM_MEC_2024.csv",
+        "provenance": "inputs/features/ecosystems/land-solution-9377/ecosistemas_IDEAM_MEC_2024.provenance.json"
+      },
+      "speciesMatrices": {
+        "amphibians": "inputs/features/species-sparse/land-solution-9377/species_amphibians.smtx.gz",
+        "birds": "inputs/features/species-sparse/land-solution-9377/species_birds.smtx.gz",
+        "mammals": "inputs/features/species-sparse/land-solution-9377/species_mammals.smtx.gz",
+        "plants": "inputs/features/species-sparse/land-solution-9377/species_plants.smtx.gz",
+        "reptiles": "inputs/features/species-sparse/land-solution-9377/species_reptiles.smtx.gz",
+        "threatened": "inputs/features/species-sparse/land-solution-9377/species_threatened.smtx.gz"
+      }
+    },
+    "ecosistemas": {
+      "crs": "EPSG:4326",
+      "width": 1497,
+      "height": 2069,
+      "speciesBitsetKitId": "national",
+      "summary": "Legacy WGS84 ecosystem grid from the layer manifest (1497x2069).",
+      "ecosystemInventory": {
+        "raster": "inputs/features/ecosystems/ecosistemas_IDEAM_MEC_2024.tif",
+        "crosswalk": "inputs/features/ecosystems/ecosistemas_IDs_IDEAM_MEC_2024.csv",
+        "provenance": "inputs/features/ecosystems/ecosistemas_IDEAM_MEC_2024.provenance.json"
+      },
+      "speciesMatrices": {
+        "amphibians": "inputs/features/species-sparse/species_amphibians.smtx.gz",
+        "birds": "inputs/features/species-sparse/species_birds.smtx.gz",
+        "mammals": "inputs/features/species-sparse/species_mammals.smtx.gz",
+        "plants": "inputs/features/species-sparse/species_plants.smtx.gz",
+        "reptiles": "inputs/features/species-sparse/species_reptiles.smtx.gz",
+        "threatened": "inputs/features/species-sparse/species_threatened.smtx.gz"
+      }
+    }
+  },
+  "metricLayers": {
+    "ecosistemas_IAVH_2024": {
+      "pathname": "inputs/features/ecosystems/ecosistemas_IAVH_2024.tif",
+      "alignmentClass": "categorical"
+    },
+    "recarga_agua": {
+      "pathname": "inputs/features/ground_water_recharge/recarga_agua_subterranea_moderado_alto.tif",
+      "alignmentClass": "binary"
+    },
+    "coberturas_artificial_surfaces": {
+      "pathname": "boundaries/coberturas.tif",
+      "alignmentClass": "categorical"
+    },
+    "coberturas_agricultural_areas": {
+      "pathname": "boundaries/coberturas.tif",
+      "alignmentClass": "categorical"
+    },
+    "coberturas_forests_and_semi_natural_areas": {
+      "pathname": "boundaries/coberturas.tif",
+      "alignmentClass": "categorical"
+    },
+    "coberturas_wetlands": {
+      "pathname": "boundaries/coberturas.tif",
+      "alignmentClass": "categorical"
+    },
+    "coberturas_water_bodies": {
+      "pathname": "boundaries/coberturas.tif",
+      "alignmentClass": "categorical"
+    },
+    "coberturas_agriculture": {
+      "pathname": "boundaries/coberturas.tif",
+      "alignmentClass": "categorical"
+    },
+    "runap_protegidas": {
+      "pathname": "inputs/includes/runap_protected_areas.tif",
+      "alignmentClass": "categorical"
+    },
+    "runap_parques": {
+      "pathname": "inputs/includes/runap_protected_areas.tif",
+      "alignmentClass": "categorical"
+    },
+    "biomasa": {
+      "pathname": "inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
+      "alignmentClass": "fraction_or_density"
+    },
+    "carbono_organico": {
+      "pathname": "inputs/features/carbon/carbono_organico.tif",
+      "alignmentClass": "fraction_or_density"
+    }
+  },
+  "sirap": {
+    "releaseId": "sirap-2026-09-02-v6",
+    "packetManifestPathnames": {
+      "eje-cafetero": "releases/sirap-2026-09-02-v6/packet-manifests/eje-cafetero.json",
+      "orinoquia": "releases/sirap-2026-09-02-v6/packet-manifests/orinoquia.json"
+    }
+  }
+}

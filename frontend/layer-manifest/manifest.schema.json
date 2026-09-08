@@ -79,9 +79,82 @@
       "items": {
         "$ref": "#/$defs/solution"
       }
+    },
+    "hydrationPackage": {
+      "$ref": "#/$defs/hydrationPackage"
+    },
+    "referenceData": {
+      "type": "object"
     }
   },
   "$defs": {
+    "hydrationAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pathname"],
+      "properties": {
+        "pathname": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "hydrationPackage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "defaultReferenceGrid", "referenceGrids", "metricLayers", "sirap"],
+      "properties": {
+        "format": {
+          "const": "dmt-hydration-package/v1"
+        },
+        "defaultReferenceGrid": {
+          "const": "land-solution"
+        },
+        "speciesBitsetIndex": {
+          "$ref": "#/$defs/hydrationAsset"
+        },
+        "referenceGrids": {
+          "type": "object",
+          "required": ["land-solution"],
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "metricLayers": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": ["pathname"],
+            "properties": {
+              "pathname": { "type": "string", "minLength": 1 },
+              "url": { "type": "string", "format": "uri" },
+              "alignmentClass": { "type": "string" }
+            }
+          }
+        },
+        "sirap": {
+          "type": "object",
+          "required": ["releaseId"],
+          "properties": {
+            "releaseId": { "type": "string", "minLength": 1 },
+            "packetManifests": { "type": "object" }
+          }
+        }
+      }
+    },
     "nullableString": {
       "type": ["string", "null"]
     },

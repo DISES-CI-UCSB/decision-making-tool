@@ -91,6 +91,37 @@ export interface RuntimeLayerManifest {
   categories: RuntimeLayerManifestCategory[];
   layers: RuntimeLayerManifestLayer[];
   solutions: RuntimeSolutionManifestEntry[];
+  hydrationPackage?: RuntimeHydrationPackage;
+}
+
+export interface RuntimeHydrationPackage {
+  format: 'dmt-hydration-package/v1';
+  defaultReferenceGrid: 'land-solution';
+  speciesBitsetIndex?: { pathname?: string; url?: string };
+  referenceGrids: Record<string, RuntimeHydrationReferenceGrid>;
+  metricLayers: Record<string, RuntimeHydrationMetricLayer>;
+  sirap: {
+    releaseId: string;
+    packetManifests?: Record<string, { pathname?: string; url?: string }>;
+  };
+}
+
+export interface RuntimeHydrationReferenceGrid {
+  crs: string;
+  width?: number;
+  height?: number;
+  validCellCount?: number;
+  speciesBitsetKitId?: string;
+  summary?: string;
+  referenceRaster?: { pathname: string; url?: string; sha256?: string; sizeBytes?: number };
+  ecosystemInventory?: Record<string, { pathname: string; url?: string } | string>;
+  speciesMatrices?: Record<string, { pathname: string; url?: string } | string>;
+}
+
+export interface RuntimeHydrationMetricLayer {
+  pathname: string;
+  url?: string;
+  alignmentClass?: string;
 }
 
 /** Independently versioned, solution-only batch merged into the primary runtime manifest. */

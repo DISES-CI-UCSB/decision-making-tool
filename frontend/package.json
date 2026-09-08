@@ -33,7 +33,7 @@
     "sync:latest-layer-manifest": "node ./layer-manifest/sync-latest-manifest.mjs",
     "validate:layer-manifest": "node ./layer-manifest/validate-manifest.mjs",
     "validate:layer-manifest:example": "node ./layer-manifest/validate-manifest.mjs ./layer-manifest/manifest.example.json",
-    "test:layer-manifest": "node --test ./layer-manifest/*.spec.mjs ./layer-manifest/lib/*.spec.mjs",
+    "test:layer-manifest": "node --test ./layer-manifest/*.spec.mjs ./layer-manifest/lib/*.spec.mjs ./shared/hydration-package.spec.mjs",
     "check:layer-manifest": "npm run test:layer-manifest && npm run validate:layer-manifest:example",
     "publish:layer-manifest": "node ./layer-manifest/publish-manifest.mjs",
     "publish:styled-manifest": "node ./layer-manifest/publish-styled-manifest.mjs --publish",

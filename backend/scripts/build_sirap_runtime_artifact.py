@@ -6,6 +6,7 @@ import argparse
 import copy
 import csv
 import json
+import os
 import re
 import sys
 import urllib.error
@@ -22,7 +23,12 @@ from rasterio.warp import reproject
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_ROOT.parent
-METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
+METRICS_PIPELINE = Path(
+    os.getenv(
+        "DMT_METRICS_PIPELINE_PATH",
+        str(REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"),
+    )
+)
 for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
     if str(_import_root) not in sys.path:
         sys.path.insert(0, str(_import_root))
@@ -31,6 +37,7 @@ from raster_align import exact_grid_matches, policy_for_layer  # noqa: E402
 from raster_metrics import RasterFingerprint  # noqa: E402
 from scripts.aligned_cache import read_fingerprint, sha256_file  # noqa: E402
 from sparse.species_bitset import build_species_bitset  # noqa: E402
+from scripts.species_bitset_cache import ensure_species_bitset  # noqa: E402
 from scripts.build_runtime_artifact import (  # noqa: E402
     ECOSYSTEM_SOURCE_URLS_BY_GRID,
     MESA_ECOSYSTEM_CATALOG_URL,
@@ -154,8 +161,25 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _release_id_from_catalog() -> str | None:
+    try:
+        from blob_manifest import fetch_manifest
+        from scripts.hydration_package import load_hydration_package
+
+        package = load_hydration_package(fetch_manifest().raw)
+    except Exception:
+        return None
+    if package is None:
+        return None
+    return package.sirap_release_id()
+
+
 def main() -> None:
     args = parse_args()
+    if args.release_id == DEFAULT_RELEASE_ID:
+        packaged_release = _release_id_from_catalog()
+        if packaged_release:
+            args.release_id = packaged_release
     release_id = str(args.release_id).strip()
     sirap_id = str(args.sirap_id).strip()
     manifest_url = (
@@ -315,6 +339,8 @@ def main() -> None:
         artifact_dir,
         sources_dir,
         file_entries,
+        kit_id=sirap_id,
+        force=args.force,
     )
     species_pool_sizes = resolve_species_pool_sizes(sample_packet["regionalInputPacket"])
     species_matrices: list[dict[str, Any]] | dict[str, Any] = species_entries
@@ -1018,6 +1044,9 @@ def build_species_bitset_bundle(
     artifact_dir: Path,
     sources_dir: Path,
     file_entries: list[dict[str, Any]],
+    *,
+    kit_id: str,
+    force: bool,
 ) -> dict[str, Any] | None:
     """Build the detailed custom-AOI index from the regional species matrices."""
     if not species_entries:
@@ -1030,7 +1059,16 @@ def build_species_bitset_bundle(
     bitset_dir = sources_dir / "species-bitset"
     data_path = bitset_dir / "species.cells.bits"
     metadata_path = bitset_dir / "species.cells.json"
-    build_species_bitset(matrix_paths, data_path, metadata_path)
+    ensure_species_bitset(
+        kit_id=kit_id,
+        matrix_paths=matrix_paths,
+        data_path=data_path,
+        metadata_path=metadata_path,
+        force=force,
+        download=download_source,
+        build=build_species_bitset,
+        log=lambda message: print(message, flush=True),
+    )
 
     result: dict[str, Any] = {}
     for key, path in {"data": data_path, "metadata": metadata_path}.items():

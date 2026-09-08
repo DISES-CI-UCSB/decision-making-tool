@@ -228,18 +228,19 @@ Return to the repository root after running it. If the dry run says no layer is 
 
 #### Custom-AOI input
 
-The backend builder uses a hardcoded approved input list plus species matrix URLs; manifest registration alone does not add a layer. For a changed input already included in that list, run on the metrics host:
+The backend builder uses a hardcoded approved input list plus species matrix URLs; manifest registration alone does not add a layer. For a changed input already included in that list, hydrate locally with `--force` (incremental hydrate would skip existing files):
 
 ```bash
-backend/.venv/bin/python backend/scripts/build_runtime_artifact.py --force
+docker compose run --rm --build backend hydrate --force
 
-DMT_ARTIFACT_REQUIRED=true \
-  docker compose -f backend/docker-compose.yml up -d --build --force-recreate
+docker compose up -d --build --force-recreate
 
-docker compose -f backend/docker-compose.yml logs --tail=100 backend
+docker compose logs --tail=100 backend
 curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/ready
 ```
+
+No `--production-v3` or `--aligned-cache` flag is required for this local 9377 catalog-driven recipe. A host venv is optional: `backend/.venv/bin/python backend/scripts/build_runtime_artifact.py --force`. Production VM recreate still uses `docker compose -f backend/docker-compose.yml`.
 
 `/health` only proves the process is running. Do not restore traffic until `/ready` confirms the required artifact loaded. A new custom-AOI layer requires the builder, metric catalog/adapters, tests, and request contract changes documented in [Adding or enabling metrics](./adding-or-enabling-metrics.md).
 

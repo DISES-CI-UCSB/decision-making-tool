@@ -12,10 +12,10 @@ Known AOIs read precomputed per-solution caches. User-drawn custom AOIs do not: 
 
 - **Data/metrics owner:** approves calculation inputs, metric semantics, expected solution/AOI scope, and scientific spot checks.
 - **Operator:** selects scope, generates artifacts, reviews reports, publishes only validated output, refreshes the manifest, and verifies runtime readiness.
-- **Backend operator:** builds runtime artifacts on the metrics host and recreates the FastAPI container.
+- **Backend operator:** hydrates runtime artifacts (local Docker by default) and recreates the FastAPI container.
 - **Developer/reviewer:** required for metric-definition changes, MEC/goal manual publishing, arbitrary-AOI category-mask decisions, and any failed contract.
 - Run commands from the repository root unless a step says otherwise.
-- Create and activate the Python environment:
+- Create and activate the Python environment for the metrics pipeline (not required for Docker hydrate):
 
 ```bash
 python3 -m venv data/metrics/python/.venv
@@ -23,7 +23,7 @@ source data/metrics/python/.venv/bin/activate
 pip install -r data/metrics/python/requirements.txt
 ```
 
-- Confirm `BLOB_READ_WRITE_TOKEN` is present in `.env.local` before publishing. Never print or document its value.
+- Confirm `BLOB_READ_WRITE_TOKEN` is present in `.env.local` before publishing. Never print or document its value. Docker Compose for local hydrate loads `.env` and `backend/.env`; it does not load `.env.local`.
 - Record the exact manifest URL, prior publish reports, prior manifest archive, release ID/prefix, and current backend artifact version.
 - Prefer immutable release paths. Overwriting a long-cache Blob path can leave clients on stale bytes.
 
@@ -250,18 +250,48 @@ Review solution reconciliation before publishing. Confirm each affected solution
 
 ### 10. Build FastAPI runtime artifacts
 
-Run on the metrics host after any manifest or source-raster change that affects live custom-AOI calculations:
+After any manifest or source-raster change that affects live custom-AOI calculations, fill the mounted artifact volume from a machine that can reach public Vercel Blob.
+
+**Local Docker default — no flags.** From the repository root:
 
 ```bash
-backend/.venv/bin/python backend/scripts/build_runtime_artifact.py \
-  --production-v3 \
-  --manifest-url <approved-manifest-url> \
-  --aligned-cache <metrics-pipeline-cache>
+docker compose run --rm --build backend hydrate
 ```
 
-`--production-v3` is mandatory for a production build. It selects the EPSG:9377 land-solution grid, pins the `solutions-v3-0-0` coverage-parity contract, reads each land solution’s exact ecosystem and species rows from its immutable goals document, and writes an immutable release. Every land solution must contain all 417 ecosystems; species goal-row counts remain solution-specific, while the runtime species index and golden-master solution must contain the approved 7,980-species universe. Use `--force` when source bytes changed at an existing URL. Optional `--artifact-dir` changes the output location.
+That command reads the live catalog at `https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json` (override with `MANIFEST_BLOB_URL` or `DMT_MANIFEST_URL` in `.env` / `backend/.env`). The catalog’s `hydrationPackage` is the recipe: EPSG:9377 land-solution grid, 1353×1838. Hydrate does **not** use `catalog-releases/3.0.6`.
 
-Before activation, verify the new release:
+Hydrate is incremental and skips files already in the `backend-artifacts` volume. If that volume previously held EPSG:4326 / `ecosistemas` artifacts, wipe the volume or pass `--force` so the 9377 recipe is rebuilt:
+
+```bash
+docker compose run --rm --build backend hydrate --force
+```
+
+The package names the national 9377 species bitset kit `national-land-solution`. That kit is not yet on the published bitset index, so hydrate CPU-rebuilds it. Do not use kit id `national` for 9377; that Blob file is the legacy EPSG:4326 kit.
+
+Optional flags (append after `hydrate`; none are required for the latest 9377 recipe):
+
+| Flag | When to use it |
+| --- | --- |
+| `--aligned-cache <metrics-pipeline-cache>` | Optional. Reuse a metrics-pipeline aligned TIFF cache. Without it, layers are warped onto the 9377 pin during hydrate. |
+| `--reference-grid ecosistemas` | Opt-in legacy EPSG:4326 ecosystem grid. Not the local default. |
+| `--manifest-url <url>` | Override the live catalog. |
+| `--force` | Re-download and rebuild existing files (also required after a 4326 volume). |
+
+A host venv is not required. The equivalent host command is also flagless:
+
+```bash
+backend/.venv/bin/python backend/scripts/build_runtime_artifact.py
+```
+
+**Optional production profile (`--production-v3`).** This is a separate fail-closed Mesa / immutable production build, not the local Docker default:
+
+```bash
+docker compose run --rm --build backend hydrate --production-v3
+```
+
+`--production-v3` selects the EPSG:9377 land-solution grid, pins the `solutions-v3-0-0` coverage-parity contract, reads each land solution’s exact ecosystem and species rows from its immutable goals document, and writes an immutable release. Every land solution must contain all 417 ecosystems; species goal-row counts remain solution-specific, while the runtime species index and golden-master solution must contain the approved 7,980-species universe. `--aligned-cache` remains optional on this profile. Optional `--artifact-dir` changes the output location.
+
+Before activating a `--production-v3` release, verify it:
 
 ```bash
 backend/.venv/bin/python backend/scripts/verify_runtime_release.py \
@@ -273,6 +303,19 @@ The verifier rejects missing Mesa metadata, a stale release or contract checksum
 
 ### 11. Rebuild, restart, and prove readiness
 
+**Local Docker** uses the root Compose file. Artifacts are required; the V3 Mesa bundle is not:
+
+```bash
+docker compose up -d --build --force-recreate
+
+docker compose logs --tail=100 backend
+
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/ready
+```
+
+**Production VM** uses `backend/docker-compose.yml`, which defaults to requiring artifacts, the V3 Mesa bundle, release ID `solutions-v3-0-0`, and the pinned parity-contract checksum:
+
 ```bash
 DMT_ARTIFACT_MANIFEST=<runtime-artifact-release-directory>/manifest.json \
   docker compose -f backend/docker-compose.yml up -d --build --force-recreate
@@ -283,7 +326,7 @@ curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/ready
 ```
 
-The production Compose profile defaults to requiring artifacts, the V3 Mesa bundle, release ID `solutions-v3-0-0`, and the pinned parity-contract checksum. `/health` proves only that the process is alive. `/ready` proves those read-only artifacts loaded and validated. Do not return the service to traffic when readiness fails.
+`/health` proves only that the process is alive. `/ready` proves those read-only artifacts loaded and validated. Do not return the service to traffic when readiness fails.
 
 ### 12. Test known/custom parity and arbitrary polygons
 
@@ -338,7 +381,14 @@ npm --prefix frontend run rollback:layer-manifest
 
 3. Republish the retained prior regular/compact generation directories and reports, or restore the prior immutable release references. There is no automatic metrics archive.
 4. Restore prior MEC and goal objects and URLs through the same reviewed manual process used to publish them.
-5. Rebuild the previous known-good FastAPI artifact set and recreate the container:
+5. Rebuild the previous known-good FastAPI artifact set and recreate the container. Local Docker:
+
+```bash
+docker compose run --rm --build backend hydrate --force
+docker compose up -d --build --force-recreate
+```
+
+Pass `--manifest-url` when restoring a recorded prior catalog. If the volume still holds a different grid (for example EPSG:4326), wipe `backend-artifacts` or keep `--force`. Production VM:
 
 ```bash
 DMT_ARTIFACT_REQUIRED=true \
