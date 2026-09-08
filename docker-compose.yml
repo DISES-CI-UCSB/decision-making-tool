@@ -1,0 +1,62 @@
+services:
+  backend:
+    restart: unless-stopped
+    user: "10001:10001"
+    env_file:
+      - path: .env
+        required: false
+      - path: backend/.env
+        required: false
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DMT_ARTIFACT_DIR: ${DMT_ARTIFACT_DIR:-/backend/runtime-artifacts}
+      DMT_ARTIFACT_MANIFEST: ${DMT_ARTIFACT_MANIFEST:-/backend/runtime-artifacts/manifest.json}
+      DMT_ARTIFACT_REQUIRED: ${DMT_ARTIFACT_REQUIRED:-true}
+      DMT_MESA_COVERAGE_REQUIRED: ${DMT_MESA_COVERAGE_REQUIRED:-false}
+      DMT_EXPECTED_COVERAGE_RELEASE_ID: ${DMT_EXPECTED_COVERAGE_RELEASE_ID:-}
+      DMT_EXPECTED_COVERAGE_CONTRACT_SHA256: ${DMT_EXPECTED_COVERAGE_CONTRACT_SHA256:-}
+      DMT_SOLUTION_CACHE_DIR: ${DMT_SOLUTION_CACHE_DIR:-/backend/runtime-cache/solutions}
+      DMT_CUSTOM_POLYGON_JOB_DB: ${DMT_CUSTOM_POLYGON_JOB_DB:-/backend/runtime-cache/jobs.sqlite3}
+      DMT_OPS_TOKEN: ${DMT_OPS_TOKEN:-}
+      DMT_CORS_ORIGINS: ${DMT_CORS_ORIGINS:-}
+      MANIFEST_BLOB_URL: ${MANIFEST_BLOB_URL:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend-artifacts:/backend/runtime-artifacts
+      - backend-cache:/backend/runtime-cache
+
+  frontend:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        ENABLE_MANIFEST_EDITOR: "false"
+        METRICS_API_BASE_URL: /metrics-api
+        FIREBASE_API_KEY: ${FIREBASE_API_KEY:-}
+        FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:-}
+        FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+        FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET:-}
+        FIREBASE_MESSAGING_SENDER_ID: ${FIREBASE_MESSAGING_SENDER_ID:-}
+        FIREBASE_APP_ID: ${FIREBASE_APP_ID:-}
+        FIREBASE_MEASUREMENT_ID: ${FIREBASE_MEASUREMENT_ID:-}
+        ACCESS_REQUEST_NOTIFICATION_EMAIL: ${ACCESS_REQUEST_NOTIFICATION_EMAIL:-}
+        GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+        MANIFEST_BLOB_URL: ${MANIFEST_BLOB_URL:-}
+        CATALOG_RELEASE_INDEX_BLOB_URL: ${CATALOG_RELEASE_INDEX_BLOB_URL:-}
+        SIRAP_MANIFEST_BLOB_URL: ${SIRAP_MANIFEST_BLOB_URL:-}
+        BLOB_ASSET_PROXY_PATH: ${BLOB_ASSET_PROXY_PATH:-}
+    environment:
+      METRICS_API_UPSTREAM: ${METRICS_API_UPSTREAM:-http://backend:8000}
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  backend-artifacts:
+  backend-cache:

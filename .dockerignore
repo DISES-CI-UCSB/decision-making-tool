@@ -1,6 +1,35 @@
-# Backend API local/runtime artifacts
-backend/.venv/
-backend/.pytest_cache/
-backend/**/__pycache__/
+# VCS / editor / docs that are not needed in either image
+.git
+.github
+.cursor
+.husky
+.vscode
+docs
+development-artifacts
+legacy-r-shiny-app
+**/.DS_Store
+**/*.local
+**/.env
+**/.env.*
+!**/.env.example
+
+# Frontend build junk (context is the repo root)
+frontend/node_modules
+frontend/dist
+frontend/.angular
+
+# Backend local/runtime state
+backend/.venv
+backend/.pytest_cache
+backend/**/__pycache__
 backend/runtime-artifacts/*
 !backend/runtime-artifacts/.gitkeep
+backend/runtime-cache
+
+# Heavy or generated data that is not copied into images
+data/metrics/cache
+data/metrics/generated
+data/inputs
+data/archive
+data/scripts
+data/frontend_deploy

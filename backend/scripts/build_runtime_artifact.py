@@ -4,6 +4,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
 import shutil
 import struct
 import sys
@@ -17,9 +18,17 @@ from typing import Any
 import numpy as np
 import rasterio
 
+DOWNLOAD_CHUNK_BYTES = 1024 * 1024
+DOWNLOAD_PROGRESS_INTERVAL_BYTES = 8 * 1024 * 1024
+
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_ROOT.parent
-METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
+METRICS_PIPELINE = Path(
+    os.getenv(
+        "DMT_METRICS_PIPELINE_PATH",
+        str(REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"),
+    )
+)
 for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
     if str(_import_root) not in sys.path:
         sys.path.insert(0, str(_import_root))
@@ -62,12 +71,16 @@ from scripts.land_solution_inputs import (  # noqa: E402
 )
 
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
-DEFAULT_ARTIFACT_DIR = REPO_ROOT / "backend" / "runtime-artifacts"
+DEFAULT_ARTIFACT_DIR = Path(
+    os.getenv("DMT_ARTIFACT_DIR", str(BACKEND_ROOT / "runtime-artifacts"))
+)
 DEFAULT_V3_PARITY_CONTRACT = (
-    REPO_ROOT
-    / "data"
-    / "metrics"
-    / "release-specs"
+    Path(
+        os.getenv(
+            "DMT_RELEASE_SPECS_DIR",
+            str(REPO_ROOT / "data" / "metrics" / "release-specs"),
+        )
+    )
     / "solutions-v3-0-0"
     / "coverage-parity-contract.json"
 )
@@ -126,6 +139,46 @@ SPECIES_MATRIX_URL_BUILDERS = {
     ),
     "land-solution": lambda group: public_url(species_matrix_blob_path(group)),
 }
+
+
+def _log(message: str) -> None:
+    print(message, flush=True)
+
+
+def _format_bytes(size: int) -> str:
+    if size >= 1024**3:
+        return f"{size / 1024**3:.2f} GB"
+    if size >= 1024**2:
+        return f"{size / 1024**2:.1f} MB"
+    if size >= 1024:
+        return f"{size / 1024:.0f} KB"
+    return f"{size} B"
+
+
+def _progress_bar(fraction: float, width: int = 20) -> str:
+    clamped = max(0.0, min(1.0, fraction))
+    filled = int(round(clamped * width))
+    return "#" * filled + "-" * (width - filled)
+
+
+def _report_download(name: str, done: int, total: int | None, *, final: bool = False) -> None:
+    if total and total > 0:
+        fraction = min(1.0, done / total)
+        line = (
+            f"[hydrate] {name}  [{_progress_bar(fraction)}]  "
+            f"{fraction * 100:5.1f}%  {_format_bytes(done)}/{_format_bytes(total)}"
+        )
+    else:
+        line = f"[hydrate] {name}  {_format_bytes(done)}"
+    tty = sys.stdout.isatty()
+    if tty and not final:
+        print("\r" + line, end="", flush=True)
+        return
+    if tty:
+        print("\r" + line, flush=True)
+        return
+    if final or done == 0:
+        print(line, flush=True)
 
 
 @dataclass(frozen=True)
@@ -382,13 +435,19 @@ def main() -> None:
     sources_dir = artifact_dir / "sources"
     sources_dir.mkdir(parents=True, exist_ok=True)
 
+    _log(f"[hydrate] writing artifacts to {artifact_dir}")
+    _log("[hydrate] 1/8 fetching layer manifest")
     manifest = fetch_manifest(args.manifest_url)
     solution = select_solution(manifest.national_solutions, args.solution_id)
     reference_grid = REFERENCE_GRIDS[args.reference_grid]
     reference_source_url = resolve_reference_source_url(args, manifest.layers_by_id)
-    print(f"Selected reference grid: {reference_grid.name} — {reference_grid.summary}")
-    print(f"Sample solution recorded for provenance: {solution.get('id')} ({solution.get('name')})")
+    _log(f"[hydrate] selected reference grid: {reference_grid.name} — {reference_grid.summary}")
+    _log(
+        "[hydrate] sample solution for provenance: "
+        f"{solution.get('id')} ({solution.get('name')})"
+    )
 
+    _log("[hydrate] 2/8 downloading reference raster")
     reference = fetch_source(
         reference_source_url,
         sources_dir / f"reference_grid_{safe_filename(reference_grid.name)}.tif",
@@ -400,6 +459,10 @@ def main() -> None:
             f"Reference raster {reference_source_url} is {reference_fingerprint.crs}; "
             f"reference grid {reference_grid.name} requires {reference_grid.expected_crs}."
         )
+    _log(
+        "[hydrate] 3/8 counting valid cells on the reference grid "
+        "(CPU-heavy, can take a few minutes with no byte progress)"
+    )
     resolved_reference_grid = resolve_reference_grid(
         reference_grid,
         reference_source_url,
@@ -408,14 +471,15 @@ def main() -> None:
         parity_contract,
     )
     if parity_contract is not None:
-        print("Reference raster matches the v3 Mesa coverage-parity contract.")
+        print("Reference raster matches the v3 Mesa coverage-parity contract.", flush=True)
     elif args.reference_grid == "land-solution":
         print(
             "Reference raster matches the land-solution pin: "
-            f"{LAND_SOLUTION_REFERENCE_PIN.rationale}"
+            f"{LAND_SOLUTION_REFERENCE_PIN.rationale}",
+            flush=True,
         )
-    print(
-        f"Reference fingerprint: {reference_fingerprint.crs} "
+    _log(
+        f"[hydrate] reference fingerprint: {reference_fingerprint.crs} "
         f"{reference_fingerprint.width}x{reference_fingerprint.height}"
     )
 
@@ -441,7 +505,9 @@ def main() -> None:
     aligned_by_url: dict[str, AlignedRaster] = {}
     layer_ids_by_url: dict[str, list[str]] = {}
 
-    for spec in layer_specs:
+    _log(f"[hydrate] 4/8 downloading raster layers ({len(layer_specs)} layers)")
+    for index, spec in enumerate(layer_specs, start=1):
+        _log(f"[hydrate] layer {index}/{len(layer_specs)} {spec.layer_id}")
         layer_ids_by_url.setdefault(spec.url, []).append(spec.layer_id)
         cached = sources_by_url.get(spec.url)
         if cached is None:
@@ -521,7 +587,9 @@ def main() -> None:
         ordered_species_specs.extend(
             spec for spec in species_specs if spec.group == "amphibians"
         )
-    for spec in ordered_species_specs:
+    _log(f"[hydrate] 5/8 downloading species matrices ({len(ordered_species_specs)} groups)")
+    for index, spec in enumerate(ordered_species_specs, start=1):
+        _log(f"[hydrate] species matrix {index}/{len(ordered_species_specs)} {spec.group}")
         destination = (
             sources_dir / "species-sparse" / f"species_{safe_filename(spec.group)}.smtx.gz"
         )
@@ -572,11 +640,13 @@ def main() -> None:
     species_bitset_dir = sources_dir / "species-bitset"
     species_bitset_data = species_bitset_dir / "species.cells.bits"
     species_bitset_metadata = species_bitset_dir / "species.cells.json"
+    _log("[hydrate] 6/8 building species bitset (CPU-heavy, can take several minutes)")
     build_species_bitset(
         species_matrix_paths,
         species_bitset_data,
         species_bitset_metadata,
     )
+    _log("[hydrate] species bitset ready")
     species_bitset: dict[str, Any] = {}
     for key, path in {
         "data": species_bitset_data,
@@ -607,6 +677,7 @@ def main() -> None:
     ecosystem_inventory: dict[str, Any] = {}
     # These URLs are mutable publication targets, so refresh the small MEC bundle
     # on every build rather than silently pairing stale files with a new manifest.
+    _log("[hydrate] 7/8 packaging ecosystem inventory")
     for source_name, source_url in ECOSYSTEM_SOURCE_URLS_BY_GRID[reference_grid.name].items():
         suffix = {
             "raster": ".tif",
@@ -626,6 +697,7 @@ def main() -> None:
             "size_bytes": cached.bytes,
         }
 
+    _log("[hydrate] packaging Mesa coverage metadata")
     mesa_coverage = build_mesa_coverage_artifact(
         reference_grid.name,
         manifest.national_solutions,
@@ -675,15 +747,19 @@ def main() -> None:
         "files": file_entries,
     }
 
+    _log("[hydrate] 8/8 writing runtime manifest")
     manifest_path = artifact_dir / "manifest.json"
     write_json(manifest_path, runtime_manifest)
     if final_release_dir is not None:
         artifact_dir.replace(final_release_dir)
         manifest_path = final_release_dir / "manifest.json"
-        print("Release built but not activated.")
-    print(f"Wrote runtime artifact manifest: {manifest_path}")
-    print(f"Downloaded/reused files: {len(file_entries)}")
-    print(f"Implemented metric count: {len(runtime_manifest['metric_coverage']['implemented_now'])}")
+        _log("[hydrate] release built but not activated")
+    _log(f"[hydrate] done — wrote {manifest_path}")
+    _log(f"[hydrate] files: {len(file_entries)}")
+    _log(
+        "[hydrate] implemented metrics: "
+        f"{len(runtime_manifest['metric_coverage']['implemented_now'])}"
+    )
 
 
 def select_solution(solutions: list[dict[str, Any]], solution_id: str | None) -> dict[str, Any]:
@@ -1265,13 +1341,34 @@ class DownloadedSource:
 def download_source(url: str, target: Path, *, force: bool) -> DownloadedSource:
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists() and not force:
-        return DownloadedSource(target, sha256_file(target), target.stat().st_size)
+        size = target.stat().st_size
+        _log(f"[hydrate] skip {target.name} (already have {_format_bytes(size)})")
+        return DownloadedSource(target, sha256_file(target), size)
 
+    _log(f"[hydrate] downloading {target.name}")
     tmp = target.with_name(f".{target.name}.part")
     req = urllib.request.Request(url, headers={"User-Agent": "dmt-runtime-artifact/0.1"})
     with urllib.request.urlopen(req, timeout=180) as response, tmp.open("wb") as handle:
-        shutil.copyfileobj(response, handle)
+        total_header = response.headers.get("Content-Length")
+        total = int(total_header) if total_header and total_header.isdigit() else None
+        done = 0
+        last_report = 0
+        _report_download(target.name, 0, total)
+        while True:
+            chunk = response.read(DOWNLOAD_CHUNK_BYTES)
+            if not chunk:
+                break
+            handle.write(chunk)
+            done += len(chunk)
+            if (
+                done - last_report >= DOWNLOAD_PROGRESS_INTERVAL_BYTES
+                or (total is not None and done >= total)
+            ):
+                _report_download(target.name, done, total)
+                last_report = done
+        _report_download(target.name, done, total or done, final=True)
     tmp.replace(target)
+    _log(f"[hydrate] checksum {target.name}")
     return DownloadedSource(target, sha256_file(target), target.stat().st_size)
 
 

@@ -40,6 +40,7 @@ from app.species_index import (
     stream_species_overlap_records,
 )
 from app.solution_coverage import CoverageTarget, RuntimeMesaCoverage
+from app.solution_registry import SolutionRegistryError
 from raster_metrics import read_solution_raster
 from mec_compact import build_composite_taxonomy, load_composite_crosswalk
 from sparse.species_bitset import build_species_bitset
@@ -801,6 +802,49 @@ def test_area_profile_endpoint_treats_geometry_failure_as_http_error(
     assert response.json()["detail"]["status"] == "invalid_request"
 
 
+def test_area_profile_skips_grid_mismatched_solution_overlay(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class MismatchRegistry:
+        def load(self, solution_id: str):
+            raise SolutionRegistryError(f"solution_raster_grid_mismatch:{solution_id}")
+
+    artifact = replace(
+        raster_artifact_with_species(tmp_path),
+        solution_registry=MismatchRegistry(),
+    )
+    state = ArtifactState(
+        required=True,
+        available=True,
+        manifest_path="test-manifest.json",
+        artifact_version="test-raster",
+        message="ready",
+    )
+    monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
+
+    response = TestClient(app).post(
+        "/area-profile/custom-polygon",
+        json={
+            "geometry": POLYGON_LEFT_COLUMN,
+            "sections": ["species"],
+            "artifact_version": "test-raster",
+            "solution_id": "eco17_estr17_esprep17_runap_iheh2022",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["solution_id"] == "eco17_estr17_esprep17_runap_iheh2022"
+    assert body["solution_raster_checksum"] is None
+    assert body["sections"]["species"]["status"] in {"complete", "empty"}
+
+
 def test_detailed_species_enqueue_storage_failure_returns_retryable_503(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -844,6 +888,56 @@ def test_detailed_species_enqueue_storage_failure_returns_retryable_503(
     assert response.status_code == 503
     assert response.headers["retry-after"] == "10"
     assert response.json()["detail"]["status"] == "queue_storage_unavailable"
+
+
+def test_detailed_species_grid_mismatch_returns_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class MismatchRegistry:
+        entries = {"solution-1": object()}
+
+        def load(self, solution_id: str):
+            raise SolutionRegistryError(f"solution_raster_grid_mismatch:{solution_id}")
+
+    class IdleQueue:
+        def unavailable_reason(self) -> None:
+            return None
+
+        def enqueue(self, payload):
+            raise AssertionError("mismatched solutions must not be enqueued")
+
+    state = ArtifactState(
+        required=True,
+        available=True,
+        manifest_path="test-manifest.json",
+        artifact_version="test-raster",
+        message="ready",
+    )
+    artifact = SimpleNamespace(
+        manifest={"artifact_version": "test-raster"},
+        species_index=object(),
+        solution_registry=MismatchRegistry(),
+    )
+    monkeypatch.setattr(main_module, "_DETAILED_SPECIES_QUEUE", IdleQueue())
+    monkeypatch.setattr(main_module, "RuntimeSpeciesBitsetIndex", object)
+    monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
+
+    response = TestClient(app).post(
+        "/area-profile/custom-polygon/species-coverage/jobs",
+        json={
+            "geometry": POLYGON_LEFT_COLUMN,
+            "solution_id": "solution-1",
+            "artifact_version": "test-raster",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["status"] == "solution_raster_grid_mismatch"
 
 
 def test_detailed_species_endpoint_reports_dead_worker_unavailable(

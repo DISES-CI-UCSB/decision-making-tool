@@ -88,3 +88,35 @@ jobs:
       - name: Run scientific pipeline tests
         working-directory: data/metrics/python
         run: python -m pytest
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t dmt-backend .
+
+      - name: Smoke backend /health and /ready against the tiny fixture
+        run: |
+          docker run -d --name dmt-backend \
+            -e DMT_ARTIFACT_REQUIRED=true \
+            -e DMT_ARTIFACT_DIR=/backend/artifacts/fixtures/tiny-area \
+            -e DMT_ARTIFACT_MANIFEST=/backend/artifacts/fixtures/tiny-area/manifest.json \
+            -e DMT_MESA_COVERAGE_REQUIRED=false \
+            -p 8000:8000 \
+            dmt-backend
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/health
+          curl -fsS http://127.0.0.1:8000/ready
+          docker rm -f dmt-backend
+
+      - name: Build frontend image
+        run: docker build -f frontend/Dockerfile -t dmt-frontend .

@@ -51,6 +51,40 @@ def test_custom_polygon_allows_localhost_origin() -> None:
     assert response.headers["access-control-allow-origin"] == "http://localhost:4301"
 
 
+def test_custom_polygon_allows_docker_frontend_origin() -> None:
+    clear_artifact_env()
+    client = TestClient(app)
+
+    response = client.options(
+        "/metrics/custom-polygon",
+        headers={
+            "Origin": "http://localhost:8080",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:8080"
+
+
+def test_custom_polygon_allows_remapped_docker_frontend_origin() -> None:
+    clear_artifact_env()
+    client = TestClient(app)
+
+    response = client.options(
+        "/metrics/custom-polygon",
+        headers={
+            "Origin": "http://localhost:8084",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:8084"
+
+
 def test_ready_allows_no_artifact_development_mode(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

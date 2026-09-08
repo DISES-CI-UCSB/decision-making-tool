@@ -120,11 +120,19 @@ def build_species_bitset(
     headers, grid, bytes_per_cell = _read_matrix_set(matrix_paths)
     range_area_source = _range_area_source(headers)
     cell_count = grid.width * grid.height
+    species_count = sum(len(header.species) for header in headers)
+    expected_bytes = cell_count * bytes_per_cell
     data_path.parent.mkdir(parents=True, exist_ok=True)
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
     data_tmp = data_path.with_name(f".{data_path.name}.tmp")
     metadata_tmp = metadata_path.with_name(f".{metadata_path.name}.tmp")
 
+    print(
+        f"[hydrate] bitset {grid.width}x{grid.height} cells, "
+        f"{species_count} species, {expected_bytes / (1024**3):.2f} GB file",
+        flush=True,
+    )
+    print("[hydrate] bitset allocating and zeroing the mmap (can take a minute)", flush=True)
     bitset = np.memmap(
         data_tmp,
         dtype=np.uint8,
@@ -132,12 +140,27 @@ def build_species_bitset(
         shape=(cell_count, bytes_per_cell),
     )
     bitset[:] = 0
+    print("[hydrate] bitset packing species into cells", flush=True)
     entries: list[SpeciesBitsetEntry] = []
+    report_every = max(1, species_count // 20)
+    last_group = ""
 
     try:
-        for species_index, (cell_ids, entry) in enumerate(_iter_species_entries(headers, grid)):
+        for species_index, (cell_ids, entry) in enumerate(
+            _iter_species_entries(headers, grid)
+        ):
+            if entry.group != last_group:
+                print(f"[hydrate] bitset group {entry.group}", flush=True)
+                last_group = entry.group
             bitset[cell_ids, species_index // 8] |= np.uint8(1 << (species_index % 8))
             entries.append(entry)
+            done = species_index + 1
+            if done % report_every == 0 or done == species_count:
+                print(
+                    f"[hydrate] bitset species {done}/{species_count} "
+                    f"({100 * done / species_count:.0f}%)",
+                    flush=True,
+                )
 
         bitset.flush()
         metadata = SpeciesBitsetMetadata(

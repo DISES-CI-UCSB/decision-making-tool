@@ -41,12 +41,14 @@ The sample polygon covers two valid fixture cells. One is selected, so the respo
 
 ## Docker Setup
 
-From the repo root:
+From the repo root, the backend-only shortcut:
 
 ```bash
 docker compose -f backend/docker-compose.yml build
 docker compose -f backend/docker-compose.yml up
 ```
+
+To run the frontend and backend together, see the root `docker-compose.yml` and the Docker section in the repository README.
 
 Smoke check:
 
@@ -58,7 +60,7 @@ curl http://127.0.0.1:8000/ready
 Run Docker Compose against the tiny artifact fixture copied into the image:
 
 ```bash
-DMT_ARTIFACT_REQUIRED=true DMT_ARTIFACT_DIR=/backend/artifacts/fixtures/tiny-area DMT_ARTIFACT_MANIFEST=/backend/artifacts/fixtures/tiny-area/manifest.json docker compose -f backend/docker-compose.yml up --build
+DMT_ARTIFACT_REQUIRED=true DMT_ARTIFACT_DIR=/backend/artifacts/fixtures/tiny-area DMT_ARTIFACT_MANIFEST=/backend/artifacts/fixtures/tiny-area/manifest.json DMT_MESA_COVERAGE_REQUIRED=false docker compose -f backend/docker-compose.yml up --build
 ```
 
 Stop the service with:
@@ -67,12 +69,37 @@ Stop the service with:
 docker compose -f backend/docker-compose.yml down
 ```
 
-## VM Deployment Smoke Operations
+## Hydrate runtime artifacts
 
-The current VM deployment runs the backend Compose service on public port `8000`. Build or refresh the ignored real raster runtime artifact first, then rebuild and recreate the service from the current branch with artifact loading required:
+Production rasters are not baked into the image. From a machine that can reach public Vercel Blob, fill the mounted artifact volume:
 
 ```bash
-backend/.venv/bin/python backend/scripts/build_runtime_artifact.py
+docker compose -f backend/docker-compose.yml run --rm --build backend hydrate
+```
+
+Or, with the root compose file:
+
+```bash
+docker compose run --rm --build backend hydrate
+```
+
+The image already knows which public blob URLs to download. Extra flags pass through to `backend/scripts/build_runtime_artifact.py` (`--force`, `--manifest-url`, `--production-v3`, and so on). Then start the API:
+
+```bash
+docker compose -f backend/docker-compose.yml up -d
+curl http://127.0.0.1:8000/ready
+```
+
+A host Python venv is no longer required for hydration. The host-side command below still works if you prefer it.
+
+## VM Deployment Smoke Operations
+
+The current VM deployment runs the backend Compose service on public port `8000`. Hydrate the ignored real raster runtime artifact first, then recreate the service with artifact loading required:
+
+```bash
+docker compose -f backend/docker-compose.yml run --rm --build backend hydrate
+# Optional host-side equivalent:
+# backend/.venv/bin/python backend/scripts/build_runtime_artifact.py
 DMT_ARTIFACT_REQUIRED=true docker compose -f backend/docker-compose.yml up -d --build --force-recreate
 ```
 
@@ -111,6 +138,10 @@ Chat #4 VM fixture benchmark on 2026-06-04 after rebuilding commit `3101d003`:
 - `DMT_ARTIFACT_MANIFEST`: Manifest path. Defaults to `${DMT_ARTIFACT_DIR}/manifest.json`.
 - `DMT_ARTIFACT_REQUIRED`: Set to `true` when the API should fail readiness if runtime artifacts are missing or invalid. Defaults to `false` for local development without artifacts.
 - `DMT_ARTIFACT_SCHEMA_VERSION`: Expected manifest schema version. Defaults to `metrics-artifact-manifest/v1`.
+- `DMT_METRICS_PIPELINE_PATH`: Path to the shared metrics pipeline. Docker sets this to `/metrics_pipeline`.
+- `DMT_RELEASE_SPECS_DIR`: Path to release-spec JSON contracts. Docker sets this to `/data/metrics/release-specs`.
+- `DMT_CORS_ORIGINS`: Extra comma-separated frontend origins allowed by CORS, in addition to localhost dev ports, `:8080`, and `*.vercel.app`.
+- `MANIFEST_BLOB_URL` / `DMT_MANIFEST_URL`: Optional override for the hydrate recipe's source layer manifest.
 - `BLOB_READ_WRITE_TOKEN`: Required for future real Vercel Blob sync work. The skeleton script only checks whether it is present and never prints the value.
 
 ## Endpoints

@@ -64,6 +64,27 @@ npm run build:vercel
 
 `METRICS_API_BASE_URL` can be set for production-style builds to point custom polygon metric requests at the backend API. If it is omitted, production defaults to the Vercel same-origin `/metrics-api` rewrite, which forwards requests to the HTTPS backend.
 
+## Docker
+
+Vercel deploy is unchanged. The frontend image is a second way to serve the same `npm run build:vercel` output.
+
+From the repository root:
+
+```bash
+docker build -f frontend/Dockerfile -t dmt-frontend .
+docker run --rm -p 8080:8080 -e METRICS_API_UPSTREAM=http://host.docker.internal:8000 dmt-frontend
+```
+
+Open `http://localhost:8080/`. nginx serves the SPA and proxies `/metrics-api/` to `METRICS_API_UPSTREAM` (this one can change without rebuilding). Firebase and manifest URLs are build-time args; omit them to keep the committed production Firebase config.
+
+To run frontend and backend together:
+
+```bash
+docker compose up --build
+```
+
+The Docker image disables the Vercel-only manifest editor (`ENABLE_MANIFEST_EDITOR=false`). Manifest-style publishing stays on Vercel.
+
 ## Running unit tests
 
 To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:

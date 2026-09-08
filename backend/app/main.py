@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 import sqlite3
 import time
@@ -43,6 +44,44 @@ from .species_index import RuntimeSpeciesBitsetIndex
 
 LOGGER = logging.getLogger(__name__)
 _DETAILED_SPECIES_QUEUE: DetailedSpeciesJobQueue | None = None
+
+
+def _load_solution_overlay(
+    artifact: Any,
+    solution_id: str | None,
+) -> tuple[Any, str | None]:
+    """Load a solution raster for custom AOI overlays.
+
+    Grid mismatch is expected on the default ecosistemas hydrate, which
+    registers national land-solution TIFFs that do not share the AOI grid.
+    Skip the overlay instead of failing the whole profile.
+    """
+    if not solution_id:
+        return None, None
+    if artifact.solution_registry is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "solution_registry_required",
+                "message": "The solution raster registry is unavailable.",
+            },
+        )
+    try:
+        return artifact.solution_registry.load(solution_id)
+    except SolutionRegistryError as exc:
+        error = str(exc)
+        if error.startswith("solution_raster_grid_mismatch:"):
+            LOGGER.warning("Skipping custom AOI solution overlay: %s", error)
+            return None, None
+        status_code = (
+            status.HTTP_400_BAD_REQUEST
+            if error.startswith("solution_not_registered:")
+            else status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+        raise HTTPException(
+            status_code=status_code,
+            detail={"status": "solution_unavailable", "message": error},
+        ) from exc
 
 
 def _loaded_artifact_version(artifact: Any) -> str | None:
@@ -91,16 +130,29 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_DEFAULT_CORS_ORIGINS = [
+    "http://localhost:4200",
+    "http://localhost:4300",
+    "http://localhost:4301",
+    "http://localhost:8080",
+    "http://localhost:8084",
+    "http://127.0.0.1:4200",
+    "http://127.0.0.1:4300",
+    "http://127.0.0.1:4301",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8084",
+]
+
+
+def cors_origins(extra: str | None = None) -> list[str]:
+    raw = extra if extra is not None else os.getenv("DMT_CORS_ORIGINS", "")
+    extras = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return [*_DEFAULT_CORS_ORIGINS, *extras]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4200",
-        "http://localhost:4300",
-        "http://localhost:4301",
-        "http://127.0.0.1:4200",
-        "http://127.0.0.1:4300",
-        "http://127.0.0.1:4301",
-    ],
+    allow_origins=cors_origins(),
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
@@ -254,32 +306,10 @@ def custom_polygon_area_profile(
             },
         )
 
-    solution_raster = None
-    solution_raster_checksum = None
-    if request.solution_id:
-        if artifact.solution_registry is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail={
-                    "status": "solution_registry_required",
-                    "message": "The solution raster registry is unavailable.",
-                },
-            )
-        try:
-            solution_raster, solution_raster_checksum = artifact.solution_registry.load(
-                request.solution_id
-            )
-        except SolutionRegistryError as exc:
-            error = str(exc)
-            status_code = (
-                status.HTTP_400_BAD_REQUEST
-                if error.startswith("solution_not_registered:")
-                else status.HTTP_503_SERVICE_UNAVAILABLE
-            )
-            raise HTTPException(
-                status_code=status_code,
-                detail={"status": "solution_unavailable", "message": error},
-            ) from exc
+    solution_raster, solution_raster_checksum = _load_solution_overlay(
+        artifact,
+        request.solution_id,
+    )
 
     try:
         sections, selection, overall_status = calculate_custom_area_profile(
@@ -370,6 +400,31 @@ def create_detailed_species_job(
                 "message": "The requested solution is not registered.",
             },
         )
+    load_overlay = getattr(artifact.solution_registry, "load", None)
+    if callable(load_overlay):
+        try:
+            load_overlay(request.solution_id)
+        except SolutionRegistryError as exc:
+            error = str(exc)
+            if error.startswith("solution_raster_grid_mismatch:"):
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "status": "solution_raster_grid_mismatch",
+                        "message": (
+                            "The active scenario raster does not match this custom AOI grid."
+                        ),
+                    },
+                ) from exc
+            if error.startswith("solution_not_registered:"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"status": "solution_unavailable", "message": error},
+                ) from exc
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"status": "solution_unavailable", "message": error},
+            ) from exc
     if loaded_artifact_version is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
