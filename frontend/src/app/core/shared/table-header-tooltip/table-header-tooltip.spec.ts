@@ -37,7 +37,7 @@ describe('TableHeaderTooltipComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     return {
       fixture,
-      trigger: compiled.querySelector('button') as HTMLButtonElement,
+      trigger: compiled.querySelector(`#${idBase}-help-trigger`) as HTMLButtonElement,
       panel: compiled.querySelector('[role="tooltip"]') as HTMLElement,
     };
   }
@@ -65,6 +65,40 @@ describe('TableHeaderTooltipComponent', () => {
     expect(panel.classList.contains('block')).toBe(true);
     expect(panel.classList.contains('hidden')).toBe(false);
     expect(panel.classList.contains('right-0')).toBe(true);
+    fixture.destroy();
+  });
+
+  it('sorts from the label button without opening help', () => {
+    const fixture = TestBed.createComponent(TableHeaderTooltipComponent);
+    fixture.componentRef.setInput('idBase', 'table-header-tooltip-spec-sort');
+    fixture.componentRef.setInput('labelKey', 'column.label');
+    fixture.componentRef.setInput('questionKey', 'column.help');
+    fixture.componentRef.setInput('sortable', true);
+    fixture.componentRef.setInput('sortDirection', 'none');
+    fixture.componentRef.setInput('sortAriaLabel', 'Sort by Coverage');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const sortButton = compiled.querySelector(
+      '#table-header-tooltip-spec-sort-sort-button',
+    ) as HTMLButtonElement;
+    const helpTrigger = compiled.querySelector(
+      '#table-header-tooltip-spec-sort-help-trigger',
+    ) as HTMLButtonElement;
+    const panel = compiled.querySelector('[role="tooltip"]') as HTMLElement;
+    const emitSpy = vi.spyOn(fixture.componentInstance.sortClick, 'emit');
+
+    sortButton.click();
+    fixture.detectChanges();
+
+    expect(emitSpy).toHaveBeenCalledTimes(1);
+    expect(panel.classList.contains('hidden')).toBe(true);
+    expect(sortButton.getAttribute('aria-label')).toBe('Sort by Coverage');
+
+    helpTrigger.click();
+    fixture.detectChanges();
+    expect(emitSpy).toHaveBeenCalledTimes(1);
+    expect(panel.classList.contains('block')).toBe(true);
     fixture.destroy();
   });
 });

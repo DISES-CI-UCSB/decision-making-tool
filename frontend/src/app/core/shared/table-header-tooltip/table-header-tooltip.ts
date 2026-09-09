@@ -1,8 +1,9 @@
-import { Component, HostListener, input, signal } from '@angular/core';
+import { Component, HostListener, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 
 type TooltipAlignment = 'start' | 'center' | 'end';
+type SortDirection = 'asc' | 'desc' | 'none';
 
 @Component({
   selector: 'app-table-header-tooltip',
@@ -36,9 +37,41 @@ type TooltipAlignment = 'start' | 'center' | 'end';
     }
   `,
   template: `
-    <span [id]="idBase() + '-content'">
-      <span [id]="idBase() + '-label'">{{ labelKey() | translate }}</span
-      ><span class="table-header-inline-help group hover:z-50 focus-within:z-50">
+    <span [id]="idBase() + '-content'" class="inline-flex items-baseline">
+      @if (sortable()) {
+        <button
+          [id]="idBase() + '-sort-button'"
+          type="button"
+          class="group/sort inline-flex items-baseline gap-1 rounded-sm text-left font-inherit hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-300"
+          [attr.aria-label]="sortAriaLabel()"
+          (click)="onSortClick($event)"
+        >
+          <span [id]="idBase() + '-label'">{{ labelKey() | translate }}</span>
+          <span
+            [id]="idBase() + '-sort-indicator'"
+            class="inline-flex h-3 w-3 shrink-0 text-slate-400 opacity-0 transition-opacity group-hover/sort:opacity-60"
+            [class.text-slate-600]="sortDirection() !== 'none'"
+            [class.opacity-100]="sortDirection() !== 'none'"
+            aria-hidden="true"
+          >
+            <svg [id]="idBase() + '-sort-chevron'" class="h-3 w-3" viewBox="0 0 12 12" fill="currentColor">
+              @if (sortDirection() === 'asc') {
+                <path [id]="idBase() + '-sort-chevron-up'" d="M6 2.25 10.5 9.75H1.5Z" />
+              } @else if (sortDirection() === 'desc') {
+                <path [id]="idBase() + '-sort-chevron-down'" d="M6 9.75 1.5 2.25h9Z" />
+              } @else {
+                <path
+                  [id]="idBase() + '-sort-chevron-hover'"
+                  d="M6 1.25 8.6 4.75H3.4Zm0 9.5L3.4 7.25h5.2Z"
+                />
+              }
+            </svg>
+          </span>
+        </button>
+      } @else {
+        <span [id]="idBase() + '-label'">{{ labelKey() | translate }}</span>
+      }
+      <span class="table-header-inline-help group hover:z-50 focus-within:z-50">
         <button
           [id]="idBase() + '-help-trigger'"
           type="button"
@@ -72,11 +105,20 @@ export class TableHeaderTooltipComponent {
   readonly labelKey = input.required<string>();
   readonly questionKey = input.required<string>();
   readonly align = input<TooltipAlignment>('start');
+  readonly sortable = input(false);
+  readonly sortDirection = input<SortDirection>('none');
+  readonly sortAriaLabel = input('');
+  readonly sortClick = output<void>();
   protected readonly pinned = signal(false);
 
   @HostListener('document:click')
   protected closePinnedTooltip(): void {
     this.pinned.set(false);
+  }
+
+  protected onSortClick(event: Event): void {
+    event.stopPropagation();
+    this.sortClick.emit();
   }
 
   protected togglePinned(event: Event): void {

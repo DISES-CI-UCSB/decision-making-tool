@@ -2,10 +2,13 @@
 
 Conventions:
 - Solution rasters use categorical values:
-    * 0 = not selected
+    * 0 = not selected (a planning unit that remains in the problem)
     * 1 = new Prioritizr coverage
     * 2 = authoritative pre-existing coverage for that run
     * GDAL nodata and non-finite cells contain no solution data
+  Published SIRAP GeoTIFFs often omit 0 and store unselected PUs as nodata.
+  In that case solution_data_valid_mask equals selected_mask; species range
+  must not be clipped to that mask or every coverage ratio collapses to 100%.
 - Feature/include layer rasters used here are binary masks. We treat any
   finite, non-nodata, non-zero value as 'present' to be lenient across layer
   conventions while still failing clearly when alignment differs.

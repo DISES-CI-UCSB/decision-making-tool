@@ -15,6 +15,8 @@ from boundaries.boundary_topology import ExclusiveBoundaryIndex
 from metrics_contract import PROVENANCE_KEY, build_metrics_provenance, provenance_issues
 from solution_input_signature import canonical_sha256
 from sirap_packet import (
+    _SIRAP_SPECIES_TAUTOLOGY_MIN_RANGED,
+    _reject_selected_equals_total_tautology,
     read_summary,
     regional_species_accumulator,
     regional_species_richness,
@@ -405,8 +407,109 @@ def test_packet_smsp_fans_out_scope_presence_and_coverage(tmp_path, monkeypatch)
         ("national", "Test species"),
         ("departments", "Test species"),
     ]
-    assert recorded[0][2:] == (1_000_000.0, 1_000_000.0)
-    assert recorded[1][2:] == ([1_000_000.0, 0.0], [1_000_000.0, 0.0])
+    assert recorded[0][2:] == (1_000_000.0, 2_000_000.0)
+    assert recorded[1][2:] == ([1_000_000.0, 0.0], [1_000_000.0, 1_000_000.0])
+
+
+def test_packet_smsp_counts_selected_only_nodata_cells_as_uncovered_range(
+    tmp_path, monkeypatch
+):
+    """Published SIRAP TIFs store unselected PUs as nodata, so valid==selected."""
+    monkeypatch.setattr("sirap_packet._SPECIES_CELL_CHUNK_SIZE", 1)
+    raster = raster_from_fixture(
+        {
+            "shape": [2, 2],
+            "pixel_area_km2": 1,
+            "selected": [[True, False], [False, False]],
+            "valid": [[True, False], [False, False]],
+        }
+    )
+    metadata = SparseMetadata(
+        width=2,
+        height=2,
+        x_origin=0,
+        y_origin=2,
+        x_scale=1,
+        y_scale=-1,
+        nodata=None,
+        crs="EPSG:32618",
+        count=1,
+        transform=(1, 0, 0, 0, -1, 2),
+    )
+    encoded = encode_species_matrix(
+        [
+            SpeciesMatrixEntry(
+                name="Test species",
+                iucn="EN",
+                csv_class="Mammalia",
+                cell_ids=np.array([0, 1], dtype=np.uint32),
+                metadata=metadata,
+            )
+        ]
+    )
+    matrix = tmp_path / "mammals.smsp.gz"
+    matrix.write_bytes(encoded)
+    lookup = tmp_path / "species.csv"
+    lookup.write_text(
+        "scientific_name,class,iucn_status,range_km2\n"
+        "Test species,Mammalia,EN,2\n",
+        encoding="utf-8",
+    )
+    binding = {
+        "taxonomicClass": "Mammalia",
+        "format": "smsp-v1",
+        "url": matrix.as_uri(),
+        "sha256": hashlib.sha256(encoded).hexdigest(),
+        "gridSha256": "a" * 64,
+    }
+    recorded = []
+
+    class DetailSink:
+        def record_national(self, species, selected_area_m2, total_area_m2, **kwargs):
+            recorded.append((selected_area_m2, total_area_m2))
+
+        def record_sub_level(self, *args, **kwargs):
+            return None
+
+    regional_species_accumulator(
+        {
+            "matrices": [binding],
+            "metadataLookup": {
+                "url": lookup.as_uri(),
+                "sha256": hashlib.sha256(lookup.read_bytes()).hexdigest(),
+            },
+            "nationalDenominator": {"nonFishCount": 1},
+        },
+        raster,
+        "a" * 64,
+        {},
+        tmp_path / "cache",
+        force=False,
+        target_policy=SpeciesTargetPolicy("scalar", 50.0, {}, None),
+        detail_sink=DetailSink(),
+    )
+
+    assert recorded == [(1_000_000.0, 2_000_000.0)]
+
+
+def test_reject_selected_equals_total_tautology_skips_small_inventories():
+    _reject_selected_equals_total_tautology(1, 1)
+    _reject_selected_equals_total_tautology(
+        _SIRAP_SPECIES_TAUTOLOGY_MIN_RANGED - 1,
+        _SIRAP_SPECIES_TAUTOLOGY_MIN_RANGED - 1,
+    )
+
+
+def test_reject_selected_equals_total_tautology_fails_closed_on_full_inventory():
+    with pytest.raises(ValueError, match="tautological"):
+        _reject_selected_equals_total_tautology(
+            _SIRAP_SPECIES_TAUTOLOGY_MIN_RANGED,
+            _SIRAP_SPECIES_TAUTOLOGY_MIN_RANGED,
+        )
+    _reject_selected_equals_total_tautology(
+        _SIRAP_SPECIES_TAUTOLOGY_MIN_RANGED,
+        _SIRAP_SPECIES_TAUTOLOGY_MIN_RANGED - 1,
+    )
 
 
 def test_packet_smsp_rejects_checksum_mismatch(tmp_path):

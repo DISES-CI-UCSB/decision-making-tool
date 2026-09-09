@@ -38,7 +38,10 @@ from .models import (
     ReadinessResponse,
 )
 from .job_queue import DetailedSpeciesJobQueue, JobQueueFullError, JobSnapshot
-from .metric_adapters import build_custom_aoi_raster
+from .metric_adapters import (
+    build_full_grid_presence_raster,
+    rasterize_custom_polygon_mask,
+)
 from .polygon_metrics import PolygonMetricError, calculate_custom_polygon_metrics
 from .solution_registry import SolutionRegistryError
 from .species_index import RuntimeSpeciesBitsetIndex
@@ -440,6 +443,7 @@ def create_detailed_species_job(
         "geometry": request.geometry,
         "solution_id": request.solution_id,
         "artifact_version": loaded_artifact_version,
+        "coverage_scope": request.coverage_scope,
     }
     try:
         snapshot, coalesced = queue.enqueue(payload)
@@ -571,10 +575,18 @@ def _calculate_detailed_species_coverage(
         )
     except SolutionRegistryError as exc:
         raise RuntimeError(str(exc)) from exc
-    aoi_raster = build_custom_aoi_raster(
-        artifact.reference_raster_path,
-        payload["geometry"],
-    )
+    if payload.get("coverage_scope") == "full-grid":
+        aoi_raster, polygon_mask = build_full_grid_presence_raster(
+            artifact.reference_raster_path,
+        )
+    else:
+        geometry = payload.get("geometry")
+        if not isinstance(geometry, dict):
+            raise RuntimeError("polygon_geometry_required")
+        aoi_raster, polygon_mask = rasterize_custom_polygon_mask(
+            artifact.reference_raster_path,
+            geometry,
+        )
     target_for_species: Callable[[str], float | None] | None = None
     if artifact.mesa_coverage is not None:
         species_targets = (
@@ -593,6 +605,7 @@ def _calculate_detailed_species_coverage(
         solution_raster,
         is_cancelled,
         target_for_species=target_for_species,
+        aoi_presence_mask=polygon_mask,
     )
     if loaded_artifact_version is None:
         raise RuntimeError("artifact_version_required")

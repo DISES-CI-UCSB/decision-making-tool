@@ -1,6 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ScrollingModule } from '@angular/cdk/scrolling';
+import { ArrayDataSource } from '@angular/cdk/collections';
+import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
 import {
   Component,
   computed,
@@ -22,6 +23,7 @@ import {
   type CustomPolygonMetricsGeometry,
   type CustomPolygonMetricsResponse,
   type DetailedSpeciesCoverageRecord,
+  type DetailedSpeciesCoverageRequest,
   type DetailedSpeciesJobResponse,
   type GoalFeatureRow,
   type GoalFeatureType,
@@ -136,6 +138,18 @@ import {
   type OverviewMetricSection,
 } from './panel-switcher.config';
 import {
+  DEFAULT_SPECIES_COVERAGE_SORT,
+  nextSpeciesCoverageSortState,
+  parseSpeciesCoverageSortSelectValue,
+  speciesCoverageSortAria,
+  speciesCoverageSortColumnFromHeading,
+  speciesCoverageSortIndicator,
+  speciesCoverageSortSelectValue,
+  sortSpeciesCoverageRows,
+  type SpeciesCoverageSortColumnId,
+  type SpeciesCoverageSortState,
+} from '../utils/species-coverage-sort.utils';
+import {
   appendUnit as appendMetricUnit,
   areaUnitLabel,
   formatAreaValue as formatAreaMetricValue,
@@ -248,7 +262,6 @@ interface OverviewGoalsTaxaEntry {
   reached30Count: number;
 }
 
-type GoalsModalSortId = 'coverage-desc' | 'coverage-asc' | 'name';
 type GoalsModalSource = 'overview' | 'aoi';
 type GoalsModalScope = 'solution-overview' | 'selected-aoi';
 type GoalsModalFilterId =
@@ -573,6 +586,9 @@ const COMPACT_MEC_COLUMN_HEADINGS = [
 export class PanelSwitcherComponent {
   private readonly customAoiSpeciesInventory = viewChild<CustomAoiSpeciesInventoryComponent>(
     'customAoiSpeciesInventory',
+  );
+  private readonly goalsModalSpeciesViewport = viewChild<CdkVirtualScrollViewport>(
+    'goalsModalSpeciesViewport',
   );
   protected readonly customAoiSpeciesInventoryRequested = signal(false);
   protected readonly customAoiAreaProfileEnabled = FEATURE_FLAGS.customAoiAreaProfile;
@@ -920,7 +936,25 @@ export class PanelSwitcherComponent {
   private readonly goalsModalScope = signal<GoalsModalScope>('solution-overview');
   protected readonly goalsModalDomainId = signal<string | null>(null);
   protected readonly goalsModalSearchQuery = signal('');
-  protected readonly goalsModalSortId = signal<GoalsModalSortId>('coverage-desc');
+  protected readonly goalsModalSort = signal<SpeciesCoverageSortState>({
+    ...DEFAULT_SPECIES_COVERAGE_SORT,
+  });
+  protected readonly goalsModalSortSelectValue = computed(() =>
+    speciesCoverageSortSelectValue(this.goalsModalSort()),
+  );
+  protected readonly goalsModalSortGeneratedOption = computed(() => {
+    const value = this.goalsModalSortSelectValue();
+    if (value === 'coverage-desc' || value === 'coverage-asc' || value === 'name') {
+      return null;
+    }
+    return {
+      value,
+      label: this.goalsModalSortOptionLabel(this.goalsModalSort()),
+    };
+  });
+  protected readonly goalsModalSortLiveMessage = computed(() =>
+    this.goalsModalSortStatusMessage(this.goalsModalSort()),
+  );
   protected readonly goalsModalFilterId = signal<GoalsModalFilterId>('all');
   protected readonly goalsModalTaxonGroup = signal('all');
   protected readonly goalsModalEcosystemBreakdownId = signal<MecBreakdownId>('iavh');
@@ -1089,6 +1123,27 @@ export class PanelSwitcherComponent {
 
     return this.sortGoalsModalRows(rows);
   });
+  protected readonly goalsModalRowsDataSource = computed(
+    () => new ArrayDataSource(this.goalsModalRows()),
+  );
+  protected goalsModalAriaSort(
+    columnId: SpeciesCoverageSortColumnId,
+  ): 'ascending' | 'descending' | 'none' {
+    return speciesCoverageSortAria(this.goalsModalSort(), columnId);
+  }
+  protected goalsModalSortIndicator(
+    columnId: SpeciesCoverageSortColumnId,
+  ): 'asc' | 'desc' | 'none' {
+    return speciesCoverageSortIndicator(this.goalsModalSort(), columnId);
+  }
+  protected goalsModalSortByLabel(columnId: SpeciesCoverageSortColumnId): string {
+    return this.translate.instant('analysis.overview.goalsWidget.modal.sortByColumn', {
+      column: this.goalsModalSortColumnLabel(columnId),
+    });
+  }
+  protected speciesHeaderSortColumn(headingId: string): SpeciesCoverageSortColumnId {
+    return speciesCoverageSortColumnFromHeading(headingId) ?? 'relativeHeld';
+  }
   protected readonly goalsModalTaxonGroups = computed<string[]>(() => {
     if (this.goalsModalDomain()?.featureType !== 'species') {
       return [];
@@ -2501,16 +2556,91 @@ export class PanelSwitcherComponent {
   }
 
   private sortGoalsModalRows(rows: GoalsModalRow[]): GoalsModalRow[] {
-    const sorted = [...rows];
-    const sortId = this.goalsModalSortId();
-    if (sortId === 'name') {
-      sorted.sort((a, b) => a.name.localeCompare(b.name, this.appLocale.locale()));
-    } else if (sortId === 'coverage-asc') {
-      sorted.sort((a, b) => (a.relativeHeld ?? -1) - (b.relativeHeld ?? -1));
-    } else {
-      sorted.sort((a, b) => (b.relativeHeld ?? -1) - (a.relativeHeld ?? -1));
+    return sortSpeciesCoverageRows(
+      rows,
+      this.goalsModalSort(),
+      this.appLocale.locale(),
+      (row, columnId) => this.goalsModalSortValue(row, columnId),
+      (row) => row.id,
+    );
+  }
+
+  private goalsModalSortValue(
+    row: GoalsModalRow,
+    columnId: SpeciesCoverageSortColumnId,
+  ): string | number | null {
+    switch (columnId) {
+      case 'name':
+        return row.name;
+      case 'nationalRangeKm2':
+        return row.nationalRangeKm2;
+      case 'rangeInAoiPercent':
+        return row.rangeInAoiPercent;
+      case 'preExistingRelativeHeld':
+        return row.preExistingRelativeHeld;
+      case 'newRelativeHeld':
+        return row.newRelativeHeld;
+      case 'relativeHeld':
+        return row.relativeHeld;
     }
-    return sorted;
+  }
+
+  private goalsModalSortColumnLabel(columnId: SpeciesCoverageSortColumnId): string {
+    return this.translate.instant(
+      `analysis.overview.goalsWidget.modal.sortColumns.${columnId}`,
+    );
+  }
+
+  private goalsModalSortOptionLabel(state: SpeciesCoverageSortState): string {
+    const column = this.goalsModalSortColumnLabel(state.columnId);
+    if (state.columnId === 'name') {
+      return this.translate.instant(
+        state.direction === 'asc'
+          ? 'analysis.overview.goalsWidget.modal.sortColumnAz'
+          : 'analysis.overview.goalsWidget.modal.sortColumnZa',
+        { column },
+      );
+    }
+    return this.translate.instant(
+      state.direction === 'asc'
+        ? 'analysis.overview.goalsWidget.modal.sortColumnAsc'
+        : 'analysis.overview.goalsWidget.modal.sortColumnDesc',
+      { column },
+    );
+  }
+
+  private goalsModalSortStatusMessage(state: SpeciesCoverageSortState): string {
+    const column = this.goalsModalSortColumnLabel(state.columnId);
+    if (state.columnId === 'name') {
+      return this.translate.instant(
+        state.direction === 'asc'
+          ? 'analysis.overview.goalsWidget.modal.sortedByColumnAz'
+          : 'analysis.overview.goalsWidget.modal.sortedByColumnZa',
+        { column },
+      );
+    }
+    return this.translate.instant(
+      state.direction === 'asc'
+        ? 'analysis.overview.goalsWidget.modal.sortedByColumnAsc'
+        : 'analysis.overview.goalsWidget.modal.sortedByColumnDesc',
+      { column },
+    );
+  }
+
+  private scrollGoalsModalSpeciesToTop(): void {
+    queueMicrotask(() => {
+      const viewport = this.goalsModalSpeciesViewport();
+      if (!viewport) {
+        return;
+      }
+      const element = viewport.elementRef.nativeElement as HTMLElement;
+      if (typeof element.scrollTo === 'function') {
+        viewport.scrollToIndex(0);
+        viewport.checkViewportSize();
+        return;
+      }
+      element.scrollTop = 0;
+    });
   }
 
   protected openGoalsModal(domainId: string, source: GoalsModalSource = 'overview'): void {
@@ -2526,7 +2656,7 @@ export class PanelSwitcherComponent {
     this.goalsModalScope.set(this.resolveGoalsModalScope(source));
     this.goalsModalDomainId.set(domainId);
     this.goalsModalSearchQuery.set('');
-    this.goalsModalSortId.set('coverage-desc');
+    this.goalsModalSort.set({ ...DEFAULT_SPECIES_COVERAGE_SORT });
     this.goalsModalFilterId.set('all');
     this.goalsModalTaxonGroup.set('all');
     this.goalsModalEcosystemBreakdownId.set('iavh');
@@ -2615,13 +2745,15 @@ export class PanelSwitcherComponent {
   private loadGoalsModalSpecies(): void {
     const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
     const useCustomCoverage = this.usesGoalsModalCustomCoverage();
+    const useSirapWideCoverage = this.isSirapPrimaryGoalsModal();
     const selectedAoi = this.selectedAoi();
     if (useCustomCoverage && (!this.customAoiGeometry() || selectedAoi?.type !== 'custom')) {
       this.goalsModalSpeciesLoading.set(false);
       return;
     }
-    const context = useCustomCoverage ? null : this.resolveGoalsModalSpeciesContext();
-    if ((!useCustomCoverage && !context) || !solutionId) {
+    const context =
+      useCustomCoverage || useSirapWideCoverage ? null : this.resolveGoalsModalSpeciesContext();
+    if ((!useCustomCoverage && !useSirapWideCoverage && !context) || !solutionId) {
       this.goalsModalSpeciesLoading.set(false);
       this.goalsModalSpeciesLoadFailed.set(true);
       return;
@@ -2632,12 +2764,16 @@ export class PanelSwitcherComponent {
     this.goalsModalSpeciesLoading.set(true);
     this.goalsModalSpeciesLoadFailed.set(false);
     const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
-    // The selected records must describe the current custom geometry. The SIRAP
+    // SIRAP overview uses live bitset coverage over the full packet grid.
+    // Published compact sidecars clip to valid_mask and report 100%.
+    // Custom-AOI selected records must describe the drawn geometry. The SIRAP
     // sidecar below is only a reference denominator for the "of SIRAP range"
     // annotation; it must never replace the polygon-intersection results.
     const selected = useCustomCoverage
       ? this.loadCustomAoiDetailedSpeciesGoals(this.customAoiGeometry()!, solutionId)
-      : this.speciesGoals.load(solutionId, context!.geographyLevel, context!.scopeId);
+      : useSirapWideCoverage
+        ? this.loadSirapWideDetailedSpeciesGoals(solutionId)
+        : this.speciesGoals.load(solutionId, context!.geographyLevel, context!.scopeId);
     const loadSirapRangeContext =
       this.isSirapScopedSolution() &&
       this.goalsModalScope() === 'selected-aoi' &&
@@ -2707,7 +2843,33 @@ export class PanelSwitcherComponent {
     if (!this.customAoiGeometry() || this.selectedAoi()?.type !== 'custom') {
       return of(null);
     }
-    return this.api.createDetailedSpeciesCoverageJob({ geometry, solution_id: solutionId }).pipe(
+    return this.pollDetailedSpeciesCoverageJob({ geometry, solution_id: solutionId }, solutionId);
+  }
+
+  private loadSirapWideDetailedSpeciesGoals(
+    solutionId: string,
+  ): Observable<HydratedSpeciesGoalsRecord[] | null> {
+    return this.pollDetailedSpeciesCoverageJob(
+      { solution_id: solutionId, coverage_scope: 'full-grid' },
+      solutionId,
+    ).pipe(
+      switchMap((records) => {
+        if (records !== null) {
+          return of(records);
+        }
+        const context = this.resolveGoalsModalSpeciesContext();
+        return context
+          ? this.speciesGoals.load(solutionId, context.geographyLevel, context.scopeId)
+          : of(null);
+      }),
+    );
+  }
+
+  private pollDetailedSpeciesCoverageJob(
+    request: DetailedSpeciesCoverageRequest,
+    solutionId: string,
+  ): Observable<HydratedSpeciesGoalsRecord[] | null> {
+    return this.api.createDetailedSpeciesCoverageJob(request).pipe(
       switchMap((created) =>
         this.isTerminalDetailedSpeciesJob(created)
           ? of(created)
@@ -2811,7 +2973,13 @@ export class PanelSwitcherComponent {
   }
 
   protected setGoalsModalSortId(value: string): void {
-    this.goalsModalSortId.set(value as GoalsModalSortId);
+    this.goalsModalSort.set(parseSpeciesCoverageSortSelectValue(value));
+    this.scrollGoalsModalSpeciesToTop();
+  }
+
+  protected onGoalsModalSortHeader(columnId: SpeciesCoverageSortColumnId): void {
+    this.goalsModalSort.set(nextSpeciesCoverageSortState(this.goalsModalSort(), columnId));
+    this.scrollGoalsModalSpeciesToTop();
   }
 
   protected setGoalsModalFilterId(value: string): void {
@@ -2822,9 +2990,8 @@ export class PanelSwitcherComponent {
     this.goalsModalTaxonGroup.set(value);
   }
 
-  protected trackGoalsModalRow(_index: number, row: GoalsModalRow): string {
-    return row.id;
-  }
+  protected readonly trackGoalsModalRow = (_index: number, row: GoalsModalRow): string =>
+    `${this.goalsModalSortSelectValue()}:${row.id}`;
 
   protected trackMecCoverageRow(_index: number, row: MecCoverageRow): string {
     return row.id;

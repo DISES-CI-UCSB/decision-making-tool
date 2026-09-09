@@ -122,10 +122,13 @@ export interface CustomAoiAreaProfileResponse {
   solution_raster_checksum?: string | null;
 }
 
+export type DetailedSpeciesCoverageScope = 'polygon' | 'full-grid';
+
 export interface DetailedSpeciesCoverageRequest {
-  geometry: CustomPolygonMetricsGeometry;
+  geometry?: CustomPolygonMetricsGeometry;
   solution_id: string;
   artifact_version?: string;
+  coverage_scope?: DetailedSpeciesCoverageScope;
 }
 
 export interface DetailedSpeciesCoverageRecord extends CustomAoiSpeciesRecord {

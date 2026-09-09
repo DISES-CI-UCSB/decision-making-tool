@@ -33,6 +33,16 @@ import {
 } from 'rxjs';
 import { parseSpeciesSection } from '../custom-aoi-area-profile/custom-aoi-area-profile.utils';
 import { formatSpeciesCoveragePercent } from '../utils/metric-presentation.utils';
+import {
+  DEFAULT_SPECIES_COVERAGE_SORT,
+  nextSpeciesCoverageSortState,
+  speciesCoverageSortAria,
+  speciesCoverageSortColumnFromHeading,
+  speciesCoverageSortIndicator,
+  sortSpeciesCoverageRows,
+  type SpeciesCoverageSortColumnId,
+  type SpeciesCoverageSortState,
+} from '../utils/species-coverage-sort.utils';
 
 interface LoadedInventoryState {
   status: CustomAoiProfileSectionStatus;
@@ -179,6 +189,12 @@ export class CustomAoiSpeciesInventoryComponent {
   protected readonly speciesSearch = signal('');
   protected readonly speciesGroup = signal('all');
   protected readonly speciesIucn = signal('all');
+  protected readonly speciesSort = signal<SpeciesCoverageSortState>({
+    ...DEFAULT_SPECIES_COVERAGE_SORT,
+  });
+  protected readonly speciesSortLiveMessage = computed(() =>
+    this.speciesSortStatusMessage(this.speciesSort()),
+  );
   private readonly areaNumberFormatter = computed(
     () =>
       new Intl.NumberFormat(this.appLocale.locale(), {
@@ -215,12 +231,19 @@ export class CustomAoiSpeciesInventoryComponent {
   );
   protected readonly filteredSpecies = computed(() => {
     const query = this.speciesSearch().trim().toLocaleLowerCase(this.appLocale.locale());
-    return this.speciesRecords().filter(
+    const rows = this.speciesRecords().filter(
       (record) =>
         (!query ||
           record.scientific_name.toLocaleLowerCase(this.appLocale.locale()).includes(query)) &&
         (this.speciesGroup() === 'all' || record.group === this.speciesGroup()) &&
         (this.speciesIucn() === 'all' || record.iucn_status === this.speciesIucn()),
+    );
+    return sortSpeciesCoverageRows(
+      rows,
+      this.speciesSort(),
+      this.appLocale.locale(),
+      (record, columnId) => this.speciesSortValue(record, columnId),
+      (record) => record.id,
     );
   });
   protected readonly detailedCoverageBySpecies = computed(() => {
@@ -396,6 +419,7 @@ export class CustomAoiSpeciesInventoryComponent {
   }
 
   open(): void {
+    this.speciesSort.set({ ...DEFAULT_SPECIES_COVERAGE_SORT });
     this.modalOpen.set(true);
     this.modalOpenChange.emit(true);
     if (this.geometry() && this.coverageState() === 'idle' && !this.speciesCoverageUnavailable()) {
@@ -448,6 +472,32 @@ export class CustomAoiSpeciesInventoryComponent {
     this.speciesIucn.set((event.target as HTMLSelectElement).value);
   }
 
+  protected speciesAriaSort(
+    columnId: SpeciesCoverageSortColumnId,
+  ): 'ascending' | 'descending' | 'none' {
+    return speciesCoverageSortAria(this.speciesSort(), columnId);
+  }
+
+  protected speciesSortIndicator(
+    columnId: SpeciesCoverageSortColumnId,
+  ): 'asc' | 'desc' | 'none' {
+    return speciesCoverageSortIndicator(this.speciesSort(), columnId);
+  }
+
+  protected speciesSortByLabel(columnId: SpeciesCoverageSortColumnId): string {
+    return this.translate.instant('analysis.overview.goalsWidget.modal.sortByColumn', {
+      column: this.speciesSortColumnLabel(columnId),
+    });
+  }
+
+  protected speciesHeaderSortColumn(headingId: string): SpeciesCoverageSortColumnId {
+    return speciesCoverageSortColumnFromHeading(headingId) ?? 'relativeHeld';
+  }
+
+  protected onSpeciesSortHeader(columnId: SpeciesCoverageSortColumnId): void {
+    this.speciesSort.set(nextSpeciesCoverageSortState(this.speciesSort(), columnId));
+  }
+
   protected formatPercent(value: number): string {
     return formatSpeciesCoveragePercent(value, this.appLocale.locale());
   }
@@ -458,6 +508,61 @@ export class CustomAoiSpeciesInventoryComponent {
 
   protected formatIucn(value: string | null): string {
     return value || this.translate.instant('analysis.aoi.customProfile.species.iucnNotReported');
+  }
+
+  private speciesSortValue(
+    record: {
+      scientific_name: string;
+      range_area_km2?: number | null;
+      range_in_aoi_pct?: number | null;
+      pre_existing_covered_in_aoi_pct?: number | null;
+      new_covered_in_aoi_pct?: number | null;
+      solution_covered_in_aoi_pct?: number | null;
+      availability?: string;
+    },
+    columnId: SpeciesCoverageSortColumnId,
+  ): string | number | null {
+    switch (columnId) {
+      case 'name':
+        return record.scientific_name;
+      case 'nationalRangeKm2':
+        if (record.availability === 'unavailable' || record.range_area_km2 == null) {
+          return null;
+        }
+        return record.range_area_km2;
+      case 'rangeInAoiPercent':
+        return record.range_in_aoi_pct ?? null;
+      case 'preExistingRelativeHeld':
+        return record.pre_existing_covered_in_aoi_pct ?? null;
+      case 'newRelativeHeld':
+        return record.new_covered_in_aoi_pct ?? null;
+      case 'relativeHeld':
+        return record.solution_covered_in_aoi_pct ?? null;
+    }
+  }
+
+  private speciesSortColumnLabel(columnId: SpeciesCoverageSortColumnId): string {
+    return this.translate.instant(
+      `analysis.overview.goalsWidget.modal.sortColumns.${columnId}`,
+    );
+  }
+
+  private speciesSortStatusMessage(state: SpeciesCoverageSortState): string {
+    const column = this.speciesSortColumnLabel(state.columnId);
+    if (state.columnId === 'name') {
+      return this.translate.instant(
+        state.direction === 'asc'
+          ? 'analysis.overview.goalsWidget.modal.sortedByColumnAz'
+          : 'analysis.overview.goalsWidget.modal.sortedByColumnZa',
+        { column },
+      );
+    }
+    return this.translate.instant(
+      state.direction === 'asc'
+        ? 'analysis.overview.goalsWidget.modal.sortedByColumnAsc'
+        : 'analysis.overview.goalsWidget.modal.sortedByColumnDesc',
+      { column },
+    );
   }
 
   protected inventoryStateKey(status: InventoryState['status'], reason?: string | null): string {
@@ -495,6 +600,7 @@ export class CustomAoiSpeciesInventoryComponent {
     this.speciesSearch.set('');
     this.speciesGroup.set('all');
     this.speciesIucn.set('all');
+    this.speciesSort.set({ ...DEFAULT_SPECIES_COVERAGE_SORT });
     this.precomputedCoverageRecords.set([]);
     if (this.modalOpen() && !this.speciesCoverageUnavailable()) {
       this.startDetailedSpeciesCoverage();
