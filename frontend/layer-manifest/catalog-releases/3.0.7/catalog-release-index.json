@@ -1,0 +1,19 @@
+{
+  "format": "runtime-catalog-release-v1",
+  "catalogVersion": "3.0.7",
+  "releaseId": "catalog-v3-0-7",
+  "generatedAt": "2026-09-09T19:54:58Z",
+  "expectedSolutionCount": 228,
+  "batches": [
+    {
+      "id": "national",
+      "manifestUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-0-5-land-use-aoi-test/manifest.json",
+      "expectedSolutionCount": 172
+    },
+    {
+      "id": "sirap-2026-09-09-v7",
+      "manifestUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-09-09-v7/manifest.json",
+      "expectedSolutionCount": 56
+    }
+  ]
+}
