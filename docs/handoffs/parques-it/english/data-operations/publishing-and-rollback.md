@@ -6,7 +6,18 @@
 >
 > Commands marked **supported** are present in this repository. Steps marked **manual** have no dedicated repository automation and require an approved Blob/host procedure plus a recorded pathname, checksum, operator, and timestamp.
 
-Run commands from the repository root unless a procedure says otherwise. Never place environment-variable values in documentation or command output.
+Run commands from the repository root unless a procedure says otherwise. Never place environment-variable values in documentation or command output. Authoritative CLI text is [frontend/layer-manifest/README.md](../../../../../frontend/layer-manifest/README.md) and [data/metrics/README.md](../../../../../data/metrics/README.md). National/marine catalog promotion is this runbook; SIRAP regional catalogs (`releases/sirap-…/`) use a separate pipeline.
+
+## Start here
+
+- Publish a national/marine catalog or routing change now: [Procedure 1: Generate, test, validate, and publish the runtime manifest](#procedure-1-generate-test-validate-and-publish-the-runtime-manifest). `--catalog`, `--confirm-release`, and `--expected-live-sha256` are required; there is no `--skip-archive`.
+- Publish species now: [Procedure 2: Generate and publish the species manifest](#procedure-2-generate-and-publish-the-species-manifest).
+- Publish solution COGs now: [Procedure 3: Publish solution COG references](#procedure-3-publish-solution-cog-references).
+- Publish metrics now: [Procedure 4: Inspect, publish, and verify metrics](#procedure-4-inspect-publish-and-verify-metrics).
+- Publish generic rasters or most boundaries now: [Procedure 5: Publish generic assets and boundaries](#procedure-5-publish-generic-assets-and-boundaries).
+- Verify now: [Post-publish checks](#post-publish-checks) and [How published assets become visible](#how-published-assets-become-visible).
+- Rollback now: [Rollback playbooks](#rollback-playbooks).
+- SIRAP regional catalogs (`releases/sirap-…/`) use a separate pipeline; do not use Procedure 1 for them.
 
 ## Before any publish
 
@@ -21,12 +32,12 @@ Run commands from the repository root unless a procedure says otherwise. Never p
 
 | Manifest                  | Canonical location                                                                                        | Operator purpose                                                                        | Publication behavior                                                                                                   |
 | ------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Runtime layer manifest    | Local `frontend/public/data/layer-manifest/manifest.json`; live `manifest/manifest.json`                  | App layers, categories, solutions, rendering, metric URLs, and species-manifest pointer | Dedicated publish and rollback commands; previous live version is archived under `manifest/archive/`                   |
+| Runtime layer manifest    | Local `frontend/public/data/layer-manifest/manifest.json`; live `manifest/manifest.json`                  | National/marine app layers, categories, solutions, rendering, metric URLs, and species-manifest pointer | Gated publish (`--catalog`, `--confirm-release`, `--expected-live-sha256`); previous live pointer is archived; revisions at `manifest/releases/{releaseId}/revisions/` |
 | Species manifest          | Local `frontend/public/data/layer-manifest/species.manifest.json`; live `manifests/species.manifest.json` | Secondary catalog for individual species                                                | Generation publishes by default when a token is available and archives the previous version under `manifests/archive/` |
 | Backend artifact manifest | VM-local `backend/runtime-artifacts/manifest.json`                                                        | FastAPI readiness and custom-AOI raster/species inputs                                  | Built on the metrics host; not a browser manifest and not published by the frontend scripts                            |
 | Deploy asset manifest     | `frontend/scripts/data-deploy/manifest.json`                                                              | Build-time validation of assets copied into `frontend/public/`                          | Used by frontend build tooling; not the runtime layer catalog                                                          |
 
-Do not replace one manifest with another or infer application visibility from the existence of a deploy/backend manifest.
+The live app loads two catalog batches: national `manifest/manifest.json` plus a SIRAP release manifest at `releases/sirap-…/manifest.json` (see `frontend/layer-manifest/catalog-releases/`). Do not replace one batch with the other. Do not infer application visibility from a deploy/backend manifest.
 
 ## Registries and reconciliation
 
@@ -61,50 +72,80 @@ Review missing/unexpected assets, category mismatches, skipped solutions, and un
 | --------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Runtime layer manifest      | `manifest/manifest.json`                                                                                    |
 | Runtime manifest archives   | `manifest/archive/manifest.<timestamp>.json`                                                                |
+| Runtime manifest revisions  | `manifest/releases/{releaseId}/revisions/{sha256}.json`                                                     |
 | Species manifest            | `manifests/species.manifest.json`                                                                           |
 | Species manifest archives   | `manifests/archive/species.manifest.<timestamp>.json`                                                       |
 | Feature inputs              | `inputs/features/`                                                                                          |
 | Species inputs              | `inputs/features/species/`                                                                                  |
 | Cost inputs                 | `inputs/costs/`                                                                                             |
 | Include inputs              | `inputs/includes/`                                                                                          |
-| National solutions          | `solutions/nacional/`                                                                                       |
+| National solutions (legacy mutable) | `solutions/nacional/` — do not use for new catalog releases                                        |
+| Release solution sources    | `releases/<releaseId>/solutions/{land\|marine}/`                                                            |
 | Solution COGs               | Use each upload report's `expectedBlobPath`; do not invent a parallel prefix                                |
-| Default precomputed metrics | `metrics/cache/<solution-id>.metrics.json`                                                                  |
-| Versioned metrics           | Use the release configuration selected by `--release-id`                                                    |
+| Release metrics             | `releases/<releaseId>/` (regular verbose/compact, goals, MEC v2)                                            |
+| Legacy default metrics      | `metrics/cache/<solution-id>.metrics.json` — not the catalog-release contract                               |
+| SIRAP regional catalog      | `releases/sirap-…/manifest.json` — separate pipeline, not this national publish                             |
 | Boundaries                  | Existing registered boundary pathname; preserve the URL contract unless a reviewed change updates consumers |
 
 There is no scanned `inputs/excludes/` workflow. The metadata contract supports `excludes[]`, but exclude rasters and Finder controls are not operator-ready.
 
 ## Procedure 1: Generate, test, validate, and publish the runtime manifest
 
-1. Generate the local manifest and reconciliation reports (**supported**):
+National/marine solution and metric releases use gated promotion. There is no `--skip-archive`. `--catalog` is required. Copy `--expected-live-sha256` from the immediately preceding dry run. View-only PATCH layer changes use `npm --prefix frontend run catalog -- publish-patch` instead; they must not alter `solutions`.
+
+1. Generate the local manifest from `solution-catalog-v1` (**supported**):
 
    ```bash
-   npm --prefix frontend run generate:layer-manifest
+   npm --prefix frontend run generate:layer-manifest -- \
+     --catalog ../path/to/solution-catalog.json
    ```
 
 2. Review all three reconciliation reports listed above (**manual review**).
-3. Run schema validation and manifest tests (**supported**):
+3. Run schema validation and manifest tests against the same catalog (**supported**):
 
    ```bash
-   npm --prefix frontend run validate:layer-manifest
+   npm --prefix frontend run validate:layer-manifest -- \
+     public/data/layer-manifest/manifest.json \
+     --catalog ../path/to/solution-catalog.json
    npm --prefix frontend run test:layer-manifest
    ```
 
    Set `CHECK_REMOTE_DISPLAY_URLS=true` for the validator to probe remote display URLs; the default validation does not make those remote requests.
 
 4. Confirm every URL points to an already-published asset (**manual review**). In particular:
+   - Release metric URLs must sit under `releases/{releaseId}/`.
    - `compressedDataForLiveMetricsUrl` may be generated as `metrics/live/{id}.bin.gz`, while sparse builders publish `*.sparse.gz` beside source inputs. Verify the production format and URL.
    - Production metrics should have explicit, versioned `precomputedMetricUrls`; the frontend has a hardcoded staging fallback for `solutions/nick-runs/...`.
-5. Publish the validated local manifest (**supported**):
+5. Collect `metric-artifact-verification-v1` inventories from `verify_artifacts.py` (regular, compact, goals, and MEC for land). Dry-run gated publish (**supported**):
 
    ```bash
-   npm --prefix frontend run publish:layer-manifest
+   npm --prefix frontend run publish:layer-manifest -- \
+     --source public/data/layer-manifest/manifest.json \
+     --catalog ../path/to/solution-catalog.json \
+     --artifact-inventory ../path/to/regular-verification.json \
+     --artifact-inventory ../path/to/compact-verification.json \
+     --artifact-inventory ../path/to/goals-verification.json \
+     --artifact-inventory ../path/to/mec-verification.json \
+     --dry-run
    ```
 
-   The command archives the current live manifest before replacing `manifest/manifest.json`.
+6. Promote only after the dry run matches the live SHA (**supported**):
 
-6. Record the archive pathname printed by the command, the new manifest URL, local commit/reference, operator, and timestamp (**manual**).
+   ```bash
+   npm --prefix frontend run publish:layer-manifest -- \
+     --source public/data/layer-manifest/manifest.json \
+     --catalog ../path/to/solution-catalog.json \
+     --artifact-inventory ../path/to/regular-verification.json \
+     --artifact-inventory ../path/to/compact-verification.json \
+     --artifact-inventory ../path/to/goals-verification.json \
+     --artifact-inventory ../path/to/mec-verification.json \
+     --confirm-release <releaseId> \
+     --expected-live-sha256 <digest-from-dry-run>
+   ```
+
+   The publisher writes `manifest/releases/{releaseId}/revisions/{sha256}.json`, archives the current remote pointer, then promotes with a destination-conditional put. `--dry-run` performs the same remote reads and skips every write.
+
+7. Record the revision pathname, archive pathname, published URL, catalog file, inventories, operator, and timestamp (**manual**).
 
 ## Procedure 2: Generate and publish the species manifest
 
@@ -157,7 +198,7 @@ There is no scanned `inputs/excludes/` workflow. The metadata contract supports 
    npm --prefix frontend run publish:solution-cog-manifest -- --publish
    ```
 
-   This uses the normal runtime-manifest publisher, so the prior live manifest is archived.
+   This uses the gated runtime-manifest publisher, so `--catalog`, inventories, `--confirm-release`, and `--expected-live-sha256` apply. The prior live pointer is archived.
 
 ## Procedure 4: Inspect, publish, and verify metrics
 
@@ -192,18 +233,10 @@ There is no scanned `inputs/excludes/` workflow. The metadata contract supports 
      data/metrics/generated/tier1/publish-report.json
    ```
 
-7. Regenerate, validate, and publish the runtime manifest if metric URLs changed (**supported**):
-
-   ```bash
-   npm --prefix frontend run generate:layer-manifest
-   npm --prefix frontend run validate:layer-manifest
-   npm --prefix frontend run test:layer-manifest
-   npm --prefix frontend run publish:layer-manifest
-   ```
-
+7. If metric URLs changed, regenerate and promote the runtime manifest with Procedure 1 (`--catalog`, inventories, `--dry-run`, then `--confirm-release` / `--expected-live-sha256`). Bare `publish:layer-manifest` without those flags is rejected.
 8. Verify one national result and one known AOI from every affected geography against scientific expectations (**manual**).
 
-The publisher overwrites with `--force`; long-lived Blob cache headers can therefore serve old bytes at an unchanged URL. Prefer `--release-id` during generation and immutable release paths. If source raster bytes changed, regenerate with `--no-cache`; if calculation outputs must be recomputed, use `--force`. Those flags address different caches.
+Release metrics refuse silent overwrite: `publish.py` has no `--force`. An existing remote path is accepted only when its SHA-256 matches the local artifact. Prefer `releases/{releaseId}/` paths. If source raster bytes changed, regenerate with `--no-cache`; if calculation outputs must be recomputed, use generation `--force`. Those flags address different caches and do not authorize Blob overwrite.
 
 ## Procedure 5: Publish generic assets and boundaries
 
@@ -261,14 +294,26 @@ Manifest rollback restores routing metadata only. It does **not** recreate asset
    npm --prefix frontend run rollback:layer-manifest
    ```
 
-2. Review the numbered archive list and choose the known-good entry (**manual decision**).
-3. Republish that archive (**supported**):
+2. Review the numbered archive list and choose the known-good entry (**manual decision**). Archives without release identity are rejected.
+3. Dry-run against the historical `solution-catalog-v1` for that archive (**supported**):
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- --use <index|pathname|url>
+   npm --prefix frontend run rollback:layer-manifest -- \
+     --use <index|pathname|url> \
+     --catalog ../path/to/historical-solution-catalog.json \
+     --dry-run
    ```
 
-4. Refresh the browser and repeat affected post-publish checks.
+4. Confirm the restore (**supported**):
+
+   ```bash
+   npm --prefix frontend run rollback:layer-manifest -- \
+     --use <index|pathname|url> \
+     --catalog ../path/to/historical-solution-catalog.json \
+     --confirm-rollback
+   ```
+
+5. Refresh the browser and repeat affected post-publish checks.
 
 ### Species manifest
 
@@ -348,7 +393,7 @@ Values must never appear in this guide or release logs.
 | Species-TIF upload                 | `SPECIES_TIF_UPLOAD_SOURCE`, `SPECIES_TIF_BLOB_PREFIX`, `SPECIES_TIF_UPLOAD_CONCURRENCY`, `SPECIES_TIF_UPLOAD_MAX`, `SPECIES_TIF_UPLOAD_DRY_RUN`, `SPECIES_TIF_UPLOAD_RUN_SPECIES_MANIFEST`                                                                                                   |
 | Species-manifest publication       | `SPECIES_MANIFEST_SKIP_BLOB_UPLOAD`, `SPECIES_MANIFEST_MAX_LAYERS`, `SPECIES_MANIFEST_ALLOW_PARTIAL_UPLOAD`, `SPECIES_MANIFEST_BLOB_PATHNAME`, `SPECIES_MANIFEST_ARCHIVE_PREFIX`, `SPECIES_MANIFEST_SKIP_ARCHIVE`                                                                             |
 | Species-manifest source and tuning | `SPECIES_MANIFEST_CONCURRENCY`, `SPECIES_RASTER_SAMPLE_GRID_SIZE`, `SPECIES_MANIFEST_RASTER_READ_RETRY_ATTEMPTS`, `SPECIES_MANIFEST_BASE_REQUEST_DELAY_MS`, `SPECIES_MANIFEST_REQUEST_JITTER_MS`, `SPECIES_MANIFEST_RETRY_JITTER_MS`, `SPECIES_TAXONOMY_CSV_PATH`, `SPECIES_TAXONOMY_CSV_URL` |
-| Manifest editor                    | `ENABLE_MANIFEST_EDITOR`, `ENABLE_MANIFEST_EDITOR_WRITES`                                                                                                                                                                                                                                     |
+| Manifest editor (retired)          | `ENABLE_MANIFEST_EDITOR`, `ENABLE_MANIFEST_EDITOR_WRITES` — retired / unused. Do not enable in production. Layer appearance in the map layers panel is the supported styling path.                                                                                                          |
 | Firebase client                    | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID`, `FIREBASE_MEASUREMENT_ID`                                                                                                                    |
 
 ## Current automation gaps
@@ -358,6 +403,6 @@ Values must never appear in this guide or release logs.
 - Exclude-layer storage, registration, and Finder behavior are not implemented as an operator workflow.
 - Compressed live-metric manifest URLs and sparse-builder output conventions do not clearly match.
 - The frontend has a hardcoded staging compact-metric fallback.
-- Metrics overwrites are not automatically archived.
+- Metrics overwrites are not automatically archived; release paths also refuse differing remote SHA-256.
 - Species rollback, boundary rollback, and backend artifact rollback require manual release records.
 - Blob/Firestore disaster recovery is neither automated nor tested.

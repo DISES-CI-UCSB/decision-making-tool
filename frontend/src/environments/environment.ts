@@ -31,7 +31,8 @@ export const environment = {
     eco17_estr17_esprep17_runap_omec_iheh2030: { aoiCoverageMetrics: 'v2' },
   },
   metricsApiBaseUrl: '/metrics-api',
-  ENABLE_MANIFEST_EDITOR: true,
+  // Retired: the manifest style editor is archived; layer appearance in the map layers panel is the supported styling path.
+  ENABLE_MANIFEST_EDITOR: false,
   // Keep the real Firebase auth flow active during local development by default.
   bypassLoginForDevelopment: false,
 } as const;

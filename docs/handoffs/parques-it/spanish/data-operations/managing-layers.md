@@ -2,6 +2,18 @@
 
 # Gestión de capas
 
+## Empiece aquí
+
+Elija una ruta según el rol de la capa:
+
+- [Solo etiqueta o metadatos](#tabla-de-decisión-de-impacto) — regenerar y publicar el manifiesto; sin métricas
+- [Solo mapa](#tabla-de-decisión-de-impacto) — recurso, registro, categoría, representación
+- [Entrada de métrica precalculada](#tabla-de-decisión-de-impacto) — recalcular soluciones afectadas × todas las AOI
+- [Entrada de AOI personalizada](#tabla-de-decisión-de-impacto) — reconstruir artefactos y recrear el backend
+- [Colección de especies](#tabla-de-decisión-de-impacto) — manifiesto de especies, luego puntero principal
+- [Procedimiento](#procedimiento) — pasos y comandos
+- [Reversión](#reversión)
+
 ## Propósito y cuándo usarlo
 
 Use este procedimiento para agregar, reemplazar o actualizar capas de elementos, costos, inclusiones, referencias solo de mapa o especies. Separa los roles de una capa en el optimizador, el mapa, las métricas precalculadas y las AOI personalizadas para que los operadores realicen únicamente el trabajo posterior que el cambio realmente requiere.

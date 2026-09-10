@@ -4,6 +4,15 @@
 
 > **Status: ⚪ Planned after release stabilization; not yet executed.** Usability sessions and user-acceptance testing (UAT) will begin after the remaining layers and last-minute features are integrated and the team freezes a stable release candidate. This page is the agreed testing plan, not completed testing evidence. It is distinct from technical load, stress, and saturation testing — see [`performance-testing.md`](./performance-testing.md) for that.
 
+User Acceptance Testing (UAT) is scripted pass/fail testing on a frozen release candidate, using real accounts for each product role. It is distinct from moderated usability sessions, which ask whether people can understand the interface, and from load, stress, and saturation testing.
+
+## How to use this page
+
+1. Freeze a release candidate first (entry criteria below). Nothing on this page is executed evidence.
+2. Script UAT against the five accounts in **UAT accounts and roles**. Guest is required; the national product works without sign-in.
+3. Read **Guest, Finder, and empty-state quirks** before scoring — do not fail testers for those shipped facts.
+4. Run moderated usability, then scripted UAT, only after the freeze.
+
 ## Timing and entry criteria
 
 Testing this work-in-progress build would produce findings against workflows that may still change. Begin recruitment and formal execution only after the project team:
@@ -33,7 +42,7 @@ flowchart LR
 ## Participants and scope
 
 - Recruit ~8–12 moderated participants: conservation practitioners, planners, and decision makers, with mixed GIS experience, primarily Spanish-language use.
-- Include Parques IT representatives in formal UAT to validate authentication, permissions, browser compatibility, exports, and operational behavior.
+- Include Parques IT representatives in formal UAT to validate authentication, permissions, browser compatibility, exports, and operational behavior. UAT must use the five accounts in **UAT accounts and roles**, including Guest.
 - Include keyboard-heavy and accessibility-relevant participants where recruitment permits; test against WCAG 2.2 AA expectations.
 - Treat sample findings as directional evidence, not population-level statistical proof.
 
@@ -88,3 +97,42 @@ These thresholds are proposed starting points and must be approved by project le
 - Which defect severities block acceptance, and who can approve an exception?
 
 See the [Top decisions table](./README.md#top-decisions-parques-it-must-make) in the handoff overview for how these connect to the rest of the package.
+
+## UAT accounts and roles
+
+UAT needs five accounts, including Guest. The national product works without login; Guest is required even though the other four roles are signed-in. Admins open **Access management** from the header (Pending SIRAP Requests, Current SIRAP Access, Active Users). Today SIRAP catalog and data grants exist for Orinoquía and Eje Cafetero only.
+
+A SIRAP admin cannot appoint other SIRAP admins. Administrator-assignment checkboxes, Super admin, new-account approval, and app tier 2 versus 3 are super-admin only.
+
+| Role | How it is recognized | What this account can do | What this account cannot do |
+| --- | --- | --- | --- |
+| Guest | Not signed in | National Finder, map, AOI, and analysis | Save named scenarios (saves are Firestore); see SIRAP catalogs; open admin |
+| Regular signed-in user | Google account, no SIRAP grant | Guest capabilities plus save, rename, recall, and remove named solutions (maximum 12) in Firestore. The left-sidebar label is what gets stored. | See SIRAP catalogs; open admin |
+| SIRAP user | `allowedSirapIds` has at least one region (Orinoquía and/or Eje Cafetero) | SIRAP solutions for the granted region(s), plus regular-user saves | Open admin; use regions that were not granted |
+| SIRAP admin | `administeredSirapIds` has at least one region, and the account is not super-admin | Approve or deny SIRAP access requests for assigned region(s); grant or revoke SIRAP **data** access (`allowedSirapIds`) for those regions only | Appoint other SIRAP admins; tick Super admin; approve brand-new accounts; set app tier 2 versus 3. The Administrator assignments UI is wrapped in `isSuperAdmin()` and is not shown to SIRAP admins. |
+| Super-admin | `isSuperAdmin` | Approve new accounts; set Tier 2 versus Tier 3; assign SIRAP regional admins (`administeredSirapIds`); grant any SIRAP data access; see all regions | — |
+
+## Screens already available to script
+
+This list is not the UAT definition. UAT is the role-based pass/fail in **UAT accounts and roles**. After freeze, scripts can already exercise the analysis screens below. Treat the welcome overlay as intended onboarding, not a defect.
+
+- The welcome modal appears on every load. That is desired onboarding; it is not meant to persist across refreshes. Until a scenario is chosen, the right sidebar also stays in a welcome state.
+- The layer appearance editor in the left sidebar is the supported styling path. Testers can change fill colors, hatch (including mesh or dots), and borders, including separate colors for existing versus new coverage.
+- Comparison uses a swipe control plus a three-color agreement overlay (shared area versus unique to each solution). Solution Finder can open in pick-scenario-B mode so the second solution is chosen from Finder.
+- Drawn custom areas can run a species-inventory job (queued, with cancel and restart) and show live Corine Land Cover (CLC) land-use bars on the drawn polygon.
+- Goals and coverage breakdown modals let testers search, sort, and inspect rows, including additional coverage on SIRAP solutions.
+- CSV exports include a Finder preamble (targets, includes, cost, timestamp). The map can export as PNG. Area units toggle between km² and hectares.
+- Marine Finder is available as a land/marine domain toggle, with a simplified marine option set and a fixed HHM cost.
+- The `/about` page lists partner, funder, and institutional marks and is available without a selected scenario.
+
+## Guest, Finder, and empty-state quirks testers will hit
+
+Do not fail testers for these. They are shipped product facts, not defects, unless a freeze script treats them otherwise.
+
+- **National works without signing in.** Guest users can run Finder, map, AOI, and national analysis. Google sign-in is required to request and use SIRAP scopes, not to use the national product.
+- **Email login and email “request access” are UI demos.** They are not connected to Firebase. Production identity is Google. Testers who avoid Google will see a dead email path; that is not a production auth outage.
+- **Existing-protected versus new-coverage split is on by default** when a solution is on the map. Layer appearance can recolor those two classes. The split itself is not an opt-in.
+- **National land Finder requires Human Footprint 2022 or 2030** as the cost choice. A Carbon Opportunity Cost card is visible and always disabled; that is intentional unavailability, not a broken control.
+- **Known administrative AOIs (department, municipality, SIRAP, RUNAP, OMEC) show empty land-use bars** (“not available yet”) on GTIC production `catalog-releases/3.0.5` (compact still lacks `land_use_*_pct_of_aoi`). Live CLC land-use bars work on **drawn** custom polygons. Do not fail GTIC UAT for empty known-AOI land-use. This branch’s local `catalog-releases/3.0.6` (land-use-aoi-TEST) can fill those bars and is not the GTIC freeze.
+- **Carbon figures in the UI use `Mg·km²`.** That is a display string. Scientific unit sign-off is still open; do not treat the label as validated MgC/ha.
+- **Net Benefit is hidden from Costs, and freshwater fish are removed from the species taxon list.** Those are intentional product cuts, not missing layers.
