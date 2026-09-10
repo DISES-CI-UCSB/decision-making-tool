@@ -3344,6 +3344,50 @@ describe('PanelSwitcherComponent', () => {
     );
   });
 
+  it('uses the species-goals catalog for overview taxa counts', async () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = 'species';
+    goalsDocument.targetContext.targetFeatureIds = ['species'];
+    goalsDocument.rollups.species.byTaxa = {
+      Amphibians: { label: 'Amphibians', metSpeciesCount: 0, totalSpeciesCount: 1, pctMet: 0 },
+    };
+    const [bear, rail, frog] = buildHydratedSpeciesRecords(goalsDocument);
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of([
+        bear,
+        rail,
+        { ...frog, configured_target_met: true },
+        ...Array.from({ length: 3 }, (_, index) => ({
+          ...frog,
+          id: `extra-frog-${index}`,
+          scientific_name: `Extra frog ${index}`,
+          configured_target_percent: null,
+          configured_target_met: null,
+        })),
+      ]),
+    );
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
+      buildTestSolution().id,
+      'national',
+      'colombia',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-taxa-count-amphibians')?.textContent,
+    ).toContain('1 / 4');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-taxa-count-Amphibians'),
+    ).toBeNull();
+  });
+
   it('shows raster-derived strategic outcomes without changing solver target progress', async () => {
     goalsDocument = buildGoalsDocument();
     strategicOutcomesDocument = buildStrategicOutcomesDocument();
@@ -3827,12 +3871,10 @@ describe('PanelSwitcherComponent', () => {
       );
     const rowNames = () => component.goalsModalRows().map((row) => row.name);
 
-    expect(compiled.querySelector('#conservation-goals-modal-virtual-heading-solutionCoverage')).not.toBeNull();
-    expect(rowNames()).toEqual([
-      'Zygia latifolia',
-      'Abarema auriculata',
-      'Abarema adenophora',
-    ]);
+    expect(
+      compiled.querySelector('#conservation-goals-modal-virtual-heading-solutionCoverage'),
+    ).not.toBeNull();
+    expect(rowNames()).toEqual(['Zygia latifolia', 'Abarema auriculata', 'Abarema adenophora']);
     expect(renderedNames()[0]).toBe(component.goalsModalRows()[0]?.name);
     expect(component.goalsModalSortSelectValue()).toBe('coverage-desc');
     expect(
@@ -3848,11 +3890,7 @@ describe('PanelSwitcherComponent', () => {
     await Promise.resolve();
     fixture.detectChanges();
 
-    expect(rowNames()).toEqual([
-      'Abarema adenophora',
-      'Abarema auriculata',
-      'Zygia latifolia',
-    ]);
+    expect(rowNames()).toEqual(['Abarema adenophora', 'Abarema auriculata', 'Zygia latifolia']);
     expect(component.goalsModalSortSelectValue()).toBe('coverage-asc');
     expect(
       (compiled.querySelector('#conservation-goals-modal-sort-select') as HTMLSelectElement).value,
@@ -3868,11 +3906,7 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     await Promise.resolve();
     fixture.detectChanges();
-    expect(rowNames()).toEqual([
-      'Zygia latifolia',
-      'Abarema auriculata',
-      'Abarema adenophora',
-    ]);
+    expect(rowNames()).toEqual(['Zygia latifolia', 'Abarema auriculata', 'Abarema adenophora']);
     expect(component.goalsModalSortSelectValue()).toBe('coverage-desc');
 
     const sortSelect = compiled.querySelector(
@@ -3886,11 +3920,7 @@ describe('PanelSwitcherComponent', () => {
 
     expect(sortSelect.value).toBe('coverage-asc');
     expect(component.goalsModalSortSelectValue()).toBe('coverage-asc');
-    expect(rowNames()).toEqual([
-      'Abarema adenophora',
-      'Abarema auriculata',
-      'Zygia latifolia',
-    ]);
+    expect(rowNames()).toEqual(['Abarema adenophora', 'Abarema auriculata', 'Zygia latifolia']);
     expect(renderedNames()[0]).toBe(component.goalsModalRows()[0]?.name);
   });
 

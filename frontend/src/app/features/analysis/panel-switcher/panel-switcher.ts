@@ -192,6 +192,7 @@ import {
   formatSpeciesReferenceValue,
   overviewMetricCandidateIds,
   readSpeciesReferenceSummary,
+  rollupSpeciesGoalsTaxa,
   summarizeEcosystemGoals,
   type SpeciesReferenceGroupSummary,
   type SpeciesReferenceSummary,
@@ -753,6 +754,7 @@ export class PanelSwitcherComponent {
   );
   protected readonly isGoalsLoading = signal(false);
   protected readonly goalsLoadFailed = signal(false);
+  private readonly overviewSpeciesGoalsRecords = signal<HydratedSpeciesGoalsRecord[] | null>(null);
   protected readonly customAoiMetrics = signal<MetricValue[]>([]);
   protected readonly isCustomAoiMetricsLoading = signal(false);
   protected readonly customAoiMetricsLoadFailed = signal(false);
@@ -916,6 +918,28 @@ export class PanelSwitcherComponent {
   protected readonly overviewGoalsDomains = computed<OverviewGoalsDomainEntry[]>(() =>
     this.buildOverviewGoalsDomains(),
   );
+  private readonly overviewSpeciesGoalsRequest = computed<{
+    solutionId: string;
+    geographyLevel: GeographyLevel;
+    scopeId: string;
+  } | null>(() => {
+    const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
+    if (!solutionId) {
+      return null;
+    }
+    const speciesDomain = this.overviewGoalsDomains().find((entry) => entry.id === 'species');
+    if (!speciesDomain?.targeted) {
+      return null;
+    }
+    if (this.isSirapScopedSolution()) {
+      const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
+      if (!sirapId) {
+        return null;
+      }
+      return { solutionId, geographyLevel: 'siraps', scopeId: sirapId };
+    }
+    return { solutionId, geographyLevel: 'national', scopeId: 'colombia' };
+  });
   protected readonly overviewGoalsTaxa = computed<OverviewGoalsTaxaEntry[]>(() =>
     this.buildOverviewGoalsTaxa(),
   );
@@ -1667,6 +1691,29 @@ export class PanelSwitcherComponent {
         this.solutionGoalsDocument.set(document);
       });
 
+    toObservable(this.overviewSpeciesGoalsRequest)
+      .pipe(
+        distinctUntilChanged(
+          (previous, current) =>
+            previous?.solutionId === current?.solutionId &&
+            previous?.geographyLevel === current?.geographyLevel &&
+            previous?.scopeId === current?.scopeId,
+        ),
+        switchMap((request) => {
+          if (!request) {
+            this.overviewSpeciesGoalsRecords.set(null);
+            return of<HydratedSpeciesGoalsRecord[] | null>(null);
+          }
+          return this.speciesGoals
+            .load(request.solutionId, request.geographyLevel, request.scopeId)
+            .pipe(catchError(() => of<HydratedSpeciesGoalsRecord[] | null>(null)));
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((records) => {
+        this.overviewSpeciesGoalsRecords.set(records);
+      });
+
     toObservable(this.activeSolution)
       .pipe(
         map((solution) => this.resolveMetricsSolutionId(solution)),
@@ -2378,6 +2425,19 @@ export class PanelSwitcherComponent {
       }));
     }
 
+    const catalogTaxa = rollupSpeciesGoalsTaxa(this.overviewSpeciesGoalsRecords());
+    if (catalogTaxa.length > 0) {
+      return catalogTaxa.map((rollup) => ({
+        id: rollup.id,
+        label: this.localizedTaxonGroupLabel(rollup.id),
+        metCount: rollup.metCount,
+        totalCount: rollup.totalCount,
+        pctMet: rollup.pctMet,
+        reached17Count: rollup.reached17Count,
+        reached30Count: rollup.reached30Count,
+      }));
+    }
+
     return Object.entries(document.rollups.species.byTaxa).map(([id, rollup]) => ({
       id,
       label: this.localizedTaxonGroupLabel(id, rollup.label),
@@ -2586,9 +2646,7 @@ export class PanelSwitcherComponent {
   }
 
   private goalsModalSortColumnLabel(columnId: SpeciesCoverageSortColumnId): string {
-    return this.translate.instant(
-      `analysis.overview.goalsWidget.modal.sortColumns.${columnId}`,
-    );
+    return this.translate.instant(`analysis.overview.goalsWidget.modal.sortColumns.${columnId}`);
   }
 
   private goalsModalSortOptionLabel(state: SpeciesCoverageSortState): string {

@@ -1,4 +1,4 @@
-import type { GoalFeatureRow, MetricValue } from '@core/models';
+import type { GoalFeatureRow, HydratedSpeciesGoalsRecord, MetricValue } from '@core/models';
 import {
   formatNumber,
   formatPanelMetric,
@@ -53,6 +53,110 @@ export interface SpeciesReferenceSummary {
   reached30Count: number;
   totalCount: number | null;
   groups: SpeciesReferenceGroupSummary[];
+}
+
+export const SPECIES_GOALS_TAXA_IDS = [
+  'mammals',
+  'birds',
+  'amphibians',
+  'reptiles',
+  'plants',
+] as const;
+
+export type SpeciesGoalsTaxonId = (typeof SPECIES_GOALS_TAXA_IDS)[number];
+
+export interface SpeciesGoalsTaxaRollup {
+  id: SpeciesGoalsTaxonId;
+  metCount: number;
+  totalCount: number;
+  pctMet: number | null;
+  reached17Count: number;
+  reached30Count: number;
+}
+
+const SPECIES_GOALS_TAXA_ALIASES: Record<string, SpeciesGoalsTaxonId> = {
+  mammal: 'mammals',
+  mammals: 'mammals',
+  bird: 'birds',
+  birds: 'birds',
+  amphibian: 'amphibians',
+  amphibia: 'amphibians',
+  amphibians: 'amphibians',
+  reptile: 'reptiles',
+  reptiles: 'reptiles',
+  plant: 'plants',
+  plants: 'plants',
+};
+
+export function normalizeSpeciesGoalsTaxonId(
+  value: string | null | undefined,
+): SpeciesGoalsTaxonId | null {
+  if (!value) {
+    return null;
+  }
+  return SPECIES_GOALS_TAXA_ALIASES[value.trim().toLowerCase()] ?? null;
+}
+
+/** Roll up the species-goals catalog the breakdown modal already loads. */
+export function rollupSpeciesGoalsTaxa(
+  records: readonly HydratedSpeciesGoalsRecord[] | null | undefined,
+): SpeciesGoalsTaxaRollup[] {
+  if (!records?.length) {
+    return [];
+  }
+
+  const buckets = new Map<
+    SpeciesGoalsTaxonId,
+    { met: number; targeted: number; total: number; reached17: number; reached30: number }
+  >();
+  for (const id of SPECIES_GOALS_TAXA_IDS) {
+    buckets.set(id, { met: 0, targeted: 0, total: 0, reached17: 0, reached30: 0 });
+  }
+
+  for (const record of records) {
+    if (record.availability === 'unavailable') {
+      continue;
+    }
+    const taxonId = normalizeSpeciesGoalsTaxonId(record.group);
+    if (!taxonId) {
+      continue;
+    }
+    const bucket = buckets.get(taxonId);
+    if (!bucket) {
+      continue;
+    }
+    bucket.total += 1;
+    if (record.configured_target_met !== null) {
+      bucket.targeted += 1;
+      if (record.configured_target_met) {
+        bucket.met += 1;
+      }
+    }
+    if (record.met_17_percent) {
+      bucket.reached17 += 1;
+    }
+    if (record.met_30_percent) {
+      bucket.reached30 += 1;
+    }
+  }
+
+  return SPECIES_GOALS_TAXA_IDS.flatMap((id) => {
+    const bucket = buckets.get(id);
+    if (!bucket || bucket.total === 0) {
+      return [];
+    }
+    const hasConfiguredTargets = bucket.targeted > 0;
+    return [
+      {
+        id,
+        metCount: hasConfiguredTargets ? bucket.met : 0,
+        totalCount: bucket.total,
+        pctMet: hasConfiguredTargets ? (bucket.met / bucket.total) * 100 : null,
+        reached17Count: bucket.reached17,
+        reached30Count: bucket.reached30,
+      },
+    ];
+  });
 }
 
 export interface EcosystemGoalsOverview {
