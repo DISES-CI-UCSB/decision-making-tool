@@ -50,6 +50,7 @@ export const environment = {
   blobAssetProxyPath: ${toTsString(readOptionalEnv('BLOB_ASSET_PROXY_PATH'))},
   solutionCapabilityOverrides: {},
   metricsApiBaseUrl: ${toTsString(readOptionalEnv('METRICS_API_BASE_URL') || '/metrics-api')},
+  // Retired: the manifest style editor is archived; layer appearance in the map layers panel is the supported styling path.
   ENABLE_MANIFEST_EDITOR: ${readBooleanEnv('ENABLE_MANIFEST_EDITOR', false)},
   bypassLoginForDevelopment: false,
 } as const;

@@ -22,6 +22,7 @@ import { AdminAccessRequestsPanelComponent } from '@features/auth/admin-access-r
 import { SirapAccessPanelComponent } from '@features/auth/sirap-access-panel/sirap-access-panel';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-header',
@@ -55,6 +56,7 @@ export class HeaderComponent implements AfterViewInit {
   );
   protected readonly isAdmin = computed(() => this.appState.userIsAdmin$());
   protected readonly currentTier = this.appState.userTier$;
+  protected readonly showDevTools = !environment.production;
 
   @Input() coordinateToolEnabled = false;
   @Output() readonly coordinateToolEnabledChange = new EventEmitter<boolean>();
