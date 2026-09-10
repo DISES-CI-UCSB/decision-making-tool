@@ -8,6 +8,17 @@ Use this runbook to add, replace, or update feature, cost, include, map-only ref
 
 Do not use this runbook to add excludes. Although solution metadata has `excludes[]`, the repository has no canonical exclude folder, scanned Blob prefix, upload workflow, or tested Finder control. Excludes are not operator-ready.
 
+## Choose a path
+
+- Classify roles first in the [Impact decision table](#impact-decision-table). Roles are additive; follow every column that applies.
+- **Path A — map-only (visualization).** The layer must appear in the left map-layers panel and must not drive Finder, costs, includes, known-AOI metrics, live sparse metrics, or custom-AOI metrics. Follow [Visualization-only procedure (map display only)](#visualization-only-procedure-map-display-only).
+- Path A skip: do not run solver handoff, species-metric rebuild, precomputed-metric generation, sparse-builder, or custom-AOI artifact steps in [6. Perform only the role-dependent downstream work](#6-perform-only-the-role-dependent-downstream-work).
+- Path A rejoin: publish the corrected candidate at [7. Publish the final manifest](#7-publish-the-final-manifest). If a contract check fails, use [Rollback](#rollback). After the layer is live, restyle it from the left map-layers panel (colors, hatch, borders, opacity).
+- **Path B — analytical or solver.** The layer is a feature, cost, include, precomputed-metric input, custom-AOI input, or species layer that calculations or optimization will use. Start at [1. Classify the layer and stop on unsupported cases](#1-classify-the-layer-and-stop-on-unsupported-cases), skip the visualization-only block, then continue from [2. Prepare the canonical source and registry row](#2-prepare-the-canonical-source-and-registry-row).
+- Path B species uploads use [4. Handle species through the supported workflow](#4-handle-species-through-the-supported-workflow). Other ordinary assets still use the controlled manual Blob operation in [3. Publish ordinary assets through a controlled manual operation](#3-publish-ordinary-assets-through-a-controlled-manual-operation).
+- Path B then generates the manifest ([5. Generate and inspect the runtime layer manifest](#5-generate-and-inspect-the-runtime-layer-manifest)), runs only the matching work in step 6, and rejoins Path A at step 7.
+- Stop for excludes: they are not operator-ready. Stop for a new metric, Finder control, category, or custom-AOI input and continue in [Adding or enabling metrics](./adding-or-enabling-metrics.md) when that is the real change.
+
 ## Roles and prerequisites
 
 - **Release operator:** controls Blob writes, registry changes, generated reports, and manifest publication.

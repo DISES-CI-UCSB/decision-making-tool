@@ -4,7 +4,16 @@
 
 Use this page to choose the smallest runbook that safely completes a data change. A file upload is only storage: the application sees data through catalogs, manifests, metric artifacts, and backend runtime artifacts. Treat those pieces as one release contract and verify every piece that the change actually affects.
 
-Not every change requires every downstream step. A label-only change may need only a manifest refresh; a map-only layer does not require metric regeneration; a calculation input can require metrics and backend artifacts even when its pathname does not change.
+Not every change requires every downstream step. A label-only change may need only a manifest refresh; a map-only layer does not require metric regeneration; a calculation input can require metrics and backend artifacts even when its pathname does not change. SIRAP regional solutions are a parallel product line (dual catalog, packet v2, certified Finder; 56 scenarios: 40 Eje Cafetero, 16 Orinoquía); use the [SIRAP Regional Solutions](https://docs.google.com/document/d/1mThmI_KmTT8kE2s02s_ymhdHL-BUxyIl8lxuwXJ76aM/edit?tab=t.oqw67lnj8o9t) tab in the Parques IT Google Doc, not the national runbooks in this folder.
+
+## Start here
+
+- This page is the operator index: open the matching row in [Choose a runbook](#choose-a-runbook), then only the extra runbooks that row names.
+- SIRAP regional catalogs: [SIRAP Regional Solutions](https://docs.google.com/document/d/1mThmI_KmTT8kE2s02s_ymhdHL-BUxyIl8lxuwXJ76aM/edit?tab=t.oqw67lnj8o9t), not [Adding solutions](./adding-solutions.md).
+- Assign [Roles](#roles) before any Blob write.
+- Follow [How the release process works](#how-the-release-process-works), then check [Downstream impact](#downstream-impact) so you do not rebuild unrelated artifacts.
+- Obey [Non-negotiable safety rules](#non-negotiable-safety-rules) and read [Known release hazards](#known-release-hazards) before a first publish.
+- Terms used across these runbooks are in the [Glossary](#glossary).
 
 ## How the release process works
 
@@ -28,10 +37,13 @@ One person may hold more than one role, but the release record must state who pe
 
 ## Choose a runbook
 
+This table is the operator index: start with the matching row, then open only the extra runbooks that row names.
+
 | Request                                                                                     | Start here                                                    | Also use when needed                                                                                                                            |
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Add or replace one solution and its provenance                                              | [Adding solutions](./adding-solutions.md)                     | [Metrics and artifacts](./metrics-and-artifacts.md), then [Publishing and rollback](./publishing-and-rollback.md)                               |
-| Replace the complete solution catalog                                                       | In development — not yet operator-ready; the separate catalog versioning/replacement workflow must be merged, documented, and tested | Current generation preserves published IDs absent from discovery; use the new workflow only after handoff verification                          |
+| Publish or update SIRAP regional solutions                                                  | [SIRAP Regional Solutions](https://docs.google.com/document/d/1mThmI_KmTT8kE2s02s_ymhdHL-BUxyIl8lxuwXJ76aM/edit?tab=t.oqw67lnj8o9t) (Google Doc tab) | Do not use [Adding solutions](./adding-solutions.md); national/marine runbooks in this folder do not apply                                      |
+| Replace the complete solution catalog                                                       | [Adding solutions](./adding-solutions.md) (national/marine `solution-catalog-v1`) | [Publishing and rollback](./publishing-and-rollback.md) for gated promotion (`--catalog`, artifact inventories, `--confirm-release`, `--expected-live-sha256`). SIRAP regional catalogs use a separate pipeline. |
 | Add, replace, relabel, or retire a feature, cost, include, reference, or species layer      | [Managing layers](./managing-layers.md)                       | [Metrics and artifacts](./metrics-and-artifacts.md) only when calculations change; then [Publishing and rollback](./publishing-and-rollback.md) |
 | Add or replace a department, municipality, SIRAP, RUNAP, or OMEC boundary                   | [Managing AOIs](./managing-aois.md)                           | [Metrics and artifacts](./metrics-and-artifacts.md), then [Publishing and rollback](./publishing-and-rollback.md)                               |
 | Add a genuinely new metric or enable an existing metric for another domain                  | [Adding or enabling metrics](./adding-or-enabling-metrics.md) | [Metrics and artifacts](./metrics-and-artifacts.md), then [Publishing and rollback](./publishing-and-rollback.md)                               |

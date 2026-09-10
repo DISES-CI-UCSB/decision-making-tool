@@ -8,6 +8,17 @@ Use this runbook when a solution, shared calculation layer, metric definition, k
 
 Known AOIs read precomputed per-solution caches. User-drawn custom AOIs do not: FastAPI calculates them from read-only runtime rasters and species matrices loaded at startup. Treat these as two release surfaces that must remain scientifically consistent.
 
+## Start here
+
+- Confirm scope in the [Impact decision table](#impact-decision-table) before generating anything.
+- One solution raster or metadata change: [3. Generate regular verbose metrics](#3-generate-regular-verbose-metrics) for that solution × all AOIs, then [5. Inspect, dry-run, publish, and verify regular metrics](#5-inspect-dry-run-publish-and-verify-regular-metrics) and [6. Build compact regular caches](#6-build-compact-regular-caches). Land solutions also need [7. Generate MEC geography shards](#7-generate-mec-geography-shards).
+- Shared raster, calculator, metric definition, catalog-signature, or boundary change: omit `--solution-id` in step 3 (all solutions × all AOIs), then compact and any affected MEC/goals families.
+- MEC-only source or taxonomy change: [7. Generate MEC geography shards](#7-generate-mec-geography-shards). Goals-only summary change: [8. Generate conservation-goal sidecars](#8-generate-conservation-goal-sidecars).
+- Custom-AOI or FastAPI input change: [10. Build FastAPI runtime artifacts](#10-build-fastapi-runtime-artifacts) and [11. Rebuild, restart, and prove readiness](#11-rebuild-restart-and-prove-readiness).
+- Label-only or map-only (`roleInMetricCalculation: none`): skip this runbook's generation steps.
+- After artifact URLs exist: [9. Refresh and publish the runtime layer manifest](#9-refresh-and-publish-the-runtime-layer-manifest), then [12. Test known/custom parity and arbitrary polygons](#12-test-knowncustom-parity-and-arbitrary-polygons).
+- Recover a bad artifact family: [Rollback](#rollback).
+
 ## Roles and prerequisites
 
 - **Data/metrics owner:** approves calculation inputs, metric semantics, expected solution/AOI scope, and scientific spot checks.
@@ -110,7 +121,7 @@ python data/metrics/python/metrics_pipeline/main.py \
   --force
 ```
 
-For an immutable complete release, add `--release-id <release-id>`. The release contract currently requires exactly 108 selected solutions and every pinned boundary source.
+For an immutable complete release, add `--release-id <release-id>`. Use the catalog-declared counts rather than a hardcoded 108. GTIC production `catalog-releases/3.0.5` is 172 national + 56 SIRAP (228 combined). This branch may use `catalog-releases/3.0.6` as a local land-use-aoi-TEST index with the same counts; do not call 3.0.6 GTIC production. Pin every required boundary source.
 
 ### 4. Run a chunked batch
 
@@ -128,7 +139,7 @@ python data/metrics/python/metrics_pipeline/main.py \
 
 Repeat with zero-based indexes `1` and `2`, using a different output directory for each worker. Workers may share the download cache but must not share an output directory.
 
-Before publication, either publish every complete worker report or merge their cache entries and report into one reviewed output. **Manual/incomplete:** no dedicated merge command exists. Do not claim a complete release until the union is checked for missing/duplicate solution IDs and inspected as one release set.
+Before publication, either publish every complete worker report or merge worker outputs with `merge_release_workers.py` (see [data/metrics/README.md](../../../../../data/metrics/README.md)). Do not claim a complete release until the union is checked for missing/duplicate solution IDs and inspected as one release set.
 
 ### 5. Inspect, dry-run, publish, and verify regular metrics
 
@@ -172,7 +183,7 @@ python data/metrics/python/metrics_pipeline/compact_metrics.py \
   --release-id <release-id>
 ```
 
-For a release ID, final conversion requires 108 verbose inputs. Explicit partial releases require both `--release-selection <selection.json>` and `--partial-release`; the selection contract must declare the complete catalog and exact subset.
+For a release ID, final conversion requires the catalog-declared verbose inputs (172 national for GTIC production `catalog-releases/3.0.5`; 228 combined with 56 SIRAP; this-branch `catalog-releases/3.0.6` test uses the same counts). Explicit partial releases require both `--release-selection <selection.json>` and `--partial-release`; the selection contract must declare the complete catalog and exact subset.
 
 Inspect, dry-run, publish, and verify the compact output using the same tools:
 
@@ -215,7 +226,7 @@ python data/metrics/python/metrics_pipeline/mec_compact.py \
 
 Omit both filters for all land solutions and all six levels. Use `--force` to regenerate valid existing shards and `--no-cache` to refresh downloaded source bytes.
 
-For an immutable MEC v2 release, use `--release-id <release-id>`. A full release requires 104 land solutions and all six geography levels. Partial release generation must use a fail-closed `--release-partition` descriptor; final partition reports can be reconciled with repeated `--reconcile-partition-report`.
+For an immutable MEC v2 release, use `--release-id <release-id>`. A full release requires the catalog-declared land count (`expectedLandSolutionCount`, currently 168 in GTIC production catalog 3.0.5: 172 national = 168 land + 4 marine; this-branch 3.0.6 test uses the same counts) and all six geography levels. Marine has no MEC. Partial release generation must use a fail-closed `--release-partition` descriptor; final partition reports can be reconciled with repeated `--reconcile-partition-report`.
 
 **Manual/incomplete publication:** `mec_compact.py` never uploads. The repository has no dedicated MEC publisher/wiring command. A developer-reviewed process must upload exactly the report’s `expectedBlobPath` values, verify remote bytes, and confirm that the manifest’s `mecV2ByGeography` URLs cover all six levels. Do not feed MEC reports to the regular publisher unless that compatibility is separately tested and approved.
 
@@ -350,7 +361,7 @@ DMT_ARTIFACT_REQUIRED=true \
 ## Limitations and escalation
 
 - There is no regular-pipeline selector for one AOI; use one complete solution or all solutions.
-- Chunk output merging is manual.
+- Chunk output merging uses `merge_release_workers.py`; inspect the union before claiming a complete release.
 - MEC upload/manifest wiring and conservation-goal publication are manual/incomplete.
 - Metrics overwrites have no automatic archive; immutable releases or retained local reports are required for reliable rollback.
 - Python dependencies use minimum-version ranges rather than a reproducible lock.

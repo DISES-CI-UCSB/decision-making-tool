@@ -2,7 +2,13 @@
 
 # Performance, Load, and Saturation Testing
 
-> **Current status: 🔴 Gap — no evidence found.** No validated saturation result exists. Automated correctness tests and a narrow browser responsiveness smoke test exist, but they do not establish production concurrency, throughput, latency under load, or a safe operating limit. This is the single largest evidence gap in the whole handoff.
+> **Current status: ⚪ Planned, not yet executed.** Load, saturation, and soak testing remain a plan. Client-side samples from 7 September 2026 are in [performance-results-2026-09-07.md](./performance-results-2026-09-07.md).
+
+## Decisions needed now
+
+- Approve peak sessions, latency/error objectives, and traffic permission before any saturation or soak study.
+- Align the Docker image (`python:3.11-slim`) with CI (3.11 and 3.12) before calling a container runtime verified.
+- Assign an engineering owner for arbitrary-AOI category-mask review (decision #12).
 
 ## What each test type establishes
 
@@ -17,7 +23,7 @@ Usability sessions and UAT ([`usability-testing.md`](./usability-testing.md)) es
 
 ## Current testing evidence
 
-A local run on July 29, 2026 produced the results below. These are real, reproduced numbers — not estimates.
+A local run on July 29, 2026 produced the frontend, manifest, browser, and metrics-pipeline results below. Those are real, reproduced numbers — not estimates.
 
 | Suite                                        | Result                                                                                          |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -26,7 +32,7 @@ A local run on July 29, 2026 produced the results below. These are real, reprodu
 | Example-manifest schema validation           | ✅ Passed                                                                                       |
 | Chromium map-panel browser smoke             | ✅ 2 passed                                                                                     |
 | Metrics-pipeline tests (Python)              | ✅ 266 passed, 1 skipped                                                                        |
-| **Backend tests (`backend/tests/`, pytest)** | ✅ **24 passed under Python 3.12 and 3.13** after correcting a drifted synthetic raster fixture |
+| **Backend tests (`backend/tests/`, pytest)** | 165 tests under `backend/tests/` as of 2026-09-07. |
 
 The initial evidence checks left the working tree clean. The later fixture correction and handoff documentation updates are the reviewed changes described here.
 
@@ -40,11 +46,11 @@ app.polygon_metrics.PolygonMetricError: Custom polygon raster calculation failed
 Solution selected_mask must equal the union of values 1 and 2.
 ```
 
-The synthetic solution fixture marked all four raster cells as category `1`, while its AOI selected only the two left cells. That violated the current solution contract: `selected_mask` must equal the union of category values `1` and `2`. The fixture now represents the selected left column consistently, without weakening production validation. The full suite passes under Python 3.12 and 3.13.
+The synthetic solution fixture marked all four raster cells as category `1`, while its AOI selected only the two left cells. That violated the current solution contract: `selected_mask` must equal the union of category values `1` and `2`. The fixture now represents the selected left column consistently, without weakening production validation. That July 29 run then reported 24 tests passing under Python 3.12 and 3.13; as of 2026-09-07 the suite under `backend/tests/` contains 165 tests.
 
 **A separate production concern remains:** `build_custom_aoi_raster()` replaces `selected_mask` for the requested polygon while retaining category masks from the original solution. An arbitrary AOI that does not exactly match those categories may trigger the same validation error. This has not been fixed or covered by an explicit arbitrary-AOI regression test and requires separate engineering review.
 
-Current evidence supports correctness claims for specific calculations, state transitions, manifest contracts, and fixture-based API behavior. It does **not** prove arbitrary-AOI category-mask correctness or support a production-scale capacity statement: no retained end-to-end load, stress, soak, or saturation suite and report exist. Recent remote GitHub Actions results were not inspected as part of this pass.
+Current evidence supports correctness claims for specific calculations, state transitions, manifest contracts, and fixture-based API behavior. It does **not** prove arbitrary-AOI category-mask correctness. Recent remote GitHub Actions results were not inspected as part of this pass.
 
 ## Evidence gaps
 

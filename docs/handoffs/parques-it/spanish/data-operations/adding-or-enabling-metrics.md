@@ -11,7 +11,14 @@ Utilice esta guía de desarrollo para cualquiera de estos dos cambios:
 
 Ambos son cambios de código, no operaciones de carga de capas. Una métrica debe ser coherente en el catálogo y el despacho en Python, los artefactos detallados y compactos generados, la presentación en el frontend y, cuando deba estar disponible para polígonos personalizados, el artefacto FastAPI y los contratos de solicitud. Un cambio de catálogo o de aplicabilidad cambia la firma del catálogo, por lo que el alcance seguro para producción es **todas las soluciones × todas las AOI conocidas**.
 
-No utilice esta guía para reemplazar el catálogo completo de soluciones. Las adiciones de soluciones individuales se gestionan mediante [Agregar soluciones](./adding-solutions.md); el reemplazo completo del catálogo permanece bloqueado hasta que se revise por separado un contrato de migración y publicación.
+No utilice esta guía para reemplazar el catálogo completo de soluciones. El reemplazo del catálogo nacional y marino usa la CLI condicionada `solution-catalog-v1` de [Agregar soluciones](./adding-solutions.md); los catálogos regionales SIRAP usan la pestaña **Soluciones regionales SIRAP** del documento de Google de TI de Parques.
+
+## Operador / desarrollador
+
+- **Operador:** publica bytes, manifiestos e inventarios ya validados. No define una métrica nueva ni cambia `applicable_domains`.
+- **Desarrollador:** cambia el catálogo Python, el despacho, el frontend y FastAPI. Después de un cambio de código, el alcance de publicación es **todas las soluciones × todas las AOI conocidas**.
+- El relleno incremental de uso del suelo / agregar-una-métrica (`backfill_land_use_of_aoi.py`) no es la ruta de publicación GTIC. En producción (`catalog-releases/3.0.5` → `manifest/manifest.json`) el compacto no incluye `land_use_*_pct_of_aoi`, así que las barras de AOI conocidas están vacías. Esta rama / 3.0.6 (`land-use-aoi-test`) puede llenar barras locales; no es producción GTIC. La UAT no debe reprobar a quienes prueben por barras vacías en producción.
+- El reemplazo del catálogo de soluciones no se hace aquí: use [Agregar soluciones](./adding-solutions.md) (`--catalog`, `--confirm-release`, `--expected-live-sha256`). La bandera `--skip-archive` ya no existe.
 
 ## Primera decisión: ¿nuevo identificador o habilitación para otro dominio?
 
@@ -25,6 +32,25 @@ No utilice esta guía para reemplazar el catálogo completo de soluciones. Las a
 | Alcance de la versión      | Todas las soluciones × todas las AOI                                                               | Todas las soluciones × todas las AOI                                                                               |
 
 Si dos dominios utilizan diferentes significados científicos, unidades, denominadores o fuentes autorizadas, no son automáticamente la misma métrica. Obtenga una revisión científica y del producto antes de decidir si compartir un identificador o definir métricas separadas.
+
+## Habilitar por ámbito (SIRAP) no es habilitar por dominio
+
+Habilitar por ámbito (SIRAP) no es lo mismo que habilitar por dominio terrestre/marino. La habilitación de dominio amplía `applicable_domains`. La habilitación de ámbito decide si una métrica es válida para el producto regional SIRAP frente al catálogo nacional.
+
+Para SIRAP, muestre únicamente **Total Carbon Biomass Conserved** (`carbon_biomass_total`, #39). Oculte las siguientes como `not_applicable`:
+
+| # | `metric_id` | Etiqueta | Por qué SIRAP la oculta |
+| ---: | --- | --- | --- |
+| 5 | `carbon_storage_biomass` | Carbon Storage Capacity | Duplicado de #39 |
+| 41 | `soil_organic_carbon` | Soil Organic Carbon | Fuera del alcance de carbono SIRAP aprobado |
+| 43 | `carbon_pct_of_national` | % of National Carbon | Estadística de participación nacional, no el resultado único de carbono SIRAP |
+| 17 | `national_contribution` | National Contribution | Un porcentaje regional no es National Contribution |
+
+La contribución regional es #19 `priority_area_pct_of_region` (Priority Area % of Region).
+
+La canalización SIRAP falla de forma cerrada con el formato de paquete `sirap-metric-input-packet-v2`. Si una capa no está vinculada explícitamente en el paquete de insumos regional, no recurra a una fuente nacional. Las unidades de carbono siguen siendo una pregunta abierta de validación científica.
+
+Fuente: [Fórmulas, insumos y disponibilidad actuales de métricas — agosto de 2026](../../../findings/current-metrics-contract-2026-08.md)
 
 ## Lista de verificación del contrato
 
@@ -258,7 +284,7 @@ Una nueva métrica regular no pertenece automáticamente a MEC ni a las metas. C
 
 ## Brechas de producción actuales
 
-- El reemplazo completo del catálogo de soluciones no tiene un flujo de trabajo de migración/conciliación aprobado; sólo las adiciones individuales están documentadas por el operador.
+- El reemplazo completo del catálogo de soluciones no se hace en esta guía; use la CLI condicionada de [Agregar soluciones](./adding-solutions.md).
 - Las sobrescrituras de métricas no tienen un archivo automático; utilice versiones inmutables o conserve resultados e informes completos anteriores.
 - MEC y la publicación/verificación de metas de conservación siguen siendo manuales e incompletas.
 - Las entradas del tiempo de ejecución del backend y las listas de solicitudes personalizadas del frontend AOI son registros codificados.

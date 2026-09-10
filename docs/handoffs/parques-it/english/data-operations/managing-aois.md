@@ -8,6 +8,17 @@ Use this runbook when adding or correcting a department, municipality, SIRAP, RU
 
 Do not use this workflow for a user-drawn polygon. A custom AOI is sent to the FastAPI service and calculated from runtime raster artifacts; it is not registered in the known-AOI boundary catalogs or precomputed cache.
 
+## Start here
+
+- Classify the geography and stage a complete collection: [1. Classify and stage the change](#1-classify-and-stage-the-change) and [2. Build the complete boundary collection](#2-build-the-complete-boundary-collection).
+- Validate geometry and fail-closed pins: [3. Validate geometry and update fail-closed pins](#3-validate-geometry-and-update-fail-closed-pins).
+- Promote bytes and pins together: [4. Stage and promote the boundary safely](#4-stage-and-promote-the-boundary-safely).
+- Refresh the runtime manifest only when its boundary contract changed: [5. Refresh the runtime manifest when its boundary contract changes](#5-refresh-the-runtime-manifest-when-its-boundary-contract-changes).
+- Recalculate every solution against every known AOI: [6. Recalculate every solution against the complete AOI catalog](#6-recalculate-every-solution-against-the-complete-aoi-catalog).
+- Rebuild FastAPI artifacts only when shared live inputs also changed: [7. Rebuild live custom-AOI artifacts when shared inputs changed](#7-rebuild-live-custom-aoi-artifacts-when-shared-inputs-changed).
+- Rollback matching bytes, URL, code, and pins as one contract: [Rollback](#rollback).
+- Escalate a new geography type, OMEC rebuild, or pin rewrite: [8. Adding a brand-new geography type — developer project](#8-adding-a-brand-new-geography-type--developer-project) and [Limitations and escalation](#limitations-and-escalation).
+
 ## Roles and prerequisites
 
 - **Data steward:** approves source, license, stable IDs, names, geometry, and whether a change is an addition or correction.

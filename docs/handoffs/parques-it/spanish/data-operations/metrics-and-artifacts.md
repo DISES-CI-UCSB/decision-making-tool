@@ -2,6 +2,15 @@
 
 # Métricas y artefactos de tiempo de ejecución
 
+## Empiece aquí
+
+- [Cuándo utilizar esta guía operativa](#cuándo-utilizar-esta-guía-operativa)
+- [Tabla de decisiones de impacto](#tabla-de-decisiones-de-impacto)
+- [Pasos y comandos admitidos](#pasos-y-comandos-admitidos)
+- [Lista de verificación](#lista-de-verificación)
+- [Reversión](#reversión)
+- [Limitaciones y escalada](#limitaciones-y-escalada)
+
 ## Cuándo utilizar esta guía operativa
 
 Utilice esta guía operativa cuando cambie una solución, una capa de cálculo compartida, una definición de métrica, un límite conocido, un resumen de solución o un manifiesto de tiempo de ejecución. Abarca el ciclo de vida completo: generación local, inspección, ensayo, publicación, verificación remota, actualización del manifiesto y reinicio de los artefactos de FastAPI.
@@ -110,7 +119,7 @@ python data/metrics/python/metrics_pipeline/main.py \
   --force
 ```
 
-Para una versión completa inmutable, agregue `--release-id <release-id>`. El contrato de versión requiere actualmente exactamente 108 soluciones seleccionadas y cada fuente límite fijada.
+Para una versión completa inmutable, agregue `--release-id <release-id>`. La producción GTIC `catalog-releases/3.0.5` → `manifest/manifest.json` declara 172 nacionales (168 terrestres + 4 marinas) + 56 SIRAP = 228 (no 108). Esta rama / 3.0.6 usa el índice de prueba `land-use-aoi-test` con las mismas cifras; no es producción GTIC. Toda versión inmutable sigue exigiendo cada fuente de límite fijada.
 
 ### 4. Ejecute un lote fragmentado
 
@@ -172,7 +181,7 @@ python data/metrics/python/metrics_pipeline/compact_metrics.py \
   --release-id <release-id>
 ```
 
-Para un ID de versión, la conversión final requiere 108 entradas detalladas. Las versiones parciales explícitas requieren tanto `--release-selection <selection.json>` como `--partial-release`; el contrato de selección deberá declarar el catálogo completo y el subconjunto exacto.
+Para un ID de versión, la conversión final requiere las entradas detalladas declaradas en el catálogo (producción GTIC `catalog-releases/3.0.5`: 172 nacionales + 56 SIRAP = 228 combinadas, no 108; mismas cifras en el índice de prueba 3.0.6 `land-use-aoi-test`). Las versiones parciales explícitas requieren tanto `--release-selection <selection.json>` como `--partial-release`; el contrato de selección deberá declarar el catálogo completo y el subconjunto exacto.
 
 Inspeccione, realice un ensayo, publique y verifique el resultado compacto utilizando las mismas herramientas:
 
@@ -215,7 +224,7 @@ python data/metrics/python/metrics_pipeline/mec_compact.py \
 
 Omita ambos filtros para todas las soluciones terrestres y los seis niveles. Utilice `--force` para regenerar fragmentos existentes válidos y `--no-cache` para actualizar los bytes de origen descargados.
 
-Para una versión MEC v2 inmutable, utilice `--release-id <release-id>`. Una versión completa requiere 104 soluciones terrestres y los seis niveles geográficos. La generación de una versión parcial debe utilizar un descriptor `--release-partition` que falle de forma cerrada; los informes finales de partición se pueden conciliar mediante usos repetidos de `--reconcile-partition-report`.
+Para una versión MEC v2 inmutable, utilice `--release-id <release-id>`. Una versión completa requiere el recuento terrestre declarado en el catálogo (`expectedLandSolutionCount`, actualmente 168 en el catálogo 3.0.5: 172 nacionales = 168 terrestres + 4 marinas) y los seis niveles geográficos. MEC es solo terrestre; las soluciones marinas no tienen MEC. La generación de una versión parcial debe utilizar un descriptor `--release-partition` que falle de forma cerrada; los informes finales de partición se pueden conciliar mediante usos repetidos de `--reconcile-partition-report`.
 
 **Publicación manual/incompleta:** `mec_compact.py` nunca carga archivos. El repositorio no tiene un comando dedicado para publicar e integrar MEC en el manifiesto. Un proceso revisado por un desarrollador debe cargar exactamente los valores `expectedBlobPath` del informe, verificar los bytes remotos y confirmar que las URL `mecV2ByGeography` del manifiesto cubren los seis niveles. No envíe informes MEC al publicador habitual a menos que la compatibilidad se pruebe y apruebe por separado.
 

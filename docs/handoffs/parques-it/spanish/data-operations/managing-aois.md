@@ -2,6 +2,15 @@
 
 # Gestión de AOI conocidas y límites
 
+## Empiece aquí
+
+- [Cuándo usar este procedimiento](#cuándo-usar-este-procedimiento)
+- [Tabla de decisión de impacto](#tabla-de-decisión-de-impacto)
+- [Pasos y comandos admitidos](#pasos-y-comandos-admitidos)
+- [Lista de verificación](#lista-de-verificación)
+- [Reversión](#reversión)
+- [Limitaciones y escalamiento](#limitaciones-y-escalamiento)
+
 ## Cuándo usar este procedimiento
 
 Use este procedimiento al agregar o corregir un registro de departamento, municipio, SIRAP, RUNAP u OMEC, o al reemplazar una de esas colecciones de límites publicadas. También explica por qué agregar un tipo de geografía completamente nuevo es un proyecto de desarrollo y no una tarea de carga.

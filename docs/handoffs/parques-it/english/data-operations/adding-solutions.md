@@ -4,6 +4,10 @@
 
 ## Purpose and release status
 
+This runbook is for **national and marine** solutions only. SIRAP regional
+solutions use a separate pipeline (`sirap_release/` and immutable
+`releases/sirap-…/` paths). Do not follow this procedure for SIRAP catalogs.
+
 Use this guide for either:
 
 1. adding one new solution package; or
@@ -18,12 +22,12 @@ prior immutable catalog release, mint a new `solution_id` and artifact paths
 for the revision, and publish the revision in a new catalog release.
 
 Retiring the old revision means excluding its old ID from the new active
-catalog release. It does not mean deleting the old ID, package, artifacts,
-metadata, or historical releases. That active-catalog replacement step is
-**not operator-ready today**. The separate versioned-catalog workflow must be
-merged, documented, tested, and rehearsed before handoff use. The current
-manifest generator starts from the published catalog and merges discovered
-solutions by ID, so IDs absent from Blob discovery remain preserved.
+catalog. It does not mean deleting the old ID, package, artifacts, metadata, or
+historical releases. Replacement and retirement **are supported in release
+mode**. Declare the intended ID set in a `solution-catalog-v1` JSON file,
+generate and validate with `--catalog`, and promote with `--confirm-release`
+and `--expected-live-sha256`. When `releaseId` is set, the generator does
+**not** preserve published IDs that are absent from the catalog.
 
 The repository has no verified structured solution-lineage or supersession
 field. Until one is implemented and validated, record the human-readable
@@ -33,39 +37,51 @@ reports. Do not invent fields such as `supersedes`, `replaces`, or
 `previous_solution_id` and assume runtime tooling will preserve or interpret
 them.
 
-The supported one-solution path also depends on a non-live HTTP candidate
-manifest. The COG, regular-metrics, and MEC generators fetch a manifest over
-HTTP; publishing a base candidate to the production manifest first would expose
-deterministic metric and COG URLs before those objects exist. Never use the live
-production manifest as staging.
+Live promotion always requires a release manifest with `releaseId` plus
+`--catalog`. Do not publish an incomplete candidate to `manifest/manifest.json`.
+Release generation can consume a local `file://` preflight manifest, so do not
+use `--skip-archive` — that flag is gone. Authoritative CLI detail lives in
+[frontend/layer-manifest/README.md](../../../../../frontend/layer-manifest/README.md)
+and [data/metrics/README.md](../../../../../data/metrics/README.md).
 
 For broader artifact details, see
 [Metrics and runtime artifacts](./metrics-and-artifacts.md). For publication and
 recovery commands, see
 [Publishing and rollback](./publishing-and-rollback.md).
 
+## Start here
+
+- Add one national or marine package: [Supported procedure: add one new solution](#supported-procedure-add-one-new-solution).
+- Replace or retire IDs in the live catalog: [Catalog replacement or retirement](#catalog-replacement-or-retirement).
+- Decide whether this is a new ID or a material revision: [Decide whether this is a new solution or a material revision](#decide-whether-this-is-a-new-solution-or-a-material-revision).
+- Check current support before starting: [Scope summary](#scope-summary).
+- Restore a known-good catalog: [Rollback](#rollback).
+- Stop for SIRAP regional catalogs: this runbook does not apply. Use the [SIRAP Regional Solutions](https://docs.google.com/document/d/1mThmI_KmTT8kE2s02s_ymhdHL-BUxyIl8lxuwXJ76aM/edit?tab=t.oqw67lnj8o9t) Google Doc tab (56 scenarios: 40 Eje Cafetero, 16 Orinoquía).
+- Incremental land-use / add-a-metric backfill: [Incremental metric backfill](#incremental-metric-backfill). `backfill_land_use_of_aoi.py` is on this branch as a developer/test path, not a frozen GTIC operator runbook. `catalog-releases/3.0.6` test is not the GTIC 3.0.5 publish.
+- Before claiming a material revision replaced the old ID: [Material-revision replacement checklist](#material-revision-replacement-checklist).
+
 ## Scope summary
 
 | Operation                                     | Current status                                    | Important constraint                                                                                                                                                         |
 | --------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Add one new solution                          | Supported with controlled staging                 | Package includes a newly assigned immutable ID, artifact paths, metadata, manifest entry, metrics, and provenance; stage through a new, non-live HTTP candidate manifest      |
+| Add one new solution                          | Supported as a catalog release                    | Include the new immutable ID in a `solution-catalog-v1` file; stage sources under `releases/{releaseId}/solutions/{land\|marine}/`; promote with gated publish                |
 | Prepare a material revision as a new solution | Supported only as the new-package add             | Never overwrite/reuse the old package or ID; mint a new ID and immutable paths, and record the old-to-new relationship in supported metadata or release documentation         |
-| Replace the old revision in the active catalog | Not operator-supported yet                       | Requires a new catalog release that includes the new ID and excludes the old ID while retaining the complete old release; the current generator preserves absent published IDs |
-| Retire a solution from the active catalog     | Not operator-supported yet                        | Retirement means exclusion from a new active catalog release, not deleting/reusing its ID, package, metadata, artifacts, or historical releases                              |
-| Replace the complete catalog                  | In development — not yet operator-ready           | A separate versioned-catalog replacement workflow must be merged, documented, tested, and rehearsed before handoff use                                                       |
+| Replace the old revision in the active catalog | Supported in release mode                        | New catalog includes the new ID and excludes the old ID; retain the complete old release; generator does not merge undeclared published IDs when `releaseId` is set          |
+| Retire a solution from the active catalog     | Supported in release mode                         | Retirement means exclusion from a new active catalog, not deleting/reusing its ID, package, metadata, artifacts, or historical releases                                      |
+| Replace the complete catalog                  | Supported — `solution-catalog-v1` promotion       | Generate with `--catalog`; promote with artifact inventories, `--dry-run`, then `--confirm-release` and `--expected-live-sha256`                                             |
 | Build a display COG                           | Supported only when `scope` is exactly `nacional` | The current COG selector does not process marine solutions                                                                                                                   |
 
 ## Roles and prerequisites
 
-- **Release operator:** controls Blob writes, candidate publication, and final
-  manifest cutover.
+- **Release operator:** controls Blob writes, catalog files, artifact
+  inventories, and gated manifest promotion.
 - **Data owner or analyst:** approves raster values, metadata, provenance,
   Finder inputs, and scientific meaning.
 - **Reviewer:** independently checks reports, URLs, Finder behavior, rendering,
   and metrics.
-- **Developer/release engineer:** required for complete-catalog replacement,
-  retirement, material-revision active-catalog replacement, MEC/goals
-  publication, or a missing staging environment.
+- **Developer/release engineer:** required for MEC/goals publication wiring
+  questions, a missing staging environment, or SIRAP regional catalogs (not
+  this runbook).
 
 Before starting:
 
@@ -73,13 +89,13 @@ Before starting:
    frontend dependencies installed.
 2. Confirm `BLOB_READ_WRITE_TOKEN` is present in `.env.local`. Never print,
    paste, or record its value.
-3. Record the target environment, live manifest URL, exact known-good manifest
-   archive, and retained prior artifact reports/directories.
-4. Choose a unique candidate pathname such as
-   `manifest/candidates/<release-id>.json`. It must not be
-   `manifest/manifest.json`.
+3. Record the target environment, live national manifest URL, historical catalog
+   JSON for rollback, and retained prior artifact reports/directories.
+4. Prepare a `solution-catalog-v1` file with `releaseId`, `catalogVersion`,
+   expected counts, and the exact sorted solution ID set. Paths passed to
+   `npm --prefix frontend` are relative to `frontend/`.
 5. Record source, license, owner, generation time, CRS, resolution, extent,
-   data type, value meanings, NoData, and SHA-256 for the source pair.
+   data type, value meanings, NoData, and SHA-256 for each source pair.
 
 ## Decide whether this is a new solution or a material revision
 
@@ -88,8 +104,8 @@ Before starting:
 A new solution receives a newly assigned immutable ID. Its complete package
 includes the source raster pair, derived artifacts, metadata, manifest entry,
 metrics, and provenance as applicable. These paths are not referenced by the
-live catalog before final cutover, provided the operator uses new immutable
-pathnames and a non-live candidate manifest.
+live catalog before gated promotion, provided the operator uses new immutable
+pathnames under `releases/{releaseId}/`.
 
 ### Material revision of an existing solution
 
@@ -104,18 +120,17 @@ conceptual solution:
   `notes` field when approved, plus the catalog release documentation and
   retained operator reports. There is no verified structured lineage field.
 - Publish the revised package in a new catalog release and retire the old ID by
-  excluding it from that new active release. Preserve historical releases.
+  excluding it from that catalog. Preserve historical releases.
 
-The supported procedure below can prepare and add the new package. It cannot
-complete active-catalog replacement today because the generator preserves
-published IDs that are absent from Blob discovery. Stop before claiming the old
-ID is retired; use the separately developed versioned-catalog workflow only
-after it has been merged, documented, tested, and rehearsed.
+The add steps below prepare the new package. Active-catalog replacement is the
+catalog-promotion procedure: the new catalog must include the new ID and omit
+the retired ID.
 
 ## Supported procedure: add one new solution
 
 The commands below were checked against the current repository CLIs. Replace
-all placeholders and retain every generated report.
+all placeholders and retain every generated report. Adding one ID is still a
+catalog release: include it in `solution-catalog-v1` and promote that catalog.
 
 ### 1. Prepare and review the source pair
 
@@ -145,13 +160,22 @@ point, then compare with an admitted production sidecar. Verify:
 Keep `excludes` empty unless developers have implemented and tested the exclude
 workflow. Do not rely on filename inference as the formal metadata contract.
 
-### 2. Stage the raw pair
+### 2. Stage the raw pair under the release prefix
 
-There is no repository command for uploading a raw solution TIFF and JSON
-sidecar. Use the approved manual Vercel Blob procedure and put both files in the
-same approved prefix, normally `solutions/nacional/` or `solutions/marine/`.
-Use a new immutable pathname for every new package. Never overwrite or reuse an
-existing solution pathname.
+Do not upload to the old mutable `solutions/nacional/` or `solutions/marine/`
+prefixes for a catalog release. Build a checksum-pinned source upload plan and
+write to `releases/<releaseId>/solutions/{land|marine}/...` only. The uploader
+defaults to a read-only dry run and refuses to overwrite differing immutable
+bytes:
+
+```bash
+python data/metrics/python/metrics_pipeline/upload_solution_sources.py \
+  data/metrics/generated/releases/<releaseId>/source-upload/upload-plan.json
+
+python data/metrics/python/metrics_pipeline/upload_solution_sources.py \
+  data/metrics/generated/releases/<releaseId>/source-upload/upload-plan.json \
+  --execute
+```
 
 Retain:
 
@@ -161,17 +185,32 @@ Retain:
 - public URLs or Blob inventory evidence; and
 - confirmation that no unrelated object was overwritten.
 
-### 3. Generate and validate the local base candidate
+### 3. Declare the ID in solution-catalog-v1 and preflight the plan
 
-The npm generator registers marine solutions but not national solutions. Run
-the generator directly with both known prefixes:
+Add the new `solutionId`, `solutionBasename` (exact lowercase `.tif`),
+`domain`, and `rasterSha256` to a `solution-catalog-v1` file. Bump
+`catalogVersion` (MAJOR or MINOR for solution/metric changes). Set
+`expectedSolutionCount`, `expectedLandSolutionCount`, and
+`expectedMarineSolutionCount` to the declared set.
 
 ```bash
-node frontend/layer-manifest/generate-manifest.mjs \
-  --register-solution-prefix solutions/nacional/ \
-  --register-solution-prefix solutions/marine/
+python data/metrics/python/metrics_pipeline/plan_solution_release.py \
+  --catalog path/to/new-solution-catalog.json \
+  --baseline-catalog path/to/previous-solution-catalog.json \
+  --output data/metrics/generated/releases/<releaseId>/release-plan.json
+```
 
-npm --prefix frontend run validate:layer-manifest
+Generate the local release manifest against that catalog (paths are relative
+to `frontend/`):
+
+```bash
+npm --prefix frontend run generate:layer-manifest -- \
+  --catalog ../path/to/solution-catalog.json
+
+npm --prefix frontend run validate:layer-manifest -- \
+  public/data/layer-manifest/manifest.json \
+  --catalog ../path/to/solution-catalog.json
+
 npm --prefix frontend run test:layer-manifest
 ```
 
@@ -179,31 +218,24 @@ Review
 `development-artifacts/layer-manifest/reports/solutions-reconciliation-report.json`.
 The intended ID must appear once in `solutions[]`, not in `skipped` or
 `unmatchedRasters`. Check `finderInputs`, `displayUrl`, `metadataUrl`,
-`rendering`, and every deterministic `precomputedMetricUrls` value.
+`rendering`, and every deterministic `precomputedMetricUrls` value under
+`releases/{releaseId}/`.
 
-This candidate still contains all previously published IDs by design. It is not
-evidence that an old ID was retired or that a material revision replaced it in
-the active catalog.
+This candidate is evidence of the declared catalog only. IDs omitted from the
+catalog are not preserved.
 
-### 4. Publish only a non-live HTTP candidate
+### 4. Keep the candidate off the live pointer
 
-The downstream COG, regular-metrics, and MEC tools require HTTP input. Publish
-the validated local file to a unique candidate pathname:
+Do not target `manifest/manifest.json` until every referenced metric and COG
+byte exists. Release metrics can consume a local preflight manifest:
 
-```bash
-npm --prefix frontend run publish:layer-manifest -- \
-  --source frontend/public/data/layer-manifest/manifest.json \
-  --target manifest/candidates/<release-id>.json \
-  --skip-archive
+```text
+--manifest-url file://$PWD/data/metrics/generated/releases/<releaseId>/preflight/manifest.json
 ```
 
-Record the URL printed by the command as `<candidate-manifest-url>`. Fetch it
-with a cache-busting query and confirm it contains the intended ID.
-
-**Do not target `manifest/manifest.json` in this step.** If policy does not
-permit a non-live public candidate URL, stop. The safe alternative is production
-tooling that lets every generator consume a local candidate; publishing an
-incomplete base manifest live is not an acceptable workaround.
+There is no `--skip-archive` flag. Gated promotion always archives the current
+live pointer as part of `--confirm-release`. Publishing a half-built catalog
+live is not an acceptable workaround.
 
 ### 5. Optionally build and upload a national display COG
 
@@ -227,224 +259,185 @@ Require `data/cog/generated/publish-report.json` to report a valid COG and
 `data/cog/generated/upload-report.json` to contain only the intended solution
 with no failures.
 
-Create a local final-manifest artifact with the uploaded COG URL, but do not
-publish it:
+### 6. Generate regular known-AOI metrics for the release
 
-```bash
-npm --prefix frontend run publish:solution-cog-manifest -- \
-  --manifest-url <candidate-manifest-url>
-```
+Output defaults under `data/metrics/generated/releases/<releaseId>/`, not
+`metrics/cache/`. Cache under `data/metrics/cache/releases/<releaseId>/`. Pass
+the catalog and release plan; see
+[data/metrics/README.md](../../../../../data/metrics/README.md) for worker chunks
+and `merge_release_workers.py`.
 
-The command prints the generated artifact path under
-`frontend/development-artifacts/layer-manifest/publish/`. Record that path as
-`<final-candidate-path>`.
-
-For a marine solution, skip this step and use
-`frontend/public/data/layer-manifest/manifest.json` as the initial
-`<final-candidate-path>`.
-
-### 6. Generate all regular known-AOI metrics for the solution
-
-Validate against the candidate:
+A one-solution scientific smoke may omit `--release-plan` and must never be
+assembled or published as the complete release:
 
 ```bash
 python data/metrics/python/metrics_pipeline/main.py \
-  --manifest-url <candidate-manifest-url> \
+  --manifest-url "file://$PWD/$RELEASE_ROOT/preflight/manifest.json" \
+  --release-id "$RELEASE_ID" \
+  --solution-catalog "$RELEASE_ROOT/solution-catalog.json" \
   --solution-id <solution-id> \
-  --validate-only
+  --cache-dir "data/metrics/cache/releases/$RELEASE_ID" \
+  --output-dir "$RELEASE_ROOT/smoke/scientific/regular/verbose"
 ```
 
-Generate every loaded applicable AOI geography. Do not pass `--national-only`:
-
-```bash
-python data/metrics/python/metrics_pipeline/main.py \
-  --manifest-url <candidate-manifest-url> \
-  --solution-id <solution-id> \
-  --output-dir data/metrics/generated/<release-directory> \
-  --cache-dir data/metrics/cache/tier1 \
-  --force \
-  --no-cache
-```
-
-`--force` recomputes output; `--no-cache` refreshes downloaded inputs. Do not
-substitute `--limit 1`, which selects by catalog order.
-
-Inspect, dry-run, publish, and verify:
+For the catalog release itself, generate, inspect, publish, and verify. Release
+metrics refuse silent overwrite: an existing remote path is accepted only when
+its SHA-256 matches.
 
 ```bash
 python data/metrics/python/metrics_pipeline/inspect_metrics.py \
-  --output-dir data/metrics/generated/<release-directory> \
+  --output-dir data/metrics/generated/releases/<releaseId>/regular/verbose \
   --solution-id <solution-id>
 
 python data/metrics/python/metrics_pipeline/publish.py \
-  --output-dir data/metrics/generated/<release-directory> \
+  --output-dir data/metrics/generated/releases/<releaseId>/regular/verbose \
   --solution-id <solution-id> \
   --dry-run
 
 python data/metrics/python/metrics_pipeline/publish.py \
-  --output-dir data/metrics/generated/<release-directory> \
+  --output-dir data/metrics/generated/releases/<releaseId>/regular/verbose \
   --solution-id <solution-id>
 
 python data/metrics/python/metrics_pipeline/verify_artifacts.py \
-  data/metrics/generated/<release-directory>/publish-report.json
+  data/metrics/generated/releases/<releaseId>/regular/verbose/publish-report.json
 ```
 
 The regular output should contain national, departments, municipalities,
 SIRAPs, RUNAPs, and OMECs when their pinned boundaries load and the metric
 catalog says they apply. Boundary load errors are release failures.
 
-### 7. Build and publish the compact regular cache
+### 7. Compact, goals, and MEC inventories
 
-Compact output is derived from the inspected regular output:
+Build compact regular cache, goals, and (for land) MEC v2 against the same
+catalog. Each `verify_artifacts.py` output is a `metric-artifact-verification-v1`
+inventory required at promotion.
+
+Land solutions require regular verbose/compact, goals, and all six MEC v2
+artifacts. Marine solutions require regular verbose/compact and goals, with no
+MEC.
+
+After recomputed artifacts exist, assemble catalog-declared reuse from a
+checksum-pinned baseline inventory with `assemble_solution_release.py`. That
+assembly is **not** a finished add-one-metric path; see the backfill
+section below.
+
+### 8. Promote the catalog (gated publish)
+
+Confirm every URL in the generated manifest already resolves to verified bytes.
+Then dry-run and promote. `--catalog` is required. Each `--artifact-inventory`
+must come from `verify_artifacts.py`. Copy `--expected-live-sha256` from the
+dry-run output:
 
 ```bash
-python data/metrics/python/metrics_pipeline/compact_metrics.py \
-  --input-dir data/metrics/generated/<release-directory> \
-  --output-dir data/metrics/generated/<release-directory>-compact
-
-python data/metrics/python/metrics_pipeline/inspect_metrics.py \
-  --output-dir data/metrics/generated/<release-directory>-compact
-
-python data/metrics/python/metrics_pipeline/publish.py \
-  --output-dir data/metrics/generated/<release-directory>-compact \
+npm --prefix frontend run publish:layer-manifest -- \
+  --source public/data/layer-manifest/manifest.json \
+  --catalog ../path/to/solution-catalog.json \
+  --artifact-inventory ../path/to/regular-verification.json \
+  --artifact-inventory ../path/to/compact-verification.json \
+  --artifact-inventory ../path/to/goals-verification.json \
+  --artifact-inventory ../path/to/mec-verification.json \
   --dry-run
 
-python data/metrics/python/metrics_pipeline/publish.py \
-  --output-dir data/metrics/generated/<release-directory>-compact
-
-python data/metrics/python/metrics_pipeline/verify_artifacts.py \
-  data/metrics/generated/<release-directory>-compact/publish-report.json
-```
-
-Do not add `--release-id` to this one-solution conversion unless a reviewed
-partial-release selection contract has been prepared.
-
-### 8. Generate MEC and goals when applicable
-
-MEC applies to land solutions and generates six geography shards:
-
-```bash
-python data/metrics/python/metrics_pipeline/mec_compact.py \
-  --manifest-url <candidate-manifest-url> \
-  --solution-id <solution-id> \
-  --force \
-  --no-cache
-```
-
-Goals can consume the staged HTTP manifest:
-
-```bash
-python data/metrics/python/metrics_pipeline/conservation_goals.py \
-  --manifest-url <candidate-manifest-url> \
-  --solution-id <solution-id> \
-  --output-dir data/metrics/generated/goals \
-  --force-download
-```
-
-**Publication blocker:** MEC and goals generators do not upload. No dedicated,
-fully verified publication and manifest-wiring workflow exists. If either
-artifact is required, a developer-reviewed manual process must upload exactly
-the report pathnames, verify remote bytes, and ensure the final candidate points
-to them. Do not claim a complete release from generation alone.
-
-### 9. Validate and perform the final authoritative cutover
-
-Before cutover, confirm every URL in `<final-candidate-path>` already resolves
-to verified bytes. If MEC/goals URLs were changed, update and revalidate the
-candidate through a developer-reviewed process.
-
-```bash
-node frontend/layer-manifest/validate-manifest.mjs \
-  <final-candidate-path>
-
-npm --prefix frontend run test:layer-manifest
-
 npm --prefix frontend run publish:layer-manifest -- \
-  --source <final-candidate-path>
+  --source public/data/layer-manifest/manifest.json \
+  --catalog ../path/to/solution-catalog.json \
+  --artifact-inventory ../path/to/regular-verification.json \
+  --artifact-inventory ../path/to/compact-verification.json \
+  --artifact-inventory ../path/to/goals-verification.json \
+  --artifact-inventory ../path/to/mec-verification.json \
+  --confirm-release <releaseId> \
+  --expected-live-sha256 <digest-from-dry-run>
 ```
 
-Only this final command may target the production default
-`manifest/manifest.json`. It archives the prior live manifest, then replaces
-it. Record the archive pathname and published URL.
+The publisher writes an immutable revision at
+`manifest/releases/{releaseId}/revisions/{sha256}.json`, archives the current
+live pointer, then promotes with a destination-conditional put using the live
+ETag. `--dry-run` performs the same remote reads and skips every write.
 
-### 10. Verify and retain the release
+### 9. Verify and retain the release
 
-- Fetch the live manifest with a cache-busting query and verify one intended ID.
+- Fetch the live national manifest with a cache-busting query and verify the
+  intended ID set.
 - Confirm Finder inputs and labels.
 - Render the raw raster and COG, if applicable.
 - Test one known AOI from every applicable geography.
 - Load regular, compact, MEC, and goals data as applicable.
-- Verify one unchanged solution still loads.
+- Verify one unchanged reused solution still loads.
 - Retain raw and derived checksums, all reports, local generation directories,
-  candidate/final manifests, operator/reviewer names, and UTC timestamps.
+  catalogs, inventories, operator/reviewer names, and UTC timestamps.
 - Keep the old objects for the approved retention period. Do not delete them
   merely because a manifest archive exists.
-- For a material revision, do not claim replacement or retirement unless the
-  new active release excludes the old ID and the complete prior release remains
-  retained.
+- For a material revision, claim replacement only when the new active catalog
+  excludes the old ID and the complete prior release remains retained.
 
-## Not-yet-operator-ready procedure: catalog replacement or retirement
+## Catalog replacement or retirement
 
-> **Do not execute this as a production runbook yet.** The steps below define
-> the target safe workflow, not functionality currently provided by the
-> repository. The separately developed workflow must be merged, documented,
-> tested, and rehearsed first.
-
-A safe authoritative catalog replacement needs to:
+This is the live national/marine workflow. It is not waiting on a merge.
 
 1. Freeze changes and inventory the complete live dependency graph.
-2. Archive or copy every old raw TIFF/JSON pair, COG, regular metric, compact
-   metric, MEC shard, goals object, metadata file, old solution ID, release
-   report, and manifest state to retained immutable locations as one prior
-   catalog release.
-3. Verify archive byte counts and checksums independently.
-4. For every material revision, mint a new solution ID and stage its complete
-   package under new immutable pathnames. Never overwrite or reuse an old ID or
-   package.
-5. Generate an authoritative candidate from only the declared new catalog,
-   without merging undeclared published IDs.
-6. Generate and verify all COGs, regular metrics, compact metrics, MEC shards,
-   and goals against a non-live HTTP candidate or a local-candidate-capable
-   toolchain.
-7. Prove that every candidate URL resolves and that every intended retirement is
-   absent from the new active catalog while its old ID, package, artifacts,
-   metadata, and prior release remain intact.
-8. Perform one final authoritative manifest cutover after all referenced bytes
-   exist.
-9. Keep the complete old release for the approved retention period.
-10. Verify Finder, map rendering, all known-AOI geographies, unchanged shared
-    layers, and browser cache behavior.
-11. Roll back by restoring both the old manifest and every referenced old byte
-    set, then repeat verification.
+2. Author a `solution-catalog-v1` file for the new `releaseId`. Include every
+   ID that must stay active; omit every ID that must leave the live catalog.
+3. Upload new source pairs only under
+   `releases/{releaseId}/solutions/{land|marine}/`. Never overwrite an old ID
+   or package.
+4. Plan the release (`plan_solution_release.py`), generate metrics for IDs
+   marked `recompute`, and assemble checksum-identical reuse.
+5. Generate the manifest with `--catalog`. Do not merge undeclared published
+   IDs.
+6. Verify every candidate URL. Each `--artifact-inventory` must match catalog
+   identity, URLs, byte counts, and local/remote SHA-256 values.
+7. Dry-run gated publish, then promote with `--confirm-release <releaseId>` and
+   `--expected-live-sha256` from that dry run.
+8. Keep the complete old release for the approved retention period.
+9. Verify Finder, map rendering, all known-AOI geographies, unchanged shared
+   layers, and browser cache behavior.
+10. Roll back with the historical catalog: `--use`, `--catalog`, `--dry-run`,
+    then `--confirm-rollback`. Archives without release identity are rejected.
 
 Manifest archives contain JSON references only. They **do not archive the
 rasters, COGs, regular/compact metrics, MEC shards, goals, boundaries, or other
 bytes referenced by those URLs**. A manifest archive is therefore not a
 complete backup and cannot by itself guarantee rollback.
 
-Removing old raw pairs before generation does not retire their IDs: the
-solution-preservation merge keeps published entries. Deleting old objects while
-an archived or live manifest still references them converts rollback into
-broken URLs. Do not delete or quarantine old catalog assets until an
-authoritative replacement mode, reference inventory, retention decision, and
-tested rollback all exist.
+Deleting old objects while an archived or live manifest still references them
+converts rollback into broken URLs. Do not delete or quarantine old catalog
+assets until inventories, retention, and tested rollback all exist.
+
+## Incremental metric backfill
+
+Known-AOI land-use / add-a-metric backfill lives in this repo as
+`data/metrics/python/metrics_pipeline/backfill_land_use_of_aoi.py`. It is a
+developer/test path, not a frozen GTIC operator runbook. Do not invent a CLI
+recipe here.
+
+GTIC production (`catalog-releases/3.0.5`) compact still lacks
+`land_use_*_pct_of_aoi`. Known administrative AOIs (department, municipality,
+SIRAP, RUNAP, OMEC) show empty land-use bars (“not available yet”). Drawn
+custom polygons already show live CLC land-use bars. Do not fail GTIC UAT for
+empty known-AOI land-use on 3.0.5. This branch’s `catalog-releases/3.0.6`
+(land-use-aoi-TEST) has the of-AOI fields so known-AOI bars can fill locally;
+it is not the GTIC 3.0.5 publish.
+
+Code can reuse solution-level artifacts through `plan_solution_release.py` and
+`assemble_solution_release.py` when basename, domain, raster SHA, and input
+signatures match. That reuse is not the same as a finished add-one-metric
+procedure. Do not run this as the GTIC release path. Point developers at the
+metrics README.
 
 ## Material-revision replacement checklist
 
-Use the supported add steps to prepare the new package, but do not complete or
-claim active-catalog replacement until all controls exist:
-
 - [ ] The revision has a new, never-reused `solution_id`.
 - [ ] Every new raw, COG, metric, metadata, and derived-artifact pathname is
-      immutable and does not overwrite prior bytes.
+      immutable under `releases/{releaseId}/` and does not overwrite prior bytes.
 - [ ] The complete prior package, old ID, metadata, checksums, and catalog
       release are retained.
 - [ ] The old-to-new relationship is recorded in supported metadata or release
       documentation without inventing a structured lineage field.
-- [ ] The authoritative candidate includes the new ID, excludes the retired old
-      ID, and preserves unrelated intended IDs.
-- [ ] The versioned-catalog workflow and rollback have been tested with the
-      complete old and new release byte sets.
+- [ ] The `solution-catalog-v1` file includes the new ID, excludes the retired
+      old ID, and preserves unrelated intended IDs.
+- [ ] Gated publish used `--catalog`, artifact inventories, `--dry-run`, then
+      `--confirm-release` and `--expected-live-sha256`.
+- [ ] Rollback was rehearsed with the historical catalog and `--confirm-rollback`.
 
 If any control is missing, stop after preparing the new package and escalate
 rather than claiming replacement or retirement.
@@ -465,7 +458,7 @@ claim full known/custom parity without the documented regression checks.
 
 ## Rollback
 
-### New solution
+### New solution or catalog promotion
 
 1. Stop further publication and retain failed-run evidence.
 2. List manifest archives:
@@ -474,15 +467,26 @@ claim full known/custom parity without the documented regression checks.
    npm --prefix frontend run rollback:layer-manifest
    ```
 
-3. Select and restore the recorded known-good archive:
+3. Dry-run the recorded known-good archive against its historical catalog:
 
    ```bash
    npm --prefix frontend run rollback:layer-manifest -- \
-     --use <index|pathname|url>
+     --use <index|pathname|url> \
+     --catalog ../path/to/historical-solution-catalog.json \
+     --dry-run
    ```
 
-4. Refresh the browser and repeat manifest, Finder, map, and known-AOI checks.
-5. Retain the new raw and derived objects until the incident and retention
+4. Confirm the restore:
+
+   ```bash
+   npm --prefix frontend run rollback:layer-manifest -- \
+     --use <index|pathname|url> \
+     --catalog ../path/to/historical-solution-catalog.json \
+     --confirm-rollback
+   ```
+
+5. Refresh the browser and repeat manifest, Finder, map, and known-AOI checks.
+6. Retain the new raw and derived objects until the incident and retention
    decision are complete. Their presence is harmless when no live manifest
    references them.
 
@@ -495,24 +499,16 @@ revised package remains retained but unreferenced. If any old bytes were
 overwritten or deleted, policy was violated and rollback cannot be considered
 verified.
 
-### Complete catalog
-
-Rollback is blocked until a complete old byte set and tested authoritative
-catalog workflow exist. Do not infer recoverability from manifest archives.
-
 ## Remaining production blockers
 
-- No authoritative solution-catalog replacement or retirement mode.
-- No tested atomic catalog-wide cutover.
-- The generator preserves published IDs absent from discovery, so a material
-  revision can be added under a new ID but cannot yet retire/replace the old ID
-  through the operator procedure.
-- COG and regular/MEC generators need HTTP manifests; safe operation depends
-  on a non-live candidate URL until local-candidate support is added.
-- Full immutable release mode requires the complete fixed-size catalog.
-- MEC and goals publication/wiring remain manual and incomplete.
-- Raw solution pair upload is manual and not transactional.
-- There is no automatic complete-package archive for prior catalog releases.
+- Incremental land-use / add-a-metric backfill (`backfill_land_use_of_aoi.py` on
+  this branch) is a developer/test path, not a frozen GTIC operator runbook.
+  `catalog-releases/3.0.6` test is not the GTIC 3.0.5 publish.
+- COG and some generators still prefer HTTP or `file://` manifests; never
+  publish an incomplete catalog to the live pointer as staging.
+- Raw solution pair upload outside `upload_solution_sources.py` remains manual
+  and not transactional.
 - COG generation supports only `scope: "nacional"`, not marine.
 - Manifest archives do not preserve referenced bytes.
 - Custom-AOI category-mask parity still requires engineering verification.
+- SIRAP regional catalogs are out of scope for this runbook.

@@ -11,7 +11,17 @@ Use this developer guide for either of two changes:
 
 Both are code changes, not layer-upload operations. A metric must agree across the Python catalog and dispatch, generated verbose and compact artifacts, frontend presentation, and—when custom polygons should support it—the FastAPI artifact and request contracts. A catalog or applicability change changes the catalog signature, so the safe production scope is **all solutions × all known AOIs**.
 
-Do not use this guide to replace the complete solution catalog. Individual solution additions are supported by [Adding solutions](./adding-solutions.md); complete catalog replacement remains blocked pending a separately reviewed migration and release contract.
+Do not use this guide to replace the complete solution catalog. National and marine catalog replacement is a supported `solution-catalog-v1` workflow in [Adding solutions](./adding-solutions.md). SIRAP regional catalogs use the [SIRAP Regional Solutions](https://docs.google.com/document/d/1mThmI_KmTT8kE2s02s_ymhdHL-BUxyIl8lxuwXJ76aM/edit?tab=t.oqw67lnj8o9t) tab in the Parques IT Google Doc.
+
+## Operator handoff
+
+- Operators prepare scientific approval, units, expected known-AOI results, and any new source raster. Register that raster with [Managing layers](./managing-layers.md) when one is required; see [7. Understand manifest and source-input implications](#7-understand-manifest-and-source-input-implications).
+- Developers own the code contract: [First decision: new identity or domain-enabling?](#first-decision-new-identity-or-domain-enabling), then the [Contract checklist](#contract-checklist).
+- SIRAP scope-enabling is not land/marine domain-enabling. See [Scope-enabling (SIRAP) is not domain-enabling](#scope-enabling-sirap-is-not-domain-enabling).
+- After code lands, generate **all solutions × all known AOIs** using [8. Generate regular and compact releases](#8-generate-regular-and-compact-releases). Incremental land-use / add-a-metric backfill (`backfill_land_use_of_aoi.py` on this branch) is a developer/test path, not a frozen GTIC operator runbook. GTIC production 3.0.5 still lacks of-AOI land-use fields; do not fail GTIC UAT for empty known-AOI land-use. This-branch 3.0.6 test can fill those bars and is not the GTIC freeze.
+- National/marine catalog replacement belongs in [Adding solutions](./adding-solutions.md), not here.
+- Custom polygons need extra backend work: [6. Add custom-AOI support only when required](#6-add-custom-aoi-support-only-when-required).
+- Sign off with [Release verification](#release-verification). Remaining gaps are in [Current production gaps](#current-production-gaps).
 
 ## First decision: new identity or domain-enabling?
 
@@ -25,6 +35,25 @@ Do not use this guide to replace the complete solution catalog. Individual solut
 | Release scope      | All solutions × all AOIs                                                               | All solutions × all AOIs                                                                               |
 
 If two domains use different scientific meanings, units, denominators, or authoritative sources, they are not automatically the same metric. Obtain scientific and product review before deciding whether to share an ID or define separate metrics.
+
+## Scope-enabling (SIRAP) is not domain-enabling
+
+Scope-enabling (SIRAP) is not the same as land/marine domain-enabling. Domain-enabling expands `applicable_domains`. Scope-enabling decides whether a metric is valid for the regional SIRAP product versus the national catalog.
+
+For SIRAP, show **Total Carbon Biomass Conserved** only (`carbon_biomass_total`, #39). Hide the following as `not_applicable`:
+
+| # | `metric_id` | Label | Why SIRAP hides it |
+| ---: | --- | --- | --- |
+| 5 | `carbon_storage_biomass` | Carbon Storage Capacity | Duplicate of #39 |
+| 41 | `soil_organic_carbon` | Soil Organic Carbon | Not in the approved SIRAP carbon scope |
+| 43 | `carbon_pct_of_national` | % of National Carbon | National-share statistic, not the one-number SIRAP carbon outcome |
+| 17 | `national_contribution` | National Contribution | A regional percentage is not National Contribution |
+
+Regional contribution is #19 `priority_area_pct_of_region` (Priority Area % of Region).
+
+The SIRAP pipeline fails closed on packet format `sirap-metric-input-packet-v2`. If a layer is not explicitly bound in the regional input packet, do not fall back to a national source. Carbon units remain an open scientific-validation question.
+
+Source: [Current metric formulas, inputs, and availability — August 2026](../../../findings/current-metrics-contract-2026-08.md)
 
 ## Contract checklist
 
@@ -258,7 +287,6 @@ A new regular metric does not automatically belong in MEC or goals. Change those
 
 ## Current production gaps
 
-- Complete solution-catalog replacement has no approved migration/reconciliation workflow; only individual additions are operator-documented.
 - Metrics overwrites have no automatic archive; use immutable releases or retain complete prior outputs and reports.
 - MEC and conservation-goal publication/verification remain manual and incomplete.
 - Backend runtime inputs and frontend custom-AOI request lists are hardcoded registries.
