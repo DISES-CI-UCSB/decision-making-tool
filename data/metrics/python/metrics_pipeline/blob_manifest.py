@@ -17,7 +17,7 @@ from urllib.parse import unquote, urlsplit
 from solution_domain import is_batch_solution, solution_domain
 
 DEFAULT_MANIFEST_URL = (
-    "https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json"
+    "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-2-0/manifest.json"
 )
 
 

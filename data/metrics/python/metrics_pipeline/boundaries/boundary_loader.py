@@ -144,10 +144,20 @@ EXPECTED_MARINE_SIRAP_CATALOG: tuple[tuple[str, str], ...] = (
     ("territorial_marine_caribe", "Caribe marino"),
     ("territorial_marine_pacifico", "Pacífico marino"),
 )
-MARINE_SIRAP_LOCAL_PATH = (
-    Path(__file__).resolve().parents[4]
-    / "boundaries/sirap/siraps_marine_caribe_pacifico_v1.geojson"
-)
+def _marine_sirap_local_path() -> Path:
+    """Repo-local marine GeoJSON when the pipeline lives under data/metrics.
+
+    Docker copies this module to /metrics_pipeline, which is too shallow for
+    parents[4]. Return a non-existent path there; callers already check exists().
+    """
+    try:
+        data_root = Path(__file__).resolve().parents[4]
+    except IndexError:
+        return Path("/nonexistent/boundaries/sirap/siraps_marine_caribe_pacifico_v1.geojson")
+    return data_root / "boundaries/sirap/siraps_marine_caribe_pacifico_v1.geojson"
+
+
+MARINE_SIRAP_LOCAL_PATH = _marine_sirap_local_path()
 MARINE_SIRAP_SOURCE_SPEC = BoundarySourceSpec(
     geo_level="siraps",
     url=(
