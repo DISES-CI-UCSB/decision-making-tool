@@ -77,7 +77,10 @@ from boundaries.boundary_id_grid import (
 from boundaries.boundary_loader import (
     BOUNDARY_SOURCE_SPECS,
     BoundaryFeature,
+    BoundaryLoadError,
+    augment_boundaries_for_domain,
     load_all_boundaries,
+    load_marine_sirap_boundaries,
 )
 from boundaries.boundary_mask import BoundaryMaskCache, rasterize_boundary
 from boundaries.boundary_topology import (
@@ -4255,6 +4258,7 @@ def _process_solution(
     species_records: list[SpeciesRecord] | None = None,
     species_pool_sizes: SpeciesPoolSizes | None = None,
     boundary_grid_cache: BoundaryIdGridCache | None = None,
+    marine_sirap_features: list[BoundaryFeature] | None = None,
     skip_species: bool = False,
     skip_species_boundary_levels: set[str] | None = None,
     species_csv_url: str = SPECIES_CSV_URL,
@@ -4285,6 +4289,11 @@ def _process_solution(
     solution_id = str(solution.get("id"))
     domain = solution_domain(solution)
     packet_identity = regional_packet_identity(solution)
+    boundaries_by_level = augment_boundaries_for_domain(
+        boundaries_by_level,
+        domain,
+        marine_sirap_features or [],
+    )
     started = time.time()
     usage_started = resource.getrusage(resource.RUSAGE_SELF)
     phase_seconds: dict[str, float] = {}
@@ -5599,6 +5608,7 @@ def main(argv: list[str] | None = None) -> int:
     boundary_topology_cache = BoundaryTopologyCache()
     boundaries_by_level: dict[str, list[BoundaryFeature]] = {}
     boundary_errors: dict[str, str] = {}
+    marine_sirap_features: list[BoundaryFeature] = []
     species_execution_by_id = {
         str(solution.get("id")): _independent_species_execution(
             species_execution_config
@@ -5617,6 +5627,14 @@ def main(argv: list[str] | None = None) -> int:
     ):
         if not args.national_only:
             boundaries_by_level, boundary_errors = load_all_boundaries(args.cache_dir)
+            try:
+                marine_sirap_features = load_marine_sirap_boundaries(args.cache_dir)
+            except BoundaryLoadError as exc:
+                print(
+                    "[tier1-metrics] WARNING: could not load marine SIRAP "
+                    f"boundaries: {exc}",
+                    file=sys.stderr,
+                )
             if boundary_errors or set(boundaries_by_level) != {
                 "departments",
                 "municipalities",
@@ -6061,6 +6079,18 @@ def main(argv: list[str] | None = None) -> int:
                 f"[tier1-metrics] WARNING: could not load '{level}' boundaries: {err}",
                 file=sys.stderr,
             )
+        try:
+            marine_sirap_features = load_marine_sirap_boundaries(args.cache_dir)
+            print(
+                "[tier1-metrics] boundaries: marine siraps → "
+                f"{len(marine_sirap_features)} features"
+            )
+        except BoundaryLoadError as exc:
+            print(
+                "[tier1-metrics] WARNING: could not load marine SIRAP "
+                f"boundaries: {exc}",
+                file=sys.stderr,
+            )
         if not boundaries_by_level:
             print(
                 "[tier1-metrics] WARNING: all boundary levels failed; national-only.",
@@ -6318,6 +6348,7 @@ def main(argv: list[str] | None = None) -> int:
                     value_cache=value_cache,
                     boundary_mask_cache=boundary_mask_cache,
                     boundaries_by_level=boundaries_by_level,
+                    marine_sirap_features=marine_sirap_features,
                     national_only=args.national_only,
                     species_records=species_records,
                     species_pool_sizes=species_pool_sizes,

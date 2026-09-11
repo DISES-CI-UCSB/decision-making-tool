@@ -486,7 +486,41 @@ function reconcileAdminBoundaries(
         row.mapSync.boundaryLayerKey === 'admin_country_outline' &&
         !manifestBoundaryKeys.has(row.mapSync.boundaryLayerKey),
     );
-    const reconciledRows = [...preservedActiveSirap, ...preservedCountryOutline, ...rows];
+    // Local-only until the marine GeoJSON is published into the catalog manifest.
+    const localMarineRows = group.rows.filter(
+      (row) =>
+        row.mapSync?.type === 'admin-boundary' &&
+        row.mapSync.boundaryLayerKey === 'siraps_marine' &&
+        isAdminBoundaryLayerEnabled('siraps_marine') &&
+        !manifestBoundaryKeys.has('siraps_marine'),
+    );
+    let lastSirapIndex = -1;
+    for (let index = 0; index < rows.length; index += 1) {
+      const row = rows[index];
+      if (
+        row.mapSync?.type === 'admin-boundary' &&
+        (row.mapSync.boundaryLayerKey === 'siraps' ||
+          row.mapSync.boundaryLayerKey === 'siraps_territorial' ||
+          row.mapSync.boundaryLayerKey === 'siraps_territorial_updated' ||
+          row.mapSync.boundaryLayerKey === 'siraps_thematic' ||
+          row.mapSync.boundaryLayerKey === 'siraps_marine')
+      ) {
+        lastSirapIndex = index;
+      }
+    }
+    const rowsWithLocalMarine =
+      lastSirapIndex >= 0
+        ? [
+            ...rows.slice(0, lastSirapIndex + 1),
+            ...localMarineRows,
+            ...rows.slice(lastSirapIndex + 1),
+          ]
+        : [...localMarineRows, ...rows];
+    const reconciledRows = [
+      ...preservedActiveSirap,
+      ...preservedCountryOutline,
+      ...rowsWithLocalMarine,
+    ];
     return reconciledRows.length === 0
       ? group
       : {

@@ -4,6 +4,7 @@ import type Geometry from '@arcgis/core/geometry/Geometry';
 import Point from '@arcgis/core/geometry/Point';
 import Polygon from '@arcgis/core/geometry/Polygon';
 import {
+  MARINE_SIRAP_BOUNDARY_SOURCE,
   PRODUCTION_SIRAP_BOUNDARY_SOURCE,
   UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE,
   type AOI,
@@ -703,7 +704,85 @@ describe('AdminBoundaryService', () => {
         layerKey: 'siraps_territorial_updated',
         url: expect.stringContaining(UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname),
       }),
+      expect.objectContaining({
+        layerKey: 'siraps_marine',
+        url: expect.stringContaining(MARINE_SIRAP_BOUNDARY_SOURCE.pathname),
+      }),
     ]);
+  });
+
+  it.each([
+    ['territorial_marine_caribe', 'Caribe marino'],
+    ['territorial_marine_pacifico', 'Pacífico marino'],
+  ])('clears fixed marine SIRAP %s when the marine layer is hidden', (sirapId, name) => {
+    const service = TestBed.inject(AdminBoundaryService);
+    selectedAOI.set({
+      id: `sirap:${sirapId}`,
+      name,
+      type: 'sirap',
+      geometryUrl: `/${MARINE_SIRAP_BOUNDARY_SOURCE.pathname}`,
+      boundarySourceLayerKey: MARINE_SIRAP_BOUNDARY_SOURCE.layerKey,
+      boundarySourceId: MARINE_SIRAP_BOUNDARY_SOURCE.sourceId,
+      boundaryGeometrySelection: 'whole-feature',
+    });
+
+    service.setLayerVisibility('siraps_marine', false);
+
+    expect(appState.clearAOI).toHaveBeenCalledOnce();
+    expect(appState.setRightSidebarMode).toHaveBeenCalledWith('overview');
+    expect(selectedAOI()).toBeNull();
+  });
+
+  it('keeps an official land SIRAP selected when the marine layer is hidden', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    selectedAOI.set({
+      id: 'sirap:territorial_territorial_caribe_6',
+      name: 'Territorial Caribe',
+      type: 'sirap',
+      geometryUrl: `/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
+      boundarySourceLayerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+      boundarySourceId: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.sourceId,
+      boundaryGeometrySelection: 'whole-feature',
+    });
+
+    service.setLayerVisibility('siraps_marine', false);
+
+    expect(appState.clearAOI).not.toHaveBeenCalled();
+    expect(appState.setRightSidebarMode).not.toHaveBeenCalled();
+    expect(selectedAOI()?.id).toBe('sirap:territorial_territorial_caribe_6');
+  });
+
+  it('still clears an official land SIRAP when every SIRAP layer is hidden', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    selectedAOI.set({
+      id: 'sirap:territorial_territorial_caribe_6',
+      name: 'Territorial Caribe',
+      type: 'sirap',
+      geometryUrl: `/${UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.pathname}`,
+      boundarySourceLayerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
+      boundarySourceId: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.sourceId,
+      boundaryGeometrySelection: 'whole-feature',
+    });
+
+    service.setLayerVisibility('sirap', false);
+
+    expect(appState.clearAOI).toHaveBeenCalledOnce();
+    expect(selectedAOI()).toBeNull();
+  });
+
+  it('keeps a custom AOI selected when the marine layer is hidden', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    selectedAOI.set({
+      id: 'custom:drawn-polygon',
+      name: 'Custom drawn AOI',
+      type: 'custom',
+      geometryUrl: 'custom-polygon://drawn-aoi',
+    });
+
+    service.setLayerVisibility('siraps_marine', false);
+
+    expect(appState.clearAOI).not.toHaveBeenCalled();
+    expect(selectedAOI()?.id).toBe('custom:drawn-polygon');
   });
 
   it('clears a selected department when the departments layer is hidden', () => {

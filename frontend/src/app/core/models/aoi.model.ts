@@ -17,6 +17,16 @@ export const UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE = {
   featureCount: 6,
 } as const;
 
+export const MARINE_SIRAP_BOUNDARY_SOURCE = {
+  layerKey: 'siraps_marine',
+  sourceId: 'aoi-siraps-marine-colombia',
+  localPathname: 'data/boundaries/siraps_marine_caribe_pacifico_v1.geojson',
+  pathname:
+    'inputs/boundaries/sirap/v1/sha256-183dce77b1695649926c91d2fd1f6ed4b973cc336c3816035b4c91dccd9e6149/siraps_marine_caribe_pacifico_v1.geojson',
+  sha256: '183dce77b1695649926c91d2fd1f6ed4b973cc336c3816035b4c91dccd9e6149',
+  featureCount: 2,
+} as const;
+
 export const METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES = [
   {
     layerKey: UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE.layerKey,
@@ -25,6 +35,10 @@ export const METRIC_COMPATIBLE_SIRAP_BOUNDARY_SOURCES = [
   {
     layerKey: 'siraps_thematic',
     sourceId: 'aoi-siraps-thematic-colombia',
+  },
+  {
+    layerKey: MARINE_SIRAP_BOUNDARY_SOURCE.layerKey,
+    sourceId: MARINE_SIRAP_BOUNDARY_SOURCE.sourceId,
   },
 ] as const;
 

@@ -24,7 +24,7 @@ export const environment = {
   googleClientId: '',
   manifestBlobUrl: '/data/layer-manifest/manifest.json',
   catalogReleaseIndexBlobUrl:
-    'https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.1.0/catalog-release-index.json',
+    'https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.2.0/catalog-release-index.json',
   sirapManifestBlobUrl: '',
   blobAssetProxyPath: '',
   solutionCapabilityOverrides: {

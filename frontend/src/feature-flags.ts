@@ -18,6 +18,7 @@ const FLAGS = {
       territorial: false,
       territorialUpdated: true,
       thematic: true,
+      marine: true,
     },
   },
 
@@ -28,6 +29,7 @@ const FLAGS = {
       territorial: false,
       territorialUpdated: true,
       thematic: true,
+      marine: true,
     },
   },
 };

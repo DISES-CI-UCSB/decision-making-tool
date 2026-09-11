@@ -574,7 +574,10 @@ export class MapLayersPanelComponent implements OnDestroy {
 
     effect(() => {
       const domain = this.activeSolutionDomain();
-      untracked(() => this.layerCatalogScope.set(domain ?? 'land'));
+      untracked(() => {
+        this.layerCatalogScope.set(domain ?? 'land');
+        this.adminBoundaryService.setLayerVisibility('siraps_marine', domain === 'marine');
+      });
     });
 
     effect(() => {
@@ -1121,6 +1124,10 @@ export class MapLayersPanelComponent implements OnDestroy {
         key: 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
         fallback: 'Thematic SIRAPs',
       },
+      siraps_marine: {
+        key: 'mapLayersPanel.boundaryNames.marineSiraps',
+        fallback: 'Marine SIRAPs',
+      },
     };
     const sirapBoundaryName = sirapBoundaryNameKeys[manifestRow.id];
     if (sirapBoundaryName) {
@@ -1332,7 +1339,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       key === 'siraps' ||
       key === 'siraps_territorial' ||
       key === 'siraps_territorial_updated' ||
-      key === 'siraps_thematic'
+      key === 'siraps_thematic' ||
+      key === 'siraps_marine'
     );
   }
 
@@ -4192,6 +4200,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       siraps_territorial: 'mapLayersPanel.boundaryNames.territorialSiraps',
       siraps_territorial_updated: 'mapLayersPanel.boundaryNames.territorialSirapsUpdated',
       siraps_thematic: 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
+      siraps_marine: 'mapLayersPanel.boundaryNames.marineSiraps',
     } as const;
     const sirapRows = enabledSirapBoundaryLayerKeys().map((layerKey) =>
       this.boundaryRow(
@@ -4408,7 +4417,8 @@ export class MapLayersPanelComponent implements OnDestroy {
           : boundaryLayerKey === 'siraps' ||
               boundaryLayerKey === 'siraps_territorial' ||
               boundaryLayerKey === 'siraps_territorial_updated' ||
-              boundaryLayerKey === 'siraps_thematic'
+              boundaryLayerKey === 'siraps_thematic' ||
+              boundaryLayerKey === 'siraps_marine'
             ? 1.25
             : 1,
       canReorder: false,
@@ -4612,6 +4622,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       'boundary-siraps_territorial_updated':
         'mapLayersPanel.boundaryNames.territorialSirapsUpdated',
       'boundary-siraps_thematic': 'mapLayersPanel.boundaryNames.thematicSirapAdditions',
+      'boundary-siraps_marine': 'mapLayersPanel.boundaryNames.marineSiraps',
       'boundary-admin_country_outline': 'mapLayersPanel.boundaryNames.colombiaOutline',
       'boundary-admin_departments': 'mapLayersPanel.boundaryNames.departments',
       'boundary-admin_municipalities': 'mapLayersPanel.boundaryNames.municipalities',
@@ -4621,6 +4632,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       'boundary-siraps_territorial': 'Territorial SIRAPs (outdated)',
       'boundary-siraps_territorial_updated': 'Territorial SIRAPs',
       'boundary-siraps_thematic': 'Thematic SIRAPs',
+      'boundary-siraps_marine': 'Marine SIRAPs',
       'boundary-admin_country_outline': 'Colombia Outline',
       'boundary-admin_departments': 'Departments',
       'boundary-admin_municipalities': 'Municipalities',

@@ -362,18 +362,9 @@ describe('PanelSwitcherComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector(
-      '#aoi-biodiversity-open-species-inventory-button',
-    ) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-    expect(button.getAttribute('aria-describedby')).toBe(
-      'aoi-biodiversity-species-inventory-unavailable-help',
-    );
-    expect(
-      fixture.nativeElement.querySelector('#aoi-biodiversity-species-inventory-unavailable-help')
-        ?.textContent,
-    ).toContain('inventoryUnavailableMarine');
-    button.click();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-section-bio')).toBeNull();
+    expect(compiled.querySelector('#aoi-biodiversity-open-species-inventory-button')).toBeNull();
     expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
   });
 
@@ -463,6 +454,78 @@ describe('PanelSwitcherComponent', () => {
     ).toContain('293.4K km² (25.7%)');
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-17-national-contribution'),
+    ).toBeNull();
+  });
+
+  it('surfaces marine coverage cards first and hides land-only overview cards', async () => {
+    const solution = buildTestSolution();
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'marine',
+    } as CatalogSolution);
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of({
+        solutionId: solution.id,
+        generatedAt: '2026-08-26T00:00:00.000Z',
+        geographies: {
+          national: {
+            colombia: {
+              name: 'Colombia',
+              metrics: [
+                buildMetric('coral_reef_coverage', 5, 'km²', 'number'),
+                buildMetric('marine_mangrove_coverage', 2, 'km²', 'number'),
+                buildMetric('seagrass_coverage', 1.5, 'km²', 'number'),
+                buildMetric('priority_area_in_region', 20, 'km²', 'number'),
+                buildMetric('species_groups_protected', 12, 'count', 'number'),
+                buildMetric('carbon_storage_biomass', 40, 'Mg', 'number'),
+                buildMetric('water_regulation_area', 8, 'km²', 'number'),
+                buildMetric('agricultural_area', 3, 'km²', 'number'),
+              ],
+            },
+          },
+        },
+      }),
+    );
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const gainRowIds = [
+      ...compiled.querySelectorAll('#right-sidebar-v3-overview-gains-table .v3-metric-row'),
+    ].map((row) => row.id);
+
+    expect(gainRowIds.slice(0, 3)).toEqual([
+      'right-sidebar-v3-overview-gain-row-metric-61-coral-reef-coverage',
+      'right-sidebar-v3-overview-gain-row-metric-62-marine-mangrove-coverage',
+      'right-sidebar-v3-overview-gain-row-metric-63-seagrass-coverage',
+    ]);
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-gain-value-metric-61-coral-reef-coverage')
+        ?.textContent,
+    ).toContain('5 km²');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
+      ),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-ecosystem-services-section'),
+    ).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-costs-section')).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-species'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-strategic-ecosystems'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-strategic-ecosystems',
+      ),
     ).toBeNull();
   });
 
@@ -884,7 +947,46 @@ describe('PanelSwitcherComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.querySelector('#aoi-biodiversity-species-inventory')).toBeNull();
-    expect(compiled.querySelector('#aoi-section-marine')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-section-bio')).toBeNull();
+    expect(compiled.querySelector('#aoi-section-ecosystems')).toBeNull();
+    expect(compiled.querySelector('#aoi-section-strategic')).toBeNull();
+    expect(compiled.querySelector('#aoi-section-carbon')).toBeNull();
+    expect(compiled.querySelector('#aoi-section-cultural')).toBeNull();
+    expect(compiled.querySelector('#aoi-protect-stats')).toBeNull();
+    expect(compiled.querySelector('#aoi-section-general')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-section-land')).not.toBeNull();
+    const marineSection = compiled.querySelector('#aoi-section-marine');
+    const generalSection = compiled.querySelector('#aoi-section-general');
+    const landSection = compiled.querySelector('#aoi-section-land');
+    expect(marineSection).not.toBeNull();
+    expect(
+      generalSection &&
+        marineSection &&
+        Boolean(
+          generalSection.compareDocumentPosition(marineSection) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+    ).toBe(true);
+    expect(
+      marineSection &&
+        landSection &&
+        Boolean(
+          marineSection.compareDocumentPosition(landSection) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+    ).toBe(true);
+    expect(compiled.querySelector('#aoi-head-marine')?.getAttribute('aria-expanded')).toBe('true');
+    expect(compiled.querySelector('#aoi-body-marine')?.classList.contains('is-collapsed')).toBe(
+      false,
+    );
+    const marineRowIds = [...compiled.querySelectorAll('#aoi-marine-metrics .aoi-metric-row')].map(
+      (row) => row.id,
+    );
+    expect(marineRowIds).toEqual([
+      'aoi-row-coral',
+      'aoi-row-mangrove',
+      'aoi-row-seagrass',
+      'aoi-row-mpa',
+      'aoi-row-eez',
+    ]);
     expect(compiled.querySelector('#aoi-row-coral-value')?.textContent).toContain('5 km²');
     expect(compiled.querySelector('#aoi-row-coral-unit')?.textContent).toContain('25%');
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).toContain('0 km²');
@@ -933,7 +1035,15 @@ describe('PanelSwitcherComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect((fixture.nativeElement as HTMLElement).querySelector('#aoi-section-marine')).toBeNull();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-section-marine')).toBeNull();
+    expect(compiled.querySelector('#aoi-section-bio')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-section-ecosystems')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-section-strategic')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-section-carbon')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-section-cultural')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-protect-stats')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-head-bio')?.getAttribute('aria-expanded')).toBe('true');
   });
 
   it('keeps custom marine AOI coverage unavailable without dummy or API values', async () => {
@@ -957,12 +1067,16 @@ describe('PanelSwitcherComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.querySelector('#aoi-section-marine')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-section-bio')).toBeNull();
     expect(compiled.querySelector('#aoi-row-coral-value')?.textContent.trim()).toBe('--');
     expect(compiled.querySelector('#aoi-row-coral-unit')?.textContent.trim()).toBe('--');
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent.trim()).toBe('--');
     expect(compiled.querySelector('#aoi-row-mangrove-unit')?.textContent.trim()).toBe('--');
     expect(compiled.querySelector('#aoi-row-seagrass-value')?.textContent.trim()).toBe('--');
     expect(compiled.querySelector('#aoi-row-seagrass-unit')?.textContent.trim()).toBe('--');
+    expect(compiled.querySelector('#aoi-row-coral-value')?.textContent).not.toContain('18');
+    expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('12');
+    expect(compiled.querySelector('#aoi-row-seagrass-value')?.textContent).not.toContain('9');
   });
 
   it('renders separate ecosystems, strategic ecosystems, and ecosystem services sections', async () => {
@@ -2904,9 +3018,11 @@ describe('PanelSwitcherComponent', () => {
 
     expect(mecMetricsLoaderSpy.loadMecMetrics).not.toHaveBeenCalled();
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title')
-        ?.textContent,
-    ).toContain('analysis.aoi.mec.states.marineTitle');
+      (fixture.nativeElement as HTMLElement).querySelector('#aoi-section-ecosystems'),
+    ).toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('#aoi-mec-unavailable-title'),
+    ).toBeNull();
   });
 
   it('renders accessible loading and load-error states', () => {

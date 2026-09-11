@@ -1426,421 +1426,429 @@
                   </div>
                 </section>
 
-                <section
-                  id="right-sidebar-v3-overview-ecosystem-services-section"
-                  class="v3-section"
-                >
-                  <button
-                    id="right-sidebar-v3-overview-ecosystem-services-head"
-                    type="button"
-                    class="v3-section-head"
-                    [attr.aria-expanded]="isOverviewSectionExpanded('ecosystemServices')"
-                    (click)="toggleOverviewSection('ecosystemServices')"
+                @if (overviewEcosystemServicesMetrics().length > 0) {
+                  <section
+                    id="right-sidebar-v3-overview-ecosystem-services-section"
+                    class="v3-section"
                   >
-                    <span
-                      id="right-sidebar-v3-overview-ecosystem-services-dot"
-                      class="v3-section-dot"
-                    ></span>
-                    <span
-                      id="right-sidebar-v3-overview-ecosystem-services-label"
-                      class="v3-section-label rs-header-optical-nudge"
-                      >{{ 'analysis.overview.sections.ecosystemServices' | translate }}</span
+                    <button
+                      id="right-sidebar-v3-overview-ecosystem-services-head"
+                      type="button"
+                      class="v3-section-head"
+                      [attr.aria-expanded]="isOverviewSectionExpanded('ecosystemServices')"
+                      (click)="toggleOverviewSection('ecosystemServices')"
                     >
-                    <span
-                      id="right-sidebar-v3-overview-ecosystem-services-chevron"
-                      class="v3-section-chevron"
-                      [class.v3-section-chevron-collapsed]="
-                        !isOverviewSectionExpanded('ecosystemServices')
-                      "
-                      aria-hidden="true"
-                    >
-                      <svg
-                        class="v3-section-chevron-icon"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
+                      <span
+                        id="right-sidebar-v3-overview-ecosystem-services-dot"
+                        class="v3-section-dot"
+                      ></span>
+                      <span
+                        id="right-sidebar-v3-overview-ecosystem-services-label"
+                        class="v3-section-label rs-header-optical-nudge"
+                        >{{ 'analysis.overview.sections.ecosystemServices' | translate }}</span
+                      >
+                      <span
+                        id="right-sidebar-v3-overview-ecosystem-services-chevron"
+                        class="v3-section-chevron"
+                        [class.v3-section-chevron-collapsed]="
+                          !isOverviewSectionExpanded('ecosystemServices')
+                        "
                         aria-hidden="true"
                       >
-                        <path d="M3 4.5L6 7.5L9 4.5" />
-                      </svg>
-                    </span>
-                  </button>
-                  <div
-                    id="right-sidebar-v3-overview-ecosystem-services-content"
-                    class="collapse-motion-shell"
-                    [class.is-collapsed]="!isOverviewSectionExpanded('ecosystemServices')"
-                    [attr.aria-hidden]="!isOverviewSectionExpanded('ecosystemServices')"
-                  >
+                        <svg
+                          class="v3-section-chevron-icon"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M3 4.5L6 7.5L9 4.5" />
+                        </svg>
+                      </span>
+                    </button>
                     <div
-                      id="right-sidebar-v3-overview-ecosystem-services-content-inner"
-                      class="collapse-motion-inner"
+                      id="right-sidebar-v3-overview-ecosystem-services-content"
+                      class="collapse-motion-shell"
+                      [class.is-collapsed]="!isOverviewSectionExpanded('ecosystemServices')"
+                      [attr.aria-hidden]="!isOverviewSectionExpanded('ecosystemServices')"
                     >
                       <div
-                        id="right-sidebar-v3-overview-ecosystem-services-table"
-                        class="v3-metric-table"
+                        id="right-sidebar-v3-overview-ecosystem-services-content-inner"
+                        class="collapse-motion-inner"
                       >
-                        @for (entry of overviewEcosystemServicesMetrics(); track entry.id) {
-                          <article
-                            [id]="'right-sidebar-v3-overview-ecosystem-services-row-' + entry.id"
-                            class="v3-metric-row"
-                            [class.v3-metric-row-unavailable]="entry.unavailable"
-                            [class.flex-wrap]="!!entry.partialNote"
-                          >
-                            <div
-                              [id]="
-                                'right-sidebar-v3-overview-ecosystem-services-icon-shell-' +
-                                entry.id
-                              "
-                              class="v3-m-icon"
+                        <div
+                          id="right-sidebar-v3-overview-ecosystem-services-table"
+                          class="v3-metric-table"
+                        >
+                          @for (entry of overviewEcosystemServicesMetrics(); track entry.id) {
+                            <article
+                              [id]="'right-sidebar-v3-overview-ecosystem-services-row-' + entry.id"
+                              class="v3-metric-row"
+                              [class.v3-metric-row-unavailable]="entry.unavailable"
+                              [class.flex-wrap]="!!entry.partialNote"
                             >
-                              <i
+                              <div
                                 [id]="
-                                  'right-sidebar-v3-overview-ecosystem-services-icon-' + entry.id
-                                "
-                                [class]="entry.iconClass"
-                                aria-hidden="true"
-                              ></i>
-                            </div>
-                            <div
-                              [id]="'right-sidebar-v3-overview-ecosystem-services-body-' + entry.id"
-                              class="v3-m-body"
-                            >
-                              <p
-                                [id]="
-                                  'right-sidebar-v3-overview-ecosystem-services-name-' + entry.id
-                                "
-                                class="v3-m-name"
-                              >
-                                {{ entry.labelKey | translate }}
-                                @if (entry.methodologyKey) {
-                                  <span
-                                    [id]="
-                                      'right-sidebar-v3-overview-ecosystem-services-methodology-help-' +
-                                      entry.id
-                                    "
-                                    class="v3-methodology-help"
-                                  >
-                                    <button
-                                      [id]="
-                                        'right-sidebar-v3-overview-ecosystem-services-methodology-trigger-' +
-                                        entry.id
-                                      "
-                                      type="button"
-                                      class="v3-methodology-trigger"
-                                      [attr.aria-label]="
-                                        'analysis.overview.methodologyInfoLabel' | translate
-                                      "
-                                      [attr.aria-describedby]="
-                                        'right-sidebar-v3-overview-ecosystem-services-methodology-tooltip-' +
-                                        entry.id
-                                      "
-                                    >
-                                      <app-info-icon
-                                        [rootId]="
-                                          'right-sidebar-v3-overview-ecosystem-services-methodology-indicator-' +
-                                          entry.id
-                                        "
-                                        colorClass="text-slate-400"
-                                      />
-                                    </button>
-                                    <span
-                                      [id]="
-                                        'right-sidebar-v3-overview-ecosystem-services-methodology-tooltip-' +
-                                        entry.id
-                                      "
-                                      role="tooltip"
-                                      class="v3-methodology-tooltip"
-                                    >
-                                      <span
-                                        [id]="
-                                          'right-sidebar-v3-overview-ecosystem-services-methodology-text-' +
-                                          entry.id
-                                        "
-                                        class="v3-methodology-tooltip-text"
-                                      >
-                                        {{ entry.methodologyKey | translate }}
-                                      </span>
-                                      @if (entry.sourceLabelKey && entry.sourceUrlKey) {
-                                        <a
-                                          [id]="
-                                            'right-sidebar-v3-overview-ecosystem-services-methodology-source-' +
-                                            entry.id
-                                          "
-                                          class="v3-methodology-source-link"
-                                          [href]="entry.sourceUrlKey | translate"
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                        >
-                                          {{ entry.sourceLabelKey | translate }}
-                                        </a>
-                                      }
-                                    </span>
-                                  </span>
-                                }
-                                @if (entry.unavailable) {
-                                  <span
-                                    [id]="
-                                      'right-sidebar-v3-overview-ecosystem-services-unavailable-help-' +
-                                      entry.id
-                                    "
-                                    class="v3-unavailable-help"
-                                  >
-                                    <button
-                                      [id]="
-                                        'right-sidebar-v3-overview-ecosystem-services-unavailable-trigger-' +
-                                        entry.id
-                                      "
-                                      type="button"
-                                      class="v3-unavailable-trigger"
-                                      [attr.aria-label]="
-                                        'analysis.overview.unavailableInfoLabel' | translate
-                                      "
-                                      [attr.aria-describedby]="
-                                        'right-sidebar-v3-overview-ecosystem-services-unavailable-tooltip-' +
-                                        entry.id
-                                      "
-                                    >
-                                      <app-info-icon
-                                        [rootId]="
-                                          'right-sidebar-v3-overview-ecosystem-services-unavailable-indicator-' +
-                                          entry.id
-                                        "
-                                        colorClass="text-slate-400"
-                                      />
-                                    </button>
-                                    <span
-                                      [id]="
-                                        'right-sidebar-v3-overview-ecosystem-services-unavailable-tooltip-' +
-                                        entry.id
-                                      "
-                                      role="tooltip"
-                                      class="v3-unavailable-tooltip"
-                                    >
-                                      {{ 'analysis.overview.unavailableTooltip' | translate }}
-                                    </span>
-                                  </span>
-                                }
-                              </p>
-                              <p
-                                [id]="
-                                  'right-sidebar-v3-overview-ecosystem-services-desc-' + entry.id
-                                "
-                                class="v3-m-desc"
-                              >
-                                {{ entry.descriptionKey | translate }}
-                              </p>
-                            </div>
-                            <div
-                              [id]="
-                                'right-sidebar-v3-overview-ecosystem-services-value-shell-' +
-                                entry.id
-                              "
-                            >
-                              <p
-                                [id]="
-                                  'right-sidebar-v3-overview-ecosystem-services-value-' + entry.id
-                                "
-                                class="v3-m-val"
-                                [attr.data-full-value]="
-                                  entry.fullValue && entry.fullValue !== entry.value
-                                    ? entry.fullValue
-                                    : null
-                                "
-                                [attr.tabindex]="
-                                  entry.fullValue && entry.fullValue !== entry.value ? 0 : null
-                                "
-                              >
-                                {{ entry.value }}
-                              </p>
-                              @if (entry.unit) {
-                                <p
-                                  [id]="
-                                    'right-sidebar-v3-overview-ecosystem-services-unit-' + entry.id
-                                  "
-                                  class="v3-m-unit"
-                                >
-                                  {{ entry.unit }}
-                                </p>
-                              }
-                            </div>
-                            @if (entry.partialNote) {
-                              <p
-                                [id]="
-                                  'right-sidebar-v3-overview-ecosystem-services-partial-note-' +
+                                  'right-sidebar-v3-overview-ecosystem-services-icon-shell-' +
                                   entry.id
                                 "
-                                class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
+                                class="v3-m-icon"
                               >
-                                {{ entry.partialNote }}
-                              </p>
-                            }
-                          </article>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <section id="right-sidebar-v3-overview-costs-section" class="v3-section">
-                  <button
-                    id="right-sidebar-v3-overview-costs-head"
-                    type="button"
-                    class="v3-section-head"
-                    [attr.aria-expanded]="isOverviewSectionExpanded('costs')"
-                    (click)="toggleOverviewSection('costs')"
-                  >
-                    <span id="right-sidebar-v3-overview-costs-dot" class="v3-section-dot"></span>
-                    <span
-                      id="right-sidebar-v3-overview-costs-label"
-                      class="v3-section-label rs-header-optical-nudge"
-                      >{{ 'analysis.overview.sections.costsAndTradeoffs' | translate }}</span
-                    >
-                    <span
-                      id="right-sidebar-v3-overview-costs-chevron"
-                      class="v3-section-chevron"
-                      [class.v3-section-chevron-collapsed]="!isOverviewSectionExpanded('costs')"
-                      aria-hidden="true"
-                    >
-                      <svg
-                        class="v3-section-chevron-icon"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M3 4.5L6 7.5L9 4.5" />
-                      </svg>
-                    </span>
-                  </button>
-                  <div
-                    id="right-sidebar-v3-overview-costs-content"
-                    class="collapse-motion-shell"
-                    [class.is-collapsed]="!isOverviewSectionExpanded('costs')"
-                    [attr.aria-hidden]="!isOverviewSectionExpanded('costs')"
-                  >
-                    <div
-                      id="right-sidebar-v3-overview-costs-content-inner"
-                      class="collapse-motion-inner"
-                    >
-                      <div id="right-sidebar-v3-overview-costs-table" class="v3-metric-table">
-                        @for (entry of overviewCostMetrics(); track entry.id) {
-                          <article
-                            [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
-                            class="v3-metric-row"
-                            [class.v3-metric-row-unavailable]="entry.unavailable"
-                            [class.flex-wrap]="!!entry.partialNote"
-                          >
-                            <div
-                              [id]="'right-sidebar-v3-overview-cost-icon-shell-' + entry.id"
-                              class="v3-m-icon"
-                            >
-                              <i
-                                [id]="'right-sidebar-v3-overview-cost-icon-' + entry.id"
-                                [class]="entry.iconClass"
-                                aria-hidden="true"
-                              ></i>
-                            </div>
-                            <div
-                              [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
-                              class="v3-m-body"
-                            >
-                              <p
-                                [id]="'right-sidebar-v3-overview-cost-name-' + entry.id"
-                                class="v3-m-name"
+                                <i
+                                  [id]="
+                                    'right-sidebar-v3-overview-ecosystem-services-icon-' + entry.id
+                                  "
+                                  [class]="entry.iconClass"
+                                  aria-hidden="true"
+                                ></i>
+                              </div>
+                              <div
+                                [id]="
+                                  'right-sidebar-v3-overview-ecosystem-services-body-' + entry.id
+                                "
+                                class="v3-m-body"
                               >
-                                {{ entry.labelKey | translate }}
-                                @if (entry.unavailable) {
-                                  <span
-                                    [id]="
-                                      'right-sidebar-v3-overview-cost-unavailable-help-' + entry.id
-                                    "
-                                    class="v3-unavailable-help"
-                                  >
-                                    <button
-                                      [id]="
-                                        'right-sidebar-v3-overview-cost-unavailable-trigger-' +
-                                        entry.id
-                                      "
-                                      type="button"
-                                      class="v3-unavailable-trigger"
-                                      [attr.aria-label]="
-                                        'analysis.overview.unavailableInfoLabel' | translate
-                                      "
-                                      [attr.aria-describedby]="
-                                        'right-sidebar-v3-overview-cost-unavailable-tooltip-' +
-                                        entry.id
-                                      "
-                                    >
-                                      <app-info-icon
-                                        [rootId]="
-                                          'right-sidebar-v3-overview-cost-unavailable-indicator-' +
-                                          entry.id
-                                        "
-                                        colorClass="text-slate-400"
-                                      />
-                                    </button>
+                                <p
+                                  [id]="
+                                    'right-sidebar-v3-overview-ecosystem-services-name-' + entry.id
+                                  "
+                                  class="v3-m-name"
+                                >
+                                  {{ entry.labelKey | translate }}
+                                  @if (entry.methodologyKey) {
                                     <span
                                       [id]="
-                                        'right-sidebar-v3-overview-cost-unavailable-tooltip-' +
+                                        'right-sidebar-v3-overview-ecosystem-services-methodology-help-' +
                                         entry.id
                                       "
-                                      role="tooltip"
-                                      class="v3-unavailable-tooltip"
+                                      class="v3-methodology-help"
                                     >
-                                      {{ 'analysis.overview.unavailableTooltip' | translate }}
+                                      <button
+                                        [id]="
+                                          'right-sidebar-v3-overview-ecosystem-services-methodology-trigger-' +
+                                          entry.id
+                                        "
+                                        type="button"
+                                        class="v3-methodology-trigger"
+                                        [attr.aria-label]="
+                                          'analysis.overview.methodologyInfoLabel' | translate
+                                        "
+                                        [attr.aria-describedby]="
+                                          'right-sidebar-v3-overview-ecosystem-services-methodology-tooltip-' +
+                                          entry.id
+                                        "
+                                      >
+                                        <app-info-icon
+                                          [rootId]="
+                                            'right-sidebar-v3-overview-ecosystem-services-methodology-indicator-' +
+                                            entry.id
+                                          "
+                                          colorClass="text-slate-400"
+                                        />
+                                      </button>
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-ecosystem-services-methodology-tooltip-' +
+                                          entry.id
+                                        "
+                                        role="tooltip"
+                                        class="v3-methodology-tooltip"
+                                      >
+                                        <span
+                                          [id]="
+                                            'right-sidebar-v3-overview-ecosystem-services-methodology-text-' +
+                                            entry.id
+                                          "
+                                          class="v3-methodology-tooltip-text"
+                                        >
+                                          {{ entry.methodologyKey | translate }}
+                                        </span>
+                                        @if (entry.sourceLabelKey && entry.sourceUrlKey) {
+                                          <a
+                                            [id]="
+                                              'right-sidebar-v3-overview-ecosystem-services-methodology-source-' +
+                                              entry.id
+                                            "
+                                            class="v3-methodology-source-link"
+                                            [href]="entry.sourceUrlKey | translate"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                          >
+                                            {{ entry.sourceLabelKey | translate }}
+                                          </a>
+                                        }
+                                      </span>
                                     </span>
-                                  </span>
-                                }
-                              </p>
-                              <p
-                                [id]="'right-sidebar-v3-overview-cost-desc-' + entry.id"
-                                class="v3-m-desc"
-                              >
-                                {{ entry.descriptionKey | translate }}
-                              </p>
-                            </div>
-                            <div [id]="'right-sidebar-v3-overview-cost-value-shell-' + entry.id">
-                              <p
-                                [id]="'right-sidebar-v3-overview-cost-value-' + entry.id"
-                                class="v3-m-val"
-                                [attr.data-full-value]="
-                                  entry.fullValue && entry.fullValue !== entry.value
-                                    ? entry.fullValue
-                                    : null
-                                "
-                                [attr.tabindex]="
-                                  entry.fullValue && entry.fullValue !== entry.value ? 0 : null
-                                "
-                              >
-                                {{ entry.value }}
-                              </p>
-                              @if (entry.unit) {
+                                  }
+                                  @if (entry.unavailable) {
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-ecosystem-services-unavailable-help-' +
+                                        entry.id
+                                      "
+                                      class="v3-unavailable-help"
+                                    >
+                                      <button
+                                        [id]="
+                                          'right-sidebar-v3-overview-ecosystem-services-unavailable-trigger-' +
+                                          entry.id
+                                        "
+                                        type="button"
+                                        class="v3-unavailable-trigger"
+                                        [attr.aria-label]="
+                                          'analysis.overview.unavailableInfoLabel' | translate
+                                        "
+                                        [attr.aria-describedby]="
+                                          'right-sidebar-v3-overview-ecosystem-services-unavailable-tooltip-' +
+                                          entry.id
+                                        "
+                                      >
+                                        <app-info-icon
+                                          [rootId]="
+                                            'right-sidebar-v3-overview-ecosystem-services-unavailable-indicator-' +
+                                            entry.id
+                                          "
+                                          colorClass="text-slate-400"
+                                        />
+                                      </button>
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-ecosystem-services-unavailable-tooltip-' +
+                                          entry.id
+                                        "
+                                        role="tooltip"
+                                        class="v3-unavailable-tooltip"
+                                      >
+                                        {{ 'analysis.overview.unavailableTooltip' | translate }}
+                                      </span>
+                                    </span>
+                                  }
+                                </p>
                                 <p
-                                  [id]="'right-sidebar-v3-overview-cost-unit-' + entry.id"
-                                  class="v3-m-unit"
+                                  [id]="
+                                    'right-sidebar-v3-overview-ecosystem-services-desc-' + entry.id
+                                  "
+                                  class="v3-m-desc"
                                 >
-                                  {{ entry.unit }}
+                                  {{ entry.descriptionKey | translate }}
+                                </p>
+                              </div>
+                              <div
+                                [id]="
+                                  'right-sidebar-v3-overview-ecosystem-services-value-shell-' +
+                                  entry.id
+                                "
+                              >
+                                <p
+                                  [id]="
+                                    'right-sidebar-v3-overview-ecosystem-services-value-' + entry.id
+                                  "
+                                  class="v3-m-val"
+                                  [attr.data-full-value]="
+                                    entry.fullValue && entry.fullValue !== entry.value
+                                      ? entry.fullValue
+                                      : null
+                                  "
+                                  [attr.tabindex]="
+                                    entry.fullValue && entry.fullValue !== entry.value ? 0 : null
+                                  "
+                                >
+                                  {{ entry.value }}
+                                </p>
+                                @if (entry.unit) {
+                                  <p
+                                    [id]="
+                                      'right-sidebar-v3-overview-ecosystem-services-unit-' +
+                                      entry.id
+                                    "
+                                    class="v3-m-unit"
+                                  >
+                                    {{ entry.unit }}
+                                  </p>
+                                }
+                              </div>
+                              @if (entry.partialNote) {
+                                <p
+                                  [id]="
+                                    'right-sidebar-v3-overview-ecosystem-services-partial-note-' +
+                                    entry.id
+                                  "
+                                  class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
+                                >
+                                  {{ entry.partialNote }}
                                 </p>
                               }
-                            </div>
-                            @if (entry.partialNote) {
-                              <p
-                                [id]="'right-sidebar-v3-overview-cost-partial-note-' + entry.id"
-                                class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
-                              >
-                                {{ entry.partialNote }}
-                              </p>
-                            }
-                          </article>
-                        }
+                            </article>
+                          }
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                }
+
+                @if (overviewCostMetrics().length > 0) {
+                  <section id="right-sidebar-v3-overview-costs-section" class="v3-section">
+                    <button
+                      id="right-sidebar-v3-overview-costs-head"
+                      type="button"
+                      class="v3-section-head"
+                      [attr.aria-expanded]="isOverviewSectionExpanded('costs')"
+                      (click)="toggleOverviewSection('costs')"
+                    >
+                      <span id="right-sidebar-v3-overview-costs-dot" class="v3-section-dot"></span>
+                      <span
+                        id="right-sidebar-v3-overview-costs-label"
+                        class="v3-section-label rs-header-optical-nudge"
+                        >{{ 'analysis.overview.sections.costsAndTradeoffs' | translate }}</span
+                      >
+                      <span
+                        id="right-sidebar-v3-overview-costs-chevron"
+                        class="v3-section-chevron"
+                        [class.v3-section-chevron-collapsed]="!isOverviewSectionExpanded('costs')"
+                        aria-hidden="true"
+                      >
+                        <svg
+                          class="v3-section-chevron-icon"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M3 4.5L6 7.5L9 4.5" />
+                        </svg>
+                      </span>
+                    </button>
+                    <div
+                      id="right-sidebar-v3-overview-costs-content"
+                      class="collapse-motion-shell"
+                      [class.is-collapsed]="!isOverviewSectionExpanded('costs')"
+                      [attr.aria-hidden]="!isOverviewSectionExpanded('costs')"
+                    >
+                      <div
+                        id="right-sidebar-v3-overview-costs-content-inner"
+                        class="collapse-motion-inner"
+                      >
+                        <div id="right-sidebar-v3-overview-costs-table" class="v3-metric-table">
+                          @for (entry of overviewCostMetrics(); track entry.id) {
+                            <article
+                              [id]="'right-sidebar-v3-overview-cost-row-' + entry.id"
+                              class="v3-metric-row"
+                              [class.v3-metric-row-unavailable]="entry.unavailable"
+                              [class.flex-wrap]="!!entry.partialNote"
+                            >
+                              <div
+                                [id]="'right-sidebar-v3-overview-cost-icon-shell-' + entry.id"
+                                class="v3-m-icon"
+                              >
+                                <i
+                                  [id]="'right-sidebar-v3-overview-cost-icon-' + entry.id"
+                                  [class]="entry.iconClass"
+                                  aria-hidden="true"
+                                ></i>
+                              </div>
+                              <div
+                                [id]="'right-sidebar-v3-overview-cost-body-' + entry.id"
+                                class="v3-m-body"
+                              >
+                                <p
+                                  [id]="'right-sidebar-v3-overview-cost-name-' + entry.id"
+                                  class="v3-m-name"
+                                >
+                                  {{ entry.labelKey | translate }}
+                                  @if (entry.unavailable) {
+                                    <span
+                                      [id]="
+                                        'right-sidebar-v3-overview-cost-unavailable-help-' +
+                                        entry.id
+                                      "
+                                      class="v3-unavailable-help"
+                                    >
+                                      <button
+                                        [id]="
+                                          'right-sidebar-v3-overview-cost-unavailable-trigger-' +
+                                          entry.id
+                                        "
+                                        type="button"
+                                        class="v3-unavailable-trigger"
+                                        [attr.aria-label]="
+                                          'analysis.overview.unavailableInfoLabel' | translate
+                                        "
+                                        [attr.aria-describedby]="
+                                          'right-sidebar-v3-overview-cost-unavailable-tooltip-' +
+                                          entry.id
+                                        "
+                                      >
+                                        <app-info-icon
+                                          [rootId]="
+                                            'right-sidebar-v3-overview-cost-unavailable-indicator-' +
+                                            entry.id
+                                          "
+                                          colorClass="text-slate-400"
+                                        />
+                                      </button>
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-cost-unavailable-tooltip-' +
+                                          entry.id
+                                        "
+                                        role="tooltip"
+                                        class="v3-unavailable-tooltip"
+                                      >
+                                        {{ 'analysis.overview.unavailableTooltip' | translate }}
+                                      </span>
+                                    </span>
+                                  }
+                                </p>
+                                <p
+                                  [id]="'right-sidebar-v3-overview-cost-desc-' + entry.id"
+                                  class="v3-m-desc"
+                                >
+                                  {{ entry.descriptionKey | translate }}
+                                </p>
+                              </div>
+                              <div [id]="'right-sidebar-v3-overview-cost-value-shell-' + entry.id">
+                                <p
+                                  [id]="'right-sidebar-v3-overview-cost-value-' + entry.id"
+                                  class="v3-m-val"
+                                  [attr.data-full-value]="
+                                    entry.fullValue && entry.fullValue !== entry.value
+                                      ? entry.fullValue
+                                      : null
+                                  "
+                                  [attr.tabindex]="
+                                    entry.fullValue && entry.fullValue !== entry.value ? 0 : null
+                                  "
+                                >
+                                  {{ entry.value }}
+                                </p>
+                                @if (entry.unit) {
+                                  <p
+                                    [id]="'right-sidebar-v3-overview-cost-unit-' + entry.id"
+                                    class="v3-m-unit"
+                                  >
+                                    {{ entry.unit }}
+                                  </p>
+                                }
+                              </div>
+                              @if (entry.partialNote) {
+                                <p
+                                  [id]="'right-sidebar-v3-overview-cost-partial-note-' + entry.id"
+                                  class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
+                                >
+                                  {{ entry.partialNote }}
+                                </p>
+                              }
+                            </article>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                }
               }
             </div>
 
@@ -2004,845 +2012,808 @@
                       </div>
                     </div>
 
-                    <div id="aoi-protect-stats" class="aoi-stat-grid">
-                      <div id="aoi-stat-total-protected" class="aoi-stat-card">
-                        <p class="aoi-stat-label">
-                          {{ 'analysis.aoi.stats.totalProtectedArea' | translate }}
-                        </p>
-                        <p
-                          class="aoi-stat-value"
-                          [attr.data-full-value]="getAoiMetricFullValue('protected_area_runap_km2')"
-                          [attr.tabindex]="
-                            getAoiMetricFullValue('protected_area_runap_km2') ? 0 : null
-                          "
-                        >
-                          {{
-                            getAoiMetricValue('protected_area_runap_km2', formatAreaFallback(72))
-                          }}
-                        </p>
-                        <p class="aoi-stat-unit">
-                          {{
-                            fillDummyAoiMetrics()
-                              ? ('analysis.aoi.stats.protectedAreaUnit' | translate)
-                              : '--'
-                          }}
-                        </p>
-                      </div>
-                      <div id="aoi-stat-parks-overlap" class="aoi-stat-card">
-                        <p class="aoi-stat-label">
-                          {{ 'analysis.aoi.stats.parksOverlap' | translate }}
-                        </p>
-                        <p
-                          class="aoi-stat-value"
-                          [attr.data-full-value]="getAoiMetricFullValue('national_parks_pct')"
-                          [attr.tabindex]="getAoiMetricFullValue('national_parks_pct') ? 0 : null"
-                        >
-                          {{ getAoiMetricValue('national_parks_pct', '18%') }}
-                        </p>
-                        <p class="aoi-stat-unit">
-                          {{ 'analysis.aoi.stats.ofAoiPriorityArea' | translate }}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <!-- ─── SECTION B: Biodiversity ─── -->
-              <section id="aoi-section-bio">
-                <button
-                  id="aoi-head-bio"
-                  type="button"
-                  class="aoi-section-head"
-                  [attr.aria-expanded]="isAoiSectionExpanded('bio')"
-                  (click)="toggleAoiSection('bio')"
-                >
-                  <span class="aoi-section-dot"></span>
-                  <span id="aoi-label-bio" class="aoi-section-label rs-header-optical-nudge">{{
-                    'analysis.aoi.sections.biodiversity' | translate
-                  }}</span>
-                  <span
-                    id="aoi-chevron-bio"
-                    class="aoi-section-chevron"
-                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('bio')"
-                    aria-hidden="true"
-                  >
-                    <svg
-                      class="aoi-section-chevron-icon"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M3 4.5L6 7.5L9 4.5" />
-                    </svg>
-                  </span>
-                </button>
-                <div
-                  id="aoi-body-bio"
-                  class="collapse-motion-shell"
-                  [class.is-collapsed]="!isAoiSectionExpanded('bio')"
-                  [attr.aria-hidden]="!isAoiSectionExpanded('bio')"
-                >
-                  <div id="aoi-body-bio-inner" class="collapse-motion-inner aoi-section-body">
-                    <div id="aoi-species-chart" class="flex flex-col gap-1">
-                      @if (isCustomAoiSelected() && isCustomAoiSpeciesMetricsLoading()) {
-                        <div
-                          id="aoi-biodiversity-species-loading-status"
-                          class="mb-1 flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-700"
-                          role="status"
-                          aria-live="polite"
-                        >
-                          <svg
-                            id="aoi-biodiversity-species-loading-spinner"
-                            class="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-slate-500"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                            aria-hidden="true"
-                          >
-                            <circle
-                              id="aoi-biodiversity-species-loading-spinner-ring"
-                              cx="12"
-                              cy="12"
-                              r="9"
-                              stroke="currentColor"
-                              stroke-width="2.5"
-                              class="opacity-25"
-                            />
-                            <path
-                              id="aoi-biodiversity-species-loading-spinner-arc"
-                              d="M12 3a9 9 0 0 1 9 9"
-                              stroke="currentColor"
-                              stroke-width="2.5"
-                              stroke-linecap="round"
-                            />
-                          </svg>
-                          <p id="aoi-biodiversity-species-loading-copy" class="m-0">
-                            {{ getCustomAoiSpeciesLoadingKey() | translate }}
-                          </p>
-                        </div>
-                      } @else if (isCustomAoiSelected() && customAoiSpeciesMetricsLoadFailed()) {
-                        <div
-                          id="aoi-biodiversity-species-failure"
-                          class="mb-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs leading-5 text-red-900"
-                          role="alert"
-                        >
-                          <p id="aoi-biodiversity-species-failure-copy">
-                            {{ 'analysis.aoi.customMetrics.speciesFailed' | translate }}
-                          </p>
-                          <button
-                            id="aoi-biodiversity-species-retry-button"
-                            type="button"
-                            class="mt-1 min-h-11 rounded-md px-2 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                            (click)="retryCustomAoiSpeciesMetrics()"
-                          >
-                            {{ 'analysis.aoi.customProfile.retry' | translate }}
-                          </button>
-                        </div>
-                      }
-                      @if (!isCustomAoiSelected() || hasResolvedCustomAoiBiodiversityBars()) {
-                        <p
-                          id="aoi-species-chart-axis-label"
-                          class="m-0 mb-0.5 ml-19 w-full text-start text-[13px] font-medium leading-[1.2] tracking-[0.01em] text-slate-600"
-                        >
-                          {{ 'analysis.aoi.stats.speciesChartAxisLabel' | translate }}
-                        </p>
-                        @if (isSirapAoiSelected()) {
-                          <p
-                            id="aoi-sirap-biodiversity-context"
-                            class="m-0 mb-1 ml-19 text-start text-[11px] leading-[1.3] text-slate-500"
-                          >
-                            {{ 'analysis.aoi.sirapAggregate.speciesContext' | translate }}
-                          </p>
-                        }
-                        @for (entry of aoiBiodiversityBars(); track entry.id) {
-                          @if (!isCustomAoiSelected() || entry.count !== null) {
-                            <div
-                              [id]="'aoi-species-row-' + entry.id"
-                              class="grid grid-cols-[70px_minmax(0,1fr)_auto] items-center gap-1.5"
-                            >
-                              <span
-                                [id]="'aoi-species-label-' + entry.id"
-                                class="text-[11px] text-slate-800"
-                                >{{ entry.label }}</span
-                              >
-                              <div
-                                [id]="'aoi-species-bar-shell-' + entry.id"
-                                class="flex h-2.5 min-w-0 items-center"
-                              >
-                                <span
-                                  [id]="'aoi-species-fill-' + entry.id"
-                                  class="aoi-species-fill block h-full transition-[width] duration-300 ease-out"
-                                  [style.width.%]="aoiSpeciesBarWidth(entry.count)"
-                                  [style.background-color]="aoiSpeciesBarColor(entry.id)"
-                                  [attr.aria-label]="
-                                    'analysis.aoi.stats.speciesCountBarAriaLabel'
-                                      | translate: { label: entry.label }
-                                  "
-                                ></span>
-                              </div>
-                              <span
-                                [id]="'aoi-species-value-' + entry.id"
-                                class="text-right text-[11px] font-semibold tabular-nums text-slate-700"
-                                >{{ entry.count === null ? '--' : entry.count }}</span
-                              >
-                            </div>
-                          }
-                        }
-                        @if (aoiSpeciesPartialNote(); as speciesPartialNote) {
-                          <p
-                            id="aoi-species-partial-note"
-                            class="m-0 ml-19 w-full text-start text-[11px] leading-[1.3] text-slate-500"
-                          >
-                            {{ speciesPartialNote }}
-                          </p>
-                        }
-                      }
-                    </div>
-
-                    @if (
-                      !isCustomAoiSelected() || hasDisplayableAoiMetric('threatened_species_count')
-                    ) {
-                      <div id="aoi-bio-stats" class="aoi-stat-grid">
-                        <div id="aoi-stat-threatened" class="aoi-stat-card">
-                          <p id="aoi-stat-threatened-label" class="aoi-stat-label">
-                            {{ 'analysis.aoi.stats.threatenedSpecies' | translate }}
+                    @if (!isMarineSolution()) {
+                      <div id="aoi-protect-stats" class="aoi-stat-grid">
+                        <div id="aoi-stat-total-protected" class="aoi-stat-card">
+                          <p class="aoi-stat-label">
+                            {{ 'analysis.aoi.stats.totalProtectedArea' | translate }}
                           </p>
                           <p
-                            id="aoi-stat-threatened-value"
                             class="aoi-stat-value"
                             [attr.data-full-value]="
-                              getAoiMetricFullValue('threatened_species_count')
+                              getAoiMetricFullValue('protected_area_runap_km2')
                             "
                             [attr.tabindex]="
-                              getAoiMetricFullValue('threatened_species_count') ? 0 : null
+                              getAoiMetricFullValue('protected_area_runap_km2') ? 0 : null
                             "
                           >
-                            {{ getAoiMetricValue('threatened_species_count', '5') }}
+                            {{
+                              getAoiMetricValue('protected_area_runap_km2', formatAreaFallback(72))
+                            }}
                           </p>
-                          <p id="aoi-stat-threatened-unit" class="aoi-stat-unit">
-                            {{ 'analysis.aoi.stats.iucnLabel' | translate }}
+                          <p class="aoi-stat-unit">
+                            {{
+                              fillDummyAoiMetrics()
+                                ? ('analysis.aoi.stats.protectedAreaUnit' | translate)
+                                : '--'
+                            }}
                           </p>
                         </div>
-                        @if (
-                          !isCustomAoiSelected() ||
-                          hasDisplayableAoiMetric('threatened_species_secured')
-                        ) {
-                          <div id="aoi-stat-threatened-secured" class="aoi-stat-card">
-                            <p id="aoi-stat-threatened-secured-label" class="aoi-stat-label">
-                              {{ 'analysis.aoi.stats.threatenedSpeciesSecured' | translate }}
+                        <div id="aoi-stat-parks-overlap" class="aoi-stat-card">
+                          <p class="aoi-stat-label">
+                            {{ 'analysis.aoi.stats.parksOverlap' | translate }}
+                          </p>
+                          <p
+                            class="aoi-stat-value"
+                            [attr.data-full-value]="getAoiMetricFullValue('national_parks_pct')"
+                            [attr.tabindex]="getAoiMetricFullValue('national_parks_pct') ? 0 : null"
+                          >
+                            {{ getAoiMetricValue('national_parks_pct', '18%') }}
+                          </p>
+                          <p class="aoi-stat-unit">
+                            {{ 'analysis.aoi.stats.ofAoiPriorityArea' | translate }}
+                          </p>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </section>
+
+              @if (isMarineSolution()) {
+                <ng-container [ngTemplateOutlet]="aoiMarineSection"></ng-container>
+              }
+
+              <!-- ─── SECTION B: Biodiversity ─── -->
+              @if (!isMarineSolution()) {
+                <section id="aoi-section-bio">
+                  <button
+                    id="aoi-head-bio"
+                    type="button"
+                    class="aoi-section-head"
+                    [attr.aria-expanded]="isAoiSectionExpanded('bio')"
+                    (click)="toggleAoiSection('bio')"
+                  >
+                    <span class="aoi-section-dot"></span>
+                    <span id="aoi-label-bio" class="aoi-section-label rs-header-optical-nudge">{{
+                      'analysis.aoi.sections.biodiversity' | translate
+                    }}</span>
+                    <span
+                      id="aoi-chevron-bio"
+                      class="aoi-section-chevron"
+                      [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('bio')"
+                      aria-hidden="true"
+                    >
+                      <svg
+                        class="aoi-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    id="aoi-body-bio"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isAoiSectionExpanded('bio')"
+                    [attr.aria-hidden]="!isAoiSectionExpanded('bio')"
+                  >
+                    <div id="aoi-body-bio-inner" class="collapse-motion-inner aoi-section-body">
+                      <div id="aoi-species-chart" class="flex flex-col gap-1">
+                        @if (isCustomAoiSelected() && isCustomAoiSpeciesMetricsLoading()) {
+                          <div
+                            id="aoi-biodiversity-species-loading-status"
+                            class="mb-1 flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-700"
+                            role="status"
+                            aria-live="polite"
+                          >
+                            <svg
+                              id="aoi-biodiversity-species-loading-spinner"
+                              class="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-slate-500"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              aria-hidden="true"
+                            >
+                              <circle
+                                id="aoi-biodiversity-species-loading-spinner-ring"
+                                cx="12"
+                                cy="12"
+                                r="9"
+                                stroke="currentColor"
+                                stroke-width="2.5"
+                                class="opacity-25"
+                              />
+                              <path
+                                id="aoi-biodiversity-species-loading-spinner-arc"
+                                d="M12 3a9 9 0 0 1 9 9"
+                                stroke="currentColor"
+                                stroke-width="2.5"
+                                stroke-linecap="round"
+                              />
+                            </svg>
+                            <p id="aoi-biodiversity-species-loading-copy" class="m-0">
+                              {{ getCustomAoiSpeciesLoadingKey() | translate }}
+                            </p>
+                          </div>
+                        } @else if (isCustomAoiSelected() && customAoiSpeciesMetricsLoadFailed()) {
+                          <div
+                            id="aoi-biodiversity-species-failure"
+                            class="mb-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs leading-5 text-red-900"
+                            role="alert"
+                          >
+                            <p id="aoi-biodiversity-species-failure-copy">
+                              {{ 'analysis.aoi.customMetrics.speciesFailed' | translate }}
+                            </p>
+                            <button
+                              id="aoi-biodiversity-species-retry-button"
+                              type="button"
+                              class="mt-1 min-h-11 rounded-md px-2 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                              (click)="retryCustomAoiSpeciesMetrics()"
+                            >
+                              {{ 'analysis.aoi.customProfile.retry' | translate }}
+                            </button>
+                          </div>
+                        }
+                        @if (!isCustomAoiSelected() || hasResolvedCustomAoiBiodiversityBars()) {
+                          <p
+                            id="aoi-species-chart-axis-label"
+                            class="m-0 mb-0.5 ml-19 w-full text-start text-[13px] font-medium leading-[1.2] tracking-[0.01em] text-slate-600"
+                          >
+                            {{ 'analysis.aoi.stats.speciesChartAxisLabel' | translate }}
+                          </p>
+                          @if (isSirapAoiSelected()) {
+                            <p
+                              id="aoi-sirap-biodiversity-context"
+                              class="m-0 mb-1 ml-19 text-start text-[11px] leading-[1.3] text-slate-500"
+                            >
+                              {{ 'analysis.aoi.sirapAggregate.speciesContext' | translate }}
+                            </p>
+                          }
+                          @for (entry of aoiBiodiversityBars(); track entry.id) {
+                            @if (!isCustomAoiSelected() || entry.count !== null) {
+                              <div
+                                [id]="'aoi-species-row-' + entry.id"
+                                class="grid grid-cols-[70px_minmax(0,1fr)_auto] items-center gap-1.5"
+                              >
+                                <span
+                                  [id]="'aoi-species-label-' + entry.id"
+                                  class="text-[11px] text-slate-800"
+                                  >{{ entry.label }}</span
+                                >
+                                <div
+                                  [id]="'aoi-species-bar-shell-' + entry.id"
+                                  class="flex h-2.5 min-w-0 items-center"
+                                >
+                                  <span
+                                    [id]="'aoi-species-fill-' + entry.id"
+                                    class="aoi-species-fill block h-full transition-[width] duration-300 ease-out"
+                                    [style.width.%]="aoiSpeciesBarWidth(entry.count)"
+                                    [style.background-color]="aoiSpeciesBarColor(entry.id)"
+                                    [attr.aria-label]="
+                                      'analysis.aoi.stats.speciesCountBarAriaLabel'
+                                        | translate: { label: entry.label }
+                                    "
+                                  ></span>
+                                </div>
+                                <span
+                                  [id]="'aoi-species-value-' + entry.id"
+                                  class="text-right text-[11px] font-semibold tabular-nums text-slate-700"
+                                  >{{ entry.count === null ? '--' : entry.count }}</span
+                                >
+                              </div>
+                            }
+                          }
+                          @if (aoiSpeciesPartialNote(); as speciesPartialNote) {
+                            <p
+                              id="aoi-species-partial-note"
+                              class="m-0 ml-19 w-full text-start text-[11px] leading-[1.3] text-slate-500"
+                            >
+                              {{ speciesPartialNote }}
+                            </p>
+                          }
+                        }
+                      </div>
+
+                      @if (
+                        !isCustomAoiSelected() ||
+                        hasDisplayableAoiMetric('threatened_species_count')
+                      ) {
+                        <div id="aoi-bio-stats" class="aoi-stat-grid">
+                          <div id="aoi-stat-threatened" class="aoi-stat-card">
+                            <p id="aoi-stat-threatened-label" class="aoi-stat-label">
+                              {{ 'analysis.aoi.stats.threatenedSpecies' | translate }}
                             </p>
                             <p
-                              id="aoi-stat-threatened-secured-value"
+                              id="aoi-stat-threatened-value"
                               class="aoi-stat-value"
                               [attr.data-full-value]="
-                                getAoiMetricFullValue('threatened_species_secured')
+                                getAoiMetricFullValue('threatened_species_count')
                               "
                               [attr.tabindex]="
-                                getAoiMetricFullValue('threatened_species_secured') ? 0 : null
+                                getAoiMetricFullValue('threatened_species_count') ? 0 : null
                               "
                             >
-                              {{ getAoiMetricValue('threatened_species_secured', '90') }}
+                              {{ getAoiMetricValue('threatened_species_count', '5') }}
                             </p>
-                            <p id="aoi-stat-threatened-secured-unit" class="aoi-stat-unit">
-                              {{ 'analysis.aoi.stats.threatenedSpeciesSecuredDesc' | translate }}
-                            </p>
-                          </div>
-                        }
-                        @if (!isCustomAoiSelected()) {
-                          <div id="aoi-stat-endemic" class="aoi-stat-card">
-                            <p id="aoi-stat-endemic-label" class="aoi-stat-label">
-                              {{ 'analysis.aoi.stats.endemicSpecies' | translate }}
-                            </p>
-                            <p id="aoi-stat-endemic-value" class="aoi-stat-value">
-                              {{ aoiVal('12') }}
-                            </p>
-                            <p id="aoi-stat-endemic-unit" class="aoi-stat-unit">
-                              {{ 'analysis.aoi.stats.colombiaEndemics' | translate }}
+                            <p id="aoi-stat-threatened-unit" class="aoi-stat-unit">
+                              {{ 'analysis.aoi.stats.iucnLabel' | translate }}
                             </p>
                           </div>
-                        }
-                      </div>
-                    }
-
-                    @if (
-                      !isCustomAoiSelected() || hasDisplayableAoiMetric('species_pct_of_national')
-                    ) {
-                      <div id="aoi-stat-national-species" class="aoi-stat-card">
-                        <p id="aoi-stat-national-species-label" class="aoi-stat-label">
-                          {{ 'analysis.aoi.stats.nationalSpeciesTotal' | translate }}
-                        </p>
-                        <p
-                          id="aoi-stat-national-species-value"
-                          class="aoi-stat-value"
-                          [attr.data-full-value]="getAoiMetricFullValue('species_pct_of_national')"
-                          [attr.tabindex]="
-                            getAoiMetricFullValue('species_pct_of_national') ? 0 : null
-                          "
-                        >
-                          {{ getAoiMetricValue('species_pct_of_national', '7%') }}
-                        </p>
-                        <p id="aoi-stat-national-species-unit" class="aoi-stat-unit">
-                          {{ 'analysis.aoi.stats.nationalSpeciesTotalDesc' | translate }}
-                        </p>
-                      </div>
-                    }
-
-                    @if (showAoiSpeciesInventory()) {
-                      <button
-                        id="aoi-biodiversity-open-species-inventory-button"
-                        type="button"
-                        class="aoi-mec-open-modal aoi-biodiversity-open-species-inventory min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        aria-haspopup="dialog"
-                        [attr.aria-controls]="
-                          selectedAoi()?.type === 'custom' && !supportsSirapCustomAoiMetrics()
-                            ? 'custom-aoi-species-inventory-modal'
-                            : 'conservation-goals-modal'
-                        "
-                        [attr.aria-expanded]="
-                          selectedAoi()?.type === 'custom' && !supportsSirapCustomAoiMetrics()
-                            ? customAoiSpeciesModalOpen()
-                            : goalsModalOpen() && goalsModalDomain()?.featureType === 'species'
-                        "
-                        [disabled]="
-                          selectedAoi()?.type === 'custom' && !canOpenCustomAoiSpeciesInventory()
-                        "
-                        [attr.aria-describedby]="
-                          selectedAoi()?.type === 'custom' && !canOpenCustomAoiSpeciesInventory()
-                            ? 'aoi-biodiversity-species-inventory-unavailable-help'
-                            : null
-                        "
-                        (click)="openAoiSpeciesInventory()"
-                      >
-                        <span id="aoi-biodiversity-open-species-inventory-copy">
-                          <strong id="aoi-biodiversity-open-species-inventory-label">
-                            {{ 'analysis.aoi.customProfile.species.exploreCoverage' | translate }}
-                          </strong>
-                          <span id="aoi-biodiversity-open-species-inventory-description">
-                            {{
-                              'analysis.aoi.customProfile.species.exploreCoverageDescription'
-                                | translate
-                            }}
-                          </span>
-                        </span>
-                        <span id="aoi-biodiversity-open-species-inventory-icon" aria-hidden="true"
-                          >→</span
-                        >
-                      </button>
-                      @if (
-                        selectedAoi()?.type === 'custom' && !canOpenCustomAoiSpeciesInventory()
-                      ) {
-                        <p
-                          id="aoi-biodiversity-species-inventory-unavailable-help"
-                          class="mt-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700"
-                        >
-                          {{ customAoiSpeciesInventoryUnavailableKey() | translate }}
-                        </p>
-                      }
-                    }
-
-                    @if (fillDummyAoiMetrics() && !isCustomAoiSelected()) {
-                      <div id="aoi-bio-alert" class="aoi-alert">
-                        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-                        <span>
-                          <strong>{{
-                            'analysis.aoi.narratives.threatenedSpeciesValue' | translate
-                          }}</strong>
-                          {{ 'analysis.aoi.narratives.threatenedSpeciesSuffix' | translate }}
-                        </span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </section>
-
-              <!-- ─── SECTION C: MEC Ecosystems ─── -->
-              <section id="aoi-section-ecosystems">
-                <button
-                  id="aoi-head-ecosystems"
-                  type="button"
-                  class="aoi-section-head max-md:min-h-11"
-                  [attr.aria-expanded]="isAoiSectionExpanded('ecosystems')"
-                  (click)="toggleAoiSection('ecosystems')"
-                >
-                  <span id="aoi-dot-ecosystems" class="aoi-section-dot aoi-dot-ecosystems"></span>
-                  <span
-                    id="aoi-label-ecosystems"
-                    class="aoi-section-label rs-header-optical-nudge"
-                    >{{ 'analysis.aoi.sections.ecosystems' | translate }}</span
-                  >
-                  <span
-                    id="aoi-chevron-ecosystems"
-                    class="aoi-section-chevron"
-                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('ecosystems')"
-                    aria-hidden="true"
-                  >
-                    <svg
-                      class="aoi-section-chevron-icon"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M3 4.5L6 7.5L9 4.5" />
-                    </svg>
-                  </span>
-                </button>
-                <div
-                  id="aoi-body-ecosystems"
-                  class="collapse-motion-shell"
-                  [class.is-collapsed]="!isAoiSectionExpanded('ecosystems')"
-                  [attr.aria-hidden]="!isAoiSectionExpanded('ecosystems')"
-                >
-                  <div
-                    id="aoi-body-ecosystems-inner"
-                    class="collapse-motion-inner aoi-section-body"
-                  >
-                    @if (isSirapAoiSelected() && hasSirapAggregateEcosystemMetrics()) {
-                      <div id="aoi-sirap-ecosystem-aggregates" class="flex flex-col gap-2">
-                        <p
-                          id="aoi-sirap-ecosystem-aggregates-description"
-                          class="m-0 text-xs leading-5 text-slate-600"
-                        >
-                          {{ 'analysis.aoi.sirapAggregate.ecosystemContext' | translate }}
-                        </p>
-                        <div
-                          id="aoi-sirap-ecosystem-aggregates-list"
-                          class="overflow-hidden rounded-[7px] border border-slate-200 bg-white"
-                        >
-                          @for (entry of sirapAggregateEcosystemMetrics(); track entry.id) {
-                            <div
-                              [id]="'aoi-sirap-ecosystem-aggregate-' + entry.id"
-                              class="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 last:border-b-0"
-                            >
-                              <span
-                                [id]="'aoi-sirap-ecosystem-aggregate-label-' + entry.id"
-                                class="text-xs text-slate-700"
-                              >
-                                {{ entry.labelKey | translate }}
-                              </span>
-                              <span
-                                [id]="'aoi-sirap-ecosystem-aggregate-value-' + entry.id"
-                                class="text-right text-xs font-semibold tabular-nums text-slate-800"
-                              >
-                                {{ getSirapAggregateEcosystemValue(entry.metric) }}
-                              </span>
-                            </div>
-                            @if (getSirapAggregateEcosystemStatusKey(entry.metric); as statusKey) {
-                              <p
-                                [id]="'aoi-sirap-ecosystem-aggregate-status-' + entry.id"
-                                class="-mt-1 border-b border-slate-100 px-3 pb-2 text-[11px] leading-4 text-slate-500 last:border-b-0"
-                              >
-                                {{ statusKey | translate }}
+                          @if (
+                            !isCustomAoiSelected() ||
+                            hasDisplayableAoiMetric('threatened_species_secured')
+                          ) {
+                            <div id="aoi-stat-threatened-secured" class="aoi-stat-card">
+                              <p id="aoi-stat-threatened-secured-label" class="aoi-stat-label">
+                                {{ 'analysis.aoi.stats.threatenedSpeciesSecured' | translate }}
                               </p>
-                            }
-                          }
-                        </div>
-                      </div>
-                    } @else {
-                      <p id="aoi-mec-source" class="aoi-ecosystem-source">
-                        {{ getMecSourceKey() | translate }}
-                      </p>
-                      <label id="aoi-mec-breakdown-label" class="aoi-mec-select-label">
-                        <span id="aoi-mec-breakdown-label-text">{{
-                          'analysis.aoi.mec.breakdownLabel' | translate
-                        }}</span>
-                        <select
-                          id="aoi-mec-breakdown-select"
-                          class="aoi-mec-select max-md:min-h-11"
-                          [value]="selectedMecBreakdownId()"
-                          (change)="selectMecBreakdown($event)"
-                        >
-                          @for (breakdown of mecBreakdowns; track breakdown.id) {
-                            <option [id]="'aoi-mec-option-' + breakdown.id" [value]="breakdown.id">
-                              {{ breakdown.labelKey | translate }} ({{
-                                getMecCategoryCount(breakdown)
-                              }})
-                            </option>
-                          }
-                        </select>
-                      </label>
-
-                      @if (shouldShowMecStatus(selectedMecBreakdown())) {
-                        <div
-                          id="aoi-mec-unavailable-state"
-                          class="aoi-mec-unavailable"
-                          [attr.role]="getMecStatusRole()"
-                          aria-live="polite"
-                        >
-                          <strong id="aoi-mec-unavailable-title">{{
-                            getMecStatusTitleKey(selectedMecBreakdown()) | translate
-                          }}</strong>
-                          <span id="aoi-mec-unavailable-description">{{
-                            getMecStatusDescriptionKey(selectedMecBreakdown()) | translate
-                          }}</span>
-                        </div>
-                      }
-
-                      @if (shouldShowMecPreview(selectedMecBreakdown())) {
-                        <div
-                          id="aoi-mec-preview-shell"
-                          class="mt-3 overflow-hidden rounded-[7px] border border-slate-200 bg-white"
-                        >
-                          <div id="aoi-mec-chart-row" class="aoi-mec-chart-row">
-                            @if (selectedMecBreakdown().mode === 'donut') {
-                              <div
-                                id="aoi-mec-donut"
-                                class="aoi-mec-donut"
-                                [style.background]="mecDonutGradient()"
-                                role="img"
-                                [attr.aria-label]="'analysis.aoi.mec.previewAria' | translate"
+                              <p
+                                id="aoi-stat-threatened-secured-value"
+                                class="aoi-stat-value"
+                                [attr.data-full-value]="
+                                  getAoiMetricFullValue('threatened_species_secured')
+                                "
+                                [attr.tabindex]="
+                                  getAoiMetricFullValue('threatened_species_secured') ? 0 : null
+                                "
                               >
-                                <span id="aoi-mec-donut-hole" class="aoi-mec-donut-hole">
-                                  <strong id="aoi-mec-donut-value">{{
-                                    getMecPreviewAreaValue()
-                                  }}</strong>
-                                  <span id="aoi-mec-donut-label">{{
-                                    getMecPreviewAreaLabelKey() | translate
-                                  }}</span>
-                                </span>
-                              </div>
-                              <div id="aoi-mec-donut-legend" class="aoi-mec-donut-legend">
-                                @for (
-                                  item of mecPreviewItems();
-                                  track item.label;
-                                  let index = $index
-                                ) {
-                                  <div
-                                    [id]="'aoi-mec-legend-item-' + index"
-                                    class="aoi-mec-legend-item"
-                                  >
-                                    <span
-                                      [id]="'aoi-mec-legend-swatch-' + index"
-                                      class="aoi-mec-legend-swatch"
-                                      [style.background-color]="item.color || '#cbd5e1'"
-                                    ></span>
-                                    <span [id]="'aoi-mec-legend-label-' + index">{{
-                                      item.label
-                                    }}</span>
-                                    <strong [id]="'aoi-mec-legend-value-' + index">{{
-                                      formatMecPreviewPercent(item.percent)
-                                    }}</strong>
-                                  </div>
-                                }
-                              </div>
-                            } @else {
-                              <div id="aoi-mec-preview-bars" class="aoi-mec-preview-bars">
-                                @for (
-                                  item of mecPreviewItems();
-                                  track item.label;
-                                  let index = $index
-                                ) {
-                                  <div [id]="'aoi-mec-bar-row-' + index" class="aoi-mec-bar-row">
-                                    <span
-                                      [id]="'aoi-mec-bar-label-' + index"
-                                      class="aoi-mec-bar-label"
-                                      [title]="item.label"
-                                      >{{ item.label }}</span
-                                    >
-                                    <span
-                                      [id]="'aoi-mec-bar-track-' + index"
-                                      class="aoi-mec-bar-track"
-                                    >
-                                      <span
-                                        [id]="'aoi-mec-bar-fill-' + index"
-                                        class="aoi-mec-bar-fill"
-                                        [style.width.%]="
-                                          ((item.percent || 0) / getMecPreviewMaximum()) * 100
-                                        "
-                                      ></span>
-                                    </span>
-                                    <strong [id]="'aoi-mec-bar-value-' + index">{{
-                                      formatMecPreviewPercent(item.percent)
-                                    }}</strong>
-                                  </div>
-                                }
-                              </div>
-                            }
-                          </div>
-
-                          @if (supportsMecDrilldown()) {
-                            <div id="aoi-mec-preview-count-row" class="aoi-mec-preview-count-row">
-                              <span id="aoi-mec-preview-count-label">{{
-                                'analysis.aoi.mec.showing'
-                                  | translate
-                                    : {
-                                        shown: mecPreviewItems().length,
-                                        total: getMecCategoryCount(selectedMecBreakdown()),
-                                        type: (selectedMecBreakdown().pluralLabelKey | translate),
-                                      }
-                              }}</span>
-                              <span id="aoi-mec-preview-remaining-label">{{
-                                'analysis.aoi.mec.more'
-                                  | translate
-                                    : {
-                                        count:
-                                          getMecCategoryCount(selectedMecBreakdown()) -
-                                          mecPreviewItems().length,
-                                      }
-                              }}</span>
+                                {{ getAoiMetricValue('threatened_species_secured', '90') }}
+                              </p>
+                              <p id="aoi-stat-threatened-secured-unit" class="aoi-stat-unit">
+                                {{ 'analysis.aoi.stats.threatenedSpeciesSecuredDesc' | translate }}
+                              </p>
                             </div>
-                            <button
-                              id="aoi-mec-open-modal-button"
-                              type="button"
-                              class="aoi-mec-open-modal"
-                              aria-haspopup="dialog"
-                              [attr.aria-expanded]="mecModalOpen()"
-                              (click)="openMecModal()"
-                            >
-                              <span id="aoi-mec-open-modal-copy">
-                                <strong id="aoi-mec-open-modal-label">{{
-                                  'analysis.aoi.mec.exploreAll'
-                                    | translate
-                                      : {
-                                          count: getMecCategoryCount(selectedMecBreakdown()),
-                                          type: (selectedMecBreakdown().pluralLabelKey | translate),
-                                        }
-                                }}</strong>
-                                <span id="aoi-mec-open-modal-description">{{
-                                  'analysis.aoi.mec.searchCompare' | translate
-                                }}</span>
-                              </span>
-                              <span id="aoi-mec-open-modal-icon" aria-hidden="true">→</span>
-                            </button>
+                          }
+                          @if (!isCustomAoiSelected()) {
+                            <div id="aoi-stat-endemic" class="aoi-stat-card">
+                              <p id="aoi-stat-endemic-label" class="aoi-stat-label">
+                                {{ 'analysis.aoi.stats.endemicSpecies' | translate }}
+                              </p>
+                              <p id="aoi-stat-endemic-value" class="aoi-stat-value">
+                                {{ aoiVal('12') }}
+                              </p>
+                              <p id="aoi-stat-endemic-unit" class="aoi-stat-unit">
+                                {{ 'analysis.aoi.stats.colombiaEndemics' | translate }}
+                              </p>
+                            </div>
                           }
                         </div>
                       }
-                    }
-                  </div>
-                </div>
-              </section>
 
-              <!-- ─── SECTION D: Strategic Ecosystems ─── -->
-              <section id="aoi-section-strategic">
-                <button
-                  id="aoi-head-strategic"
-                  type="button"
-                  class="aoi-section-head max-md:min-h-11"
-                  [attr.aria-expanded]="isAoiSectionExpanded('strategic')"
-                  (click)="toggleAoiSection('strategic')"
-                >
-                  <span id="aoi-dot-strategic" class="aoi-section-dot aoi-dot-strategic"></span>
-                  <span
-                    id="aoi-label-strategic"
-                    class="aoi-section-label rs-header-optical-nudge"
-                    >{{ 'analysis.aoi.sections.strategicEcosystems' | translate }}</span
-                  >
-                  <span
-                    id="aoi-chevron-strategic"
-                    class="aoi-section-chevron"
-                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('strategic')"
-                    aria-hidden="true"
-                  >
-                    <svg
-                      id="aoi-chevron-icon-strategic"
-                      class="aoi-section-chevron-icon"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path id="aoi-chevron-path-strategic" d="M3 4.5L6 7.5L9 4.5" />
-                    </svg>
-                  </span>
-                </button>
-                <div
-                  id="aoi-body-strategic"
-                  class="collapse-motion-shell"
-                  [class.is-collapsed]="!isAoiSectionExpanded('strategic')"
-                  [attr.aria-hidden]="!isAoiSectionExpanded('strategic')"
-                >
-                  <div id="aoi-body-strategic-inner" class="collapse-motion-inner aoi-section-body">
-                    <p id="aoi-strategic-description" class="aoi-ecosystem-source">
-                      {{ getStrategicEcosystemDescriptionKey() | translate }}
-                    </p>
-                    <div id="aoi-strategic-bars" class="aoi-strategic-bars">
-                      @for (bar of strategicEcosystemBars; track bar.id) {
-                        <div [id]="'aoi-strategic-row-' + bar.id" class="aoi-strategic-row">
-                          <span [id]="'aoi-strategic-label-' + bar.id">{{
-                            bar.labelKey | translate
-                          }}</span>
-                          <span [id]="'aoi-strategic-track-' + bar.id" class="aoi-strategic-track">
-                            <span
-                              [id]="'aoi-strategic-fill-' + bar.id"
-                              class="aoi-strategic-fill"
-                              [style.width.%]="
-                                getStrategicEcosystemPercent(bar.metricId, bar.dummyPercent)
-                              "
-                              [style.background-color]="bar.color"
-                            ></span>
+                      @if (
+                        !isCustomAoiSelected() || hasDisplayableAoiMetric('species_pct_of_national')
+                      ) {
+                        <div id="aoi-stat-national-species" class="aoi-stat-card">
+                          <p id="aoi-stat-national-species-label" class="aoi-stat-label">
+                            {{ 'analysis.aoi.stats.nationalSpeciesTotal' | translate }}
+                          </p>
+                          <p
+                            id="aoi-stat-national-species-value"
+                            class="aoi-stat-value"
+                            [attr.data-full-value]="
+                              getAoiMetricFullValue('species_pct_of_national')
+                            "
+                            [attr.tabindex]="
+                              getAoiMetricFullValue('species_pct_of_national') ? 0 : null
+                            "
+                          >
+                            {{ getAoiMetricValue('species_pct_of_national', '7%') }}
+                          </p>
+                          <p id="aoi-stat-national-species-unit" class="aoi-stat-unit">
+                            {{ 'analysis.aoi.stats.nationalSpeciesTotalDesc' | translate }}
+                          </p>
+                        </div>
+                      }
+
+                      @if (showAoiSpeciesInventory()) {
+                        <button
+                          id="aoi-biodiversity-open-species-inventory-button"
+                          type="button"
+                          class="aoi-mec-open-modal aoi-biodiversity-open-species-inventory min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-haspopup="dialog"
+                          [attr.aria-controls]="
+                            selectedAoi()?.type === 'custom' && !supportsSirapCustomAoiMetrics()
+                              ? 'custom-aoi-species-inventory-modal'
+                              : 'conservation-goals-modal'
+                          "
+                          [attr.aria-expanded]="
+                            selectedAoi()?.type === 'custom' && !supportsSirapCustomAoiMetrics()
+                              ? customAoiSpeciesModalOpen()
+                              : goalsModalOpen() && goalsModalDomain()?.featureType === 'species'
+                          "
+                          [disabled]="
+                            selectedAoi()?.type === 'custom' && !canOpenCustomAoiSpeciesInventory()
+                          "
+                          [attr.aria-describedby]="
+                            selectedAoi()?.type === 'custom' && !canOpenCustomAoiSpeciesInventory()
+                              ? 'aoi-biodiversity-species-inventory-unavailable-help'
+                              : null
+                          "
+                          (click)="openAoiSpeciesInventory()"
+                        >
+                          <span id="aoi-biodiversity-open-species-inventory-copy">
+                            <strong id="aoi-biodiversity-open-species-inventory-label">
+                              {{ 'analysis.aoi.customProfile.species.exploreCoverage' | translate }}
+                            </strong>
+                            <span id="aoi-biodiversity-open-species-inventory-description">
+                              {{
+                                'analysis.aoi.customProfile.species.exploreCoverageDescription'
+                                  | translate
+                              }}
+                            </span>
                           </span>
-                          <strong [id]="'aoi-strategic-value-' + bar.id">{{
-                            getStrategicEcosystemPercentLabel(bar.metricId, bar.dummyPercent)
-                          }}</strong>
+                          <span id="aoi-biodiversity-open-species-inventory-icon" aria-hidden="true"
+                            >→</span
+                          >
+                        </button>
+                        @if (
+                          selectedAoi()?.type === 'custom' && !canOpenCustomAoiSpeciesInventory()
+                        ) {
+                          <p
+                            id="aoi-biodiversity-species-inventory-unavailable-help"
+                            class="mt-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700"
+                          >
+                            {{ customAoiSpeciesInventoryUnavailableKey() | translate }}
+                          </p>
+                        }
+                      }
+
+                      @if (fillDummyAoiMetrics() && !isCustomAoiSelected()) {
+                        <div id="aoi-bio-alert" class="aoi-alert">
+                          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                          <span>
+                            <strong>{{
+                              'analysis.aoi.narratives.threatenedSpeciesValue' | translate
+                            }}</strong>
+                            {{ 'analysis.aoi.narratives.threatenedSpeciesSuffix' | translate }}
+                          </span>
                         </div>
                       }
                     </div>
                   </div>
-                </div>
-              </section>
+                </section>
+              }
 
-              <!-- ─── SECTION E: Ecosystem Services ─── -->
-              <section id="aoi-section-carbon">
-                <button
-                  id="aoi-head-carbon"
-                  type="button"
-                  class="aoi-section-head max-md:min-h-11"
-                  [attr.aria-expanded]="isAoiSectionExpanded('carbon')"
-                  (click)="toggleAoiSection('carbon')"
-                >
-                  <span id="aoi-dot-carbon" class="aoi-section-dot aoi-dot-carbon"></span>
-                  <span id="aoi-label-carbon" class="aoi-section-label rs-header-optical-nudge">{{
-                    'analysis.aoi.sections.ecosystemServices' | translate
-                  }}</span>
-                  <span
-                    id="aoi-chevron-carbon"
-                    class="aoi-section-chevron"
-                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('carbon')"
-                    aria-hidden="true"
+              <!-- ─── SECTION C: MEC Ecosystems ─── -->
+              @if (!isMarineSolution()) {
+                <section id="aoi-section-ecosystems">
+                  <button
+                    id="aoi-head-ecosystems"
+                    type="button"
+                    class="aoi-section-head max-md:min-h-11"
+                    [attr.aria-expanded]="isAoiSectionExpanded('ecosystems')"
+                    (click)="toggleAoiSection('ecosystems')"
                   >
-                    <svg
-                      id="aoi-chevron-icon-carbon"
-                      class="aoi-section-chevron-icon"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
+                    <span id="aoi-dot-ecosystems" class="aoi-section-dot aoi-dot-ecosystems"></span>
+                    <span
+                      id="aoi-label-ecosystems"
+                      class="aoi-section-label rs-header-optical-nudge"
+                      >{{ 'analysis.aoi.sections.ecosystems' | translate }}</span
+                    >
+                    <span
+                      id="aoi-chevron-ecosystems"
+                      class="aoi-section-chevron"
+                      [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('ecosystems')"
                       aria-hidden="true"
                     >
-                      <path id="aoi-chevron-path-carbon" d="M3 4.5L6 7.5L9 4.5" />
-                    </svg>
-                  </span>
-                </button>
-                <div
-                  id="aoi-body-carbon"
-                  class="collapse-motion-shell"
-                  [class.is-collapsed]="!isAoiSectionExpanded('carbon')"
-                  [attr.aria-hidden]="!isAoiSectionExpanded('carbon')"
-                >
-                  <div id="aoi-body-carbon-inner" class="collapse-motion-inner aoi-section-body">
-                    <p id="aoi-carbon-source" class="aoi-ecosystem-source">
-                      {{ 'analysis.aoi.carbon.source' | translate }}
-                    </p>
-                    <div id="aoi-carbon-stats" class="aoi-stat-grid">
-                      <div id="aoi-stat-total-carbon" class="aoi-stat-card">
-                        <p class="aoi-stat-label">
-                          {{ 'analysis.aoi.stats.totalCarbonBiomass' | translate }}
-                        </p>
-                        <p
-                          class="aoi-stat-value"
-                          [attr.data-full-value]="getAoiMetricFullValue('carbon_biomass_total')"
-                          [attr.tabindex]="getAoiMetricFullValue('carbon_biomass_total') ? 0 : null"
-                        >
-                          {{
-                            getAoiMetricValue(
-                              'carbon_biomass_total',
-                              getAoiUnitFallback(85000000, 'Mg·km²')
-                            )
-                          }}
-                        </p>
-                        <p id="aoi-stat-total-carbon-unit" class="aoi-stat-unit">
-                          <span id="aoi-stat-total-carbon-unit-text">{{
-                            'analysis.aoi.stats.unitDetails' | translate
-                          }}</span>
-                          <span
-                            id="aoi-stat-total-carbon-unit-help"
-                            class="aoi-unit-help aoi-unit-help-start"
-                          >
-                            <button
-                              id="aoi-stat-total-carbon-unit-help-trigger"
-                              type="button"
-                              class="aoi-unit-help-trigger"
-                              [attr.aria-label]="
-                                'analysis.aoi.unitTooltips.carbonMassArea' | translate
-                              "
-                              aria-describedby="aoi-stat-total-carbon-unit-tooltip"
-                            >
-                              <app-info-icon
-                                rootId="aoi-stat-total-carbon-unit-help-indicator"
-                                colorClass="text-slate-400"
-                              />
-                            </button>
-                            <span
-                              id="aoi-stat-total-carbon-unit-tooltip"
-                              role="tooltip"
-                              class="aoi-unit-tooltip"
-                            >
-                              {{ 'analysis.aoi.unitTooltips.carbonMassArea' | translate }}
-                            </span>
-                          </span>
-                        </p>
-                      </div>
-                      @if (shouldShowAoiCarbonMetric('carbon_pct_of_national')) {
-                        <div id="aoi-stat-national-carbon" class="aoi-stat-card">
-                          <p class="aoi-stat-label">
-                            {{ 'analysis.aoi.stats.nationalCarbon' | translate }}
-                          </p>
+                      <svg
+                        class="aoi-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    id="aoi-body-ecosystems"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isAoiSectionExpanded('ecosystems')"
+                    [attr.aria-hidden]="!isAoiSectionExpanded('ecosystems')"
+                  >
+                    <div
+                      id="aoi-body-ecosystems-inner"
+                      class="collapse-motion-inner aoi-section-body"
+                    >
+                      @if (isSirapAoiSelected() && hasSirapAggregateEcosystemMetrics()) {
+                        <div id="aoi-sirap-ecosystem-aggregates" class="flex flex-col gap-2">
                           <p
-                            class="aoi-stat-value"
-                            [attr.data-full-value]="getAoiMetricFullValue('carbon_pct_of_national')"
-                            [attr.tabindex]="
-                              getAoiMetricFullValue('carbon_pct_of_national') ? 0 : null
-                            "
+                            id="aoi-sirap-ecosystem-aggregates-description"
+                            class="m-0 text-xs leading-5 text-slate-600"
                           >
-                            {{ getAoiMetricValue('carbon_pct_of_national', '7%') }}
+                            {{ 'analysis.aoi.sirapAggregate.ecosystemContext' | translate }}
                           </p>
-                          <p class="aoi-stat-unit">
-                            {{ 'analysis.aoi.stats.nationalCarbonDesc' | translate }}
-                          </p>
+                          <div
+                            id="aoi-sirap-ecosystem-aggregates-list"
+                            class="overflow-hidden rounded-[7px] border border-slate-200 bg-white"
+                          >
+                            @for (entry of sirapAggregateEcosystemMetrics(); track entry.id) {
+                              <div
+                                [id]="'aoi-sirap-ecosystem-aggregate-' + entry.id"
+                                class="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 last:border-b-0"
+                              >
+                                <span
+                                  [id]="'aoi-sirap-ecosystem-aggregate-label-' + entry.id"
+                                  class="text-xs text-slate-700"
+                                >
+                                  {{ entry.labelKey | translate }}
+                                </span>
+                                <span
+                                  [id]="'aoi-sirap-ecosystem-aggregate-value-' + entry.id"
+                                  class="text-right text-xs font-semibold tabular-nums text-slate-800"
+                                >
+                                  {{ getSirapAggregateEcosystemValue(entry.metric) }}
+                                </span>
+                              </div>
+                              @if (
+                                getSirapAggregateEcosystemStatusKey(entry.metric);
+                                as statusKey
+                              ) {
+                                <p
+                                  [id]="'aoi-sirap-ecosystem-aggregate-status-' + entry.id"
+                                  class="-mt-1 border-b border-slate-100 px-3 pb-2 text-[11px] leading-4 text-slate-500 last:border-b-0"
+                                >
+                                  {{ statusKey | translate }}
+                                </p>
+                              }
+                            }
+                          </div>
                         </div>
+                      } @else {
+                        <p id="aoi-mec-source" class="aoi-ecosystem-source">
+                          {{ getMecSourceKey() | translate }}
+                        </p>
+                        <label id="aoi-mec-breakdown-label" class="aoi-mec-select-label">
+                          <span id="aoi-mec-breakdown-label-text">{{
+                            'analysis.aoi.mec.breakdownLabel' | translate
+                          }}</span>
+                          <select
+                            id="aoi-mec-breakdown-select"
+                            class="aoi-mec-select max-md:min-h-11"
+                            [value]="selectedMecBreakdownId()"
+                            (change)="selectMecBreakdown($event)"
+                          >
+                            @for (breakdown of mecBreakdowns; track breakdown.id) {
+                              <option
+                                [id]="'aoi-mec-option-' + breakdown.id"
+                                [value]="breakdown.id"
+                              >
+                                {{ breakdown.labelKey | translate }} ({{
+                                  getMecCategoryCount(breakdown)
+                                }})
+                              </option>
+                            }
+                          </select>
+                        </label>
+
+                        @if (shouldShowMecStatus(selectedMecBreakdown())) {
+                          <div
+                            id="aoi-mec-unavailable-state"
+                            class="aoi-mec-unavailable"
+                            [attr.role]="getMecStatusRole()"
+                            aria-live="polite"
+                          >
+                            <strong id="aoi-mec-unavailable-title">{{
+                              getMecStatusTitleKey(selectedMecBreakdown()) | translate
+                            }}</strong>
+                            <span id="aoi-mec-unavailable-description">{{
+                              getMecStatusDescriptionKey(selectedMecBreakdown()) | translate
+                            }}</span>
+                          </div>
+                        }
+
+                        @if (shouldShowMecPreview(selectedMecBreakdown())) {
+                          <div
+                            id="aoi-mec-preview-shell"
+                            class="mt-3 overflow-hidden rounded-[7px] border border-slate-200 bg-white"
+                          >
+                            <div id="aoi-mec-chart-row" class="aoi-mec-chart-row">
+                              @if (selectedMecBreakdown().mode === 'donut') {
+                                <div
+                                  id="aoi-mec-donut"
+                                  class="aoi-mec-donut"
+                                  [style.background]="mecDonutGradient()"
+                                  role="img"
+                                  [attr.aria-label]="'analysis.aoi.mec.previewAria' | translate"
+                                >
+                                  <span id="aoi-mec-donut-hole" class="aoi-mec-donut-hole">
+                                    <strong id="aoi-mec-donut-value">{{
+                                      getMecPreviewAreaValue()
+                                    }}</strong>
+                                    <span id="aoi-mec-donut-label">{{
+                                      getMecPreviewAreaLabelKey() | translate
+                                    }}</span>
+                                  </span>
+                                </div>
+                                <div id="aoi-mec-donut-legend" class="aoi-mec-donut-legend">
+                                  @for (
+                                    item of mecPreviewItems();
+                                    track item.label;
+                                    let index = $index
+                                  ) {
+                                    <div
+                                      [id]="'aoi-mec-legend-item-' + index"
+                                      class="aoi-mec-legend-item"
+                                    >
+                                      <span
+                                        [id]="'aoi-mec-legend-swatch-' + index"
+                                        class="aoi-mec-legend-swatch"
+                                        [style.background-color]="item.color || '#cbd5e1'"
+                                      ></span>
+                                      <span [id]="'aoi-mec-legend-label-' + index">{{
+                                        item.label
+                                      }}</span>
+                                      <strong [id]="'aoi-mec-legend-value-' + index">{{
+                                        formatMecPreviewPercent(item.percent)
+                                      }}</strong>
+                                    </div>
+                                  }
+                                </div>
+                              } @else {
+                                <div id="aoi-mec-preview-bars" class="aoi-mec-preview-bars">
+                                  @for (
+                                    item of mecPreviewItems();
+                                    track item.label;
+                                    let index = $index
+                                  ) {
+                                    <div [id]="'aoi-mec-bar-row-' + index" class="aoi-mec-bar-row">
+                                      <span
+                                        [id]="'aoi-mec-bar-label-' + index"
+                                        class="aoi-mec-bar-label"
+                                        [title]="item.label"
+                                        >{{ item.label }}</span
+                                      >
+                                      <span
+                                        [id]="'aoi-mec-bar-track-' + index"
+                                        class="aoi-mec-bar-track"
+                                      >
+                                        <span
+                                          [id]="'aoi-mec-bar-fill-' + index"
+                                          class="aoi-mec-bar-fill"
+                                          [style.width.%]="
+                                            ((item.percent || 0) / getMecPreviewMaximum()) * 100
+                                          "
+                                        ></span>
+                                      </span>
+                                      <strong [id]="'aoi-mec-bar-value-' + index">{{
+                                        formatMecPreviewPercent(item.percent)
+                                      }}</strong>
+                                    </div>
+                                  }
+                                </div>
+                              }
+                            </div>
+
+                            @if (supportsMecDrilldown()) {
+                              <div id="aoi-mec-preview-count-row" class="aoi-mec-preview-count-row">
+                                <span id="aoi-mec-preview-count-label">{{
+                                  'analysis.aoi.mec.showing'
+                                    | translate
+                                      : {
+                                          shown: mecPreviewItems().length,
+                                          total: getMecCategoryCount(selectedMecBreakdown()),
+                                          type: (selectedMecBreakdown().pluralLabelKey | translate),
+                                        }
+                                }}</span>
+                                <span id="aoi-mec-preview-remaining-label">{{
+                                  'analysis.aoi.mec.more'
+                                    | translate
+                                      : {
+                                          count:
+                                            getMecCategoryCount(selectedMecBreakdown()) -
+                                            mecPreviewItems().length,
+                                        }
+                                }}</span>
+                              </div>
+                              <button
+                                id="aoi-mec-open-modal-button"
+                                type="button"
+                                class="aoi-mec-open-modal"
+                                aria-haspopup="dialog"
+                                [attr.aria-expanded]="mecModalOpen()"
+                                (click)="openMecModal()"
+                              >
+                                <span id="aoi-mec-open-modal-copy">
+                                  <strong id="aoi-mec-open-modal-label">{{
+                                    'analysis.aoi.mec.exploreAll'
+                                      | translate
+                                        : {
+                                            count: getMecCategoryCount(selectedMecBreakdown()),
+                                            type:
+                                              (selectedMecBreakdown().pluralLabelKey | translate),
+                                          }
+                                  }}</strong>
+                                  <span id="aoi-mec-open-modal-description">{{
+                                    'analysis.aoi.mec.searchCompare' | translate
+                                  }}</span>
+                                </span>
+                                <span id="aoi-mec-open-modal-icon" aria-hidden="true">→</span>
+                              </button>
+                            }
+                          </div>
+                        }
                       }
-                      @if (shouldShowAoiCarbonMetric('carbon_storage_biomass')) {
-                        <div id="aoi-stat-above-carbon" class="aoi-stat-card">
+                    </div>
+                  </div>
+                </section>
+              }
+
+              <!-- ─── SECTION D: Strategic Ecosystems ─── -->
+              @if (!isMarineSolution()) {
+                <section id="aoi-section-strategic">
+                  <button
+                    id="aoi-head-strategic"
+                    type="button"
+                    class="aoi-section-head max-md:min-h-11"
+                    [attr.aria-expanded]="isAoiSectionExpanded('strategic')"
+                    (click)="toggleAoiSection('strategic')"
+                  >
+                    <span id="aoi-dot-strategic" class="aoi-section-dot aoi-dot-strategic"></span>
+                    <span
+                      id="aoi-label-strategic"
+                      class="aoi-section-label rs-header-optical-nudge"
+                      >{{ 'analysis.aoi.sections.strategicEcosystems' | translate }}</span
+                    >
+                    <span
+                      id="aoi-chevron-strategic"
+                      class="aoi-section-chevron"
+                      [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('strategic')"
+                      aria-hidden="true"
+                    >
+                      <svg
+                        id="aoi-chevron-icon-strategic"
+                        class="aoi-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path id="aoi-chevron-path-strategic" d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    id="aoi-body-strategic"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isAoiSectionExpanded('strategic')"
+                    [attr.aria-hidden]="!isAoiSectionExpanded('strategic')"
+                  >
+                    <div
+                      id="aoi-body-strategic-inner"
+                      class="collapse-motion-inner aoi-section-body"
+                    >
+                      <p id="aoi-strategic-description" class="aoi-ecosystem-source">
+                        {{ getStrategicEcosystemDescriptionKey() | translate }}
+                      </p>
+                      <div id="aoi-strategic-bars" class="aoi-strategic-bars">
+                        @for (bar of strategicEcosystemBars; track bar.id) {
+                          <div [id]="'aoi-strategic-row-' + bar.id" class="aoi-strategic-row">
+                            <span [id]="'aoi-strategic-label-' + bar.id">{{
+                              bar.labelKey | translate
+                            }}</span>
+                            <span
+                              [id]="'aoi-strategic-track-' + bar.id"
+                              class="aoi-strategic-track"
+                            >
+                              <span
+                                [id]="'aoi-strategic-fill-' + bar.id"
+                                class="aoi-strategic-fill"
+                                [style.width.%]="
+                                  getStrategicEcosystemPercent(bar.metricId, bar.dummyPercent)
+                                "
+                                [style.background-color]="bar.color"
+                              ></span>
+                            </span>
+                            <strong [id]="'aoi-strategic-value-' + bar.id">{{
+                              getStrategicEcosystemPercentLabel(bar.metricId, bar.dummyPercent)
+                            }}</strong>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              }
+
+              <!-- ─── SECTION E: Ecosystem Services ─── -->
+              @if (!isMarineSolution()) {
+                <section id="aoi-section-carbon">
+                  <button
+                    id="aoi-head-carbon"
+                    type="button"
+                    class="aoi-section-head max-md:min-h-11"
+                    [attr.aria-expanded]="isAoiSectionExpanded('carbon')"
+                    (click)="toggleAoiSection('carbon')"
+                  >
+                    <span id="aoi-dot-carbon" class="aoi-section-dot aoi-dot-carbon"></span>
+                    <span id="aoi-label-carbon" class="aoi-section-label rs-header-optical-nudge">{{
+                      'analysis.aoi.sections.ecosystemServices' | translate
+                    }}</span>
+                    <span
+                      id="aoi-chevron-carbon"
+                      class="aoi-section-chevron"
+                      [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('carbon')"
+                      aria-hidden="true"
+                    >
+                      <svg
+                        id="aoi-chevron-icon-carbon"
+                        class="aoi-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path id="aoi-chevron-path-carbon" d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    id="aoi-body-carbon"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isAoiSectionExpanded('carbon')"
+                    [attr.aria-hidden]="!isAoiSectionExpanded('carbon')"
+                  >
+                    <div id="aoi-body-carbon-inner" class="collapse-motion-inner aoi-section-body">
+                      <p id="aoi-carbon-source" class="aoi-ecosystem-source">
+                        {{ 'analysis.aoi.carbon.source' | translate }}
+                      </p>
+                      <div id="aoi-carbon-stats" class="aoi-stat-grid">
+                        <div id="aoi-stat-total-carbon" class="aoi-stat-card">
                           <p class="aoi-stat-label">
-                            {{ 'analysis.aoi.stats.aboveGroundCarbon' | translate }}
+                            {{ 'analysis.aoi.stats.totalCarbonBiomass' | translate }}
                           </p>
                           <p
                             class="aoi-stat-value"
-                            [attr.data-full-value]="getAoiMetricFullValue('carbon_storage_biomass')"
+                            [attr.data-full-value]="getAoiMetricFullValue('carbon_biomass_total')"
                             [attr.tabindex]="
-                              getAoiMetricFullValue('carbon_storage_biomass') ? 0 : null
+                              getAoiMetricFullValue('carbon_biomass_total') ? 0 : null
                             "
                           >
                             {{
                               getAoiMetricValue(
-                                'carbon_storage_biomass',
-                                getAoiUnitFallback(52000000, 'Mg·km²')
+                                'carbon_biomass_total',
+                                getAoiUnitFallback(85000000, 'Mg·km²')
                               )
                             }}
                           </p>
-                          <p id="aoi-stat-above-carbon-unit" class="aoi-stat-unit">
-                            <span id="aoi-stat-above-carbon-unit-text">{{
+                          <p id="aoi-stat-total-carbon-unit" class="aoi-stat-unit">
+                            <span id="aoi-stat-total-carbon-unit-text">{{
                               'analysis.aoi.stats.unitDetails' | translate
                             }}</span>
                             <span
-                              id="aoi-stat-above-carbon-unit-help"
+                              id="aoi-stat-total-carbon-unit-help"
                               class="aoi-unit-help aoi-unit-help-start"
                             >
                               <button
-                                id="aoi-stat-above-carbon-unit-help-trigger"
+                                id="aoi-stat-total-carbon-unit-help-trigger"
                                 type="button"
                                 class="aoi-unit-help-trigger"
                                 [attr.aria-label]="
                                   'analysis.aoi.unitTooltips.carbonMassArea' | translate
                                 "
-                                aria-describedby="aoi-stat-above-carbon-unit-tooltip"
+                                aria-describedby="aoi-stat-total-carbon-unit-tooltip"
                               >
                                 <app-info-icon
-                                  rootId="aoi-stat-above-carbon-unit-help-indicator"
+                                  rootId="aoi-stat-total-carbon-unit-help-indicator"
                                   colorClass="text-slate-400"
                                 />
                               </button>
                               <span
-                                id="aoi-stat-above-carbon-unit-tooltip"
+                                id="aoi-stat-total-carbon-unit-tooltip"
                                 role="tooltip"
                                 class="aoi-unit-tooltip"
                               >
@@ -2851,100 +2822,175 @@
                             </span>
                           </p>
                         </div>
-                      }
-                      @if (shouldShowAoiCarbonMetric('soil_organic_carbon')) {
-                        <div id="aoi-stat-soil-carbon" class="aoi-stat-card">
-                          <p class="aoi-stat-label">
-                            {{ 'analysis.aoi.stats.soilOrganicCarbon' | translate }}
+                        @if (shouldShowAoiCarbonMetric('carbon_pct_of_national')) {
+                          <div id="aoi-stat-national-carbon" class="aoi-stat-card">
+                            <p class="aoi-stat-label">
+                              {{ 'analysis.aoi.stats.nationalCarbon' | translate }}
+                            </p>
+                            <p
+                              class="aoi-stat-value"
+                              [attr.data-full-value]="
+                                getAoiMetricFullValue('carbon_pct_of_national')
+                              "
+                              [attr.tabindex]="
+                                getAoiMetricFullValue('carbon_pct_of_national') ? 0 : null
+                              "
+                            >
+                              {{ getAoiMetricValue('carbon_pct_of_national', '7%') }}
+                            </p>
+                            <p class="aoi-stat-unit">
+                              {{ 'analysis.aoi.stats.nationalCarbonDesc' | translate }}
+                            </p>
+                          </div>
+                        }
+                        @if (shouldShowAoiCarbonMetric('carbon_storage_biomass')) {
+                          <div id="aoi-stat-above-carbon" class="aoi-stat-card">
+                            <p class="aoi-stat-label">
+                              {{ 'analysis.aoi.stats.aboveGroundCarbon' | translate }}
+                            </p>
+                            <p
+                              class="aoi-stat-value"
+                              [attr.data-full-value]="
+                                getAoiMetricFullValue('carbon_storage_biomass')
+                              "
+                              [attr.tabindex]="
+                                getAoiMetricFullValue('carbon_storage_biomass') ? 0 : null
+                              "
+                            >
+                              {{
+                                getAoiMetricValue(
+                                  'carbon_storage_biomass',
+                                  getAoiUnitFallback(52000000, 'Mg·km²')
+                                )
+                              }}
+                            </p>
+                            <p id="aoi-stat-above-carbon-unit" class="aoi-stat-unit">
+                              <span id="aoi-stat-above-carbon-unit-text">{{
+                                'analysis.aoi.stats.unitDetails' | translate
+                              }}</span>
+                              <span
+                                id="aoi-stat-above-carbon-unit-help"
+                                class="aoi-unit-help aoi-unit-help-start"
+                              >
+                                <button
+                                  id="aoi-stat-above-carbon-unit-help-trigger"
+                                  type="button"
+                                  class="aoi-unit-help-trigger"
+                                  [attr.aria-label]="
+                                    'analysis.aoi.unitTooltips.carbonMassArea' | translate
+                                  "
+                                  aria-describedby="aoi-stat-above-carbon-unit-tooltip"
+                                >
+                                  <app-info-icon
+                                    rootId="aoi-stat-above-carbon-unit-help-indicator"
+                                    colorClass="text-slate-400"
+                                  />
+                                </button>
+                                <span
+                                  id="aoi-stat-above-carbon-unit-tooltip"
+                                  role="tooltip"
+                                  class="aoi-unit-tooltip"
+                                >
+                                  {{ 'analysis.aoi.unitTooltips.carbonMassArea' | translate }}
+                                </span>
+                              </span>
+                            </p>
+                          </div>
+                        }
+                        @if (shouldShowAoiCarbonMetric('soil_organic_carbon')) {
+                          <div id="aoi-stat-soil-carbon" class="aoi-stat-card">
+                            <p class="aoi-stat-label">
+                              {{ 'analysis.aoi.stats.soilOrganicCarbon' | translate }}
+                            </p>
+                            <p
+                              class="aoi-stat-value"
+                              [attr.data-full-value]="getAoiMetricFullValue('soil_organic_carbon')"
+                              [attr.tabindex]="
+                                getAoiMetricFullValue('soil_organic_carbon') ? 0 : null
+                              "
+                            >
+                              {{
+                                getAoiMetricValue(
+                                  'soil_organic_carbon',
+                                  getAoiUnitFallback(33000000, 'Mg·km²')
+                                )
+                              }}
+                            </p>
+                            <p id="aoi-stat-soil-carbon-unit" class="aoi-stat-unit">
+                              <span id="aoi-stat-soil-carbon-unit-text">{{
+                                'analysis.aoi.stats.unitDetails' | translate
+                              }}</span>
+                              <span
+                                id="aoi-stat-soil-carbon-unit-help"
+                                class="aoi-unit-help aoi-unit-help-end"
+                              >
+                                <button
+                                  id="aoi-stat-soil-carbon-unit-help-trigger"
+                                  type="button"
+                                  class="aoi-unit-help-trigger"
+                                  [attr.aria-label]="
+                                    'analysis.aoi.unitTooltips.carbonMassArea' | translate
+                                  "
+                                  aria-describedby="aoi-stat-soil-carbon-unit-tooltip"
+                                >
+                                  <app-info-icon
+                                    rootId="aoi-stat-soil-carbon-unit-help-indicator"
+                                    colorClass="text-slate-400"
+                                  />
+                                </button>
+                                <span
+                                  id="aoi-stat-soil-carbon-unit-tooltip"
+                                  role="tooltip"
+                                  class="aoi-unit-tooltip"
+                                >
+                                  {{ 'analysis.aoi.unitTooltips.carbonMassArea' | translate }}
+                                </span>
+                              </span>
+                            </p>
+                          </div>
+                        }
+                        <div id="aoi-stat-water-regulation" class="aoi-stat-card">
+                          <p id="aoi-stat-water-regulation-label" class="aoi-stat-label">
+                            {{ 'analysis.aoi.stats.waterRegulation' | translate }}
                           </p>
                           <p
+                            id="aoi-stat-water-regulation-value"
                             class="aoi-stat-value"
-                            [attr.data-full-value]="getAoiMetricFullValue('soil_organic_carbon')"
+                            [attr.data-full-value]="getAoiMetricFullValue('water_regulation_area')"
                             [attr.tabindex]="
-                              getAoiMetricFullValue('soil_organic_carbon') ? 0 : null
+                              getAoiMetricFullValue('water_regulation_area') ? 0 : null
                             "
                           >
                             {{
                               getAoiMetricValue(
-                                'soil_organic_carbon',
-                                getAoiUnitFallback(33000000, 'Mg·km²')
+                                'water_regulation_area',
+                                getAoiUnitFallback(78, 'km²')
                               )
                             }}
                           </p>
-                          <p id="aoi-stat-soil-carbon-unit" class="aoi-stat-unit">
-                            <span id="aoi-stat-soil-carbon-unit-text">{{
-                              'analysis.aoi.stats.unitDetails' | translate
-                            }}</span>
-                            <span
-                              id="aoi-stat-soil-carbon-unit-help"
-                              class="aoi-unit-help aoi-unit-help-end"
-                            >
-                              <button
-                                id="aoi-stat-soil-carbon-unit-help-trigger"
-                                type="button"
-                                class="aoi-unit-help-trigger"
-                                [attr.aria-label]="
-                                  'analysis.aoi.unitTooltips.carbonMassArea' | translate
-                                "
-                                aria-describedby="aoi-stat-soil-carbon-unit-tooltip"
-                              >
-                                <app-info-icon
-                                  rootId="aoi-stat-soil-carbon-unit-help-indicator"
-                                  colorClass="text-slate-400"
-                                />
-                              </button>
-                              <span
-                                id="aoi-stat-soil-carbon-unit-tooltip"
-                                role="tooltip"
-                                class="aoi-unit-tooltip"
-                              >
-                                {{ 'analysis.aoi.unitTooltips.carbonMassArea' | translate }}
-                              </span>
-                            </span>
+                          <p id="aoi-stat-water-regulation-unit" class="aoi-stat-unit">
+                            {{ 'analysis.aoi.stats.waterRegulationDesc' | translate }}
                           </p>
                         </div>
-                      }
-                      <div id="aoi-stat-water-regulation" class="aoi-stat-card">
-                        <p id="aoi-stat-water-regulation-label" class="aoi-stat-label">
-                          {{ 'analysis.aoi.stats.waterRegulation' | translate }}
-                        </p>
-                        <p
-                          id="aoi-stat-water-regulation-value"
-                          class="aoi-stat-value"
-                          [attr.data-full-value]="getAoiMetricFullValue('water_regulation_area')"
-                          [attr.tabindex]="
-                            getAoiMetricFullValue('water_regulation_area') ? 0 : null
-                          "
-                        >
-                          {{
-                            getAoiMetricValue(
-                              'water_regulation_area',
-                              getAoiUnitFallback(78, 'km²')
-                            )
-                          }}
-                        </p>
-                        <p id="aoi-stat-water-regulation-unit" class="aoi-stat-unit">
-                          {{ 'analysis.aoi.stats.waterRegulationDesc' | translate }}
-                        </p>
                       </div>
-                    </div>
 
-                    @if (fillDummyAoiMetrics()) {
-                      <div id="aoi-eco-narrative" class="aoi-narrative">
-                        {{ 'analysis.aoi.narratives.ecosystemPrefix' | translate }}
-                        <strong>{{
-                          'analysis.aoi.narratives.ecosystemCarbonValue' | translate
-                        }}</strong>
-                        {{ 'analysis.aoi.narratives.ecosystemMiddle' | translate }}
-                        <strong>{{
-                          'analysis.aoi.narratives.ecosystemWaterRegulationValue' | translate
-                        }}</strong>
-                        {{ 'analysis.aoi.narratives.ecosystemSuffix' | translate }}
-                      </div>
-                    }
+                      @if (fillDummyAoiMetrics()) {
+                        <div id="aoi-eco-narrative" class="aoi-narrative">
+                          {{ 'analysis.aoi.narratives.ecosystemPrefix' | translate }}
+                          <strong>{{
+                            'analysis.aoi.narratives.ecosystemCarbonValue' | translate
+                          }}</strong>
+                          {{ 'analysis.aoi.narratives.ecosystemMiddle' | translate }}
+                          <strong>{{
+                            'analysis.aoi.narratives.ecosystemWaterRegulationValue' | translate
+                          }}</strong>
+                          {{ 'analysis.aoi.narratives.ecosystemSuffix' | translate }}
+                        </div>
+                      }
+                    </div>
                   </div>
-                </div>
-              </section>
+                </section>
+              }
 
               <!-- ─── SECTION D: Land Use & Socio-Economic ─── -->
               <section id="aoi-section-land">
@@ -3112,162 +3158,166 @@
               </section>
 
               <!-- ─── SECTION E: Cultural & Indigenous Territories ─── -->
-              <section id="aoi-section-cultural">
-                <button
-                  id="aoi-head-cultural"
-                  type="button"
-                  class="aoi-section-head"
-                  [attr.aria-expanded]="isAoiSectionExpanded('cultural')"
-                  (click)="toggleAoiSection('cultural')"
-                >
-                  <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label rs-header-optical-nudge">{{
-                    'analysis.aoi.sections.cultural' | translate
-                  }}</span>
-                  <span
-                    id="aoi-chevron-cultural"
-                    class="aoi-section-chevron"
-                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('cultural')"
-                    aria-hidden="true"
+              @if (!isMarineSolution()) {
+                <section id="aoi-section-cultural">
+                  <button
+                    id="aoi-head-cultural"
+                    type="button"
+                    class="aoi-section-head"
+                    [attr.aria-expanded]="isAoiSectionExpanded('cultural')"
+                    (click)="toggleAoiSection('cultural')"
                   >
-                    <svg
-                      class="aoi-section-chevron-icon"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
+                    <span class="aoi-section-dot"></span>
+                    <span class="aoi-section-label rs-header-optical-nudge">{{
+                      'analysis.aoi.sections.cultural' | translate
+                    }}</span>
+                    <span
+                      id="aoi-chevron-cultural"
+                      class="aoi-section-chevron"
+                      [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('cultural')"
                       aria-hidden="true"
                     >
-                      <path d="M3 4.5L6 7.5L9 4.5" />
-                    </svg>
-                  </span>
-                </button>
-                <div
-                  id="aoi-body-cultural"
-                  class="collapse-motion-shell"
-                  [class.is-collapsed]="!isAoiSectionExpanded('cultural')"
-                  [attr.aria-hidden]="!isAoiSectionExpanded('cultural')"
-                >
-                  <div id="aoi-body-cultural-inner" class="collapse-motion-inner aoi-section-body">
-                    <div id="aoi-cultural-metrics" class="aoi-metric-table">
-                      <div id="aoi-row-indigenous" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-map-pin" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.indigenousReservations' | translate }}
+                      <svg
+                        class="aoi-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    id="aoi-body-cultural"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isAoiSectionExpanded('cultural')"
+                    [attr.aria-hidden]="!isAoiSectionExpanded('cultural')"
+                  >
+                    <div
+                      id="aoi-body-cultural-inner"
+                      class="collapse-motion-inner aoi-section-body"
+                    >
+                      <div id="aoi-cultural-metrics" class="aoi-metric-table">
+                        <div id="aoi-row-indigenous" class="aoi-metric-row">
+                          <div class="aoi-m-icon">
+                            <i class="fas fa-map-pin" aria-hidden="true"></i>
                           </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.indigenousReservationsDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            class="aoi-m-val"
-                            [attr.data-full-value]="
-                              getAoiMetricFullValue('indigenous_reservations_area')
-                            "
-                            [attr.tabindex]="
-                              getAoiMetricFullValue('indigenous_reservations_area') ? 0 : null
-                            "
-                          >
-                            {{
-                              getAoiMetricValue(
-                                'indigenous_reservations_area',
-                                formatAreaFallback(41)
-                              )
-                            }}
-                          </div>
-                          @if (
-                            getAoiMetricStatus('indigenous_reservations_area');
-                            as metricStatus
-                          ) {
-                            <div id="aoi-row-indigenous-unit" class="aoi-m-unit">
-                              {{ metricStatus }}
+                          <div class="aoi-m-body">
+                            <div class="aoi-m-name">
+                              {{ 'analysis.aoi.stats.indigenousReservations' | translate }}
                             </div>
-                          }
+                            <div class="aoi-m-desc">
+                              {{ 'analysis.aoi.stats.indigenousReservationsDesc' | translate }}
+                            </div>
+                          </div>
+                          <div>
+                            <div
+                              class="aoi-m-val"
+                              [attr.data-full-value]="
+                                getAoiMetricFullValue('indigenous_reservations_area')
+                              "
+                              [attr.tabindex]="
+                                getAoiMetricFullValue('indigenous_reservations_area') ? 0 : null
+                              "
+                            >
+                              {{
+                                getAoiMetricValue(
+                                  'indigenous_reservations_area',
+                                  formatAreaFallback(41)
+                                )
+                              }}
+                            </div>
+                            @if (
+                              getAoiMetricStatus('indigenous_reservations_area');
+                              as metricStatus
+                            ) {
+                              <div id="aoi-row-indigenous-unit" class="aoi-m-unit">
+                                {{ metricStatus }}
+                              </div>
+                            }
+                          </div>
+                        </div>
+                        <div id="aoi-row-community" class="aoi-metric-row">
+                          <div class="aoi-m-icon">
+                            <i class="fas fa-people-group" aria-hidden="true"></i>
+                          </div>
+                          <div class="aoi-m-body">
+                            <div class="aoi-m-name">
+                              {{ 'analysis.aoi.stats.communityCounsils' | translate }}
+                            </div>
+                            <div class="aoi-m-desc">
+                              {{ 'analysis.aoi.stats.communityCouncilsDesc' | translate }}
+                            </div>
+                          </div>
+                          <div>
+                            <div
+                              class="aoi-m-val"
+                              [attr.data-full-value]="
+                                getAoiMetricFullValue('community_councils_area')
+                              "
+                              [attr.tabindex]="
+                                getAoiMetricFullValue('community_councils_area') ? 0 : null
+                              "
+                            >
+                              {{
+                                getAoiMetricValue('community_councils_area', formatAreaFallback(27))
+                              }}
+                            </div>
+                            @if (getAoiMetricStatus('community_councils_area'); as metricStatus) {
+                              <div id="aoi-row-community-unit" class="aoi-m-unit">
+                                {{ metricStatus }}
+                              </div>
+                            }
+                          </div>
+                        </div>
+                        <div id="aoi-row-indigenous-pct" class="aoi-metric-row">
+                          <div class="aoi-m-icon">
+                            <i class="fas fa-percent" aria-hidden="true"></i>
+                          </div>
+                          <div class="aoi-m-body">
+                            <div class="aoi-m-name">
+                              {{ 'analysis.aoi.stats.indigenousOverlap' | translate }}
+                            </div>
+                            <div class="aoi-m-desc">
+                              {{ 'analysis.aoi.stats.indigenousOverlapDesc' | translate }}
+                            </div>
+                          </div>
+                          <div>
+                            <div
+                              class="aoi-m-val"
+                              [attr.data-full-value]="
+                                getAoiMetricFullValue('indigenous_territory_pct')
+                              "
+                              [attr.tabindex]="
+                                getAoiMetricFullValue('indigenous_territory_pct') ? 0 : null
+                              "
+                            >
+                              {{ getAoiMetricValue('indigenous_territory_pct', '12%') }}
+                            </div>
+                            @if (getAoiMetricStatus('indigenous_territory_pct'); as metricStatus) {
+                              <div id="aoi-row-indigenous-pct-unit" class="aoi-m-unit">
+                                {{ metricStatus }}
+                              </div>
+                            }
+                          </div>
                         </div>
                       </div>
-                      <div id="aoi-row-community" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-people-group" aria-hidden="true"></i>
+
+                      @if (fillDummyAoiMetrics()) {
+                        <div id="aoi-cultural-narrative" class="aoi-narrative">
+                          <strong>12%</strong>
+                          {{ 'analysis.aoi.narratives.culturalSuffix' | translate }}
                         </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.communityCounsils' | translate }}
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.communityCouncilsDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            class="aoi-m-val"
-                            [attr.data-full-value]="
-                              getAoiMetricFullValue('community_councils_area')
-                            "
-                            [attr.tabindex]="
-                              getAoiMetricFullValue('community_councils_area') ? 0 : null
-                            "
-                          >
-                            {{
-                              getAoiMetricValue('community_councils_area', formatAreaFallback(27))
-                            }}
-                          </div>
-                          @if (getAoiMetricStatus('community_councils_area'); as metricStatus) {
-                            <div id="aoi-row-community-unit" class="aoi-m-unit">
-                              {{ metricStatus }}
-                            </div>
-                          }
-                        </div>
-                      </div>
-                      <div id="aoi-row-indigenous-pct" class="aoi-metric-row">
-                        <div class="aoi-m-icon">
-                          <i class="fas fa-percent" aria-hidden="true"></i>
-                        </div>
-                        <div class="aoi-m-body">
-                          <div class="aoi-m-name">
-                            {{ 'analysis.aoi.stats.indigenousOverlap' | translate }}
-                          </div>
-                          <div class="aoi-m-desc">
-                            {{ 'analysis.aoi.stats.indigenousOverlapDesc' | translate }}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            class="aoi-m-val"
-                            [attr.data-full-value]="
-                              getAoiMetricFullValue('indigenous_territory_pct')
-                            "
-                            [attr.tabindex]="
-                              getAoiMetricFullValue('indigenous_territory_pct') ? 0 : null
-                            "
-                          >
-                            {{ getAoiMetricValue('indigenous_territory_pct', '12%') }}
-                          </div>
-                          @if (getAoiMetricStatus('indigenous_territory_pct'); as metricStatus) {
-                            <div id="aoi-row-indigenous-pct-unit" class="aoi-m-unit">
-                              {{ metricStatus }}
-                            </div>
-                          }
-                        </div>
-                      </div>
+                      }
                     </div>
-
-                    @if (fillDummyAoiMetrics()) {
-                      <div id="aoi-cultural-narrative" class="aoi-narrative">
-                        <strong>12%</strong>
-                        {{ 'analysis.aoi.narratives.culturalSuffix' | translate }}
-                      </div>
-                    }
                   </div>
-                </div>
-              </section>
+                </section>
+              }
 
-              <!-- ─── SECTION F: Marine ─── -->
-              @if (isMarineSolution()) {
+              <ng-template #aoiMarineSection>
                 <section id="aoi-section-marine">
                   <button
                     id="aoi-head-marine"
@@ -3310,51 +3360,6 @@
                   >
                     <div id="aoi-body-marine-inner" class="collapse-motion-inner aoi-section-body">
                       <div id="aoi-marine-metrics" class="aoi-metric-table">
-                        <div id="aoi-row-mpa" class="aoi-metric-row">
-                          <div id="aoi-row-mpa-icon-shell" class="aoi-m-icon">
-                            <i id="aoi-row-mpa-icon" class="fas fa-water" aria-hidden="true"></i>
-                          </div>
-                          <div id="aoi-row-mpa-body" class="aoi-m-body">
-                            <div id="aoi-row-mpa-name" class="aoi-m-name">
-                              {{ 'analysis.aoi.stats.mpaOverlap' | translate }}
-                              <span id="aoi-row-mpa-conditional" class="v3-tag-conditional">{{
-                                'analysis.overview.conditional' | translate
-                              }}</span>
-                              <span id="aoi-row-mpa-unavailable-help" class="v3-unavailable-help">
-                                <button
-                                  id="aoi-row-mpa-unavailable-trigger"
-                                  type="button"
-                                  class="v3-unavailable-trigger"
-                                  [attr.aria-label]="
-                                    'analysis.aoi.stats.marineUnavailableInfoLabel' | translate
-                                  "
-                                  aria-describedby="aoi-row-mpa-unavailable-tooltip"
-                                >
-                                  <app-info-icon
-                                    rootId="aoi-row-mpa-unavailable-indicator"
-                                    colorClass="text-slate-400"
-                                  />
-                                </button>
-                                <span
-                                  id="aoi-row-mpa-unavailable-tooltip"
-                                  role="tooltip"
-                                  class="v3-unavailable-tooltip"
-                                >
-                                  {{
-                                    'analysis.aoi.stats.marineSourceLayersUnavailable' | translate
-                                  }}
-                                </span>
-                              </span>
-                            </div>
-                            <div id="aoi-row-mpa-description" class="aoi-m-desc">
-                              {{ 'analysis.aoi.stats.mpaOverlapDesc' | translate }}
-                            </div>
-                          </div>
-                          <div id="aoi-row-mpa-value-shell">
-                            <div id="aoi-row-mpa-value" class="aoi-m-val">--</div>
-                            <div id="aoi-row-mpa-unit" class="aoi-m-unit">--</div>
-                          </div>
-                        </div>
                         <div id="aoi-row-coral" class="aoi-metric-row">
                           <div id="aoi-row-coral-icon-shell" class="aoi-m-icon">
                             <i id="aoi-row-coral-icon" class="fas fa-fish" aria-hidden="true"></i>
@@ -3508,6 +3513,51 @@
                             </div>
                           </div>
                         </div>
+                        <div id="aoi-row-mpa" class="aoi-metric-row">
+                          <div id="aoi-row-mpa-icon-shell" class="aoi-m-icon">
+                            <i id="aoi-row-mpa-icon" class="fas fa-water" aria-hidden="true"></i>
+                          </div>
+                          <div id="aoi-row-mpa-body" class="aoi-m-body">
+                            <div id="aoi-row-mpa-name" class="aoi-m-name">
+                              {{ 'analysis.aoi.stats.mpaOverlap' | translate }}
+                              <span id="aoi-row-mpa-conditional" class="v3-tag-conditional">{{
+                                'analysis.overview.conditional' | translate
+                              }}</span>
+                              <span id="aoi-row-mpa-unavailable-help" class="v3-unavailable-help">
+                                <button
+                                  id="aoi-row-mpa-unavailable-trigger"
+                                  type="button"
+                                  class="v3-unavailable-trigger"
+                                  [attr.aria-label]="
+                                    'analysis.aoi.stats.marineUnavailableInfoLabel' | translate
+                                  "
+                                  aria-describedby="aoi-row-mpa-unavailable-tooltip"
+                                >
+                                  <app-info-icon
+                                    rootId="aoi-row-mpa-unavailable-indicator"
+                                    colorClass="text-slate-400"
+                                  />
+                                </button>
+                                <span
+                                  id="aoi-row-mpa-unavailable-tooltip"
+                                  role="tooltip"
+                                  class="v3-unavailable-tooltip"
+                                >
+                                  {{
+                                    'analysis.aoi.stats.marineSourceLayersUnavailable' | translate
+                                  }}
+                                </span>
+                              </span>
+                            </div>
+                            <div id="aoi-row-mpa-description" class="aoi-m-desc">
+                              {{ 'analysis.aoi.stats.mpaOverlapDesc' | translate }}
+                            </div>
+                          </div>
+                          <div id="aoi-row-mpa-value-shell">
+                            <div id="aoi-row-mpa-value" class="aoi-m-val">--</div>
+                            <div id="aoi-row-mpa-unit" class="aoi-m-unit">--</div>
+                          </div>
+                        </div>
                         <div id="aoi-row-eez" class="aoi-metric-row">
                           <div id="aoi-row-eez-icon-shell" class="aoi-m-icon">
                             <i id="aoi-row-eez-icon" class="fas fa-anchor" aria-hidden="true"></i>
@@ -3561,10 +3611,10 @@
                     </div>
                   </div>
                 </section>
-              }
+              </ng-template>
 
               <!-- ─── National Context Summary ─── -->
-              @if (fillDummyAoiMetrics()) {
+              @if (fillDummyAoiMetrics() && !isMarineSolution()) {
                 <div id="aoi-context-narrative" class="aoi-narrative aoi-narrative-blue">
                   <strong>{{ aoi.name }}</strong>
                   {{ 'analysis.aoi.narratives.contextAfterName' | translate }}
@@ -4771,22 +4821,13 @@
                 [value]="goalsModalSortSelectValue()"
                 (change)="setGoalsModalSortId($any($event.target).value)"
               >
-                <option
-                  id="conservation-goals-modal-sort-coverage-desc"
-                  value="coverage-desc"
-                >
+                <option id="conservation-goals-modal-sort-coverage-desc" value="coverage-desc">
                   {{ 'analysis.overview.goalsWidget.modal.sortCoverageDesc' | translate }}
                 </option>
-                <option
-                  id="conservation-goals-modal-sort-coverage-asc"
-                  value="coverage-asc"
-                >
+                <option id="conservation-goals-modal-sort-coverage-asc" value="coverage-asc">
                   {{ 'analysis.overview.goalsWidget.modal.sortCoverageAsc' | translate }}
                 </option>
-                <option
-                  id="conservation-goals-modal-sort-name"
-                  value="name"
-                >
+                <option id="conservation-goals-modal-sort-name" value="name">
                   {{ 'analysis.overview.goalsWidget.modal.sortName' | translate }}
                 </option>
                 @if (goalsModalSortGeneratedOption(); as generatedSort) {
@@ -4801,11 +4842,7 @@
               </select>
             </label>
           </div>
-          <p
-            id="conservation-goals-modal-sort-status"
-            class="sr-only"
-            aria-live="polite"
-          >
+          <p id="conservation-goals-modal-sort-status" class="sr-only" aria-live="polite">
             {{ goalsModalSortLiveMessage() }}
           </p>
         </header>
@@ -4945,9 +4982,7 @@
                         [id]="'conservation-goals-modal-national-virtual-heading-' + heading.id"
                         class="px-3 py-2 text-left font-bold text-slate-600"
                         role="columnheader"
-                        [attr.aria-sort]="
-                          goalsModalAriaSort(speciesHeaderSortColumn(heading.id))
-                        "
+                        [attr.aria-sort]="goalsModalAriaSort(speciesHeaderSortColumn(heading.id))"
                       >
                         <app-table-header-tooltip
                           [idBase]="
@@ -4966,9 +5001,7 @@
                           [sortAriaLabel]="
                             goalsModalSortByLabel(speciesHeaderSortColumn(heading.id))
                           "
-                          (sortClick)="
-                            onGoalsModalSortHeader(speciesHeaderSortColumn(heading.id))
-                          "
+                          (sortClick)="onGoalsModalSortHeader(speciesHeaderSortColumn(heading.id))"
                         ></app-table-header-tooltip>
                       </span>
                     }
@@ -5065,9 +5098,7 @@
                         [id]="'conservation-goals-modal-virtual-heading-' + metricId"
                         class="px-3 py-2.5 text-left font-bold text-slate-600"
                         role="columnheader"
-                        [attr.aria-sort]="
-                          goalsModalAriaSort(speciesHeaderSortColumn(metricId))
-                        "
+                        [attr.aria-sort]="goalsModalAriaSort(speciesHeaderSortColumn(metricId))"
                       >
                         <app-table-header-tooltip
                           [idBase]="'conservation-goals-modal-virtual-heading-' + metricId"
@@ -5088,9 +5119,7 @@
                           [sortDirection]="
                             goalsModalSortIndicator(speciesHeaderSortColumn(metricId))
                           "
-                          [sortAriaLabel]="
-                            goalsModalSortByLabel(speciesHeaderSortColumn(metricId))
-                          "
+                          [sortAriaLabel]="goalsModalSortByLabel(speciesHeaderSortColumn(metricId))"
                           (sortClick)="onGoalsModalSortHeader(speciesHeaderSortColumn(metricId))"
                         ></app-table-header-tooltip>
                       </span>

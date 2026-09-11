@@ -48,7 +48,7 @@ services:
         ACCESS_REQUEST_NOTIFICATION_EMAIL: ${ACCESS_REQUEST_NOTIFICATION_EMAIL:-}
         GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
         MANIFEST_BLOB_URL: ${MANIFEST_BLOB_URL:-}
-        CATALOG_RELEASE_INDEX_BLOB_URL: ${CATALOG_RELEASE_INDEX_BLOB_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.1.0/catalog-release-index.json}
+        CATALOG_RELEASE_INDEX_BLOB_URL: ${CATALOG_RELEASE_INDEX_BLOB_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.2.0/catalog-release-index.json}
         SIRAP_MANIFEST_BLOB_URL: ${SIRAP_MANIFEST_BLOB_URL:-}
         BLOB_ASSET_PROXY_PATH: ${BLOB_ASSET_PROXY_PATH:-}
     environment:

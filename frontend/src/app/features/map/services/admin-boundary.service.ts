@@ -16,6 +16,7 @@ import type { ViewHit } from '@arcgis/core/views/types';
 
 import { PUBLIC_BLOB_HOST } from '@core/config/runtime-manifest.constants';
 import {
+  MARINE_SIRAP_BOUNDARY_SOURCE,
   PRODUCTION_SIRAP_BOUNDARY_SOURCE,
   UPDATED_TERRITORIAL_SIRAP_BOUNDARY_SOURCE,
   type AoiType,
@@ -77,6 +78,7 @@ export type AdminBoundaryLayerKey =
   | 'siraps_territorial'
   | 'siraps_territorial_updated'
   | 'siraps_thematic'
+  | 'siraps_marine'
   | 'admin_country_outline'
   | 'admin_departments'
   | 'admin_municipalities';
@@ -183,6 +185,7 @@ const DEFAULT_BOUNDARY_STYLE_BY_LAYER_KEY: Record<AdminBoundaryLayerKey, Boundar
     style: 'solid',
   },
   siraps_thematic: { color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR, width: 1.25, style: 'long-dash' },
+  siraps_marine: { color: [14, 165, 233, 235], width: 1.5, style: 'solid' },
   admin_country_outline: {
     color: DEFAULT_ADMIN_BOUNDARY_OUTLINE_COLOR,
     width: 1.6,
@@ -329,6 +332,20 @@ const COLOMBIA_BOUNDARY_CONFIGS: BoundaryConfig[] = [
     minScale: 0,
     maxScale: 0,
   },
+  {
+    id: MARINE_SIRAP_BOUNDARY_SOURCE.sourceId,
+    layerKey: MARINE_SIRAP_BOUNDARY_SOURCE.layerKey,
+    title: 'Marine SIRAPs',
+    type: 'sirap',
+    sourceType: 'geojson',
+    url: `${PUBLIC_BLOB_HOST}/${MARINE_SIRAP_BOUNDARY_SOURCE.pathname}`,
+    idFields: ['sirap_id'],
+    nameFields: ['sirap_name'],
+    visible: false,
+    opacity: 0.95,
+    minScale: 0,
+    maxScale: 0,
+  },
 ];
 
 // Single enforcement point for SIRAP layer feature flags. Disabled layers are
@@ -338,6 +355,7 @@ const SIRAP_LAYER_ENABLED_BY_KEY: Partial<Record<AdminBoundaryLayerKey, boolean>
   siraps_territorial: FEATURE_FLAGS.sirapLayers.territorial,
   siraps_territorial_updated: FEATURE_FLAGS.sirapLayers.territorialUpdated,
   siraps_thematic: FEATURE_FLAGS.sirapLayers.thematic,
+  siraps_marine: FEATURE_FLAGS.sirapLayers.marine,
 };
 const ENABLED_BOUNDARY_CONFIGS = COLOMBIA_BOUNDARY_CONFIGS.filter(
   (config) => config.type !== 'sirap' || (SIRAP_LAYER_ENABLED_BY_KEY[config.layerKey] ?? true),
@@ -375,6 +393,7 @@ export class AdminBoundaryService {
     siraps_territorial: false,
     siraps_territorial_updated: false,
     siraps_thematic: false,
+    siraps_marine: false,
     admin_country_outline: true,
     admin_departments: false,
     admin_municipalities: false,
@@ -389,7 +408,8 @@ export class AdminBoundaryService {
         state.siraps ||
         state.siraps_territorial ||
         state.siraps_territorial_updated ||
-        state.siraps_thematic,
+        state.siraps_thematic ||
+        state.siraps_marine,
       department: state.admin_departments,
       municipality: state.admin_municipalities,
       omec: false,
@@ -1119,9 +1139,16 @@ export class AdminBoundaryService {
       return;
     }
 
-    const hidesSelectedAoiLayer = configs.some(
-      (config) => config.selectable !== false && config.type === selectedAoi.type,
-    );
+    const hiddenSelectableConfigs = configs.filter((config) => config.selectable !== false);
+    if (hiddenSelectableConfigs.length === 0) {
+      return;
+    }
+
+    const selectedLayerKey = selectedAoi.boundarySourceLayerKey;
+    const hidesSelectedAoiLayer =
+      selectedLayerKey !== undefined
+        ? hiddenSelectableConfigs.some((config) => config.layerKey === selectedLayerKey)
+        : hiddenSelectableConfigs.some((config) => config.type === selectedAoi.type);
     if (hidesSelectedAoiLayer) {
       this.clearSelectionState();
     }

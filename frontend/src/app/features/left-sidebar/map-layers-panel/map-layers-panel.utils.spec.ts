@@ -264,6 +264,7 @@ describe('planning-domain layer filtering', () => {
     expect(layerPlanningDomain('layer-species_richness', 'group-species-biodiversity')).toBe(
       'land',
     );
+    expect(layerPlanningDomain('boundary-siraps_marine', 'group-admin-boundaries')).toBe('marine');
   });
 
   it('filters terrestrial, marine, and combined catalog scopes while retaining contextual boundaries', () => {
@@ -278,6 +279,15 @@ describe('planning-domain layer filtering', () => {
     ).toBe(false);
     expect(isLayerAvailableForScope('layer-mangroves', 'group-ecosystems', 'marine')).toBe(true);
     expect(isLayerAvailableForScope('layer-mangroves', 'group-ecosystems', 'land')).toBe(false);
+    expect(
+      isLayerAvailableForScope('boundary-siraps_marine', 'group-admin-boundaries', 'land'),
+    ).toBe(false);
+    expect(
+      isLayerAvailableForScope('boundary-siraps_marine', 'group-admin-boundaries', 'marine'),
+    ).toBe(true);
+    expect(
+      isLayerAvailableForScope('boundary-siraps_marine', 'group-admin-boundaries', 'both'),
+    ).toBe(true);
     expect(
       isLayerAvailableForScope('layer-marine_ecosystems', 'group-marine-ecosystems', 'land'),
     ).toBe(false);
