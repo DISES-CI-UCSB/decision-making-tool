@@ -40,15 +40,16 @@ ENV FIREBASE_API_KEY=$FIREBASE_API_KEY \
     METRICS_API_BASE_URL=$METRICS_API_BASE_URL \
     ENABLE_MANIFEST_EDITOR=$ENABLE_MANIFEST_EDITOR
 
-COPY frontend/package.json frontend/package-lock.json frontend/
-RUN cd frontend && npm ci
+COPY frontend/package.json frontend/yarn.lock frontend/.yarnrc.yml frontend/
+COPY frontend/.yarn/releases frontend/.yarn/releases
+RUN cd frontend && corepack enable && yarn install --immutable
 
 COPY frontend/ frontend/
 COPY data/solutions/nacional/ data/solutions/nacional/
 COPY data/boundaries/sirap_regions.geojson data/boundaries/sirap_regions.geojson
 
 WORKDIR /src/frontend
-RUN npm run build:vercel \
+RUN yarn build:vercel \
     && test -f dist/eco-plan/browser/index.html
 
 FROM nginx:1.27-alpine AS runtime

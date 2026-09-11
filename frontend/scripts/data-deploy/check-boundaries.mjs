@@ -21,13 +21,13 @@ async function main() {
     [sourceHash, targetHash] = await Promise.all([hashFile(sourcePath), hashFile(targetPath)]);
   } catch (error) {
     console.error(`[check:boundaries] Cannot verify the local boundary preview: ${error.message}`);
-    console.error('[check:boundaries] Run `npm run sync:boundaries` to create or refresh it.');
+    console.error('[check:boundaries] Run `yarn sync:boundaries` to create or refresh it.');
     process.exit(1);
   }
 
   if (sourceHash !== targetHash) {
     console.error('[check:boundaries] The local boundary preview is out of date.');
-    console.error('[check:boundaries] Run `npm run sync:boundaries` and then start the app again.');
+    console.error('[check:boundaries] Run `yarn sync:boundaries` and then start the app again.');
     process.exit(1);
   }
 

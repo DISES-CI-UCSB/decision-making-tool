@@ -113,12 +113,12 @@ export function parseArgs(rawArgs) {
 
 function printUsage() {
   console.log('[rollback:layer-manifest] Usage:');
-  console.log('  npm --prefix frontend run rollback:layer-manifest');
+  console.log('  yarn --cwd frontend rollback:layer-manifest');
   console.log(
-    '  npm --prefix frontend run rollback:layer-manifest -- --use <index|pathname|url> --catalog <catalog> --dry-run',
+    '  yarn --cwd frontend rollback:layer-manifest --use <index|pathname|url> --catalog <catalog> --dry-run',
   );
   console.log(
-    '  npm --prefix frontend run rollback:layer-manifest -- --use 0 --catalog <catalog> --confirm-rollback',
+    '  yarn --cwd frontend rollback:layer-manifest --use 0 --catalog <catalog> --confirm-rollback',
   );
 }
 

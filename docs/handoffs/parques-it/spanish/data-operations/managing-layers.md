@@ -89,7 +89,7 @@ El generador CSV actual **no** admite esto como un flujo exclusivo para operador
 5. **Mantenerla fuera de la configuración analítica.** No agregue el ID de la capa a `input_layer_ids.features`, `.cost`, `.includes` o `.excludes` de los metadatos de soluciones; definiciones o calculadores de métricas de Python; listas permitidas del constructor disperso del navegador; entradas de `build_runtime_artifact.py` del backend; ni controles del Finder. No cree ni afirme que existen artefactos de métricas activas/precalculadas para ella.
 6. **Validar antes de publicar.** Ejecute la validación y las pruebas del manifiesto sobre el candidato corregido, inspeccione los tres informes de conciliación y confirme que el candidato aún tenga `roleInMetricCalculation: none`, una URL nula de métricas activas y un mapa vacío de URL precalculadas. En la aplicación, verifique que la capa aparezca bajo la categoría prevista del panel izquierdo, se active y represente correctamente y no aparezca como opción del Finder ni cambie los resultados de soluciones, AOI conocidas o AOI personalizadas.
 7. **Publicar y verificar el resultado visible.** Siga el paso 7 con el candidato corregido y validado. Después de una actualización completa del navegador, el único cambio visible previsto para el usuario es una nueva capa opcional del mapa con la etiqueta, categoría, descripción emergente, leyenda/representación y comportamiento de opacidad aprobados.
-8. **Revertir si falla alguna comprobación de contrato.** Ejecute `npm --prefix frontend run rollback:layer-manifest` para restablecer el manifiesto archivado, restablezca o conserve la fila anterior del registro y elimine o ponga en cuarentena el recurso recién cargado mediante el proceso de Blob aprobado. Actualice la aplicación y confirme que la capa no esté presente y que los resultados analíticos permanezcan sin cambios.
+8. **Revertir si falla alguna comprobación de contrato.** Ejecute `yarn --cwd frontend rollback:layer-manifest` para restablecer el manifiesto archivado, restablezca o conserve la fila anterior del registro y elimine o ponga en cuarentena el recurso recién cargado mediante el proceso de Blob aprobado. Actualice la aplicación y confirme que la capa no esté presente y que los resultados analíticos permanezcan sin cambios.
 
 Las capas individuales de especies son diferentes: el cargador estándar de especies y el generador del manifiesto secundario exponen TIF desde el prefijo compartido de especies, y la canalización de AOI conocidas también puede leer TIF de especies cuando se recalculan las métricas. Una carga de visualización no reconstruye métricas ni matrices de AOI personalizadas, pero el flujo estándar documentado para especies no puede garantizar que el archivo permanezca solo para visualización en reconstrucciones analíticas futuras. Obtenga la revisión del desarrollador y del responsable de datos para un contrato separado antes de prometer una capa de especies solo para visualización.
 
@@ -136,19 +136,19 @@ El cargador de especies tiene una ruta de origen predeterminada específica de u
 ```bash
 SPECIES_TIF_UPLOAD_SOURCE=<approved-local-species-directory> \
 SPECIES_TIF_UPLOAD_DRY_RUN=1 \
-npm --prefix frontend run upload:species-tifs
+yarn --cwd frontend upload:species-tifs
 
 SPECIES_TIF_UPLOAD_SOURCE=<approved-local-species-directory> \
-npm --prefix frontend run upload:species-tifs
+yarn --cwd frontend upload:species-tifs
 
-npm --prefix frontend run generate:species-manifest
+yarn --cwd frontend generate:species-manifest
 ```
 
 `generate:species-manifest` examina el prefijo publicado de especies, construye el manifiesto secundario, archiva el manifiesto remoto de especies anterior y publica salvo que se configure para omitir la carga. El comando combinado se admite cuando sus valores predeterminados y su entorno ya se revisaron:
 
 ```bash
 SPECIES_TIF_UPLOAD_SOURCE=<approved-local-species-directory> \
-npm --prefix frontend run upload:species-tifs:manifest
+yarn --cwd frontend upload:species-tifs:manifest
 ```
 
 Si deben cambiar las métricas precalculadas de especies, recalcule los ID de soluciones afectados. Si deben cambiar las métricas de especies de AOI personalizadas, escale: el backend espera matrices preconstruidas `inputs/features/species-sparse/species_<group>.smtx.gz`, que esta carga de visualización no construye.
@@ -158,9 +158,9 @@ Si deben cambiar las métricas precalculadas de especies, recalcule los ID de so
 Ejecute:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run test:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend test:layer-manifest
 ```
 
 Revise:
@@ -260,10 +260,10 @@ curl http://127.0.0.1:8000/ready
 Cuando todos los artefactos aplicables estén listos:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run test:layer-manifest
-npm --prefix frontend run publish:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend test:layer-manifest
+yarn --cwd frontend publish:layer-manifest
 ```
 
 La publicación archiva el manifiesto anterior en tiempo de ejecución en `manifest/archive/`. Registre esa referencia de archivo. Actualice el navegador antes de verificar, porque la aplicación en ejecución puede conservar datos del manifiesto y de especies.
@@ -302,7 +302,7 @@ Conserve la clasificación de roles, aprobaciones, sumas de verificación de ori
 2. Restablezca el manifiesto anterior en tiempo de ejecución:
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest
+   yarn --cwd frontend rollback:layer-manifest
    ```
 
 3. Restablezca el recurso anterior mediante el proceso controlado aprobado de Blob, o restablezca la URL del registro para que apunte al recurso inmutable conservado.

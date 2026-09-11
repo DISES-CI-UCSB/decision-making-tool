@@ -249,10 +249,10 @@ Revise `goals-publish-report.json` para detectar errores, recuentos de filas, UR
 Una vez que estén disponibles las URL de las métricas compactas regulares, MEC o las metas:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run test:layer-manifest
-npm --prefix frontend run publish:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend test:layer-manifest
+yarn --cwd frontend publish:layer-manifest
 ```
 
 Revise la conciliación de soluciones antes de publicar. Confirme que cada solución afectada apunte, mediante `precomputedMetricUrls`, a las rutas inmutables o aprobadas previstas, incluidas `compactCache`, las metas y las seis URL de geografías MEC cuando corresponda.
@@ -332,7 +332,7 @@ curl http://127.0.0.1:8000/ready
 2. Restaure el manifiesto de tiempo de ejecución anterior:
 
 ```bash
-npm --prefix frontend run rollback:layer-manifest
+yarn --cwd frontend rollback:layer-manifest
 ```
 
 3. Vuelva a publicar los directorios e informes de generación regular/compacta anteriores conservados, o restaure las referencias de versiones inmutables anteriores. No existe un archivo de métricas automático.

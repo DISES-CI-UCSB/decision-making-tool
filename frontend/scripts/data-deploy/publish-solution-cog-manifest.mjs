@@ -61,10 +61,10 @@ function parseArgs(rawArgs) {
 
 function printUsage() {
   console.log('[publish-solution-cog-manifest] Usage:');
-  console.log('  npm --prefix frontend run publish:solution-cog-manifest');
-  console.log('  npm --prefix frontend run publish:solution-cog-manifest -- --publish');
+  console.log('  yarn --cwd frontend publish:solution-cog-manifest');
+  console.log('  yarn --cwd frontend publish:solution-cog-manifest --publish');
   console.log(
-    '  npm --prefix frontend run publish:solution-cog-manifest -- --upload-report data/cog/generated/upload-report.json',
+    '  yarn --cwd frontend publish:solution-cog-manifest --upload-report data/cog/generated/upload-report.json',
   );
 }
 

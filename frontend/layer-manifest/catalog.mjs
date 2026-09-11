@@ -400,15 +400,15 @@ function printValue(value, asJson) {
 }
 
 function printUsage() {
-  console.log('npm run catalog -- status [--json]');
+  console.log('yarn catalog status [--json]');
   console.log(
-    'npm run catalog -- publish-patch --layer-id <id> [--layer-id <id> ...] [--dry-run|--yes] [--json]',
+    'yarn catalog publish-patch --layer-id <id> [--layer-id <id> ...] [--dry-run|--yes] [--json]',
   );
-  console.log('npm run catalog -- publish-patch --remove-layer-id <id> [--dry-run|--yes] [--json]');
+  console.log('yarn catalog publish-patch --remove-layer-id <id> [--dry-run|--yes] [--json]');
   console.log(
-    'npm run catalog -- add-view-layer --file <layer.geojson> [--layer-id <id>] --name-es <name> --name-en <name> --description <text> --category <id> --source-org <org> --source-url <url> [--dry-run|--yes]',
+    'yarn catalog add-view-layer --file <layer.geojson> [--layer-id <id>] --name-es <name> --name-en <name> --description <text> --category <id> --source-org <org> --source-url <url> [--dry-run|--yes]',
   );
-  console.log('npm run catalog -- normalize-version [--dry-run|--yes]');
+  console.log('yarn catalog normalize-version [--dry-run|--yes]');
 }
 
 const isCalledDirectly =

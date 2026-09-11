@@ -93,7 +93,7 @@ Before starting:
    JSON for rollback, and retained prior artifact reports/directories.
 4. Prepare a `solution-catalog-v1` file with `releaseId`, `catalogVersion`,
    expected counts, and the exact sorted solution ID set. Paths passed to
-   `npm --prefix frontend` are relative to `frontend/`.
+   `yarn --cwd frontend` are relative to `frontend/`.
 5. Record source, license, owner, generation time, CRS, resolution, extent,
    data type, value meanings, NoData, and SHA-256 for each source pair.
 
@@ -204,14 +204,14 @@ Generate the local release manifest against that catalog (paths are relative
 to `frontend/`):
 
 ```bash
-npm --prefix frontend run generate:layer-manifest -- \
+yarn --cwd frontend generate:layer-manifest \
   --catalog ../path/to/solution-catalog.json
 
-npm --prefix frontend run validate:layer-manifest -- \
+yarn --cwd frontend validate:layer-manifest \
   public/data/layer-manifest/manifest.json \
   --catalog ../path/to/solution-catalog.json
 
-npm --prefix frontend run test:layer-manifest
+yarn --cwd frontend test:layer-manifest
 ```
 
 Review
@@ -247,11 +247,11 @@ python data/scripts/solutions-cog/main.py \
   --manifest-url <candidate-manifest-url> \
   --solution-id <solution-id>
 
-npm --prefix frontend run upload:solutions-cogs -- \
+yarn --cwd frontend upload:solutions-cogs \
   --dry-run \
   --solution-id <solution-id>
 
-npm --prefix frontend run upload:solutions-cogs -- \
+yarn --cwd frontend upload:solutions-cogs \
   --solution-id <solution-id>
 ```
 
@@ -329,7 +329,7 @@ must come from `verify_artifacts.py`. Copy `--expected-live-sha256` from the
 dry-run output:
 
 ```bash
-npm --prefix frontend run publish:layer-manifest -- \
+yarn --cwd frontend publish:layer-manifest \
   --source public/data/layer-manifest/manifest.json \
   --catalog ../path/to/solution-catalog.json \
   --artifact-inventory ../path/to/regular-verification.json \
@@ -338,7 +338,7 @@ npm --prefix frontend run publish:layer-manifest -- \
   --artifact-inventory ../path/to/mec-verification.json \
   --dry-run
 
-npm --prefix frontend run publish:layer-manifest -- \
+yarn --cwd frontend publish:layer-manifest \
   --source public/data/layer-manifest/manifest.json \
   --catalog ../path/to/solution-catalog.json \
   --artifact-inventory ../path/to/regular-verification.json \
@@ -464,13 +464,13 @@ claim full known/custom parity without the documented regression checks.
 2. List manifest archives:
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest
+   yarn --cwd frontend rollback:layer-manifest
    ```
 
 3. Dry-run the recorded known-good archive against its historical catalog:
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- \
+   yarn --cwd frontend rollback:layer-manifest \
      --use <index|pathname|url> \
      --catalog ../path/to/historical-solution-catalog.json \
      --dry-run
@@ -479,7 +479,7 @@ claim full known/custom parity without the documented regression checks.
 4. Confirm the restore:
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- \
+   yarn --cwd frontend rollback:layer-manifest \
      --use <index|pathname|url> \
      --catalog ../path/to/historical-solution-catalog.json \
      --confirm-rollback

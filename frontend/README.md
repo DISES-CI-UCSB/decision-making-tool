@@ -16,18 +16,20 @@ Large geospatial layer assets are transitioning from repo-local files to Vercel 
 
 ## Development server
 
+The project uses Yarn 4 via Corepack. If you only have npm installed, run `corepack enable` first.
+
 To start a local development server, run:
 
 ```bash
-npm start
+yarn start
 ```
 
-`npm start` syncs current local solution and boundary assets into `public/data/` before running `ng serve`. Once the server is running, open `http://localhost:4200/`.
+`yarn start` syncs current local solution and boundary assets into `public/data/` before running `ng serve`. Once the server is running, open `http://localhost:4200/`.
 
 ## Layer manifest validation
 
 ```bash
-npm run validate:layer-manifest
+yarn validate:layer-manifest
 ```
 
 This validates the committed template and, when present, the ignored development manifest cache.
@@ -51,7 +53,7 @@ ng generate --help
 To build the project run:
 
 ```bash
-npm run build
+yarn build
 ```
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
@@ -59,14 +61,14 @@ This will compile your project and store the build artifacts in the `dist/` dire
 For Vercel-style validation and asset sync, run:
 
 ```bash
-npm run build:vercel
+yarn build:vercel
 ```
 
 `METRICS_API_BASE_URL` can be set for production-style builds to point custom polygon metric requests at the backend API. If it is omitted, production defaults to the Vercel same-origin `/metrics-api` rewrite, which forwards requests to the HTTPS backend.
 
 ## Docker
 
-Vercel deploy is unchanged. The frontend image is a second way to serve the same `npm run build:vercel` output.
+Vercel deploy is unchanged. The frontend image is a second way to serve the same `yarn build:vercel` output.
 
 From the repository root:
 
