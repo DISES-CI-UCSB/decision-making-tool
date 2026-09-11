@@ -53,7 +53,7 @@ Antes de comenzar:
 1. Trabaje desde la raíz del repositorio con el entorno de métricas de Python y las dependencias del frontend instalados.
 2. Confirme que `BLOB_READ_WRITE_TOKEN` esté presente en `.env.local`. Nunca imprima, pegue ni registre su valor.
 3. Registre el entorno de destino, la URL del manifiesto nacional activo, el JSON histórico del catálogo para reversión y los informes/directorios conservados de artefactos anteriores.
-4. Prepare un archivo `solution-catalog-v1` con `releaseId`, `catalogVersion`, recuentos esperados y el conjunto exacto de ID de solución ordenados. Las rutas pasadas a `npm --prefix frontend` son relativas a `frontend/`.
+4. Prepare un archivo `solution-catalog-v1` con `releaseId`, `catalogVersion`, recuentos esperados y el conjunto exacto de ID de solución ordenados. Las rutas pasadas a `yarn --cwd frontend` son relativas a `frontend/`.
 5. Registre la fuente, licencia, responsable, hora de generación, CRS, resolución, extensión, tipo de datos, significado de los valores, NoData y SHA-256 de cada par fuente.
 
 ## Decidir si es una solución nueva o una revisión material
@@ -133,14 +133,14 @@ python data/metrics/python/metrics_pipeline/plan_solution_release.py \
 Genere el manifiesto local de la versión contra ese catálogo (las rutas son relativas a `frontend/`):
 
 ```bash
-npm --prefix frontend run generate:layer-manifest -- \
+yarn --cwd frontend generate:layer-manifest \
   --catalog ../path/to/solution-catalog.json
 
-npm --prefix frontend run validate:layer-manifest -- \
+yarn --cwd frontend validate:layer-manifest \
   public/data/layer-manifest/manifest.json \
   --catalog ../path/to/solution-catalog.json
 
-npm --prefix frontend run test:layer-manifest
+yarn --cwd frontend test:layer-manifest
 ```
 
 Revise `development-artifacts/layer-manifest/reports/solutions-reconciliation-report.json`. El ID previsto debe aparecer una vez en `solutions[]`, no en `skipped` ni `unmatchedRasters`. Compruebe `finderInputs`, `displayUrl`, `metadataUrl`, `rendering` y cada valor determinista de `precomputedMetricUrls` bajo `releases/{releaseId}/`.
@@ -166,11 +166,11 @@ python data/scripts/solutions-cog/main.py \
   --manifest-url <candidate-manifest-url> \
   --solution-id <solution-id>
 
-npm --prefix frontend run upload:solutions-cogs -- \
+yarn --cwd frontend upload:solutions-cogs \
   --dry-run \
   --solution-id <solution-id>
 
-npm --prefix frontend run upload:solutions-cogs -- \
+yarn --cwd frontend upload:solutions-cogs \
   --solution-id <solution-id>
 ```
 
@@ -227,7 +227,7 @@ Después de que existan los artefactos recalculados, ensamble la reutilización 
 Confirme que cada URL del manifiesto generado ya resuelva a bytes verificados. Luego simule y promueva. `--catalog` es obligatorio. Cada `--artifact-inventory` debe provenir de `verify_artifacts.py`. Copie `--expected-live-sha256` de la salida de la simulación:
 
 ```bash
-npm --prefix frontend run publish:layer-manifest -- \
+yarn --cwd frontend publish:layer-manifest \
   --source public/data/layer-manifest/manifest.json \
   --catalog ../path/to/solution-catalog.json \
   --artifact-inventory ../path/to/regular-verification.json \
@@ -236,7 +236,7 @@ npm --prefix frontend run publish:layer-manifest -- \
   --artifact-inventory ../path/to/mec-verification.json \
   --dry-run
 
-npm --prefix frontend run publish:layer-manifest -- \
+yarn --cwd frontend publish:layer-manifest \
   --source public/data/layer-manifest/manifest.json \
   --catalog ../path/to/solution-catalog.json \
   --artifact-inventory ../path/to/regular-verification.json \
@@ -316,13 +316,13 @@ Si cambian los insumos compartidos en producción o el manifiesto fuente que usa
 2. Enumere los archivos del manifiesto:
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest
+   yarn --cwd frontend rollback:layer-manifest
    ```
 
 3. Simule el archivo registrado conocido como válido contra su catálogo histórico:
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- \
+   yarn --cwd frontend rollback:layer-manifest \
      --use <index|pathname|url> \
      --catalog ../path/to/historical-solution-catalog.json \
      --dry-run
@@ -331,7 +331,7 @@ Si cambian los insumos compartidos en producción o el manifiesto fuente que usa
 4. Confirme la restauración:
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- \
+   yarn --cwd frontend rollback:layer-manifest \
      --use <index|pathname|url> \
      --catalog ../path/to/historical-solution-catalog.json \
      --confirm-rollback

@@ -39,6 +39,7 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [MapLayersPanelComponent],
       providers: [
@@ -93,6 +94,10 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
         },
       ],
     }).compileComponents();
+    TestBed.inject(AppStateService).activeSolution$.set({
+      id: 'test-solution',
+      name: 'Test solution',
+    } as Solution);
   });
 
   it('updates the administrative-boundary label before slow map reordering begins', async () => {
@@ -164,10 +169,8 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
     fixture.detectChanges();
 
     const selectedRows = Array.from<Element>(
-      fixture.nativeElement.querySelectorAll(
-        '[id^="map-layers-selected-layer-row-"]',
-      ) as NodeListOf<Element>,
-    ).filter((row) => row.getAttribute('data-layer-id'));
+      fixture.nativeElement.querySelectorAll('[data-ui="selected-layer-row"]'),
+    );
 
     expect(selectedRows.slice(0, 3).map((row) => row.getAttribute('data-layer-id'))).toEqual([
       'overlay-conservation-solution',
@@ -179,6 +182,38 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
         '#map-layers-selected-layer-row-name-boundary-active_sirap',
       )?.textContent,
     ).toContain('SIRAP Eje Cafetero');
+  });
+
+  it('re-pins the screenshot order so Colombia cannot sit above the active SIRAP', () => {
+    TestBed.inject(AppStateService).activeSolution$.set({
+      id: 'sirap-eje',
+      name: 'Eje scenario',
+      matchPercentage: 100,
+      geometryUrl: '',
+      metadata: { scope: 'sirap', sirapId: 'eje-cafetero' },
+      metrics: [],
+    } as Solution);
+    const fixture = TestBed.createComponent(MapLayersPanelComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as unknown as {
+      selectedLayerOrder: { set: (order: string[]) => void };
+    };
+    component.selectedLayerOrder.set([
+      'overlay-conservation-solution',
+      'boundary-admin_country_outline',
+      'boundary-active_sirap',
+    ]);
+    fixture.detectChanges();
+
+    const selectedRows = Array.from<Element>(
+      fixture.nativeElement.querySelectorAll('[data-ui="selected-layer-row"]'),
+    );
+    expect(selectedRows.slice(0, 3).map((row) => row.getAttribute('data-layer-id'))).toEqual([
+      'overlay-conservation-solution',
+      'boundary-active_sirap',
+      'boundary-admin_country_outline',
+    ]);
   });
 
   it('removes displayed layers from the map when resetting defaults', async () => {
@@ -198,6 +233,8 @@ describeInBrowser('MapLayersPanel Add responsiveness in Chromium', () => {
       '#map-layers-reset-defaults-button',
     ) as HTMLButtonElement;
     resetButton.click();
+    fixture.detectChanges();
+    await waitForPostPaintTask();
     fixture.detectChanges();
 
     expect(adminBoundaryVisibilitySync).toHaveBeenCalledWith('admin_departments', false);

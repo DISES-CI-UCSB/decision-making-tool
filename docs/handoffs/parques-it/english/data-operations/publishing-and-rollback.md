@@ -91,12 +91,12 @@ There is no scanned `inputs/excludes/` workflow. The metadata contract supports 
 
 ## Procedure 1: Generate, test, validate, and publish the runtime manifest
 
-National/marine solution and metric releases use gated promotion. There is no `--skip-archive`. `--catalog` is required. Copy `--expected-live-sha256` from the immediately preceding dry run. View-only PATCH layer changes use `npm --prefix frontend run catalog -- publish-patch` instead; they must not alter `solutions`.
+National/marine solution and metric releases use gated promotion. There is no `--skip-archive`. `--catalog` is required. Copy `--expected-live-sha256` from the immediately preceding dry run. View-only PATCH layer changes use `yarn --cwd frontend catalog publish-patch` instead; they must not alter `solutions`.
 
 1. Generate the local manifest from `solution-catalog-v1` (**supported**):
 
    ```bash
-   npm --prefix frontend run generate:layer-manifest -- \
+   yarn --cwd frontend generate:layer-manifest \
      --catalog ../path/to/solution-catalog.json
    ```
 
@@ -104,10 +104,10 @@ National/marine solution and metric releases use gated promotion. There is no `-
 3. Run schema validation and manifest tests against the same catalog (**supported**):
 
    ```bash
-   npm --prefix frontend run validate:layer-manifest -- \
+   yarn --cwd frontend validate:layer-manifest \
      public/data/layer-manifest/manifest.json \
      --catalog ../path/to/solution-catalog.json
-   npm --prefix frontend run test:layer-manifest
+   yarn --cwd frontend test:layer-manifest
    ```
 
    Set `CHECK_REMOTE_DISPLAY_URLS=true` for the validator to probe remote display URLs; the default validation does not make those remote requests.
@@ -119,7 +119,7 @@ National/marine solution and metric releases use gated promotion. There is no `-
 5. Collect `metric-artifact-verification-v1` inventories from `verify_artifacts.py` (regular, compact, goals, and MEC for land). Dry-run gated publish (**supported**):
 
    ```bash
-   npm --prefix frontend run publish:layer-manifest -- \
+   yarn --cwd frontend publish:layer-manifest \
      --source public/data/layer-manifest/manifest.json \
      --catalog ../path/to/solution-catalog.json \
      --artifact-inventory ../path/to/regular-verification.json \
@@ -132,7 +132,7 @@ National/marine solution and metric releases use gated promotion. There is no `-
 6. Promote only after the dry run matches the live SHA (**supported**):
 
    ```bash
-   npm --prefix frontend run publish:layer-manifest -- \
+   yarn --cwd frontend publish:layer-manifest \
      --source public/data/layer-manifest/manifest.json \
      --catalog ../path/to/solution-catalog.json \
      --artifact-inventory ../path/to/regular-verification.json \
@@ -152,13 +152,13 @@ National/marine solution and metric releases use gated promotion. There is no `-
 1. Ensure species TIFF uploads are complete. Upload plus manifest generation is **supported**:
 
    ```bash
-   npm --prefix frontend run upload:species-tifs:manifest
+   yarn --cwd frontend upload:species-tifs:manifest
    ```
 
    To generate from already-published TIFFs:
 
    ```bash
-   npm --prefix frontend run generate:species-manifest
+   yarn --cwd frontend generate:species-manifest
    ```
 
 2. Understand the write boundary: `generate:species-manifest` writes the local file and, when `BLOB_READ_WRITE_TOKEN` is available, publishes `manifests/species.manifest.json` by default. It archives the prior live species manifest under `manifests/archive/`.
@@ -177,25 +177,25 @@ National/marine solution and metric releases use gated promotion. There is no `-
 2. Preview one upload and inspect the generated report (**supported command, manual review**):
 
    ```bash
-   npm --prefix frontend run upload:solutions-cogs -- --dry-run --limit 1
+   yarn --cwd frontend upload:solutions-cogs --dry-run --limit 1
    ```
 
 3. Upload the COG set (**supported**):
 
    ```bash
-   npm --prefix frontend run upload:solutions-cogs
+   yarn --cwd frontend upload:solutions-cogs
    ```
 
 4. Produce and validate a candidate manifest without publishing (**supported**):
 
    ```bash
-   npm --prefix frontend run publish:solution-cog-manifest
+   yarn --cwd frontend publish:solution-cog-manifest
    ```
 
 5. Publish the candidate after review (**supported**):
 
    ```bash
-   npm --prefix frontend run publish:solution-cog-manifest -- --publish
+   yarn --cwd frontend publish:solution-cog-manifest --publish
    ```
 
    This uses the gated runtime-manifest publisher, so `--catalog`, inventories, `--confirm-release`, and `--expected-live-sha256` apply. The prior live pointer is archived.
@@ -291,14 +291,14 @@ Manifest rollback restores routing metadata only. It does **not** recreate asset
 1. List available archives without changing live state (**supported**):
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest
+   yarn --cwd frontend rollback:layer-manifest
    ```
 
 2. Review the numbered archive list and choose the known-good entry (**manual decision**). Archives without release identity are rejected.
 3. Dry-run against the historical `solution-catalog-v1` for that archive (**supported**):
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- \
+   yarn --cwd frontend rollback:layer-manifest \
      --use <index|pathname|url> \
      --catalog ../path/to/historical-solution-catalog.json \
      --dry-run
@@ -307,7 +307,7 @@ Manifest rollback restores routing metadata only. It does **not** recreate asset
 4. Confirm the restore (**supported**):
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- \
+   yarn --cwd frontend rollback:layer-manifest \
      --use <index|pathname|url> \
      --catalog ../path/to/historical-solution-catalog.json \
      --confirm-rollback

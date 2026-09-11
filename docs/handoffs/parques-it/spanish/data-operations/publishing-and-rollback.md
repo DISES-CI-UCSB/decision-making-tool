@@ -88,12 +88,12 @@ No existe un flujo de trabajo que examine `inputs/excludes/`. El contrato de met
 
 ## Procedimiento 1: generar, probar, validar y publicar el manifiesto de tiempo de ejecución
 
-Las versiones de soluciones y métricas nacionales/marinas usan promoción condicionada. No existe `--skip-archive`. `--catalog` es obligatorio. Copie `--expected-live-sha256` de la simulación inmediatamente anterior. Los cambios PATCH solo de capas de vista usan `npm --prefix frontend run catalog -- publish-patch`; no deben alterar `solutions`.
+Las versiones de soluciones y métricas nacionales/marinas usan promoción condicionada. No existe `--skip-archive`. `--catalog` es obligatorio. Copie `--expected-live-sha256` de la simulación inmediatamente anterior. Los cambios PATCH solo de capas de vista usan `yarn --cwd frontend catalog publish-patch`; no deben alterar `solutions`.
 
 1. Genere el manifiesto local a partir de `solution-catalog-v1` (**admitido**):
 
    ```bash
-   npm --prefix frontend run generate:layer-manifest -- \
+   yarn --cwd frontend generate:layer-manifest \
      --catalog ../path/to/solution-catalog.json
    ```
 
@@ -101,10 +101,10 @@ Las versiones de soluciones y métricas nacionales/marinas usan promoción condi
 3. Ejecute validación de esquema y pruebas de manifiesto contra el mismo catálogo (**admitido**):
 
    ```bash
-   npm --prefix frontend run validate:layer-manifest -- \
+   yarn --cwd frontend validate:layer-manifest \
      public/data/layer-manifest/manifest.json \
      --catalog ../path/to/solution-catalog.json
-   npm --prefix frontend run test:layer-manifest
+   yarn --cwd frontend test:layer-manifest
    ```
 
    Establezca `CHECK_REMOTE_DISPLAY_URLS=true` para que el validador analice las URL visibles remotas; la validación predeterminada no realiza esas solicitudes remotas.
@@ -116,7 +116,7 @@ Las versiones de soluciones y métricas nacionales/marinas usan promoción condi
 5. Recopile inventarios `metric-artifact-verification-v1` de `verify_artifacts.py` (regular, compacta, metas y MEC para terrestre). Simule la publicación condicionada (**admitido**):
 
    ```bash
-   npm --prefix frontend run publish:layer-manifest -- \
+   yarn --cwd frontend publish:layer-manifest \
      --source public/data/layer-manifest/manifest.json \
      --catalog ../path/to/solution-catalog.json \
      --artifact-inventory ../path/to/regular-verification.json \
@@ -129,7 +129,7 @@ Las versiones de soluciones y métricas nacionales/marinas usan promoción condi
 6. Promueva solo después de que la simulación coincida con el SHA activo (**admitido**):
 
    ```bash
-   npm --prefix frontend run publish:layer-manifest -- \
+   yarn --cwd frontend publish:layer-manifest \
      --source public/data/layer-manifest/manifest.json \
      --catalog ../path/to/solution-catalog.json \
      --artifact-inventory ../path/to/regular-verification.json \
@@ -149,13 +149,13 @@ Las versiones de soluciones y métricas nacionales/marinas usan promoción condi
 1. Asegúrese de que las cargas de archivos TIFF de especies estén completas. El proceso de carga y generación del manifiesto está **admitido**:
 
    ```bash
-   npm --prefix frontend run upload:species-tifs:manifest
+   yarn --cwd frontend upload:species-tifs:manifest
    ```
 
    Para generar a partir de TIFF ya publicados:
 
    ```bash
-   npm --prefix frontend run generate:species-manifest
+   yarn --cwd frontend generate:species-manifest
    ```
 
 2. Comprenda el límite de escritura: `generate:species-manifest` escribe el archivo local y, cuando `BLOB_READ_WRITE_TOKEN` está disponible, publica `manifests/species.manifest.json` de forma predeterminada. Archiva el manifiesto activo de especies anterior en `manifests/archive/`.
@@ -174,25 +174,25 @@ Las versiones de soluciones y métricas nacionales/marinas usan promoción condi
 2. Obtenga una vista previa de una carga e inspeccione el informe generado (**comando admitido, revisión manual**):
 
    ```bash
-   npm --prefix frontend run upload:solutions-cogs -- --dry-run --limit 1
+   yarn --cwd frontend upload:solutions-cogs --dry-run --limit 1
    ```
 
 3. Cargue el conjunto COG (**admitido**):
 
    ```bash
-   npm --prefix frontend run upload:solutions-cogs
+   yarn --cwd frontend upload:solutions-cogs
    ```
 
 4. Produzca y valide un manifiesto candidato sin publicarlo (**admitido**):
 
    ```bash
-   npm --prefix frontend run publish:solution-cog-manifest
+   yarn --cwd frontend publish:solution-cog-manifest
    ```
 
 5. Publique el candidato después de la revisión (**admitido**):
 
    ```bash
-   npm --prefix frontend run publish:solution-cog-manifest -- --publish
+   yarn --cwd frontend publish:solution-cog-manifest --publish
    ```
 
    Esto utiliza el publicador condicionado del manifiesto de tiempo de ejecución, de modo que aplican `--catalog`, inventarios, `--confirm-release` y `--expected-live-sha256`. El puntero activo anterior se archiva.
@@ -288,14 +288,14 @@ La reversión del manifiesto restaura únicamente los metadatos de enrutamiento.
 1. Liste los archivos disponibles sin cambiar el estado activo (**admitido**):
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest
+   yarn --cwd frontend rollback:layer-manifest
    ```
 
 2. Revise la lista de archivos numerados y elija la entrada en buen estado (**decisión manual**). Se rechazan archivos sin identidad de versión.
 3. Simule contra el `solution-catalog-v1` histórico de ese archivo (**admitido**):
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- \
+   yarn --cwd frontend rollback:layer-manifest \
      --use <index|pathname|url> \
      --catalog ../path/to/historical-solution-catalog.json \
      --dry-run
@@ -304,7 +304,7 @@ La reversión del manifiesto restaura únicamente los metadatos de enrutamiento.
 4. Confirme la restauración (**admitido**):
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- \
+   yarn --cwd frontend rollback:layer-manifest \
      --use <index|pathname|url> \
      --catalog ../path/to/historical-solution-catalog.json \
      --confirm-rollback

@@ -375,8 +375,7 @@ export class ManifestStyleEditorOverlayComponent {
     () => `~/Downloads/${this.lastDownloadedStyledManifestFilename() ?? 'DOWNLOADED_FILE.json'}`,
   );
   protected readonly localStyleRequestPublishCommand = computed(
-    () =>
-      `npm run publish:styled-manifest -- --source ${this.localStyleRequestFileLocation()} --publish`,
+    () => `yarn publish:styled-manifest --source ${this.localStyleRequestFileLocation()} --publish`,
   );
 
   protected readonly lastManualEdit = computed<RuntimeLayerManifestManualEdit | null>(() => {

@@ -109,7 +109,9 @@ def test_main_fixture_orchestrates_independent_and_guarded_microbatch(
     identity_drift = {}
 
     monkeypatch.setattr(pipeline, "fetch_manifest", lambda _url: manifest)
-    monkeypatch.setattr(pipeline, "_validate_required_layers", lambda _manifest: [])
+    monkeypatch.setattr(
+        pipeline, "_validate_required_layers", lambda _manifest, _solutions: []
+    )
     monkeypatch.setattr(
         pipeline,
         "_preflight_solution_rasters",

@@ -113,9 +113,9 @@ describe('admin-access-requests-panel.fake-demo-data', () => {
     expect(fakePendingSirapRequestCount(1)).toBe(1);
     expect(fakePendingSirapRequestCount(4)).toBe(0);
     expect(fakePendingSirapIds(7)).toEqual([
-      SIRAP_REGION_IDS[1],
-      SIRAP_REGION_IDS[2],
-      SIRAP_REGION_IDS[3],
+      SIRAP_REGION_IDS[7 % SIRAP_REGION_IDS.length],
+      SIRAP_REGION_IDS[(7 + 1) % SIRAP_REGION_IDS.length],
+      SIRAP_REGION_IDS[(7 + 2) % SIRAP_REGION_IDS.length],
     ]);
   });
 

@@ -476,7 +476,11 @@ function reconcileAdminBoundaries(
         row.mapSync?.type === 'admin-boundary' ? [row.mapSync.boundaryLayerKey] : [],
       ),
     );
-    const preservedRows = group.rows.filter(
+    const preservedActiveSirap = group.rows.filter(
+      (row) =>
+        row.mapSync?.type === 'admin-boundary' && row.mapSync.boundaryLayerKey === 'active_sirap',
+    );
+    const preservedCountryOutline = group.rows.filter(
       (row) =>
         row.mapSync?.type === 'admin-boundary' &&
         row.mapSync.boundaryLayerKey === 'admin_country_outline' &&
@@ -512,7 +516,11 @@ function reconcileAdminBoundaries(
             ...rows.slice(lastSirapIndex + 1),
           ]
         : [...localMarineRows, ...rows];
-    const reconciledRows = [...preservedRows, ...rowsWithLocalMarine];
+    const reconciledRows = [
+      ...preservedActiveSirap,
+      ...preservedCountryOutline,
+      ...rowsWithLocalMarine,
+    ];
     return reconciledRows.length === 0
       ? group
       : {

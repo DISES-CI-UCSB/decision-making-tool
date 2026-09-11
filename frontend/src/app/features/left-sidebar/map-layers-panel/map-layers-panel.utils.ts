@@ -1,6 +1,9 @@
 import type { RuntimeLayerManifestRenderingConfig } from '@core/models';
 import type { MapSyncDescriptor } from './map-layers-panel-map-sync';
-import { MASTER_LEGEND_EXCLUDED_ADMIN_BOUNDARY_LAYER_KEYS } from './map-layers-panel.config';
+import {
+  CONTEXTUAL_PRIORITY_LAYER_IDS,
+  MASTER_LEGEND_EXCLUDED_ADMIN_BOUNDARY_LAYER_KEYS,
+} from './map-layers-panel.config';
 
 export type SelectedLayerDropPosition = 'before' | 'after';
 export type ScenarioLayerStatus = 'considered' | 'reference';
@@ -88,6 +91,33 @@ export function computeSelectedLayerOrder(
       .filter((species) => species.selected)
       .map((species) => species.id),
   ];
+}
+
+export function pinContextualSelectedLayerOrder(
+  order: string[],
+  contextualIds: readonly string[] = CONTEXTUAL_PRIORITY_LAYER_IDS,
+): string[] {
+  const presentContextualIds = contextualIds.filter((id) => order.includes(id));
+  if (presentContextualIds.length === 0) {
+    return order;
+  }
+
+  const contextualIdSet = new Set(presentContextualIds);
+  return [...presentContextualIds, ...order.filter((id) => !contextualIdSet.has(id))];
+}
+
+/** Merge persisted order with newly-selected ids, then pin contextual boundaries. */
+export function buildPinnedSelectedLayerIds(
+  persistedOrder: readonly string[],
+  selectedIds: readonly string[],
+  contextualIds: readonly string[] = CONTEXTUAL_PRIORITY_LAYER_IDS,
+): string[] {
+  const selectedIdSet = new Set(selectedIds);
+  const mergedOrder = [
+    ...persistedOrder.filter((id) => selectedIdSet.has(id)),
+    ...selectedIds.filter((id) => !persistedOrder.includes(id)),
+  ];
+  return pinContextualSelectedLayerOrder(mergedOrder, contextualIds);
 }
 
 export function normalizeSelectedLayerOrder(

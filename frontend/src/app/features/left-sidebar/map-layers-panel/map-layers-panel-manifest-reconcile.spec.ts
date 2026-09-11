@@ -451,6 +451,49 @@ describe('reconcileMapLayersManifest', () => {
     ]);
   });
 
+  it('preserves the active SIRAP helper row ahead of manifest admin boundaries', () => {
+    const activeSirap = row({
+      id: 'boundary-active_sirap',
+      selected: true,
+      mapSync: {
+        type: 'admin-boundary',
+        boundaryType: 'sirap',
+        boundaryLayerKey: 'active_sirap',
+      },
+    });
+    const country = row({
+      id: 'boundary-admin_country_outline',
+      selected: true,
+      mapSync: {
+        type: 'admin-boundary',
+        boundaryType: 'department',
+        boundaryLayerKey: 'admin_country_outline',
+      },
+    });
+
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('administrative_boundaries', [
+          manifestRow('admin_country_outline', 'administrative_boundaries'),
+          manifestRow('admin_departments', 'administrative_boundaries'),
+        ]),
+      ],
+      groups: [group('group-admin-boundaries', [activeSirap, country])],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups[0].rows.map((item) => item.id)).toEqual([
+      'boundary-active_sirap',
+      'boundary-admin_country_outline',
+    ]);
+    expect(result.groups[0].rows[0]).toMatchObject({
+      id: 'boundary-active_sirap',
+      selected: true,
+      mapSync: { boundaryLayerKey: 'active_sirap' },
+    });
+  });
+
   it('keeps separate SIRAP layers and cannot reconcile the disabled merged row back', () => {
     const existingSirapRows = [
       ['siraps', 'boundary-siraps'],
@@ -494,6 +537,68 @@ describe('reconcileMapLayersManifest', () => {
     expect(result.groups[0].rows.map((item) => item.id)).toEqual([
       'boundary-siraps_territorial_updated',
       'boundary-siraps_thematic',
+    ]);
+  });
+
+  it('keeps active SIRAP, country outline, and a local marine row together', () => {
+    const activeSirap = row({
+      id: 'boundary-active_sirap',
+      selected: true,
+      mapSync: {
+        type: 'admin-boundary',
+        boundaryType: 'sirap',
+        boundaryLayerKey: 'active_sirap',
+      },
+    });
+    const country = row({
+      id: 'boundary-admin_country_outline',
+      selected: true,
+      mapSync: {
+        type: 'admin-boundary',
+        boundaryType: 'department',
+        boundaryLayerKey: 'admin_country_outline',
+      },
+    });
+    const existingSirapRows = [
+      ['siraps_territorial_updated', 'boundary-siraps_territorial_updated'],
+      ['siraps_thematic', 'boundary-siraps_thematic'],
+      ['siraps_marine', 'boundary-siraps_marine'],
+      ['admin_departments', 'boundary-admin_departments'],
+    ].map(([boundaryLayerKey, id]) =>
+      row({
+        id,
+        mapSync: {
+          type: 'admin-boundary',
+          boundaryType: boundaryLayerKey === 'admin_departments' ? 'department' : 'sirap',
+          boundaryLayerKey: boundaryLayerKey as
+            | 'siraps_territorial_updated'
+            | 'siraps_thematic'
+            | 'siraps_marine'
+            | 'admin_departments',
+        },
+      }),
+    );
+
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('administrative_boundaries', [
+          manifestRow('siraps_territorial_updated', 'administrative_boundaries'),
+          manifestRow('siraps_thematic', 'administrative_boundaries'),
+          manifestRow('admin_departments', 'administrative_boundaries'),
+        ]),
+      ],
+      groups: [group('group-admin-boundaries', [activeSirap, country, ...existingSirapRows])],
+      overlays: [],
+      ports,
+    });
+
+    expect(result.groups[0].rows.map((item) => item.id)).toEqual([
+      'boundary-active_sirap',
+      'boundary-admin_country_outline',
+      'boundary-siraps_territorial_updated',
+      'boundary-siraps_thematic',
+      'boundary-siraps_marine',
+      'boundary-admin_departments',
     ]);
   });
 

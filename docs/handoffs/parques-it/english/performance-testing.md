@@ -27,7 +27,7 @@ A local run on July 29, 2026 produced the frontend, manifest, browser, and metri
 
 | Suite                                        | Result                                                                                          |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Frontend unit tests (`npm test`)             | ✅ 303 passed / 36 files                                                                        |
+| Frontend unit tests (`yarn test`)             | ✅ 303 passed / 36 files                                                                        |
 | Manifest validation tests                    | ✅ 48 passed                                                                                    |
 | Example-manifest schema validation           | ✅ Passed                                                                                       |
 | Chromium map-panel browser smoke             | ✅ 2 passed                                                                                     |

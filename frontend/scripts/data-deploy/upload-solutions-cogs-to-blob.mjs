@@ -64,9 +64,9 @@ function parseArgs(rawArgs) {
 
 function printUsage() {
   console.log('[upload-solutions-cogs] Usage:');
-  console.log('  npm --prefix frontend run upload:solutions-cogs');
-  console.log('  npm --prefix frontend run upload:solutions-cogs -- --solution-id ecos17_estr30_runap_hf');
-  console.log('  npm --prefix frontend run upload:solutions-cogs -- --dry-run --limit 1');
+  console.log('  yarn --cwd frontend upload:solutions-cogs');
+  console.log('  yarn --cwd frontend upload:solutions-cogs --solution-id ecos17_estr30_runap_hf');
+  console.log('  yarn --cwd frontend upload:solutions-cogs --dry-run --limit 1');
 }
 
 async function readJson(filePath) {

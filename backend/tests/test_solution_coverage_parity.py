@@ -375,7 +375,7 @@ def test_area_profile_api_matches_shared_coverage_calculation(
     }
     geometry = transform_geom("EPSG:9377", "EPSG:4326", polygon_9377)
     artifact = RuntimeArtifact(
-        manifest={},
+        manifest={"artifact_version": "fixture-v3"},
         reference_raster_path=coverage.ecosystem_raster_path,
         mesa_coverage=coverage,
         solution_registry=SimpleNamespace(
@@ -390,7 +390,11 @@ def test_area_profile_api_matches_shared_coverage_calculation(
         message="ready",
     )
     monkeypatch.setattr(main_module, "get_artifact_state", lambda settings: state)
-    monkeypatch.setattr(main_module, "get_runtime_artifact", lambda settings: artifact)
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
 
     response = TestClient(app).post(
         "/area-profile/custom-polygon",

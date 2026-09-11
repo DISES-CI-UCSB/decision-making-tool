@@ -19,8 +19,8 @@ Vercel Blob is becoming the runtime source for published geospatial layer assets
 
 ```bash
 cd frontend
-npm install
-npm start        # ng serve → http://localhost:4200
+yarn install
+yarn start        # ng serve → http://localhost:4200
 ```
 
 ## Docker
