@@ -22,9 +22,23 @@ service cloud.firestore {
       return userData.status == 'active';
     }
 
-    function isSuperAdmin() {
+    function firebaseTokenClaims() {
+      return request.auth.token.get('firebase', {});
+    }
+
+    function signedInWithTotp() {
       return signedIn()
-        && isActiveUserData(currentUserData())
+        && firebaseTokenClaims().get('sign_in_second_factor', '') == 'totp'
+        && firebaseTokenClaims().get('second_factor_identifier', '') is string
+        && firebaseTokenClaims().get('second_factor_identifier', '').size() > 0;
+    }
+
+    function isActiveTotpUser() {
+      return signedInWithTotp() && isActiveUserData(currentUserData());
+    }
+
+    function isSuperAdmin() {
+      return isActiveTotpUser()
         && (
           currentUserData().get('isSuperAdmin', false) == true
           || currentUserData().get('isAdmin', false) == true
@@ -53,8 +67,7 @@ service cloud.firestore {
     }
 
     function administersSirap(sirapId) {
-      return signedIn()
-        && isActiveUserData(currentUserData())
+      return isActiveTotpUser()
         && (
           isSuperAdmin()
           || (
@@ -65,8 +78,7 @@ service cloud.firestore {
     }
 
     function isSirapAdministrator() {
-      return signedIn()
-        && isActiveUserData(currentUserData())
+      return isActiveTotpUser()
         && currentUserData().administeredSirapIds is list
         && currentUserData().administeredSirapIds.size() > 0;
     }
@@ -81,8 +93,7 @@ service cloud.firestore {
     }
 
     function hasManifestStyleAccess() {
-      return signedIn()
-        && isActiveUserData(currentUserData())
+      return isActiveTotpUser()
         && (
           (currentUserData().tier is int && currentUserData().tier >= 3)
           || currentUserData().role == 'science_publisher'
@@ -125,7 +136,7 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.displayName is string
         && isOptionalString(request.resource.data, 'avatarInitials')
-        && request.resource.data.provider == 'google'
+        && request.resource.data.provider in ['google', 'local']
         && request.resource.data.status == 'pending'
         && isOptionalString(request.resource.data, 'organization')
         && isOptionalString(request.resource.data, 'reason')
@@ -227,22 +238,6 @@ service cloud.firestore {
         && isOptionalTimestamp(request.resource.data, 'createdAt')
         && request.resource.data.updatedAt == request.time
         && isOptionalString(request.resource.data, 'updatedBy');
-    }
-
-    function validSelfProvisionedUser(uid) {
-      return request.resource.data.keys().hasOnly(userRecordFields())
-        && request.resource.data.uid == uid
-        && request.resource.data.email == request.auth.token.email
-        && request.resource.data.displayName is string
-        && request.resource.data.status == 'active'
-        && request.resource.data.role == 'authorized_viewer'
-        && request.resource.data.tier == 2
-        && request.resource.data.isAdmin == false
-        && request.resource.data.isSuperAdmin == false
-        && request.resource.data.allowedSirapIds == []
-        && request.resource.data.administeredSirapIds == []
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
     }
 
     function validDirectoryRecord(uid) {
@@ -419,15 +414,17 @@ service cloud.firestore {
         || hasOverlappingSirapAccess(resource.data);
       allow list: if isSuperAdmin()
         || hasOverlappingSirapAccess(resource.data);
-      allow create: if (isSuperAdmin() && validUserRecord(uid))
-        || (isSelf(uid) && validSelfProvisionedUser(uid));
+      // Only a super admin may create an approved user record. Clients must
+      // write accessRequests/{uid} as pending and wait for admin approval.
+      allow create: if isSuperAdmin() && validUserRecord(uid);
       allow update: if (isSuperAdmin() && validUserRecord(uid))
         || validSirapAdminUserUpdate();
       allow delete: if false;
 
       match /savedSolutionScenarios/{scenarioId} {
-        allow read: if isSelf(uid);
+        allow read: if isSelf(uid) && signedInWithTotp();
         allow create, update: if isSelf(uid)
+          && signedInWithTotp()
           && request.resource.data.keys().hasOnly([
             'id',
             'solutionId',
@@ -442,14 +439,14 @@ service cloud.firestore {
           && request.resource.data.label.size() <= 80
           && request.resource.data.solutionName is string
           && request.resource.data.updatedAt is string;
-        allow delete: if isSelf(uid);
+        allow delete: if isSelf(uid) && signedInWithTotp();
       }
     }
 
     match /userDirectory/{uid} {
       allow get: if isSelf(uid) || isSuperAdmin() || isSirapAdministrator();
       allow list: if isSuperAdmin() || isSirapAdministrator();
-      allow create: if (isSelf(uid) || isSuperAdmin()) && validDirectoryRecord(uid);
+      allow create: if isSuperAdmin() && validDirectoryRecord(uid);
       allow update: if false;
       allow delete: if false;
     }

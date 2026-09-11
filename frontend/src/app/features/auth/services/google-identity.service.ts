@@ -1,17 +1,19 @@
 import { Injectable, inject } from '@angular/core';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { type User, type UserCredential } from 'firebase/auth';
 import { environment } from '../../../../environments/environment';
+import {
+  isMultiFactorAuthRequired,
+  TotpMfaService,
+  type TotpChallengeSession,
+} from './totp-mfa.service';
 
 /**
  * Google Identity Services wrapper.
  *
  * If `environment.googleClientId` is populated, the service lazy-loads the
  * Google Identity Services (GIS) script and requests an ID token via the
- * One Tap / popup credential flow. If the client ID is empty (MVP default)
- * the service resolves a fake María Gómez profile after 300 ms so the
- * Login / Request Access modal can demo end-to-end with no external
- * dependencies.
+ * One Tap / popup credential flow.
  *
  * TODO: wire to backend. Once GIS returns a real credential.idToken, POST
  * it to the auth backend so the backend can verify via Google's tokeninfo
@@ -20,7 +22,9 @@ import { environment } from '../../../../environments/environment';
 
 const GIS_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 const GIS_SCRIPT_ID = 'google-accounts-id';
-const STUB_LATENCY_MS = 300;
+
+export const GIS_SIGN_IN_CANCELLED_MESSAGE =
+  'Google sign-in was cancelled or could not be displayed.';
 
 export interface GoogleProfile {
   uid?: string;
@@ -31,8 +35,31 @@ export interface GoogleProfile {
   isStub: boolean;
 }
 
+export interface GoogleSignInCompleted {
+  readonly kind: 'completed';
+  readonly profile: GoogleProfile;
+}
+
+export interface GoogleSignInTotpRequired {
+  readonly kind: 'totp-assertion-required';
+  readonly assertion: TotpChallengeSession;
+}
+
+export type GoogleSignInResult = GoogleSignInCompleted | GoogleSignInTotpRequired;
+
+function completedSignIn(profile: GoogleProfile): GoogleSignInCompleted {
+  return { kind: 'completed', profile };
+}
+
 interface GisCredentialResponse {
   credential: string;
+}
+
+interface GisPromptNotification {
+  isNotDisplayed?: () => boolean;
+  isSkippedMoment?: () => boolean;
+  isDismissedMoment?: () => boolean;
+  getDismissedReason?: () => string;
 }
 
 interface GisGlobal {
@@ -42,8 +69,45 @@ interface GisGlobal {
         client_id: string;
         callback: (response: GisCredentialResponse) => void;
       }): void;
-      prompt(listener?: (notification: unknown) => void): void;
+      prompt(listener?: (notification: GisPromptNotification) => void): void;
     };
+  };
+}
+
+export function isAbandonedGisPrompt(notification: unknown): boolean {
+  if (notification === null || typeof notification !== 'object') {
+    return false;
+  }
+  const prompt = notification as GisPromptNotification;
+  if (prompt.isNotDisplayed?.() === true || prompt.isSkippedMoment?.() === true) {
+    return true;
+  }
+  if (prompt.isDismissedMoment?.() === true) {
+    return prompt.getDismissedReason?.() !== 'credential_returned';
+  }
+  return false;
+}
+
+export function settleOnce<T>(
+  resolve: (value: T) => void,
+  reject: (reason: unknown) => void,
+): { resolve: (value: T) => void; reject: (reason: unknown) => void } {
+  let settled = false;
+  return {
+    resolve: (value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve(value);
+    },
+    reject: (reason) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(reason);
+    },
   };
 }
 
@@ -51,63 +115,57 @@ interface GisWindow extends Window {
   google?: GisGlobal;
 }
 
-const STUB_PROFILE: Omit<GoogleProfile, 'idToken' | 'isStub'> = {
-  name: 'María Gómez',
-  email: 'maria.gomez@sirap-caribe.gov.co',
-  avatarInitials: 'MG',
-};
-
 @Injectable({ providedIn: 'root' })
 export class GoogleIdentityService {
   private readonly firebase = inject(FirebaseClientService);
+  private readonly totpMfa = inject(TotpMfaService);
 
   private scriptPromise: Promise<void> | null = null;
 
   /**
-   * Opens the Google sign-in flow and resolves with the signed-in profile.
-   * In stub mode (no client ID) the returned profile's `isStub` is `true`.
+   * Opens the Google sign-in flow and resolves with a completed profile or a
+   * TOTP assertion challenge. Non-MFA failures still throw.
    */
-  async signIn(): Promise<GoogleProfile> {
+  async signIn(): Promise<GoogleSignInResult> {
     if (this.firebase.isEnabled) {
       return this.firebaseSignIn();
     }
     if (!environment.googleClientId) {
-      return this.stubSignIn();
+      throw new Error('Google sign-in is not configured.');
     }
-    try {
-      return await this.realSignIn(environment.googleClientId);
-    } catch (error) {
-      console.warn('[GoogleIdentityService] real sign-in failed, falling back to stub', error);
-      return this.stubSignIn();
-    }
+    return completedSignIn(await this.realSignIn(environment.googleClientId));
   }
 
-  private stubSignIn(): Promise<GoogleProfile> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          ...STUB_PROFILE,
-          idToken: `stub.${Date.now()}`,
-          isStub: true,
-        });
-      }, STUB_LATENCY_MS);
-    });
-  }
-
-  private async firebaseSignIn(): Promise<GoogleProfile> {
+  private async firebaseSignIn(): Promise<GoogleSignInResult> {
     const auth = this.firebase.auth;
     if (!auth) {
       throw new Error('Firebase Auth is not configured.');
     }
 
-    const credential = await signInWithPopup(auth, new GoogleAuthProvider());
-    const idToken = await credential.user.getIdToken();
-    const email = credential.user.email ?? '';
-    const name = credential.user.displayName ?? email;
+    try {
+      const credential = await this.firebase.signInWithGooglePopup();
+      return completedSignIn(await this.profileFromUser(credential.user));
+    } catch (error) {
+      if (isMultiFactorAuthRequired(error)) {
+        return {
+          kind: 'totp-assertion-required',
+          assertion: this.totpMfa.createAssertionSession(auth, error),
+        };
+      }
+      throw error;
+    }
+  }
 
+  async profileFromCredential(credential: Pick<UserCredential, 'user'>): Promise<GoogleProfile> {
+    return this.profileFromUser(credential.user);
+  }
+
+  private async profileFromUser(user: User): Promise<GoogleProfile> {
+    const email = user.email ?? '';
+    const name = user.displayName ?? email;
     return {
-      uid: credential.user.uid,
-      idToken,
+      uid: user.uid,
+      idToken: await user.getIdToken(),
       name,
       email,
       avatarInitials: this.toInitials(name || email),
@@ -123,21 +181,26 @@ export class GoogleIdentityService {
     }
 
     return new Promise<GoogleProfile>((resolve, reject) => {
+      const finish = settleOnce(resolve, reject);
       try {
         gis.accounts.id.initialize({
           client_id: clientId,
           callback: (response) => {
             const profile = this.decodeIdToken(response.credential);
             if (!profile) {
-              reject(new Error('Could not decode Google ID token.'));
+              finish.reject(new Error('Could not decode Google ID token.'));
               return;
             }
-            resolve(profile);
+            finish.resolve(profile);
           },
         });
-        gis.accounts.id.prompt();
+        gis.accounts.id.prompt((notification) => {
+          if (isAbandonedGisPrompt(notification)) {
+            finish.reject(new Error(GIS_SIGN_IN_CANCELLED_MESSAGE));
+          }
+        });
       } catch (error) {
-        reject(error);
+        finish.reject(error);
       }
     });
   }

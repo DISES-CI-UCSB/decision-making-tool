@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { UserTier } from '@core/models';
+import { TotpMfaService } from '@features/auth/services/totp-mfa.service';
+import { SavedSolutionScenariosService } from './saved-solution-scenarios.service';
 import { FirebaseClientService } from './firebase-client.service';
 import { AppStateService } from './app-state.service';
 import { AuthService } from './auth.service';
@@ -48,14 +50,30 @@ class FirebaseClientServiceStub {
   }
 }
 
+class TotpMfaServiceStub {
+  enrolled = true;
+  readonly hasEnrolledTotp = vi.fn(() => this.enrolled);
+}
+
 describe('AuthService', () => {
   let firebase: FirebaseClientServiceStub;
+  let totpMfa: TotpMfaServiceStub;
+  let scenarios: { startSyncForUser: ReturnType<typeof vi.fn>; stopSync: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     localStorage.removeItem('dmt.auth.session');
     firebase = new FirebaseClientServiceStub();
+    totpMfa = new TotpMfaServiceStub();
+    scenarios = {
+      startSyncForUser: vi.fn(),
+      stopSync: vi.fn(),
+    };
     TestBed.configureTestingModule({
-      providers: [{ provide: FirebaseClientService, useValue: firebase }],
+      providers: [
+        { provide: FirebaseClientService, useValue: firebase },
+        { provide: TotpMfaService, useValue: totpMfa },
+        { provide: SavedSolutionScenariosService, useValue: scenarios },
+      ],
     });
   });
 
@@ -187,9 +205,51 @@ describe('AuthService', () => {
     await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Public);
     expect(authService.hasFirebaseIdentity()).toBe(true);
     expect(authService.isAuthenticated()).toBe(false);
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
     expect(appState.userIsSignedIn$()).toBe(true);
     expect(appState.canAccessTier2()).toBe(false);
     expect(appState.canAccessSirapScope()).toBe(false);
+  });
+
+  it('does not mark missing users as needing TOTP enrollment', async () => {
+    totpMfa.enrolled = false;
+    firebase.auth.currentUser = { uid: 'unknown-uid' };
+    const authService = TestBed.inject(AuthService);
+
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Public);
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
+    expect(authService.hasFirebaseIdentity()).toBe(true);
+    expect(scenarios.startSyncForUser).toHaveBeenCalledWith('unknown-uid');
+  });
+
+  it('withholds approved access until an active user enrolls TOTP', async () => {
+    totpMfa.enrolled = false;
+    firebase.auth.currentUser = { uid: 'active-uid' };
+    firebase.userDocs.set('active-uid', {
+      status: 'active',
+      role: 'admin',
+      allowedSirapIds: ['orinoquia'],
+    });
+    const authService = TestBed.inject(AuthService);
+    const appState = TestBed.inject(AppStateService);
+
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Public);
+    expect(authService.mfaEnrollmentRequired$()).toBe(true);
+    expect(authService.isAuthenticated()).toBe(false);
+    expect(authService.hasFirebaseIdentity()).toBe(true);
+    expect(appState.userIsAdmin$()).toBe(false);
+    expect(appState.allowedSirapIds$()).toEqual([]);
+    expect(appState.administeredSirapIds$()).toEqual([]);
+    expect(scenarios.startSyncForUser).not.toHaveBeenCalled();
+    expect(scenarios.stopSync).toHaveBeenCalled();
+
+    totpMfa.enrolled = true;
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Manager);
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
+    expect(authService.isAuthenticated()).toBe(true);
+    expect(appState.userIsAdmin$()).toBe(true);
+    expect(appState.allowedSirapIds$()).toEqual(['orinoquia']);
+    expect(scenarios.startSyncForUser).toHaveBeenCalledWith('active-uid');
   });
 
   it('signs out of Firebase and clears app-state tier on logout', async () => {
@@ -214,5 +274,6 @@ describe('AuthService', () => {
     expect(appState.userIsAdmin$()).toBe(false);
     expect(appState.allowedSirapIds$()).toEqual([]);
     expect(appState.administeredSirapIds$()).toEqual([]);
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
   });
 });

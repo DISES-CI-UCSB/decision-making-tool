@@ -1,12 +1,17 @@
 import { Injectable } from '@angular/core';
 import { initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithPopup,
   signOut as firebaseSignOut,
   type Auth,
   type Unsubscribe,
   type User,
+  type UserCredential,
 } from 'firebase/auth';
 import {
   doc,
@@ -14,6 +19,7 @@ import {
   type DocumentData,
   getFirestore,
   onSnapshot,
+  setDoc,
   type Firestore,
 } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
@@ -59,14 +65,36 @@ export class FirebaseClientService {
     }
   }
 
+  async signInWithGooglePopup(): Promise<UserCredential> {
+    return signInWithPopup(this.requireAuth(), new GoogleAuthProvider());
+  }
+
+  async signInWithEmail(email: string, password: string): Promise<User> {
+    const auth = this.requireAuth();
+    const credential = await signInWithEmailAndPassword(auth, email, password);
+    return credential.user;
+  }
+
+  async createEmailUser(email: string, password: string): Promise<User> {
+    const auth = this.requireAuth();
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    return credential.user;
+  }
+
   async getUserDocument(uid: string): Promise<DocumentData | null> {
+    return this.getDocument('users', uid);
+  }
+
+  async getAccessRequestDocument(uid: string): Promise<DocumentData | null> {
+    return this.getDocument('accessRequests', uid);
+  }
+
+  async setAccessRequestDocument(uid: string, data: DocumentData): Promise<void> {
     const firestore = this.firestore;
     if (!firestore) {
-      return null;
+      throw new Error('Firestore is not configured.');
     }
-
-    const snapshot = await getDoc(doc(firestore, 'users', uid));
-    return snapshot.exists() ? snapshot.data() : null;
+    await setDoc(doc(firestore, 'accessRequests', uid), data, { merge: true });
   }
 
   subscribeToUserDocument(
@@ -80,6 +108,27 @@ export class FirebaseClientService {
     return onSnapshot(doc(firestore, 'users', uid), (snapshot) => {
       callback(snapshot.exists() ? snapshot.data() : null);
     });
+  }
+
+  private async getDocument(
+    collectionName: 'users' | 'accessRequests',
+    uid: string,
+  ): Promise<DocumentData | null> {
+    const firestore = this.firestore;
+    if (!firestore) {
+      return null;
+    }
+
+    const snapshot = await getDoc(doc(firestore, collectionName, uid));
+    return snapshot.exists() ? snapshot.data() : null;
+  }
+
+  private requireAuth(): Auth {
+    const auth = this.auth;
+    if (!auth) {
+      throw new Error('Firebase Auth is not configured.');
+    }
+    return auth;
   }
 
   private ensureApp(): FirebaseApp {
