@@ -31,29 +31,38 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Cache Yarn
+        uses: actions/cache@v4
+        with:
+          path: frontend/.yarn/cache
+          key: yarn-${{ runner.os }}-${{ hashFiles('frontend/yarn.lock') }}
+          restore-keys: |
+            yarn-${{ runner.os }}-
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: yarn install --immutable
 
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: yarn playwright install --with-deps chromium
 
       - name: Lint frontend
-        run: npm run lint
+        run: yarn lint
 
       - name: Run fast frontend unit tests
-        run: npm test
+        run: yarn test
 
       - name: Test and validate layer manifest
-        run: npm run check:layer-manifest
+        run: yarn check:layer-manifest
 
       - name: Run Chromium Map Layers smoke
-        run: npm run test:browser:map-layers
+        run: yarn test:browser:map-layers
 
       - name: Build production frontend
-        run: npm run build:production
+        run: yarn build:production
 
   backend:
     name: Backend and scientific pytest (Python ${{ matrix.python-version }})

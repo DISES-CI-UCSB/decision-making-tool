@@ -88,7 +88,7 @@ The current CSV generator does **not** support this as an operator-only workflow
 5. **Keep it out of analysis wiring.** Do not add the layer ID to solution metadata `input_layer_ids.features`, `.cost`, `.includes`, or `.excludes`; Python metric definitions or calculators; browser sparse-builder allowlists; backend `build_runtime_artifact.py` inputs; or Finder controls. Do not create or claim live/precomputed metric artifacts for it.
 6. **Validate before publication.** Run the manifest validation and tests against the corrected candidate, inspect the three reconciliation reports, and confirm the candidate still has `roleInMetricCalculation: none`, a null live-metric URL, and an empty precomputed URL map. In the app, verify the layer appears under the intended left-panel category, toggles and renders correctly, and does not appear as a Finder choice or change solution, known-AOI, or custom-AOI results.
 7. **Publish and verify the visible result.** Follow step 7 using the corrected, validated candidate. After a full browser refresh, the only intended user-visible change is a new optional map layer with the approved label, category, tooltip, legend/rendering, and opacity behavior.
-8. **Rollback if any contract check fails.** Run `npm --prefix frontend run rollback:layer-manifest` to restore the archived manifest, restore or retain the prior registry row, and remove or quarantine the newly uploaded asset through the approved Blob process. Refresh the app and confirm the layer is absent and analysis results remain unchanged.
+8. **Rollback if any contract check fails.** Run `yarn --cwd frontend rollback:layer-manifest` to restore the archived manifest, restore or retain the prior registry row, and remove or quarantine the newly uploaded asset through the approved Blob process. Refresh the app and confirm the layer is absent and analysis results remain unchanged.
 
 Individual species layers are different: the standard species uploader and secondary-manifest generator expose TIFs from the shared species prefix, and the known-AOI pipeline can also read species TIFs when metrics are recomputed. A display upload does not rebuild metrics or custom-AOI matrices, but the documented standard species workflow cannot guarantee that the file will remain visualization-only in future analytical rebuilds. Obtain developer and data-owner review for a separate contract before promising a visualization-only species layer.
 
@@ -135,19 +135,19 @@ The species uploader has a machine-specific default source path. Always set the 
 ```bash
 SPECIES_TIF_UPLOAD_SOURCE=<approved-local-species-directory> \
 SPECIES_TIF_UPLOAD_DRY_RUN=1 \
-npm --prefix frontend run upload:species-tifs
+yarn --cwd frontend upload:species-tifs
 
 SPECIES_TIF_UPLOAD_SOURCE=<approved-local-species-directory> \
-npm --prefix frontend run upload:species-tifs
+yarn --cwd frontend upload:species-tifs
 
-npm --prefix frontend run generate:species-manifest
+yarn --cwd frontend generate:species-manifest
 ```
 
 `generate:species-manifest` scans the published species prefix, builds the secondary manifest, archives the previous remote species manifest, and publishes unless configured to skip upload. The combined command is supported when its defaults and environment are already reviewed:
 
 ```bash
 SPECIES_TIF_UPLOAD_SOURCE=<approved-local-species-directory> \
-npm --prefix frontend run upload:species-tifs:manifest
+yarn --cwd frontend upload:species-tifs:manifest
 ```
 
 If species precomputed metrics must change, recompute the affected solution IDs. If custom-AOI species metrics must change, escalate: the backend expects prebuilt `inputs/features/species-sparse/species_<group>.smtx.gz` matrices, which this display upload does not build.
@@ -157,9 +157,9 @@ If species precomputed metrics must change, recompute the affected solution IDs.
 Run:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run test:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend test:layer-manifest
 ```
 
 Review:
@@ -260,10 +260,10 @@ No `--production-v3` or `--aligned-cache` flag is required for this local 9377 c
 After all applicable artifacts are ready:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run test:layer-manifest
-npm --prefix frontend run publish:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend test:layer-manifest
+yarn --cwd frontend publish:layer-manifest
 ```
 
 Publication archives the previous runtime manifest under `manifest/archive/`. Record that archive reference. Refresh the browser before verification because the running app may retain manifest and species data.
@@ -302,7 +302,7 @@ Retain role classification, approvals, source and remote checksums, registry dif
 2. Restore the prior runtime manifest:
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest
+   yarn --cwd frontend rollback:layer-manifest
    ```
 
 3. Restore the prior asset through the approved controlled Blob process, or restore the registry URL to the retained immutable asset.

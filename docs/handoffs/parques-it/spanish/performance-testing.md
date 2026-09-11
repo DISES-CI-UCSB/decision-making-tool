@@ -29,7 +29,7 @@ Una ejecución local del 29 de julio de 2026 produjo los resultados del frontend
 
 | Conjunto de pruebas                              | Resultado                                                                                                                |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| Pruebas unitarias del frontend (`npm test`)      | ✅ 303 aprobadas / 36 archivos                                                                                           |
+| Pruebas unitarias del frontend (`yarn test`)      | ✅ 303 aprobadas / 36 archivos                                                                                           |
 | Pruebas de validación del manifiesto             | ✅ 48 aprobadas                                                                                                          |
 | Validación del esquema del manifiesto de ejemplo | ✅ Aprobada                                                                                                              |
 | Prueba de humo del panel de mapa en Chromium     | ✅ 2 aprobadas                                                                                                           |

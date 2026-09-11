@@ -22,7 +22,7 @@ El manifest no debe guardar toda la historia de una capa. Los detalles largos de
 - `generate-species-manifest.mjs`: hidrata el manifest secundario de especies (`species.manifest.json`) desde Blob y calcula configuracion de render por especie.
 - `validate-manifest.mjs`: valida el ejemplo y el manifest runtime.
 - `public/data/layer-manifest/manifest.json`: manifest runtime actual que la app usa en local.
-- `public/data/layer-manifest/species.manifest.json` (omitido por git): salida opcional solo para depuracion local al ejecutar `npm run generate:species-manifest`. En tiempo de ejecucion la app obtiene la version publicada desde `speciesManifestUrl` en Vercel Blob.
+- `public/data/layer-manifest/species.manifest.json` (omitido por git): salida opcional solo para depuracion local al ejecutar `yarn generate:species-manifest`. En tiempo de ejecucion la app obtiene la version publicada desde `speciesManifestUrl` en Vercel Blob.
 - `latest/manifest.latest.json` (gitignored): snapshot legible para desarrolladores con metadatos de origen.
 - `../../development-artifacts/layer-manifest/reports/reconciliation-report.json`: reporte para revisar diferencias entre el CSV verificado y Blob Storage.
 - `../../development-artifacts/layer-manifest/reports/category-mapping-report.json`: reporte para comparar categorias del CSV con categorias actuales del panel lateral.
@@ -100,22 +100,22 @@ Las etiquetas se obtienen de tres fuentes, aplicadas en este orden de prioridad 
 | 2         | `englishLabelOverrideByLayerId` en `generate-manifest.mjs` | Etiquetas en ingles hardcodeadas para capas cuya fila CSV no tiene linea en ingles. Edita este mapa para corregir o agregar etiquetas en ingles sin tocar el CSV. |
 | 3         | `proposedManifestCategories` en `generate-manifest.mjs`    | Etiquetas de categoria (hardcodeadas, siempre bilingues).                                                                                                         |
 
-**Para cambiar el nombre de una capa:** buscarla en `englishLabelOverrideByLayerId` (para las 7 capas actualmente sobreescritas) o agregar una celda `layer_name` de dos lineas en el CSV. Luego ejecutar `npm run generate:layer-manifest`.
+**Para cambiar el nombre de una capa:** buscarla en `englishLabelOverrideByLayerId` (para las 7 capas actualmente sobreescritas) o agregar una celda `layer_name` de dos lineas en el CSV. Luego ejecutar `yarn generate:layer-manifest`.
 
 **Limitacion conocida:** la edicion de etiquetas esta actualmente dividida entre el CSV y dos ubicaciones en el generador. Una tarea de limpieza futura consolidaria todas las etiquetas en un unico archivo `layer-labels.json` que el generador leeria.
 
 ### Regenerar y validar
 
 ```bash
-npm run generate:layer-manifest
-npm run validate:layer-manifest
+yarn generate:layer-manifest
+yarn validate:layer-manifest
 ```
 
 Para una entrega inmutable, el catálogo versionado es la fuente de verdad para `releaseId`, `catalogVersion`, `expectedSolutionCount`, `expectedLandSolutionCount`, `expectedMarineSolutionCount` y el conjunto exacto y ordenado de IDs. Cada entrada declara un `solutionId` que ya cumple la expresión canónica segura que Python aplica después de su normalización de compatibilidad, `solutionBasename` terminado exactamente en `.tif` minúsculo (por ejemplo, `demo.tif`), `domain` y un `rasterSha256` válido y obligatorio. El manifest repite el checksum y debe asociar el mismo basename, ruta de Blob, URL de visualización y archivo de metadatos; también se rechazan colisiones después de la normalización de rutas de artefactos.
 
 ```bash
-npm run generate:layer-manifest -- --catalog ../ruta/solution-catalog.json
-npm run validate:layer-manifest -- public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json
+yarn generate:layer-manifest --catalog ../ruta/solution-catalog.json
+yarn validate:layer-manifest public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json
 ```
 
 El formato admitido es `solution-catalog-v1`. `catalogVersion` es el único número de catálogo publicado: MAJOR o MINOR indican cambios de soluciones/métricas, mientras PATCH queda reservado para cambios de capas solo visuales sin recálculo. Los artefactos métricos son compatibles entre versiones con el mismo MAJOR.MINOR, y sus identidades criptográficas siguen validándose exactamente. Todas las URLs de métricas quedan bajo `releases/{releaseId}/`. La versión de `frontend/package.json` sigue siendo independiente.
@@ -123,10 +123,10 @@ El formato admitido es `solution-catalog-v1`. `catalogVersion` es el único núm
 Para revisar o publicar un parche de capas de referencia ya registradas en el CSV y Blob:
 
 ```bash
-npm run catalog -- status
-npm run catalog -- publish-patch --layer-id ramsar --layer-id biosphere_reserves --dry-run
-npm run catalog -- publish-patch --layer-id ramsar --layer-id biosphere_reserves --yes
-npm run catalog -- add-view-layer --file ../ruta/capa.geojson --dry-run
+yarn catalog status
+yarn catalog publish-patch --layer-id ramsar --layer-id biosphere_reserves --dry-run
+yarn catalog publish-patch --layer-id ramsar --layer-id biosphere_reserves --yes
+yarn catalog add-view-layer --file ../ruta/capa.geojson --dry-run
 ```
 
 Sin `--yes`, el comando exige escribir `yes`; esto mantiene una confirmación humana y permite que agentes y CI usen la misma ruta no interactiva. El comando muestra las URLs exactas, incrementa solo PATCH, prueba que `solutions` no cambió, valida que las capas sean `reference_layer` sin métricas y comprueba que los assets sean accesibles. `--remove-layer-id` aplica la misma protección a eliminaciones futuras.
@@ -136,8 +136,8 @@ Sin `--yes`, el comando exige escribir `yes`; esto mantiene una confirmación hu
 Previsualizar y promover una entrega:
 
 ```bash
-npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json --artifact-inventory ../ruta/regular-verification.json --artifact-inventory ../ruta/compact-verification.json --artifact-inventory ../ruta/goals-verification.json --artifact-inventory ../ruta/mec-verification.json --dry-run
-npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json --artifact-inventory ../ruta/regular-verification.json --artifact-inventory ../ruta/compact-verification.json --artifact-inventory ../ruta/goals-verification.json --artifact-inventory ../ruta/mec-verification.json --confirm-release <releaseId> --expected-live-sha256 <digest-del-dry-run>
+yarn publish:layer-manifest --source public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json --artifact-inventory ../ruta/regular-verification.json --artifact-inventory ../ruta/compact-verification.json --artifact-inventory ../ruta/goals-verification.json --artifact-inventory ../ruta/mec-verification.json --dry-run
+yarn publish:layer-manifest --source public/data/layer-manifest/manifest.json --catalog ../ruta/solution-catalog.json --artifact-inventory ../ruta/regular-verification.json --artifact-inventory ../ruta/compact-verification.json --artifact-inventory ../ruta/goals-verification.json --artifact-inventory ../ruta/mec-verification.json --confirm-release <releaseId> --expected-live-sha256 <digest-del-dry-run>
 ```
 
 Cada `--artifact-inventory` debe ser una salida `metric-artifact-verification-v1` de `verify_artifacts.py`. Su `sourceReport` debe apuntar al resumen `publish-report.json` de Python; catálogo, URLs, tamaños y SHA-256 locales/remotos deben coincidir exactamente con el manifest. Antes de promover, el publicador también abre esos mismos archivos locales y exige geografías regulares completas, catálogos compactos referenciables, esquema y filas de features de goals, y catálogos/filas MEC v2 válidos. Como el inventario demuestra que el Blob remoto tiene el mismo SHA-256, esta validación estructural cubre exactamente los bytes publicados. Soluciones terrestres requieren regular verbose/compact, goals y seis artefactos MEC v2; soluciones marinas requieren regular verbose/compact y goals, sin MEC.
@@ -168,7 +168,7 @@ The manifest should not store the full history of a layer. Long source, license,
 - `generate-species-manifest.mjs`: hydrates the secondary species manifest (`species.manifest.json`) from Blob and computes per-species rendering settings.
 - `validate-manifest.mjs`: validates the example and runtime manifest.
 - `public/data/layer-manifest/manifest.json`: current runtime manifest used by the app in local development.
-- `public/data/layer-manifest/species.manifest.json` (gitignored): optional local debugger output when you run `npm run generate:species-manifest`. At runtime the app should load the published copy via `speciesManifestUrl` on Vercel Blob.
+- `public/data/layer-manifest/species.manifest.json` (gitignored): optional local debugger output when you run `yarn generate:species-manifest`. At runtime the app should load the published copy via `speciesManifestUrl` on Vercel Blob.
 - `latest/manifest.latest.json` (gitignored): developer-readable snapshot with source metadata.
 - `../../development-artifacts/layer-manifest/reports/reconciliation-report.json`: report for reviewing differences between the verified CSV and Blob Storage.
 - `../../development-artifacts/layer-manifest/reports/category-mapping-report.json`: report for comparing CSV categories with current left-sidebar categories.
@@ -246,22 +246,22 @@ Labels are populated from three sources, applied in this order of precedence dur
 | 2        | `englishLabelOverrideByLayerId` in `generate-manifest.mjs` | Hardcoded English labels for layers whose CSV row has no English line. Edit this map to fix or add English labels without touching the CSV. |
 | 3        | `proposedManifestCategories` in `generate-manifest.mjs`    | Category-level labels (hardcoded, always bilingual).                                                                                        |
 
-**To change a layer's display name:** find it in `englishLabelOverrideByLayerId` (for the 7 currently overridden layers) or add a two-line `layer_name` cell to the CSV. Then re-run `npm run generate:layer-manifest`.
+**To change a layer's display name:** find it in `englishLabelOverrideByLayerId` (for the 7 currently overridden layers) or add a two-line `layer_name` cell to the CSV. Then re-run `yarn generate:layer-manifest`.
 
 **Known limitation:** label editing is currently split across the CSV and two locations in the generator. A future cleanup task would consolidate all labels into a single `layer-labels.json` file that the generator reads.
 
 ### Regenerate And Validate
 
 ```bash
-npm run generate:layer-manifest
-npm run validate:layer-manifest
+yarn generate:layer-manifest
+yarn validate:layer-manifest
 ```
 
 For an immutable release, the versioned catalog is the source of truth for `releaseId`, `catalogVersion`, `expectedSolutionCount`, `expectedLandSolutionCount`, `expectedMarineSolutionCount`, and the exact sorted solution ID set. Each entry declares a `solutionId` that already matches the canonical safe expression Python applies after compatibility normalization, `solutionBasename` ending in the exact lowercase `.tif` extension (for example, `demo.tif`), `domain`, and a mandatory valid `rasterSha256`. The manifest repeats that checksum and must bind the same basename, Blob path, display URL, and metadata file; collisions after artifact-path normalization are rejected.
 
 ```bash
-npm run generate:layer-manifest -- --catalog ../path/solution-catalog.json
-npm run validate:layer-manifest -- public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json
+yarn generate:layer-manifest --catalog ../path/solution-catalog.json
+yarn validate:layer-manifest public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json
 ```
 
 The supported solution format is `solution-catalog-v1`. `catalogVersion` is the only published catalog number: MAJOR or MINOR identifies solution/metric changes, while PATCH is reserved for view-only layer changes that require no recalculation. Metric artifacts remain compatible across versions sharing the same MAJOR.MINOR, while their cryptographic identities are still validated exactly. Every release metric URL remains rooted under `releases/{releaseId}/`. The version in `frontend/package.json` remains independent.
@@ -269,10 +269,10 @@ The supported solution format is `solution-catalog-v1`. `catalogVersion` is the 
 To inspect or publish a patch containing reference layers already registered in the CSV and Blob:
 
 ```bash
-npm run catalog -- status
-npm run catalog -- publish-patch --layer-id ramsar --layer-id biosphere_reserves --dry-run
-npm run catalog -- publish-patch --layer-id ramsar --layer-id biosphere_reserves --yes
-npm run catalog -- add-view-layer --file ../path/layer.geojson --dry-run
+yarn catalog status
+yarn catalog publish-patch --layer-id ramsar --layer-id biosphere_reserves --dry-run
+yarn catalog publish-patch --layer-id ramsar --layer-id biosphere_reserves --yes
+yarn catalog add-view-layer --file ../path/layer.geojson --dry-run
 ```
 
 Without `--yes`, the command requires a typed `yes`; agents and CI can use the same non-interactive path with `--yes`. The command prints exact asset URLs, increments PATCH only, proves that `solutions` is byte-identical, validates the no-metrics `reference_layer` contract, and checks asset reachability. `--remove-layer-id` applies the same safeguards to future removals.
@@ -282,8 +282,8 @@ Without `--yes`, the command requires a typed `yes`; agents and CI can use the s
 Preview and promote a release:
 
 ```bash
-npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json --artifact-inventory ../path/regular-verification.json --artifact-inventory ../path/compact-verification.json --artifact-inventory ../path/goals-verification.json --artifact-inventory ../path/mec-verification.json --dry-run
-npm run publish:layer-manifest -- --source public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json --artifact-inventory ../path/regular-verification.json --artifact-inventory ../path/compact-verification.json --artifact-inventory ../path/goals-verification.json --artifact-inventory ../path/mec-verification.json --confirm-release <releaseId> --expected-live-sha256 <digest-from-dry-run>
+yarn publish:layer-manifest --source public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json --artifact-inventory ../path/regular-verification.json --artifact-inventory ../path/compact-verification.json --artifact-inventory ../path/goals-verification.json --artifact-inventory ../path/mec-verification.json --dry-run
+yarn publish:layer-manifest --source public/data/layer-manifest/manifest.json --catalog ../path/solution-catalog.json --artifact-inventory ../path/regular-verification.json --artifact-inventory ../path/compact-verification.json --artifact-inventory ../path/goals-verification.json --artifact-inventory ../path/mec-verification.json --confirm-release <releaseId> --expected-live-sha256 <digest-from-dry-run>
 ```
 
 Each `--artifact-inventory` must be a `metric-artifact-verification-v1` output from `verify_artifacts.py`. Its `sourceReport` must reference the Python `publish-report.json`; catalog identity, URLs, byte counts, and local/remote SHA-256 values must exactly match the manifest. Before promotion, the publisher also opens those same local files and requires complete regular geographies, referentially valid compact catalogs, goals schema and feature rows, and valid MEC v2 catalogs/rows. Because the inventory proves that the remote Blob has the same SHA-256, this structural check covers the exact published bytes. Land solutions require regular verbose/compact, goals, and all six MEC v2 artifacts; marine solutions require regular verbose/compact and goals, with no MEC.

@@ -182,15 +182,15 @@ There is no atomic repository or Blob mechanism that swaps the mutable bytes and
 If the URL, boundary manifest entry, label, category, or calculation role changed, regenerate and validate:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run test:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend test:layer-manifest
 ```
 
 Review the reconciliation reports under `development-artifacts/layer-manifest/reports/`, then publish:
 
 ```bash
-npm --prefix frontend run publish:layer-manifest
+yarn --cwd frontend publish:layer-manifest
 ```
 
 Even when the URL is unchanged, verify that the frontend identify configuration still reads the published ID/name fields. Departments, municipalities, and SIRAP are configured in `admin-boundary.service.ts`; RUNAP and OMEC are integrated through the map identify flow and supplemental hover layers.
@@ -286,7 +286,7 @@ Use [Metrics and runtime artifacts](./metrics-and-artifacts.md) for artifact-fam
 4. Restore the prior runtime manifest:
 
 ```bash
-npm --prefix frontend run rollback:layer-manifest
+yarn --cwd frontend rollback:layer-manifest
 ```
 
 5. Republish the retained prior metrics generation directory and report, or restore its immutable references, following the metrics/artifacts runbook. Metrics have no automatic archive; rollback is only possible if the prior local outputs or immutable release remain available.

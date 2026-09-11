@@ -118,10 +118,10 @@ export function parseArgs(rawArgs) {
 function printUsage() {
   console.log('[publish:layer-manifest] Usage:');
   console.log(
-    '  npm --prefix frontend run publish:layer-manifest -- --source <manifest> --catalog <catalog> --artifact-inventory <verification.json> [--artifact-inventory <verification.json> ...] --dry-run',
+    '  yarn --cwd frontend publish:layer-manifest --source <manifest> --catalog <catalog> --artifact-inventory <verification.json> [--artifact-inventory <verification.json> ...] --dry-run',
   );
   console.log(
-    '  npm --prefix frontend run publish:layer-manifest -- --source <manifest> --catalog <catalog> --artifact-inventory <verification.json> [--artifact-inventory <verification.json> ...] --confirm-release <releaseId> --expected-live-sha256 <dry-run digest>',
+    '  yarn --cwd frontend publish:layer-manifest --source <manifest> --catalog <catalog> --artifact-inventory <verification.json> [--artifact-inventory <verification.json> ...] --confirm-release <releaseId> --expected-live-sha256 <dry-run digest>',
   );
 }
 

@@ -11,8 +11,8 @@ conversion settings change:
 
 ```bash
 python data/scripts/solutions-cog/main.py
-npm --prefix frontend run upload:solutions-cogs
-npm --prefix frontend run publish:solution-cog-manifest -- --publish
+yarn --cwd frontend upload:solutions-cogs
+yarn --cwd frontend publish:solution-cog-manifest --publish
 ```
 
 The Python step writes COGs and `data/cog/generated/publish-report.json`. The
@@ -26,8 +26,8 @@ manifest, and publishes the new one.
 To verify without uploads, use:
 
 ```bash
-npm --prefix frontend run upload:solutions-cogs -- --dry-run --limit 1
-npm --prefix frontend run publish:solution-cog-manifest
+yarn --cwd frontend upload:solutions-cogs --dry-run --limit 1
+yarn --cwd frontend publish:solution-cog-manifest
 ```
 
 ## Idempotency

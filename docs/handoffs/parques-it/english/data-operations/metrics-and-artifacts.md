@@ -251,10 +251,10 @@ Review `goals-publish-report.json` for failures, row counts, source URLs, and ex
 After regular compact, MEC, or goals URLs are available:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run test:layer-manifest
-npm --prefix frontend run publish:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend test:layer-manifest
+yarn --cwd frontend publish:layer-manifest
 ```
 
 Review solution reconciliation before publishing. Confirm each affected solution points to the intended immutable or approved paths through `precomputedMetricUrls`, including `compactCache`, goals, and all six MEC geography URLs where applicable.
@@ -387,7 +387,7 @@ curl http://127.0.0.1:8000/ready
 2. Restore the prior runtime manifest:
 
 ```bash
-npm --prefix frontend run rollback:layer-manifest
+yarn --cwd frontend rollback:layer-manifest
 ```
 
 3. Republish the retained prior regular/compact generation directories and reports, or restore the prior immutable release references. There is no automatic metrics archive.
