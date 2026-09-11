@@ -8,8 +8,10 @@ import {
   Output,
   ViewChild,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { type LayerLocale, UserTier } from '@core/models';
 import { AuthService } from '@core/services/auth.service';
@@ -51,6 +53,7 @@ export class HeaderComponent implements AfterViewInit {
   protected readonly partnerCarouselCanMovePrevious = signal(false);
   protected readonly partnerCarouselCanMoveNext = signal(true);
   protected readonly isSignedIn = computed(() => this.appState.userIsSignedIn$());
+  protected readonly needsMfaEnrollment = computed(() => this.authService.mfaEnrollmentRequired$());
   protected readonly isApproved = computed(
     () => this.appState.userTier$() >= UserTier.DecisionMaker,
   );
@@ -65,6 +68,12 @@ export class HeaderComponent implements AfterViewInit {
 
   constructor() {
     this.syncAppLocaleToTranslate();
+    effect(() => {
+      if (!this.authService.mfaEnrollmentRequired$()) {
+        return;
+      }
+      untracked(() => this.authModalOpen.set(true));
+    });
   }
 
   ngAfterViewInit(): void {

@@ -14,7 +14,12 @@ import {
   type SavedSolutionScenario,
   isSavedSolutionScenario,
 } from '@core/services/app-state.service';
+import { UserTier } from '@core/models';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
+
+export function canPersistSavedScenariosRemotely(tier: UserTier): boolean {
+  return tier >= UserTier.DecisionMaker;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SavedSolutionScenariosService {
@@ -102,6 +107,9 @@ export class SavedSolutionScenariosService {
     if (!scenario) {
       return false;
     }
+    if (!canPersistSavedScenariosRemotely(this.appState.userTier$())) {
+      return false;
+    }
 
     return this.writeScenario(uid, firestore, scenario);
   }
@@ -110,6 +118,10 @@ export class SavedSolutionScenariosService {
     const uid = this.firebase.currentUser?.uid;
     const firestore = this.firebase.firestore;
     this.appState.removeSavedSolutionScenario(solutionId);
+
+    if (!canPersistSavedScenariosRemotely(this.appState.userTier$())) {
+      return true;
+    }
 
     if (!uid || !firestore) {
       return true;
@@ -141,6 +153,9 @@ export class SavedSolutionScenariosService {
     firestore: Firestore,
     scenario: SavedSolutionScenario,
   ): Promise<boolean> {
+    if (!canPersistSavedScenariosRemotely(this.appState.userTier$())) {
+      return false;
+    }
     this.pendingScenarioIds.add(scenario.id);
     try {
       await setDoc(doc(firestore, 'users', uid, 'savedSolutionScenarios', scenario.id), scenario);

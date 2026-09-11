@@ -8,7 +8,6 @@ import {
   doc,
   getDoc,
   serverTimestamp,
-  setDoc,
   type DocumentData,
 } from 'firebase/firestore';
 import { environment } from '../../../../environments/environment';
@@ -84,6 +83,15 @@ export interface LoginAttemptPayload {
   password?: string;
   provider: AuthProviderKind;
 }
+
+export const ACCESS_DENIED_MESSAGE =
+  'Your access request was denied. Contact an administrator for help.';
+
+export const ACCESS_ALREADY_APPROVED_MESSAGE =
+  'Your account is already approved. Sign in instead of requesting access again.';
+
+export const ACCESS_APPROVED_WITHOUT_ACCOUNT_MESSAGE =
+  'Your access request was already approved, but your account is not ready yet. Contact an administrator for help.';
 
 @Injectable({ providedIn: 'root' })
 export class AuthRequestService {
@@ -174,12 +182,33 @@ export class AuthRequestService {
    */
   async attemptLogin(payload: LoginAttemptPayload): Promise<LoginAttemptResult> {
     if (payload.provider === 'google' && payload.uid && this.firebase.isEnabled) {
-      await this.ensureFirebaseBaseAccount(
-        payload.uid,
-        payload.email,
-        payload.displayName ?? payload.email,
-      );
-      return 'active';
+      const user = await this.firebase.getUserDocument(payload.uid);
+      if (user?.['status'] === 'active') {
+        return 'active';
+      }
+      if (user?.['status'] === 'denied') {
+        return 'invalid';
+      }
+
+      const request = await this.firebase.getAccessRequestDocument(payload.uid);
+      if (request?.['status'] === 'denied') {
+        return 'invalid';
+      }
+      if (request) {
+        this.storeFirebasePendingRequest(payload.uid, request);
+        return 'pending';
+      }
+
+      const pending = this.createGooglePendingRequest({
+        uid: payload.uid,
+        googleName: payload.displayName ?? payload.email,
+        googleEmail: payload.email,
+        googleAvatarInitials: '',
+        requestedSirapIds: [],
+      });
+      await this.writeFirebasePendingRequest(pending);
+      this.writePendingRequest(pending);
+      return 'pending';
     }
 
     await this.wait();
@@ -287,19 +316,21 @@ export class AuthRequestService {
       throw new Error('Firestore is not configured.');
     }
 
-    const submittedAt = Date.now();
-    const pending: StoredPendingRequest = {
-      requestId: payload.uid,
-      email: payload.googleEmail,
-      fullName: payload.googleName,
-      provider: 'google',
-      submittedAt,
-      organization: payload.organization,
-      reason: payload.reason,
-      requestedSirapIds: payload.requestedSirapIds,
-    };
+    const user = await this.firebase.getUserDocument(payload.uid);
+    const request = await this.firebase.getAccessRequestDocument(payload.uid);
+    if (user?.['status'] === 'denied' || request?.['status'] === 'denied') {
+      throw new Error(ACCESS_DENIED_MESSAGE);
+    }
+    if (user?.['status'] === 'active') {
+      throw new Error(ACCESS_ALREADY_APPROVED_MESSAGE);
+    }
+    if (request?.['status'] === 'approved') {
+      throw new Error(ACCESS_APPROVED_WITHOUT_ACCOUNT_MESSAGE);
+    }
 
-    await this.ensureFirebaseBaseAccount(payload.uid, payload.googleEmail, payload.googleName);
+    const pending = this.createGooglePendingRequest(payload);
+
+    await this.writeFirebasePendingRequest(pending, payload.googleAvatarInitials);
     await this.sirapAccess.submitRequestsForIdentity(
       payload.uid,
       payload.googleEmail,
@@ -312,54 +343,26 @@ export class AuthRequestService {
     return pending;
   }
 
-  private async ensureFirebaseBaseAccount(
-    uid: string,
-    email: string,
-    displayName: string,
+  private async writeFirebasePendingRequest(
+    pending: StoredPendingRequest,
+    avatarInitials?: string,
   ): Promise<void> {
-    const firestore = this.firebase.firestore;
-    if (!firestore) {
-      throw new Error('Firestore is not configured.');
-    }
-    const userRef = doc(firestore, 'users', uid);
-    if (!(await getDoc(userRef)).exists()) {
-      await setDoc(userRef, {
-        uid,
-        email,
-        displayName,
-        status: 'active',
-        role: 'authorized_viewer',
-        tier: UserTier.DecisionMaker,
-        isAdmin: false,
-        isSuperAdmin: false,
-        allowedSirapIds: [],
-        administeredSirapIds: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    }
-    const directoryRef = doc(firestore, 'userDirectory', uid);
-    if (!(await getDoc(directoryRef)).exists()) {
-      await setDoc(directoryRef, {
-        uid,
-        email,
-        displayName,
-        status: 'active',
-        updatedAt: serverTimestamp(),
-      });
-    }
+    await this.firebase.setAccessRequestDocument(pending.requestId, {
+      uid: pending.requestId,
+      email: pending.email,
+      displayName: pending.fullName,
+      avatarInitials: avatarInitials || null,
+      provider: 'google',
+      status: 'pending',
+      organization: pending.organization ?? null,
+      reason: pending.reason ?? null,
+      submittedAt: pending.submittedAt,
+      requestedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
   }
 
-  private async getFirebasePendingRequest(uid: string): Promise<StoredPendingRequest | null> {
-    const firestore = this.firebase.firestore;
-    if (!firestore) {
-      return null;
-    }
-    const snapshot = await getDoc(doc(firestore, 'accessRequests', uid));
-    if (!snapshot.exists()) {
-      return null;
-    }
-    const data = snapshot.data();
+  private storeFirebasePendingRequest(uid: string, data: DocumentData): StoredPendingRequest {
     const pending: StoredPendingRequest = {
       requestId: uid,
       email: this.readString(data, 'email'),
@@ -372,6 +375,21 @@ export class AuthRequestService {
     };
     this.writePendingRequest(pending);
     return pending;
+  }
+
+  private createGooglePendingRequest(
+    payload: GoogleRequestPayload & { uid: string },
+  ): StoredPendingRequest {
+    return {
+      requestId: payload.uid,
+      email: payload.googleEmail,
+      fullName: payload.googleName,
+      provider: 'google',
+      submittedAt: Date.now(),
+      organization: payload.organization,
+      reason: payload.reason,
+      requestedSirapIds: payload.requestedSirapIds,
+    };
   }
 
   private async createAdminNotification(request: StoredPendingRequest): Promise<void> {

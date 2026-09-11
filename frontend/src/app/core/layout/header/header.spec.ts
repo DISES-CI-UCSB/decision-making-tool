@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
@@ -16,10 +17,12 @@ import { HeaderComponent } from './header';
 describe('HeaderComponent auth state', () => {
   const authService = {
     logout: vi.fn().mockResolvedValue(undefined),
+    mfaEnrollmentRequired$: signal(false),
   };
 
   beforeEach(async () => {
     authService.logout.mockClear();
+    authService.mfaEnrollmentRequired$.set(false);
     await TestBed.configureTestingModule({
       imports: [HeaderComponent],
       providers: [
@@ -138,9 +141,39 @@ describe('HeaderComponent auth state', () => {
     expect(header.querySelector('#foundation-header-pending-status')?.textContent).toContain(
       'Signed in · Access pending',
     );
+    expect(header.querySelector('#foundation-header-mfa-setup-button')).toBeNull();
     expect(header.querySelector('#foundation-header-logout-button')).not.toBeNull();
     expect(header.querySelector('#foundation-header-auth-toggle-button')).toBeNull();
     expect(header.querySelector('#foundation-header-sirap-access-button')).toBeNull();
+    expect(fixture.debugElement.query(By.directive(AuthModalComponent))).toBeNull();
+  });
+
+  it('opens the auth modal and shows authenticator setup instead of pending when enrollment is required', () => {
+    const appState = TestBed.inject(AppStateService);
+    appState.userIsSignedIn$.set(true);
+    appState.userTier$.set(UserTier.Public);
+    authService.mfaEnrollmentRequired$.set(true);
+    const fixture = TestBed.createComponent(HeaderComponent);
+    fixture.detectChanges();
+
+    const header = fixture.nativeElement as HTMLElement;
+    expect(header.querySelector('#foundation-header-pending-status')).toBeNull();
+    expect(header.querySelector('#foundation-header-mfa-setup-button')).not.toBeNull();
+    expect(header.querySelector('#foundation-header-mfa-setup-label')?.textContent).toContain(
+      'Set up authenticator',
+    );
+    expect(header.querySelector('#foundation-header-logout-button')).not.toBeNull();
+    expect(header.querySelector('#foundation-header-sirap-access-button')).toBeNull();
+    const openedModal = fixture.debugElement.query(By.directive(AuthModalComponent));
+    expect(openedModal).not.toBeNull();
+
+    (openedModal.componentInstance as AuthModalComponent).closeRequested.emit();
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.directive(AuthModalComponent))).toBeNull();
+
+    header.querySelector<HTMLButtonElement>('#foundation-header-mfa-setup-button')?.click();
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.directive(AuthModalComponent))).not.toBeNull();
   });
 
   it('logs out a pending signed-in user', () => {

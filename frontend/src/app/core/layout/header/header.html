@@ -199,6 +199,16 @@
               {{ 'header.adminAccess' | translate }}
             </button>
           }
+        } @else if (needsMfaEnrollment()) {
+          <button
+            id="foundation-header-mfa-setup-button"
+            type="button"
+            class="inline-flex min-h-10 items-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            [attr.aria-expanded]="authModalOpen()"
+            (click)="openAuthModal()"
+          >
+            <span id="foundation-header-mfa-setup-label">Set up authenticator</span>
+          </button>
         } @else {
           <p
             id="foundation-header-pending-status"

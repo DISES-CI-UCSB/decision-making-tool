@@ -1,7 +1,8 @@
-import { Injectable, OnDestroy, inject } from '@angular/core';
+import { Injectable, OnDestroy, inject, signal } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
+import { TotpMfaService } from '@features/auth/services/totp-mfa.service';
 import { readSirapAccessRegionIds, type SirapRegionId, UserTier } from '@core/models';
 import { type Unsubscribe, type User } from 'firebase/auth';
 import { type DocumentData } from 'firebase/firestore';
@@ -24,6 +25,8 @@ export class AuthService implements OnDestroy {
   private readonly appState = inject(AppStateService);
   private readonly firebase = inject(FirebaseClientService);
   private readonly savedSolutionScenarios = inject(SavedSolutionScenariosService);
+  private readonly totpMfa = inject(TotpMfaService);
+  readonly mfaEnrollmentRequired$ = signal(false);
   private authStateUnsubscribe: Unsubscribe | null = null;
   private userAccessUnsubscribe: Unsubscribe | null = null;
   private explicitlyLoggedOut = false;
@@ -43,6 +46,7 @@ export class AuthService implements OnDestroy {
 
   async logout(): Promise<void> {
     this.explicitlyLoggedOut = true;
+    this.mfaEnrollmentRequired$.set(false);
     this.savedSolutionScenarios.stopSync();
     await this.firebase.signOut();
     this.appState.userIsSignedIn$.set(false);
@@ -72,6 +76,7 @@ export class AuthService implements OnDestroy {
   private async syncTierFromFirebaseUser(user: User | null): Promise<UserTier> {
     this.appState.userIsSignedIn$.set(user !== null);
     if (!user) {
+      this.mfaEnrollmentRequired$.set(false);
       const fallbackTier = this.getFallbackTier();
       this.appState.userTier$.set(fallbackTier);
       this.appState.userIsAdmin$.set(false);
@@ -80,9 +85,7 @@ export class AuthService implements OnDestroy {
     }
 
     this.explicitlyLoggedOut = false;
-    const access = await this.getAccessForFirebaseUser(user.uid);
-    this.applyAccess(access);
-    return access.tier;
+    return this.applyResolvedAccess(await this.getAccessForFirebaseUser(user.uid), user);
   }
 
   private subscribeToFirebaseUserAccess(user: User | null): void {
@@ -90,20 +93,45 @@ export class AuthService implements OnDestroy {
     this.userAccessUnsubscribe = null;
     this.appState.userIsSignedIn$.set(user !== null);
     if (!user) {
+      this.mfaEnrollmentRequired$.set(false);
       this.savedSolutionScenarios.stopSync();
       void this.syncTierFromFirebaseUser(null);
       return;
     }
 
-    this.savedSolutionScenarios.startSyncForUser(user.uid);
-
     this.explicitlyLoggedOut = false;
     this.userAccessUnsubscribe = this.firebase.subscribeToUserDocument(user.uid, (userData) => {
-      this.applyAccess(this.readAccess(userData));
+      this.applyResolvedAccess(this.readAccess(userData), user);
     });
     if (!this.userAccessUnsubscribe) {
       void this.syncTierFromFirebaseUser(user);
     }
+  }
+
+  private applyResolvedAccess(access: UserAccess, user: User): UserTier {
+    const granted = this.holdUnenrolledActiveAccess(access, user);
+    this.applyAccess(granted);
+    if (this.mfaEnrollmentRequired$()) {
+      this.savedSolutionScenarios.stopSync();
+    } else {
+      this.savedSolutionScenarios.startSyncForUser(user.uid);
+    }
+    return granted.tier;
+  }
+
+  private holdUnenrolledActiveAccess(access: UserAccess, user: User): UserAccess {
+    const mustEnroll = access.tier >= UserTier.DecisionMaker && !this.totpMfa.hasEnrolledTotp(user);
+    this.mfaEnrollmentRequired$.set(mustEnroll);
+    if (!mustEnroll) {
+      return access;
+    }
+    return {
+      tier: UserTier.Public,
+      isAdmin: false,
+      isSuperAdmin: false,
+      allowedSirapIds: [],
+      administeredSirapIds: [],
+    };
   }
 
   private applyAccess(access: UserAccess): void {

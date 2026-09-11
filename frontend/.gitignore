@@ -10,6 +10,8 @@
 /node_modules
 npm-debug.log
 yarn-error.log
+firestore-debug.log
+firebase-debug.log
 
 # Yarn Berry (keep the committed release binary)
 .yarn/*

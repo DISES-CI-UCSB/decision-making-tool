@@ -3,20 +3,34 @@ import {
   ElementRef,
   EventEmitter,
   HostListener,
+  Injector,
   Output,
   ViewChild,
+  afterNextRender,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { AuthService } from '@core/services/auth.service';
+import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { SIRAP_ACCESS_REGIONS, type SirapRegionId } from '@core/models';
+import { type User } from 'firebase/auth';
 import {
+  ACCESS_DENIED_MESSAGE,
   AuthRequestService,
   type EmailRequestPayload,
   type StoredPendingRequest,
 } from '../services/auth-request.service';
 import { GoogleIdentityService, type GoogleProfile } from '../services/google-identity.service';
+import {
+  TOTP_RESTART_MESSAGE,
+  TotpMfaService,
+  isTotpMfaError,
+  toTotpMfaError,
+  type TotpChallengeSession,
+  type TotpEnrollmentSession,
+  type TotpErrorKind,
+} from '../services/totp-mfa.service';
 
 export type AuthModalState =
   | 'entry'
@@ -24,7 +38,11 @@ export type AuthModalState =
   | 'emailRequest'
   | 'pendingConfirm'
   | 'pendingReview'
-  | 'postGoogle';
+  | 'postGoogle'
+  | 'mfaEnroll'
+  | 'mfaChallenge';
+
+type GoogleIntent = 'login' | 'request';
 
 interface EmailLoginForm {
   email: string;
@@ -47,6 +65,8 @@ interface PostGoogleForm {
 }
 
 const SUBMIT_MIN_DELAY_MS = 300;
+export const TOTP_ENROLLMENT_COMPLETE_MESSAGE =
+  'Authenticator setup complete. Sign in with Google again to verify it.';
 
 @Component({
   selector: 'app-auth-modal',
@@ -58,16 +78,23 @@ const SUBMIT_MIN_DELAY_MS = 300;
 export class AuthModalComponent {
   private readonly authService = inject(AuthService);
   private readonly authRequest = inject(AuthRequestService);
+  private readonly firebase = inject(FirebaseClientService);
   private readonly googleIdentity = inject(GoogleIdentityService);
+  private readonly totpMfa = inject(TotpMfaService);
+  private readonly injector = inject(Injector);
 
   @Output() readonly closeRequested = new EventEmitter<void>();
 
   @ViewChild('modalCard', { static: false })
   private readonly modalCardRef?: ElementRef<HTMLElement>;
 
+  @ViewChild('totpCodeInput')
+  private readonly totpCodeInputRef?: ElementRef<HTMLInputElement>;
+
   protected readonly state = signal<AuthModalState>('entry');
   protected readonly isSubmitting = signal(false);
   protected readonly loginError = signal<string | null>(null);
+  protected readonly loginStatus = signal<string | null>(null);
 
   protected readonly emailLoginForm = signal<EmailLoginForm>({ email: '', password: '' });
   protected readonly emailRequestForm = signal<EmailRequestForm>({
@@ -86,6 +113,12 @@ export class AuthModalComponent {
   protected readonly sirapRegions = SIRAP_ACCESS_REGIONS;
   protected readonly pendingGoogleProfile = signal<GoogleProfile | null>(null);
   protected readonly confirmedRequest = signal<StoredPendingRequest | null>(null);
+  protected readonly googleIntent = signal<GoogleIntent>('login');
+  protected readonly totpCode = signal('');
+  protected readonly totpError = signal<string | null>(null);
+  protected readonly totpErrorKind = signal<TotpErrorKind | null>(null);
+  protected readonly mfaEnrollment = signal<TotpEnrollmentSession | null>(null);
+  protected readonly totpChallenge = signal<TotpChallengeSession | null>(null);
 
   protected readonly reviewTick = signal(0);
 
@@ -106,11 +139,38 @@ export class AuthModalComponent {
     return this.authRequest.canNudgeAdmins();
   });
 
+  protected readonly modalTitleId = computed(() => {
+    switch (this.state()) {
+      case 'mfaEnroll':
+        return 'auth-modal-mfa-enroll-title';
+      case 'mfaChallenge':
+        return 'auth-modal-mfa-challenge-title';
+      case 'emailLogin':
+        return 'auth-modal-email-login-title';
+      case 'emailRequest':
+        return 'auth-modal-email-request-title';
+      case 'pendingConfirm':
+        return 'auth-modal-pending-confirm-title';
+      case 'pendingReview':
+        return 'auth-modal-pending-review-title';
+      case 'postGoogle':
+        return 'auth-modal-post-google-title';
+      default:
+        return 'auth-modal-title';
+    }
+  });
+
+  protected readonly canSubmitTotp = computed(() => /^\d{6}$/.test(this.totpCode()));
+
+  constructor() {
+    if (this.authService.mfaEnrollmentRequired$() && this.firebase.currentUser) {
+      void this.resumeRequiredEnrollment();
+    }
+  }
+
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
-    if (!this.isSubmitting()) {
-      this.closeRequested.emit();
-    }
+    void this.requestClose();
   }
 
   protected onScrimClick(event: MouseEvent): void {
@@ -118,13 +178,15 @@ export class AuthModalComponent {
     if (card && event.target instanceof Node && card.contains(event.target)) {
       return;
     }
-    if (!this.isSubmitting()) {
-      this.closeRequested.emit();
-    }
+    void this.requestClose();
   }
 
   protected requestClose(): void {
     if (this.isSubmitting()) {
+      return;
+    }
+    if (this.isMfaState()) {
+      void this.abortMfaAndClose();
       return;
     }
     this.closeRequested.emit();
@@ -144,36 +206,7 @@ export class AuthModalComponent {
   }
 
   protected async chooseGoogleFromEntry(): Promise<void> {
-    if (this.isSubmitting()) {
-      return;
-    }
-    this.isSubmitting.set(true);
-    try {
-      const profile = await this.googleIdentity.signIn();
-      const loginResult = await this.authRequest.attemptLogin({
-        uid: profile.uid,
-        email: profile.email,
-        displayName: profile.name,
-        provider: 'google',
-      });
-      if (loginResult === 'active') {
-        await this.syncSessionAndClose();
-        return;
-      }
-      if (loginResult === 'pending') {
-        this.ensurePendingRequest(profile);
-        this.state.set('pendingReview');
-        return;
-      }
-      // For the MVP mock we never hit 'invalid' here, but route gracefully:
-      // treat the Google handshake as a new user and send them to the
-      // post-Google completion form (the Request Access half of §5.2b).
-      this.pendingGoogleProfile.set(profile);
-      this.postGoogleForm.set({ organization: '', reason: '', requestedSirapIds: [] });
-      this.state.set('postGoogle');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    await this.beginGoogleSignIn('login');
   }
 
   protected backToEntry(): void {
@@ -293,18 +326,7 @@ export class AuthModalComponent {
   // ------------------------------------------------------------------
 
   protected async chooseGoogleFromRequest(): Promise<void> {
-    if (this.isSubmitting()) {
-      return;
-    }
-    this.isSubmitting.set(true);
-    try {
-      const profile = await this.googleIdentity.signIn();
-      this.pendingGoogleProfile.set(profile);
-      this.postGoogleForm.set({ organization: '', reason: '', requestedSirapIds: [] });
-      this.state.set('postGoogle');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    await this.beginGoogleSignIn('request');
   }
 
   protected updatePostGoogleField<K extends keyof PostGoogleForm>(
@@ -330,6 +352,7 @@ export class AuthModalComponent {
       return;
     }
     this.isSubmitting.set(true);
+    this.loginError.set(null);
     try {
       const form = this.postGoogleForm();
       const startedAt = Date.now();
@@ -345,6 +368,16 @@ export class AuthModalComponent {
       await this.enforceMinDelay(startedAt);
       this.confirmedRequest.set(stored);
       await this.syncSessionAndClose();
+    } catch (error) {
+      const message = this.googleErrorMessage(error);
+      if (message === ACCESS_DENIED_MESSAGE) {
+        await this.authService.logout();
+        this.resetForms();
+        this.loginError.set(ACCESS_DENIED_MESSAGE);
+        this.state.set('entry');
+        return;
+      }
+      this.loginError.set(message);
     } finally {
       this.isSubmitting.set(false);
     }
@@ -399,8 +432,241 @@ export class AuthModalComponent {
   }
 
   // ------------------------------------------------------------------
+  // TOTP MFA
+  // ------------------------------------------------------------------
+
+  protected updateTotpCode(value: string): void {
+    this.totpCode.set(value.replace(/\D/g, '').slice(0, 6));
+    this.totpError.set(null);
+    this.totpErrorKind.set(null);
+  }
+
+  protected async submitTotpEnrollment(): Promise<void> {
+    if (!this.canSubmitTotp() || this.isSubmitting() || this.totpErrorKind() === 'restart') {
+      return;
+    }
+    const session = this.mfaEnrollment();
+    const user = this.firebase.currentUser;
+    if (!session || !user) {
+      this.applyRestartError(TOTP_RESTART_MESSAGE);
+      return;
+    }
+    this.isSubmitting.set(true);
+    this.totpError.set(null);
+    try {
+      await this.totpMfa.completeEnrollment(user, session, this.totpCode());
+      await this.finishEnrollmentAndReturnToSignIn();
+    } catch (error) {
+      this.applyTotpError(error);
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  protected async submitTotpChallenge(): Promise<void> {
+    if (!this.canSubmitTotp() || this.isSubmitting() || this.totpErrorKind() === 'restart') {
+      return;
+    }
+    const session = this.totpChallenge();
+    if (!session) {
+      this.applyRestartError(TOTP_RESTART_MESSAGE);
+      return;
+    }
+    this.isSubmitting.set(true);
+    this.totpError.set(null);
+    try {
+      const credential = await this.totpMfa.completeChallenge(session, this.totpCode());
+      const profile = await this.googleIdentity.profileFromCredential(credential);
+      await this.continueAfterGoogleProfile(profile, this.googleIntent());
+    } catch (error) {
+      this.applyTotpError(error);
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  protected cancelMfa(): void {
+    void this.requestClose();
+  }
+
+  protected async returnToGoogleSignIn(): Promise<void> {
+    if (this.isSubmitting()) {
+      return;
+    }
+    const message = this.totpError() ?? TOTP_RESTART_MESSAGE;
+    await this.abortMfaSessions();
+    this.resetForms();
+    this.loginError.set(message);
+    this.state.set('entry');
+  }
+
+  // ------------------------------------------------------------------
   // Helpers
   // ------------------------------------------------------------------
+
+  private async beginGoogleSignIn(intent: GoogleIntent): Promise<void> {
+    if (this.isSubmitting()) {
+      return;
+    }
+    this.isSubmitting.set(true);
+    this.loginError.set(null);
+    this.loginStatus.set(null);
+    this.googleIntent.set(intent);
+    try {
+      const result = await this.googleIdentity.signIn();
+      if (result.kind === 'totp-assertion-required') {
+        this.enterMfaChallenge(result.assertion);
+        return;
+      }
+      await this.continueAfterGoogleProfile(result.profile, intent);
+    } catch (error) {
+      this.loginError.set(this.googleErrorMessage(error));
+    } finally {
+      this.isSubmitting.set(false);
+    }
+    if (this.isMfaState()) {
+      this.requestTotpFocus();
+    }
+  }
+
+  private enterMfaChallenge(session: TotpChallengeSession): void {
+    this.clearTotpFields();
+    this.totpChallenge.set(session);
+    this.state.set('mfaChallenge');
+  }
+
+  private async continueAfterGoogleProfile(
+    profile: GoogleProfile,
+    intent: GoogleIntent,
+  ): Promise<void> {
+    const loginResult = await this.authRequest.attemptLogin({
+      uid: profile.uid,
+      email: profile.email,
+      displayName: profile.name,
+      provider: 'google',
+    });
+
+    if (loginResult === 'pending') {
+      if (intent === 'request') {
+        this.pendingGoogleProfile.set(profile);
+        this.postGoogleForm.set({ organization: '', reason: '', requestedSirapIds: [] });
+        this.state.set('postGoogle');
+        return;
+      }
+      this.state.set('pendingReview');
+      return;
+    }
+
+    if (loginResult !== 'active') {
+      await this.authService.logout();
+      this.loginError.set(ACCESS_DENIED_MESSAGE);
+      this.state.set('entry');
+      return;
+    }
+
+    const user = this.firebase.currentUser;
+    if (user && !this.totpMfa.hasEnrolledTotp(user)) {
+      await this.enterEnrollment(user, user.email || profile.email || profile.name);
+      return;
+    }
+
+    await this.syncSessionAndClose();
+  }
+
+  private async resumeRequiredEnrollment(): Promise<void> {
+    this.state.set('mfaEnroll');
+    this.isSubmitting.set(true);
+    try {
+      const user = this.firebase.currentUser;
+      if (!user) {
+        this.applyRestartError(TOTP_RESTART_MESSAGE);
+        return;
+      }
+      await this.enterEnrollment(user, user.email || user.displayName || '');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+    this.requestTotpFocus();
+  }
+
+  private async enterEnrollment(user: User, accountName: string): Promise<void> {
+    this.clearTotpFields();
+    this.mfaEnrollment.set(null);
+    this.state.set('mfaEnroll');
+    try {
+      const enrollment = await this.totpMfa.beginEnrollment(user, accountName);
+      this.mfaEnrollment.set(enrollment);
+    } catch {
+      this.applyRestartError(TOTP_RESTART_MESSAGE);
+    }
+  }
+
+  private isMfaState(): boolean {
+    const state = this.state();
+    return state === 'mfaEnroll' || state === 'mfaChallenge';
+  }
+
+  private async abortMfaAndClose(): Promise<void> {
+    await this.abortMfaSessions();
+    this.resetForms();
+    this.state.set('entry');
+    this.closeRequested.emit();
+  }
+
+  private async abortMfaSessions(): Promise<void> {
+    this.clearMfaSessions();
+    await this.authService.logout();
+  }
+
+  private applyTotpError(error: unknown): void {
+    const mapped = isTotpMfaError(error) ? error : toTotpMfaError(error);
+    this.totpErrorKind.set(mapped.kind);
+    this.totpError.set(mapped.message);
+    if (mapped.kind === 'retry') {
+      this.totpCode.set('');
+      this.requestTotpFocus();
+      return;
+    }
+    this.signOutForRestart();
+  }
+
+  private requestTotpFocus(): void {
+    afterNextRender(() => this.totpCodeInputRef?.nativeElement.focus(), {
+      injector: this.injector,
+    });
+  }
+
+  private applyRestartError(message: string): void {
+    this.totpErrorKind.set('restart');
+    this.totpError.set(message);
+    this.signOutForRestart();
+  }
+
+  private signOutForRestart(): void {
+    this.mfaEnrollment.set(null);
+    this.totpChallenge.set(null);
+    void this.authService.logout();
+  }
+
+  private clearTotpFields(): void {
+    this.totpCode.set('');
+    this.totpError.set(null);
+    this.totpErrorKind.set(null);
+  }
+
+  private clearMfaSessions(): void {
+    this.mfaEnrollment.set(null);
+    this.totpChallenge.set(null);
+    this.clearTotpFields();
+  }
+
+  private async finishEnrollmentAndReturnToSignIn(): Promise<void> {
+    this.clearMfaSessions();
+    await this.authService.logout();
+    this.resetForms();
+    this.loginStatus.set(TOTP_ENROLLMENT_COMPLETE_MESSAGE);
+    this.state.set('entry');
+  }
 
   private async syncSessionAndClose(): Promise<void> {
     await this.authService.refreshCurrentUserTier();
@@ -437,6 +703,12 @@ export class AuthModalComponent {
     }
   }
 
+  private googleErrorMessage(error: unknown): string {
+    return error instanceof Error && error.message
+      ? error.message
+      : 'Google sign-in failed. Please try again.';
+  }
+
   private resetForms(): void {
     this.emailLoginForm.set({ email: '', password: '' });
     this.emailRequestForm.set({
@@ -450,6 +722,8 @@ export class AuthModalComponent {
     this.postGoogleForm.set({ organization: '', reason: '', requestedSirapIds: [] });
     this.pendingGoogleProfile.set(null);
     this.loginError.set(null);
+    this.loginStatus.set(null);
+    this.clearMfaSessions();
   }
 
   private toggleSirapId(

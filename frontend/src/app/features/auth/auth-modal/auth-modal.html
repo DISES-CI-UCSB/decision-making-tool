@@ -3,7 +3,7 @@
   class="fixed inset-0 z-1000 flex items-center justify-center overflow-y-auto bg-slate-900/55 p-4 backdrop-blur-sm sm:p-8"
   role="dialog"
   aria-modal="true"
-  aria-labelledby="auth-modal-title"
+  [attr.aria-labelledby]="modalTitleId()"
   (mousedown)="onScrimClick($event)"
 >
   <div
@@ -17,7 +17,7 @@
       <!-- ------------------------------------------------------------------ -->
       @case ('entry') {
         <section id="auth-modal-entry" class="p-7">
-          <header id="auth-modal-entry-header" class="mb-6 text-center">
+          <header id="auth-modal-entry-header" class="mb-4 text-center">
             <div
               id="auth-modal-entry-logo"
               class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600 ring-1 ring-sky-200"
@@ -32,12 +32,19 @@
             <h2 id="auth-modal-title" class="text-lg font-semibold text-slate-900">
               Sign in or request access
             </h2>
-            <p id="auth-modal-entry-sub" class="mt-1 text-sm text-slate-500">
-              Unlocks the
-              <span class="font-semibold text-slate-700">Nacional / SIRAP</span>
-              scope toggle.
-            </p>
           </header>
+
+          <aside
+            id="auth-modal-entry-requirements"
+            class="mb-5 rounded-lg border border-slate-300 bg-white px-4 py-3 text-left text-sm leading-relaxed text-slate-800"
+          >
+            <p id="auth-modal-entry-req-google">
+              A Google account is required. Email and password sign-in is not available.
+            </p>
+            <p id="auth-modal-entry-req-authenticator" class="mt-2">
+              After approval, you will confirm with an authenticator app. SMS is not used.
+            </p>
+          </aside>
 
           <div id="auth-modal-entry-options" class="space-y-3">
             <button
@@ -83,34 +90,6 @@
               }
             </button>
 
-            <button
-              id="auth-modal-entry-email-btn"
-              type="button"
-              class="flex min-h-11 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-              (click)="chooseEmailLogin()"
-            >
-              <span
-                id="auth-modal-entry-email-icon"
-                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600"
-                aria-hidden="true"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" class="h-3 w-3">
-                  <path
-                    d="M2.94 6.25A2 2 0 0 1 4.94 4h10.12a2 2 0 0 1 2 2.25l-.42 3.54-6.64 3.98-6.64-3.98-.42-3.54Z"
-                  />
-                  <path d="m3.3 11.38 6.7 4 6.7-4v2.87a2 2 0 0 1-2 2H5.3a2 2 0 0 1-2-2v-2.87Z" />
-                </svg>
-              </span>
-              <span class="flex-1">Continue with email</span>
-              <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 text-slate-400">
-                <path
-                  fill-rule="evenodd"
-                  d="M7.293 14.707a1 1 0 0 1 0-1.414L10.586 10 7.293 6.707a1 1 0 1 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </button>
-
             <div
               id="auth-modal-entry-divider"
               class="relative flex items-center py-1"
@@ -126,8 +105,9 @@
             <button
               id="auth-modal-entry-request-btn"
               type="button"
-              class="flex min-h-11 w-full items-center gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 text-left text-sm font-semibold text-slate-700 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-              (click)="chooseEmailRequest()"
+              class="flex min-h-11 w-full items-center gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3.5 text-left text-sm font-semibold text-slate-700 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="isSubmitting()"
+              (click)="chooseGoogleFromRequest()"
             >
               <span
                 id="auth-modal-entry-request-icon"
@@ -144,9 +124,9 @@
                 Request access
                 <span
                   id="auth-modal-entry-request-sub"
-                  class="block text-[11px] font-normal text-slate-500"
+                  class="block text-xs font-normal text-slate-700"
                 >
-                  Admin review, 1&ndash;3 business days
+                  Uses Google &middot; admin review, 1&ndash;3 business days
                 </span>
               </span>
               <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 text-slate-400">
@@ -158,6 +138,26 @@
               </svg>
             </button>
           </div>
+
+          @if (loginStatus()) {
+            <p
+              id="auth-modal-entry-status"
+              class="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800"
+              role="status"
+            >
+              {{ loginStatus() }}
+            </p>
+          }
+
+          @if (loginError()) {
+            <p
+              id="auth-modal-entry-error"
+              class="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+              role="alert"
+            >
+              {{ loginError() }}
+            </p>
+          }
 
           <p
             id="auth-modal-entry-legal"
@@ -674,6 +674,241 @@
       }
 
       <!-- ------------------------------------------------------------------ -->
+      <!-- TOTP enrollment                                                    -->
+      <!-- ------------------------------------------------------------------ -->
+      @case ('mfaEnroll') {
+        <section id="auth-modal-mfa-enroll" class="p-7">
+          <header id="auth-modal-mfa-enroll-header" class="mb-5">
+            <h2 id="auth-modal-mfa-enroll-title" class="text-lg font-semibold text-slate-900">
+              Set up authenticator
+            </h2>
+            <p id="auth-modal-mfa-enroll-sub" class="mt-1 text-sm text-slate-500">
+              Scan this QR code with an authenticator app, then enter the 6-digit code.
+            </p>
+            <p id="auth-modal-mfa-enroll-apps" class="mt-1 text-xs text-slate-500">
+              Works with Google Authenticator, Authy, 1Password, or Microsoft Authenticator.
+            </p>
+          </header>
+
+          <div
+            id="auth-modal-mfa-enroll-qr-wrap"
+            class="mx-auto mb-4 flex h-44 w-44 items-center justify-center rounded-lg border border-slate-200 bg-white p-2"
+          >
+            @if (mfaEnrollment()?.qrCodeDataUrl; as qrSrc) {
+              <img
+                id="auth-modal-mfa-enroll-qr"
+                [src]="qrSrc"
+                alt="Authenticator QR code"
+                class="h-full w-full object-contain"
+              />
+            } @else {
+              <div
+                id="auth-modal-mfa-enroll-qr-placeholder"
+                class="h-full w-full animate-pulse rounded-md bg-slate-100"
+                aria-hidden="true"
+              ></div>
+            }
+          </div>
+
+          <p
+            id="auth-modal-mfa-enroll-secret-label"
+            class="mb-1.5 text-xs font-semibold text-slate-700"
+          >
+            Can&rsquo;t scan? Enter this key instead
+          </p>
+          <p
+            id="auth-modal-mfa-enroll-secret-value"
+            class="mb-5 break-all rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm tracking-wide text-slate-800 select-all"
+          >
+            {{ mfaEnrollment()?.secretKey }}
+          </p>
+
+          <form
+            id="auth-modal-mfa-enroll-form"
+            (submit)="$event.preventDefault(); submitTotpEnrollment()"
+          >
+            <label
+              id="auth-modal-mfa-enroll-code-label"
+              for="auth-modal-mfa-enroll-code-input"
+              class="mb-1.5 block text-xs font-semibold text-slate-700"
+            >
+              Authentication code
+            </label>
+            <input
+              id="auth-modal-mfa-enroll-code-input"
+              #totpCodeInput
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              required
+              class="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-center font-mono text-sm tracking-[0.3em] text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              [class.border-rose-300]="totpError()"
+              [attr.aria-invalid]="totpError() ? 'true' : 'false'"
+              [attr.aria-describedby]="totpError() ? 'auth-modal-mfa-enroll-error' : null"
+              [value]="totpCode()"
+              [disabled]="isSubmitting()"
+              (input)="updateTotpCode($any($event.target).value)"
+            />
+
+            @if (totpError()) {
+              <p
+                id="auth-modal-mfa-enroll-error"
+                class="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+                role="alert"
+              >
+                {{ totpError() }}
+              </p>
+            }
+
+            @if (totpErrorKind() === 'restart') {
+              <button
+                id="auth-modal-mfa-enroll-restart-btn"
+                type="button"
+                class="mb-2 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                [disabled]="isSubmitting()"
+                (click)="returnToGoogleSignIn()"
+              >
+                Sign in with Google again
+              </button>
+            } @else {
+              <button
+                id="auth-modal-mfa-enroll-submit-btn"
+                type="submit"
+                class="mb-2 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                [disabled]="!canSubmitTotp() || isSubmitting()"
+              >
+                @if (isSubmitting()) {
+                  <span
+                    id="auth-modal-mfa-enroll-submit-spinner"
+                    class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                    aria-hidden="true"
+                  ></span>
+                  @if (mfaEnrollment()) {
+                    Verifying&hellip;
+                  } @else {
+                    Setting up&hellip;
+                  }
+                } @else {
+                  Verify and continue
+                }
+              </button>
+            }
+
+            <button
+              id="auth-modal-mfa-enroll-cancel-btn"
+              type="button"
+              class="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="isSubmitting()"
+              (click)="cancelMfa()"
+            >
+              Cancel
+            </button>
+          </form>
+        </section>
+      }
+
+      <!-- ------------------------------------------------------------------ -->
+      <!-- TOTP challenge                                                     -->
+      <!-- ------------------------------------------------------------------ -->
+      @case ('mfaChallenge') {
+        <section id="auth-modal-mfa-challenge" class="p-7">
+          <header id="auth-modal-mfa-challenge-header" class="mb-5">
+            <h2 id="auth-modal-mfa-challenge-title" class="text-lg font-semibold text-slate-900">
+              Enter authenticator code
+            </h2>
+            <p id="auth-modal-mfa-challenge-sub" class="mt-1 text-sm text-slate-500">
+              Open your authenticator app and enter the 6-digit code.
+            </p>
+            <p id="auth-modal-mfa-challenge-apps" class="mt-1 text-xs text-slate-500">
+              Use the same app you set up &mdash; not a text message.
+            </p>
+          </header>
+
+          <form
+            id="auth-modal-mfa-challenge-form"
+            (submit)="$event.preventDefault(); submitTotpChallenge()"
+          >
+            <label
+              id="auth-modal-mfa-challenge-code-label"
+              for="auth-modal-mfa-challenge-code-input"
+              class="mb-1.5 block text-xs font-semibold text-slate-700"
+            >
+              Authentication code
+            </label>
+            <input
+              id="auth-modal-mfa-challenge-code-input"
+              #totpCodeInput
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              required
+              class="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-center font-mono text-sm tracking-[0.3em] text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+              [class.border-rose-300]="totpError()"
+              [attr.aria-invalid]="totpError() ? 'true' : 'false'"
+              [attr.aria-describedby]="totpError() ? 'auth-modal-mfa-challenge-error' : null"
+              [value]="totpCode()"
+              [disabled]="isSubmitting()"
+              (input)="updateTotpCode($any($event.target).value)"
+            />
+
+            @if (totpError()) {
+              <p
+                id="auth-modal-mfa-challenge-error"
+                class="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+                role="alert"
+              >
+                {{ totpError() }}
+              </p>
+            }
+
+            @if (totpErrorKind() === 'restart') {
+              <button
+                id="auth-modal-mfa-challenge-restart-btn"
+                type="button"
+                class="mb-2 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                [disabled]="isSubmitting()"
+                (click)="returnToGoogleSignIn()"
+              >
+                Sign in with Google again
+              </button>
+            } @else {
+              <button
+                id="auth-modal-mfa-challenge-submit-btn"
+                type="submit"
+                class="mb-2 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                [disabled]="!canSubmitTotp() || isSubmitting()"
+              >
+                @if (isSubmitting()) {
+                  <span
+                    id="auth-modal-mfa-challenge-submit-spinner"
+                    class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                    aria-hidden="true"
+                  ></span>
+                  Verifying&hellip;
+                } @else {
+                  Verify
+                }
+              </button>
+            }
+
+            <button
+              id="auth-modal-mfa-challenge-cancel-btn"
+              type="button"
+              class="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="isSubmitting()"
+              (click)="cancelMfa()"
+            >
+              Cancel
+            </button>
+          </form>
+        </section>
+      }
+
+      <!-- ------------------------------------------------------------------ -->
       <!-- v5-F · Post-Google completion                                      -->
       <!-- ------------------------------------------------------------------ -->
       @case ('postGoogle') {
@@ -866,6 +1101,16 @@
                   (input)="updatePostGoogleField('reason', $any($event.target).value)"
                 ></textarea>
               </div>
+
+              @if (loginError()) {
+                <p
+                  id="auth-modal-post-google-error"
+                  class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+                  role="alert"
+                >
+                  {{ loginError() }}
+                </p>
+              }
 
               <button
                 id="auth-modal-post-google-submit-btn"
