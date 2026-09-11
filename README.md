@@ -47,7 +47,7 @@ Open **http://localhost:8080/**. Firebase Auth is tied to `localhost`; `127.0.0.
 
 Flagless hydrate on the root `docker-compose.yml` uses the EPSG:9377 land-solution grid. Optional hydrate flags: `--production-v3` (Mesa / immutable production build) and `--reference-grid ecosistemas` (legacy EPSG:4326). `backend/docker-compose.yml` is a backend-only Compose file with stricter Mesa runtime gates; use the root file for first boot.
 
-**UI-only:** `cd frontend && npm install && npm start` → http://localhost:4200. Known-AOI numbers load from Blob. Custom polygons go through `frontend/proxy.conf.json` to the **remote** metrics API (`https://api.decision-making-support-tool.xyz`), so you can draw areas without local Docker. To hit a local backend instead, point that proxy (or `metricsApiBaseUrl`) at it.
+**UI-only:** `cd frontend && yarn install && yarn start` → http://localhost:4200. Known-AOI numbers load from Blob. Custom polygons go through `frontend/proxy.conf.json` to the **remote** metrics API (`https://api.decision-making-support-tool.xyz`), so you can draw areas without local Docker. To hit a local backend instead, point that proxy (or `metricsApiBaseUrl`) at it.
 
 ### Two containers
 
@@ -85,7 +85,7 @@ Name future catalogs with a version (`3.0.7`, a date). `*-land-use-aoi-test` is 
 
 | Who should change | Environment variable | Default if empty | What moves |
 |-------------------|----------------------|------------------|------------|
-| **What the SPA shows** | `CATALOG_RELEASE_INDEX_BLOB_URL` in `.env` (Docker/Vercel build). For `npm start`, also `catalogReleaseIndexBlobUrl` in `frontend/src/environments/environment.ts`. | `https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.0.6/catalog-release-index.json` | Solutions, known-AOI dashboard numbers |
+| **What the SPA shows** | `CATALOG_RELEASE_INDEX_BLOB_URL` in `.env` (Docker/Vercel build). For `yarn start`, also `catalogReleaseIndexBlobUrl` in `frontend/src/environments/environment.ts`. | `https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.0.6/catalog-release-index.json` | Solutions, known-AOI dashboard numbers |
 | **What custom polygons calculate against** | `MANIFEST_BLOB_URL` or `DMT_MANIFEST_URL` in `.env` / `backend/.env` | `https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json` | Hydrate recipe (`hydrationPackage`) |
 
 These names drifted. Mentally: first var = **frontend catalog index**, second = **hydrate layer manifest**. Bump only the pointer for the surface that changed.
@@ -94,7 +94,7 @@ These names drifted. Mentally: first var = **frontend catalog index**, second = 
 - New custom-AOI rasters or species matrices, same SPA catalog → change the **hydrate** pointer (or publish live `manifest/manifest.json`) and re-run hydrate.
 - Official cutover of both → update both, rebuild frontend, hydrate.
 
-Plain `npm start` reads `environment.ts`. Keep that file in sync with the official frontend pointer unless you are deliberately previewing another catalog.
+Plain `yarn start` reads `environment.ts`. Keep that file in sync with the official frontend pointer unless you are deliberately previewing another catalog.
 
 ## 2. Publish new metrics
 
@@ -108,7 +108,7 @@ Typical sequence (commands and flags: `docs/handoffs/parques-it/english/data-ope
 4. **MEC, goals, and species coverage** — `mec_compact.py`, `conservation_goals.py`, and `species_goals.py` write local files. Upload those by hand.
 5. **Wire the routers** (two surfaces)
    - **SPA / known-AOI numbers:** publish fat national and SIRAP **batch** manifests whose `precomputedMetricUrls` match the new files. For a new catalog version, also publish a **new tiny index** at `catalog-releases/<version>/catalog-release-index.json` (that file lists the batches for **that** version). Point `CATALOG_RELEASE_INDEX_BLOB_URL` and, for an official release, `environment.ts` at it. Rebuild the frontend.
-   - **Custom polygons:** `npm --prefix frontend run generate:layer-manifest` refreshes `hydrationPackage` from `frontend/shared/hydration-package.json`. `publish:layer-manifest` updates live `manifest/manifest.json` — the file hydrate reads.
+   - **Custom polygons:** `yarn --cwd frontend generate:layer-manifest` refreshes `hydrationPackage` from `frontend/shared/hydration-package.json`. `publish:layer-manifest` updates live `manifest/manifest.json` — the file hydrate reads.
 6. **Rehydrate** only if custom-AOI inputs changed (`docker compose run --rm --build backend hydrate`, then `docker compose up -d --build --force-recreate`).
 
 Prefer **new Blob paths** (a new release prefix and tiny index) when numbers change. Metric JSON is cached for a long time, so overwriting the same URL can leave browsers on old bytes. A hard refresh is only a maybe.

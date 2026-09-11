@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
-import { type AoiType, type Solution, type CatalogSolution, UserTier } from '@core/models';
+import { type AoiType, type Solution, type CatalogSolution } from '@core/models';
 import {
   CHART_PALETTE_IDS,
   CHART_PALETTES,
@@ -21,14 +21,12 @@ import { MockDataService } from '@core/services/mock-data.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
-import { environment } from '../../../../../environments/environment';
 import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
-import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-overlay';
 
 @Component({
   selector: 'app-dev-tools-panel',
   standalone: true,
-  imports: [InfoIconComponent, ManifestStyleEditorOverlayComponent],
+  imports: [InfoIconComponent],
   template: `
     <section id="dev-tools-root" class="relative pointer-events-auto z-20">
       <div id="dev-tools-toggle-row" class="flex items-center justify-end gap-2">
@@ -102,14 +100,6 @@ import { ManifestStyleEditorOverlayComponent } from './manifest-style-editor-ove
                 Clear map scenario
               </button>
             </div>
-
-            @if (canAccessManifestStyleEditor()) {
-              <section id="dev-tools-manifest-style-editor-section" class="mt-2">
-                <app-manifest-style-editor-overlay
-                  id="dev-tools-manifest-style-editor-overlay"
-                ></app-manifest-style-editor-overlay>
-              </section>
-            }
 
             <div
               id="dev-tools-coordinate-picker-toggle-row"
@@ -1006,9 +996,6 @@ export class DevToolsPanelComponent {
   readonly metricNumberFormatMode = this.appState.metricNumberFormatMode$;
   readonly boundaryVisibility = computed(() => this.adminBoundaries.layerVisibilityByType$());
   readonly boundaryPopupsEnabled = computed(() => this.adminBoundaries.popupEnabled$());
-  readonly canAccessManifestStyleEditor = computed(
-    () => environment.ENABLE_MANIFEST_EDITOR && this.appState.userTier$() >= UserTier.Manager,
-  );
 
   @Input() coordinateToolEnabled = false;
   @Output() readonly coordinateToolEnabledChange = new EventEmitter<boolean>();

@@ -110,9 +110,144 @@ describe('CustomAoiSpeciesInventoryComponent', () => {
     expect(
       compiled.querySelector('#custom-aoi-species-inventory-column-heading-row th')?.classList,
     ).toContain('top-8');
+    expect(compiled.querySelector('#custom-aoi-species-inventory-group-heading-row')?.classList).toContain(
+      'h-8',
+    );
+  });
+
+  it('sorts inventory coverage columns from headers without adding a sort dropdown', async () => {
+    speciesGoals.load.mockReturnValue(
+      of([
+        {
+          ...precomputedSpeciesRecord(),
+          id: 'high',
+          scientific_name: 'Zebra species',
+          range_area_km2: 50,
+          range_in_aoi_pct: 10,
+          pre_existing_covered_in_aoi_pct: 5,
+          new_covered_in_aoi_pct: 80,
+          solution_covered_in_aoi_pct: 90,
+        },
+        {
+          ...precomputedSpeciesRecord(),
+          id: 'low',
+          scientific_name: 'Aardvark species',
+          range_area_km2: 200,
+          range_in_aoi_pct: 80,
+          pre_existing_covered_in_aoi_pct: 40,
+          new_covered_in_aoi_pct: 5,
+          solution_covered_in_aoi_pct: 20,
+        },
+      ]),
+    );
+    const fixture = TestBed.createComponent(CustomAoiSpeciesInventoryComponent);
+    fixture.componentRef.setInput('geometry', null);
+    fixture.componentRef.setInput('solutionId', 'solution-1');
+    fixture.componentRef.setInput('geographyLevel', 'departments');
+    fixture.componentRef.setInput('scopeId', '05');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const names = () => [
+      compiled.querySelector('#custom-aoi-species-inventory-name-0')?.textContent?.trim(),
+      compiled.querySelector('#custom-aoi-species-inventory-name-1')?.textContent?.trim(),
+    ];
+
+    expect(compiled.querySelector('#custom-aoi-species-inventory-sort-select')).toBeNull();
+    expect(names()).toEqual(['Zebra species', 'Aardvark species']);
     expect(
-      compiled.querySelector('#custom-aoi-species-inventory-group-heading-row')?.classList,
-    ).toContain('h-8');
+      compiled
+        .querySelector('#custom-aoi-species-inventory-solutionCoverage-heading')
+        ?.getAttribute('aria-sort'),
+    ).toBe('descending');
+
+    (
+      compiled.querySelector(
+        '#custom-aoi-species-inventory-solutionCoverage-heading-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(names()).toEqual(['Aardvark species', 'Zebra species']);
+    expect(
+      compiled
+        .querySelector('#custom-aoi-species-inventory-solutionCoverage-heading')
+        ?.getAttribute('aria-sort'),
+    ).toBe('ascending');
+
+    (
+      compiled.querySelector(
+        '#custom-aoi-species-inventory-range-in-aoi-heading-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(names()).toEqual(['Zebra species', 'Aardvark species']);
+
+    (
+      compiled.querySelector(
+        '#custom-aoi-species-inventory-species-heading-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(names()).toEqual(['Aardvark species', 'Zebra species']);
+  });
+
+  it('reverses tied 100% coverage rows when toggling the scenario coverage header', async () => {
+    speciesGoals.load.mockReturnValue(
+      of([
+        {
+          ...precomputedSpeciesRecord(),
+          id: 'adenophora',
+          scientific_name: 'Abarema adenophora',
+          solution_covered_in_aoi_pct: 100,
+        },
+        {
+          ...precomputedSpeciesRecord(),
+          id: 'auriculata',
+          scientific_name: 'Abarema auriculata',
+          solution_covered_in_aoi_pct: 100,
+        },
+        {
+          ...precomputedSpeciesRecord(),
+          id: 'zygia',
+          scientific_name: 'Zygia latifolia',
+          solution_covered_in_aoi_pct: 12,
+        },
+      ]),
+    );
+    const fixture = TestBed.createComponent(CustomAoiSpeciesInventoryComponent);
+    fixture.componentRef.setInput('geometry', null);
+    fixture.componentRef.setInput('solutionId', 'solution-1');
+    fixture.componentRef.setInput('geographyLevel', 'departments');
+    fixture.componentRef.setInput('scopeId', '05');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.componentInstance.open();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const names = () =>
+      [...compiled.querySelectorAll('[id^="custom-aoi-species-inventory-name-"]')]
+        .filter((node) => /^custom-aoi-species-inventory-name-\d+$/.test(node.id))
+        .map((node) => node.textContent?.trim());
+
+    expect(names()).toEqual([
+      'Abarema auriculata',
+      'Abarema adenophora',
+      'Zygia latifolia',
+    ]);
+
+    (
+      compiled.querySelector(
+        '#custom-aoi-species-inventory-solutionCoverage-heading-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(names()).toEqual([
+      'Zygia latifolia',
+      'Abarema adenophora',
+      'Abarema auriculata',
+    ]);
   });
 
   it('opens coverage heading tooltips toward the table so they do not extend scroll width', () => {

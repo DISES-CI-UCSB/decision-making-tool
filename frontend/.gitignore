@@ -13,6 +13,15 @@ yarn-error.log
 firestore-debug.log
 firebase-debug.log
 
+# Yarn Berry (keep the committed release binary)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+
 # IDEs and editors
 .idea/
 .project

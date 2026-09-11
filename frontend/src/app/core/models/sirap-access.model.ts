@@ -5,8 +5,7 @@ export type SirapRegionId =
   | 'eje-cafetero'
   | 'andes-nororientales'
   | 'orinoquia'
-  | 'amazonia'
-  | 'eje-cafetero';
+  | 'amazonia';
 
 export interface SirapRegion {
   id: SirapRegionId;
@@ -21,7 +20,6 @@ export const SIRAP_REGIONS: readonly SirapRegion[] = [
   { id: 'andes-nororientales', label: 'SIRAP Andes Nororientales' },
   { id: 'orinoquia', label: 'SIRAP Orinoquía' },
   { id: 'amazonia', label: 'SIRAP Amazonía' },
-  { id: 'eje-cafetero', label: 'SIRAP Eje Cafetero' },
 ];
 
 export const SIRAP_REGION_IDS: readonly SirapRegionId[] = SIRAP_REGIONS.map((region) => region.id);

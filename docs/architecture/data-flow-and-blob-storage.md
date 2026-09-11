@@ -227,9 +227,9 @@ flowchart TD
 The key frontend scripts are:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run publish:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend publish:layer-manifest
 ```
 
 Species layers use [`frontend/layer-manifest/generate-species-manifest.mjs`](../../frontend/layer-manifest/generate-species-manifest.mjs) because listing every species in the main manifest would make the main runtime payload too large.
@@ -393,10 +393,10 @@ flowchart LR
 
 1. Add or update the source raster in the expected Blob prefix, such as `inputs/features/`, `inputs/costs/`, or `inputs/includes/`.
 2. Update the verified CSV registry if the conceptual layer, category, label, or usage flag changed.
-3. Run `npm --prefix frontend run generate:layer-manifest`.
+3. Run `yarn --cwd frontend generate:layer-manifest`.
 4. Review the reconciliation reports under `frontend/development-artifacts/layer-manifest/reports/`.
-5. Run `npm --prefix frontend run validate:layer-manifest`.
-6. Publish with `npm --prefix frontend run publish:layer-manifest` when the generated manifest is correct.
+5. Run `yarn --cwd frontend validate:layer-manifest`.
+6. Publish with `yarn --cwd frontend publish:layer-manifest` when the generated manifest is correct.
 7. Verify the app can load the layer from the left sidebar and render its `displayUrl`.
 
 ### Add Or Update A Solution

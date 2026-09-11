@@ -4768,21 +4768,46 @@
               <select
                 id="conservation-goals-modal-sort-select"
                 class="min-h-9 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800"
-                [value]="goalsModalSortId()"
+                [value]="goalsModalSortSelectValue()"
                 (change)="setGoalsModalSortId($any($event.target).value)"
               >
-                <option id="conservation-goals-modal-sort-coverage-desc" value="coverage-desc">
+                <option
+                  id="conservation-goals-modal-sort-coverage-desc"
+                  value="coverage-desc"
+                >
                   {{ 'analysis.overview.goalsWidget.modal.sortCoverageDesc' | translate }}
                 </option>
-                <option id="conservation-goals-modal-sort-coverage-asc" value="coverage-asc">
+                <option
+                  id="conservation-goals-modal-sort-coverage-asc"
+                  value="coverage-asc"
+                >
                   {{ 'analysis.overview.goalsWidget.modal.sortCoverageAsc' | translate }}
                 </option>
-                <option id="conservation-goals-modal-sort-name" value="name">
+                <option
+                  id="conservation-goals-modal-sort-name"
+                  value="name"
+                >
                   {{ 'analysis.overview.goalsWidget.modal.sortName' | translate }}
                 </option>
+                @if (goalsModalSortGeneratedOption(); as generatedSort) {
+                  <option
+                    id="conservation-goals-modal-sort-generated"
+                    [value]="generatedSort.value"
+                    selected
+                  >
+                    {{ generatedSort.label }}
+                  </option>
+                }
               </select>
             </label>
           </div>
+          <p
+            id="conservation-goals-modal-sort-status"
+            class="sr-only"
+            aria-live="polite"
+          >
+            {{ goalsModalSortLiveMessage() }}
+          </p>
         </header>
 
         @if (domain.featureType === 'species') {
@@ -4855,18 +4880,24 @@
                       id="conservation-goals-modal-national-virtual-heading-species"
                       class="sticky left-0 z-20 bg-white px-3 py-2 text-left font-bold text-slate-600"
                       role="columnheader"
+                      [attr.aria-sort]="goalsModalAriaSort('name')"
                     >
                       <app-table-header-tooltip
                         idBase="conservation-goals-modal-national-virtual-heading-species"
                         labelKey="analysis.overview.goalsWidget.modal.species"
                         questionKey="analysis.overview.goalsWidget.modal.columnQuestions.species"
                         align="start"
+                        [sortable]="true"
+                        [sortDirection]="goalsModalSortIndicator('name')"
+                        [sortAriaLabel]="goalsModalSortByLabel('name')"
+                        (sortClick)="onGoalsModalSortHeader('name')"
                       ></app-table-header-tooltip>
                     </span>
                     <span
                       id="conservation-goals-modal-national-virtual-heading-range"
                       class="px-3 py-2 text-left font-bold text-slate-600"
                       role="columnheader"
+                      [attr.aria-sort]="goalsModalAriaSort('nationalRangeKm2')"
                     >
                       <app-table-header-tooltip
                         idBase="conservation-goals-modal-national-virtual-heading-range"
@@ -4881,6 +4912,10 @@
                             : 'analysis.overview.goalsWidget.modal.columnQuestions.nationalModeledRange'
                         "
                         align="start"
+                        [sortable]="true"
+                        [sortDirection]="goalsModalSortIndicator('nationalRangeKm2')"
+                        [sortAriaLabel]="goalsModalSortByLabel('nationalRangeKm2')"
+                        (sortClick)="onGoalsModalSortHeader('nationalRangeKm2')"
                       ></app-table-header-tooltip>
                     </span>
                     @for (
@@ -4910,6 +4945,9 @@
                         [id]="'conservation-goals-modal-national-virtual-heading-' + heading.id"
                         class="px-3 py-2 text-left font-bold text-slate-600"
                         role="columnheader"
+                        [attr.aria-sort]="
+                          goalsModalAriaSort(speciesHeaderSortColumn(heading.id))
+                        "
                       >
                         <app-table-header-tooltip
                           [idBase]="
@@ -4921,6 +4959,16 @@
                             (isSirapPrimaryGoalsModal() ? heading.sirapQuestion : heading.question)
                           "
                           align="start"
+                          [sortable]="true"
+                          [sortDirection]="
+                            goalsModalSortIndicator(speciesHeaderSortColumn(heading.id))
+                          "
+                          [sortAriaLabel]="
+                            goalsModalSortByLabel(speciesHeaderSortColumn(heading.id))
+                          "
+                          (sortClick)="
+                            onGoalsModalSortHeader(speciesHeaderSortColumn(heading.id))
+                          "
                         ></app-table-header-tooltip>
                       </span>
                     }
@@ -4976,12 +5024,17 @@
                     id="conservation-goals-modal-virtual-heading-feature"
                     class="px-3 py-2.5 text-left font-bold text-slate-600"
                     role="columnheader"
+                    [attr.aria-sort]="goalsModalAriaSort('name')"
                   >
                     <app-table-header-tooltip
                       idBase="conservation-goals-modal-virtual-heading-feature"
                       labelKey="analysis.overview.goalsWidget.modal.species"
                       questionKey="analysis.overview.goalsWidget.modal.columnQuestions.species"
                       align="start"
+                      [sortable]="true"
+                      [sortDirection]="goalsModalSortIndicator('name')"
+                      [sortAriaLabel]="goalsModalSortByLabel('name')"
+                      (sortClick)="onGoalsModalSortHeader('name')"
                     ></app-table-header-tooltip>
                   </span>
                   @if (goalsModalUsesExpandedCoverageLayout()) {
@@ -4989,12 +5042,17 @@
                       id="conservation-goals-modal-virtual-heading-nationalRange"
                       class="px-3 py-2.5 text-left font-bold text-slate-600"
                       role="columnheader"
+                      [attr.aria-sort]="goalsModalAriaSort('nationalRangeKm2')"
                     >
                       <app-table-header-tooltip
                         idBase="conservation-goals-modal-virtual-heading-nationalRange"
                         labelKey="analysis.aoi.customProfile.species.nationalModeledRangeColombia"
                         questionKey="analysis.aoi.customProfile.species.columnQuestions.nationalModeledRangeColombia"
                         align="start"
+                        [sortable]="true"
+                        [sortDirection]="goalsModalSortIndicator('nationalRangeKm2')"
+                        [sortAriaLabel]="goalsModalSortByLabel('nationalRangeKm2')"
+                        (sortClick)="onGoalsModalSortHeader('nationalRangeKm2')"
                       ></app-table-header-tooltip>
                     </span>
                     @for (
@@ -5007,6 +5065,9 @@
                         [id]="'conservation-goals-modal-virtual-heading-' + metricId"
                         class="px-3 py-2.5 text-left font-bold text-slate-600"
                         role="columnheader"
+                        [attr.aria-sort]="
+                          goalsModalAriaSort(speciesHeaderSortColumn(metricId))
+                        "
                       >
                         <app-table-header-tooltip
                           [idBase]="'conservation-goals-modal-virtual-heading-' + metricId"
@@ -5023,6 +5084,14 @@
                               : 'analysis.aoi.customProfile.species.columnQuestions.' + metricId
                           "
                           align="start"
+                          [sortable]="true"
+                          [sortDirection]="
+                            goalsModalSortIndicator(speciesHeaderSortColumn(metricId))
+                          "
+                          [sortAriaLabel]="
+                            goalsModalSortByLabel(speciesHeaderSortColumn(metricId))
+                          "
+                          (sortClick)="onGoalsModalSortHeader(speciesHeaderSortColumn(metricId))"
                         ></app-table-header-tooltip>
                       </span>
                     }
@@ -5031,12 +5100,17 @@
                       id="conservation-goals-modal-virtual-heading-coverage"
                       class="px-3 py-2.5 text-left font-bold text-slate-600"
                       role="columnheader"
+                      [attr.aria-sort]="goalsModalAriaSort('relativeHeld')"
                     >
                       <app-table-header-tooltip
                         idBase="conservation-goals-modal-virtual-heading-coverage"
                         labelKey="analysis.overview.goalsWidget.modal.rangeCoverage"
                         questionKey="analysis.overview.goalsWidget.modal.columnQuestions.rangeCoverage"
                         align="start"
+                        [sortable]="true"
+                        [sortDirection]="goalsModalSortIndicator('relativeHeld')"
+                        [sortAriaLabel]="goalsModalSortByLabel('relativeHeld')"
+                        (sortClick)="onGoalsModalSortHeader('relativeHeld')"
                       ></app-table-header-tooltip>
                     </span>
                   }
@@ -5084,6 +5158,7 @@
 
               @if (goalsModalRows().length > 0) {
                 <cdk-virtual-scroll-viewport
+                  #goalsModalSpeciesViewport
                   id="conservation-goals-modal-species-viewport"
                   class="h-[48vh] max-h-120 min-h-40 w-full overflow-x-hidden! overflow-y-auto [scrollbar-gutter:stable]"
                   [itemSize]="goalsModalVirtualRowSize"
@@ -5096,7 +5171,7 @@
                 >
                   <div
                     *cdkVirtualFor="
-                      let row of goalsModalRows();
+                      let row of goalsModalRowsDataSource();
                       let rowIndex = index;
                       trackBy: trackGoalsModalRow
                     "
@@ -5595,7 +5670,7 @@
               >
                 <div
                   *cdkVirtualFor="
-                    let row of goalsModalRows();
+                    let row of goalsModalRowsDataSource();
                     let rowIndex = index;
                     trackBy: trackGoalsModalRow
                   "

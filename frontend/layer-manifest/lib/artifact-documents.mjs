@@ -128,6 +128,11 @@ const REGULAR_METRIC_IDS = [
   'protected_area_runap_km2',
   'national_parks_pct',
   'indigenous_territory_pct',
+  'land_use_artificial_surfaces_pct_of_aoi',
+  'land_use_agricultural_areas_pct_of_aoi',
+  'land_use_forests_and_semi_natural_areas_pct_of_aoi',
+  'land_use_wetlands_pct_of_aoi',
+  'land_use_water_bodies_pct_of_aoi',
 ];
 const SPECIES_METRIC_IDS = new Set([
   'species_groups_protected',

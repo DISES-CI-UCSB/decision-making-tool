@@ -60,8 +60,9 @@ class _SyntheticLayerValueCache:
         cache,
         *,
         value_units: str,
+        expected_sha256: str | None = None,
     ):
-        del value_units
+        del value_units, expected_sha256
         values = self.values[layer_id]
         finite = np.isfinite(values)
         weighted = np.zeros_like(values, dtype=np.float64)

@@ -142,7 +142,7 @@ async function main() {
     });
   } else if (runManifest && failed > 0) {
     console.warn(
-      '[upload-species-tifs] skipping generate:species-manifest because uploads had failures (fix or run `npm run generate:species-manifest` manually)',
+      '[upload-species-tifs] skipping generate:species-manifest because uploads had failures (fix or run `yarn generate:species-manifest` manually)',
     );
   }
 

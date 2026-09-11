@@ -64,6 +64,8 @@ import {
   isLayerAvailableForScope,
   nameMatchesSearch,
   normalizeSelectedLayerOrder,
+  buildPinnedSelectedLayerIds,
+  pinContextualSelectedLayerOrder,
   reorderRowsByDropTarget,
   reorderRowsById,
   individualSpeciesCollectionScenarioStatus,
@@ -92,6 +94,7 @@ import {
   type IavhBiomeRegionClass,
 } from './map-layers-panel-iavh-ecosystem.utils';
 import {
+  ACTIVE_SIRAP_BOUNDARY_ROW_ID,
   APPEARANCE_POPOVER_ARROW_RIGHT_PX,
   APPEARANCE_POPOVER_LEFT_OFFSET_PX,
   APPEARANCE_POPOVER_MAX_WIDTH_PX,
@@ -628,6 +631,8 @@ export class MapLayersPanelComponent implements OnDestroy {
       this.appState.rightSidebarMode$();
       this.appState.comparisonSolution$();
       this.overlays();
+      this.groups();
+      this.taxa();
       untracked(() => {
         this.selectedLayerOrder.update((order) => {
           const normalizedOrder = this.normalizeSelectedLayerOrder(order);
@@ -653,8 +658,8 @@ export class MapLayersPanelComponent implements OnDestroy {
         : sourceGroups;
       untracked(() => {
         this.syncLocaleSensitiveSidebarLabels();
-        this.syncActiveSirapBoundaryRow();
         this.applyManifestSidebarGroups(manifestGroups);
+        this.syncActiveSirapBoundaryRow();
       });
     });
 
@@ -1902,6 +1907,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         this.computeSelectedLayerOrder(this.overlays(), this.groups(), this.taxa()),
       ),
     );
+    this.syncActiveSirapBoundaryRow();
     this.syncAllRowsToMap();
   }
 
@@ -3257,7 +3263,7 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private normalizeSelectedLayerOrder(order: string[]): string[] {
     return normalizeSelectedLayerOrder(
-      order,
+      pinContextualSelectedLayerOrder(order),
       COMPARISON_PRIORITY_OVERLAY_IDS,
       this.shouldPrioritizeComparisonLayers(),
     );
@@ -3353,21 +3359,12 @@ export class MapLayersPanelComponent implements OnDestroy {
       }
     }
 
-    const orderedSelectedRows: SelectedLayerRow[] = [];
-    for (const rowId of order) {
-      const row = rowLookup.get(rowId);
-      if (!row) {
-        continue;
-      }
-      orderedSelectedRows.push(row);
-      rowLookup.delete(rowId);
-    }
-
-    for (const row of rowLookup.values()) {
-      orderedSelectedRows.push(row);
-    }
-
-    return this.applyComparisonPriorityToSelectedRows(orderedSelectedRows);
+    const pinnedIds = buildPinnedSelectedLayerIds(order, [...rowLookup.keys()]);
+    const pinnedRows = pinnedIds.flatMap((id) => {
+      const row = rowLookup.get(id);
+      return row ? [row] : [];
+    });
+    return this.applyComparisonPriorityToSelectedRows(pinnedRows);
   }
 
   private applyComparisonPriorityToSelectedRows(rows: SelectedLayerRow[]): SelectedLayerRow[] {
@@ -4454,27 +4451,19 @@ export class MapLayersPanelComponent implements OnDestroy {
         if (group.id !== 'group-admin-boundaries') {
           return group;
         }
-        const rows = group.rows.filter((row) => row.id !== 'boundary-active_sirap');
+        const rows = group.rows.filter((row) => row.id !== ACTIVE_SIRAP_BOUNDARY_ROW_ID);
         const nextRows = activeRow ? [activeRow, ...rows] : rows;
         return { ...group, rows: nextRows, countLabel: this.toLayerCountLabel(nextRows.length) };
       }),
     );
     this.selectedLayerOrder.update((order) => {
-      const withoutActive = order.filter((id) => id !== 'boundary-active_sirap');
+      const withoutActive = order.filter((id) => id !== ACTIVE_SIRAP_BOUNDARY_ROW_ID);
       if (!activeRow) {
         return this.normalizeSelectedLayerOrder(withoutActive);
       }
-      const contextualRows = [
-        BASELINE_SOLUTION_OVERLAY_ID,
-        'boundary-active_sirap',
-        'boundary-admin_country_outline',
-      ];
-      return this.normalizeSelectedLayerOrder([
-        ...contextualRows.filter(
-          (id) => id === BASELINE_SOLUTION_OVERLAY_ID || withoutActive.includes(id),
-        ),
-        ...withoutActive.filter((id) => !contextualRows.includes(id)),
-      ]);
+      return this.normalizeSelectedLayerOrder(
+        pinContextualSelectedLayerOrder([...withoutActive, activeRow.id]),
+      );
     });
     if (activeRow) {
       this.syncRowToMap(activeRow);

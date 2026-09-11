@@ -247,6 +247,19 @@ def metric_ids_for_request(metrics: list[str] | None, *, raster_artifact: bool) 
     return deduped
 
 
+def build_full_grid_presence_raster(
+    reference_raster_path: Path,
+) -> tuple[SolutionRaster, np.ndarray]:
+    """Score every in-grid cell, including nodata planning units.
+
+    SIRAP GeoTIFFs store unselected planning units as nodata, so
+    ``valid_mask`` equals the selected mask. Using that as the presence
+    mask would drop uncovered range and report 100% coverage.
+    """
+    base = read_reference_raster(reference_raster_path)
+    return base, base.grid_mask
+
+
 def rasterize_custom_polygon_mask(
     reference_raster_path: Path,
     geometry: dict[str, Any],

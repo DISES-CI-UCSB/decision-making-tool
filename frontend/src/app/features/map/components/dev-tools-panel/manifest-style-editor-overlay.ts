@@ -115,6 +115,7 @@ const SIDEBAR_CATEGORY_ORDER = [
   templateUrl: './manifest-style-editor-overlay.html',
   styleUrl: './manifest-style-editor-overlay.scss',
 })
+// Retired: the manifest style editor is archived; layer appearance in the map layers panel is the supported styling path.
 export class ManifestStyleEditorOverlayComponent {
   private readonly layerManifestService = inject(LayerManifestService);
   private readonly styleRequestService = inject(ManifestStyleRequestService);
@@ -374,8 +375,7 @@ export class ManifestStyleEditorOverlayComponent {
     () => `~/Downloads/${this.lastDownloadedStyledManifestFilename() ?? 'DOWNLOADED_FILE.json'}`,
   );
   protected readonly localStyleRequestPublishCommand = computed(
-    () =>
-      `npm run publish:styled-manifest -- --source ${this.localStyleRequestFileLocation()} --publish`,
+    () => `yarn publish:styled-manifest --source ${this.localStyleRequestFileLocation()} --publish`,
   );
 
   protected readonly lastManualEdit = computed<RuntimeLayerManifestManualEdit | null>(() => {

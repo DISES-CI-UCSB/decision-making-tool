@@ -2,6 +2,15 @@
 
 # Gestión de AOI conocidas y límites
 
+## Empiece aquí
+
+- [Cuándo usar este procedimiento](#cuándo-usar-este-procedimiento)
+- [Tabla de decisión de impacto](#tabla-de-decisión-de-impacto)
+- [Pasos y comandos admitidos](#pasos-y-comandos-admitidos)
+- [Lista de verificación](#lista-de-verificación)
+- [Reversión](#reversión)
+- [Limitaciones y escalamiento](#limitaciones-y-escalamiento)
+
 ## Cuándo usar este procedimiento
 
 Use este procedimiento al agregar o corregir un registro de departamento, municipio, SIRAP, RUNAP u OMEC, o al reemplazar una de esas colecciones de límites publicadas. También explica por qué agregar un tipo de geografía completamente nuevo es un proyecto de desarrollo y no una tarea de carga.
@@ -171,15 +180,15 @@ No existe un mecanismo atómico en el repositorio o en Blob que intercambie conj
 Si cambió la URL, la entrada de límite del manifiesto, la etiqueta, la categoría o el rol de cálculo, regenere y valide:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run test:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend test:layer-manifest
 ```
 
 Revise los informes de conciliación en `development-artifacts/layer-manifest/reports/` y luego publique:
 
 ```bash
-npm --prefix frontend run publish:layer-manifest
+yarn --cwd frontend publish:layer-manifest
 ```
 
 Incluso cuando la URL no cambie, verifique que la configuración de identificación del frontend siga leyendo los campos de ID/nombre publicados. Los departamentos, municipios y SIRAP se configuran en `admin-boundary.service.ts`; RUNAP y OMEC se integran mediante el flujo de identificación del mapa y capas complementarias al pasar el puntero.
@@ -275,7 +284,7 @@ Use [Métricas y artefactos en tiempo de ejecución](./metrics-and-artifacts.md)
 4. Restablezca el manifiesto anterior en tiempo de ejecución:
 
 ```bash
-npm --prefix frontend run rollback:layer-manifest
+yarn --cwd frontend rollback:layer-manifest
 ```
 
 5. Vuelva a publicar el directorio y el informe conservados de la generación de métricas anterior, o restablezca sus referencias inmutables, siguiendo el procedimiento de métricas/artefactos. Las métricas no tienen un archivo automático; la reversión solo es posible si las salidas locales anteriores o la entrega inmutable siguen disponibles.

@@ -173,9 +173,7 @@ function manifestRowsForGroup(
   groupId: string,
   rows: readonly ManifestSidebarLayerRow[],
 ): ManifestSidebarLayerRow[] {
-  const visibleRows = rows.filter(
-    (row) => !LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS.has(row.id),
-  );
+  const visibleRows = rows.filter((row) => !LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS.has(row.id));
   if (groupId === MARINE_ECOSYSTEMS_GROUP_ID) {
     return visibleRows.filter((row) => `layer-${row.id}` === MARINE_ECOSYSTEMS_LAYER_ID);
   }
@@ -478,13 +476,17 @@ function reconcileAdminBoundaries(
         row.mapSync?.type === 'admin-boundary' ? [row.mapSync.boundaryLayerKey] : [],
       ),
     );
-    const preservedRows = group.rows.filter(
+    const preservedActiveSirap = group.rows.filter(
+      (row) =>
+        row.mapSync?.type === 'admin-boundary' && row.mapSync.boundaryLayerKey === 'active_sirap',
+    );
+    const preservedCountryOutline = group.rows.filter(
       (row) =>
         row.mapSync?.type === 'admin-boundary' &&
         row.mapSync.boundaryLayerKey === 'admin_country_outline' &&
         !manifestBoundaryKeys.has(row.mapSync.boundaryLayerKey),
     );
-    const reconciledRows = [...preservedRows, ...rows];
+    const reconciledRows = [...preservedActiveSirap, ...preservedCountryOutline, ...rows];
     return reconciledRows.length === 0
       ? group
       : {

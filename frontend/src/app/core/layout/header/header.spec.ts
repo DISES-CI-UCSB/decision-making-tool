@@ -47,6 +47,25 @@ describe('HeaderComponent auth state', () => {
     });
   });
 
+  it('shows DevTools in non-production builds', () => {
+    const fixture = TestBed.createComponent(HeaderComponent);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('#foundation-header-dev-tools-panel'),
+    ).not.toBeNull();
+  });
+
+  it('omits DevTools when the production gate is off', () => {
+    const fixture = TestBed.createComponent(HeaderComponent);
+    (fixture.componentInstance as unknown as { showDevTools: boolean }).showDevTools = false;
+    fixture.detectChanges();
+
+    const header = fixture.nativeElement as HTMLElement;
+    expect(header.querySelector('#foundation-header-dev-tools-panel')).toBeNull();
+    expect(header.querySelector('#dev-tools-toggle-btn')).toBeNull();
+  });
+
   it('shows the app logo with translated alt text instead of a visible title', () => {
     const fixture = TestBed.createComponent(HeaderComponent);
     fixture.detectChanges();

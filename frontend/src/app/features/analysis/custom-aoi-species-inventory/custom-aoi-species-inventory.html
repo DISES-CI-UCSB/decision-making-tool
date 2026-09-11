@@ -204,6 +204,13 @@
             | translate: { count: filteredSpecies().length }
         }}
       </p>
+      <p
+        id="custom-aoi-species-inventory-sort-status"
+        class="sr-only"
+        aria-live="polite"
+      >
+        {{ speciesSortLiveMessage() }}
+      </p>
       <div
         id="custom-aoi-species-inventory-list"
         class="min-h-40 flex-1 overflow-x-auto overflow-y-auto rounded-md border border-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
@@ -262,36 +269,51 @@
                 id="custom-aoi-species-inventory-species-heading"
                 class="sticky left-0 top-8 z-[4] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
                 scope="col"
+                [attr.aria-sort]="speciesAriaSort('name')"
               >
                 <app-table-header-tooltip
                   idBase="custom-aoi-species-inventory-species-heading"
                   labelKey="analysis.aoi.customProfile.species.title"
                   questionKey="analysis.aoi.customProfile.species.columnQuestions.species"
                   align="start"
+                  [sortable]="true"
+                  [sortDirection]="speciesSortIndicator('name')"
+                  [sortAriaLabel]="speciesSortByLabel('name')"
+                  (sortClick)="onSpeciesSortHeader('name')"
                 ></app-table-header-tooltip>
               </th>
               <th
                 id="custom-aoi-species-inventory-national-range-heading"
                 class="sticky top-8 z-[3] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
                 scope="col"
+                [attr.aria-sort]="speciesAriaSort('nationalRangeKm2')"
               >
                 <app-table-header-tooltip
                   idBase="custom-aoi-species-inventory-national-range-heading"
                   labelKey="analysis.aoi.customProfile.species.nationalModeledRangeColombia"
                   questionKey="analysis.aoi.customProfile.species.columnQuestions.nationalModeledRangeColombia"
                   align="start"
+                  [sortable]="true"
+                  [sortDirection]="speciesSortIndicator('nationalRangeKm2')"
+                  [sortAriaLabel]="speciesSortByLabel('nationalRangeKm2')"
+                  (sortClick)="onSpeciesSortHeader('nationalRangeKm2')"
                 ></app-table-header-tooltip>
               </th>
               <th
                 id="custom-aoi-species-inventory-range-in-aoi-heading"
                 class="sticky top-8 z-[3] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
                 scope="col"
+                [attr.aria-sort]="speciesAriaSort('rangeInAoiPercent')"
               >
                 <app-table-header-tooltip
                   idBase="custom-aoi-species-inventory-range-in-aoi-heading"
                   labelKey="analysis.aoi.customProfile.species.rangeInAoi"
                   questionKey="analysis.aoi.customProfile.species.columnQuestions.rangeInAoi"
                   align="start"
+                  [sortable]="true"
+                  [sortDirection]="speciesSortIndicator('rangeInAoiPercent')"
+                  [sortAriaLabel]="speciesSortByLabel('rangeInAoiPercent')"
+                  (sortClick)="onSpeciesSortHeader('rangeInAoiPercent')"
                 ></app-table-header-tooltip>
                 <span
                   id="custom-aoi-species-inventory-range-in-aoi-heading-denominator"
@@ -305,12 +327,17 @@
                   [id]="'custom-aoi-species-inventory-' + metricId + '-heading'"
                   class="sticky top-8 z-[3] border-b border-slate-200 bg-white px-3 py-2 text-left align-bottom text-[10px] font-semibold text-slate-700"
                   scope="col"
+                  [attr.aria-sort]="speciesAriaSort(speciesHeaderSortColumn(metricId))"
                 >
                   <app-table-header-tooltip
                     [idBase]="'custom-aoi-species-inventory-' + metricId + '-heading'"
                     [labelKey]="'analysis.aoi.customProfile.species.' + metricId"
                     [questionKey]="'analysis.aoi.customProfile.species.columnQuestions.' + metricId"
                     align="end"
+                    [sortable]="true"
+                    [sortDirection]="speciesSortIndicator(speciesHeaderSortColumn(metricId))"
+                    [sortAriaLabel]="speciesSortByLabel(speciesHeaderSortColumn(metricId))"
+                    (sortClick)="onSpeciesSortHeader(speciesHeaderSortColumn(metricId))"
                   ></app-table-header-tooltip>
                 </th>
               }

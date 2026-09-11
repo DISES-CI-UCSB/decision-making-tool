@@ -8,6 +8,8 @@ import {
   layerPlanningDomain,
   nameMatchesSearch,
   normalizeSelectedLayerOrder,
+  buildPinnedSelectedLayerIds,
+  pinContextualSelectedLayerOrder,
   reorderRowsByDropTarget,
   reorderRowsById,
   individualSpeciesCollectionScenarioStatus,
@@ -59,6 +61,37 @@ describe('selected layer ordering', () => {
         true,
       ),
     ).toEqual(['baseline', 'candidate', 'overlap', 'data']);
+  });
+
+  it('pins the active SIRAP between the scenario overlay and Colombia outline', () => {
+    expect(
+      pinContextualSelectedLayerOrder([
+        'overlay-conservation-solution',
+        'boundary-admin_country_outline',
+        'boundary-active_sirap',
+      ]),
+    ).toEqual([
+      'overlay-conservation-solution',
+      'boundary-active_sirap',
+      'boundary-admin_country_outline',
+    ]);
+  });
+
+  it('pins a newly selected active SIRAP ahead of Colombia when it was only a leftover', () => {
+    expect(
+      buildPinnedSelectedLayerIds(
+        ['overlay-conservation-solution', 'boundary-admin_country_outline'],
+        [
+          'overlay-conservation-solution',
+          'boundary-admin_country_outline',
+          'boundary-active_sirap',
+        ],
+      ),
+    ).toEqual([
+      'overlay-conservation-solution',
+      'boundary-active_sirap',
+      'boundary-admin_country_outline',
+    ]);
   });
 });
 

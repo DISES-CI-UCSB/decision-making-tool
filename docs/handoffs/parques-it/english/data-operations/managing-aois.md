@@ -8,6 +8,17 @@ Use this runbook when adding or correcting a department, municipality, SIRAP, RU
 
 Do not use this workflow for a user-drawn polygon. A custom AOI is sent to the FastAPI service and calculated from runtime raster artifacts; it is not registered in the known-AOI boundary catalogs or precomputed cache.
 
+## Start here
+
+- Classify the geography and stage a complete collection: [1. Classify and stage the change](#1-classify-and-stage-the-change) and [2. Build the complete boundary collection](#2-build-the-complete-boundary-collection).
+- Validate geometry and fail-closed pins: [3. Validate geometry and update fail-closed pins](#3-validate-geometry-and-update-fail-closed-pins).
+- Promote bytes and pins together: [4. Stage and promote the boundary safely](#4-stage-and-promote-the-boundary-safely).
+- Refresh the runtime manifest only when its boundary contract changed: [5. Refresh the runtime manifest when its boundary contract changes](#5-refresh-the-runtime-manifest-when-its-boundary-contract-changes).
+- Recalculate every solution against every known AOI: [6. Recalculate every solution against the complete AOI catalog](#6-recalculate-every-solution-against-the-complete-aoi-catalog).
+- Rebuild FastAPI artifacts only when shared live inputs also changed: [7. Rebuild live custom-AOI artifacts when shared inputs changed](#7-rebuild-live-custom-aoi-artifacts-when-shared-inputs-changed).
+- Rollback matching bytes, URL, code, and pins as one contract: [Rollback](#rollback).
+- Escalate a new geography type, OMEC rebuild, or pin rewrite: [8. Adding a brand-new geography type — developer project](#8-adding-a-brand-new-geography-type--developer-project) and [Limitations and escalation](#limitations-and-escalation).
+
 ## Roles and prerequisites
 
 - **Data steward:** approves source, license, stable IDs, names, geometry, and whether a change is an addition or correction.
@@ -171,15 +182,15 @@ There is no atomic repository or Blob mechanism that swaps the mutable bytes and
 If the URL, boundary manifest entry, label, category, or calculation role changed, regenerate and validate:
 
 ```bash
-npm --prefix frontend run generate:layer-manifest
-npm --prefix frontend run validate:layer-manifest
-npm --prefix frontend run test:layer-manifest
+yarn --cwd frontend generate:layer-manifest
+yarn --cwd frontend validate:layer-manifest
+yarn --cwd frontend test:layer-manifest
 ```
 
 Review the reconciliation reports under `development-artifacts/layer-manifest/reports/`, then publish:
 
 ```bash
-npm --prefix frontend run publish:layer-manifest
+yarn --cwd frontend publish:layer-manifest
 ```
 
 Even when the URL is unchanged, verify that the frontend identify configuration still reads the published ID/name fields. Departments, municipalities, and SIRAP are configured in `admin-boundary.service.ts`; RUNAP and OMEC are integrated through the map identify flow and supplemental hover layers.
@@ -275,7 +286,7 @@ Use [Metrics and runtime artifacts](./metrics-and-artifacts.md) for artifact-fam
 4. Restore the prior runtime manifest:
 
 ```bash
-npm --prefix frontend run rollback:layer-manifest
+yarn --cwd frontend rollback:layer-manifest
 ```
 
 5. Republish the retained prior metrics generation directory and report, or restore its immutable references, following the metrics/artifacts runbook. Metrics have no automatic archive; rollback is only possible if the prior local outputs or immutable release remain available.

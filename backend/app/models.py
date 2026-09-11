@@ -292,9 +292,16 @@ class CustomAreaProfileResponse(BaseModel):
 
 
 class DetailedSpeciesCoverageRequest(BaseModel):
-    geometry: dict[str, Any]
+    geometry: dict[str, Any] | None = None
     solution_id: str
     artifact_version: str | None = None
+    coverage_scope: Literal["polygon", "full-grid"] = "polygon"
+
+    @model_validator(mode="after")
+    def require_geometry_for_polygon_scope(self) -> DetailedSpeciesCoverageRequest:
+        if self.coverage_scope == "polygon" and self.geometry is None:
+            raise ValueError("geometry is required when coverage_scope is polygon")
+        return self
 
 
 class DetailedSpeciesCoverageRecord(BaseModel):

@@ -17,6 +17,8 @@ legacy-r-shiny-app
 frontend/node_modules
 frontend/dist
 frontend/.angular
+frontend/.yarn/cache
+frontend/.yarn/install-state.gz
 
 # Backend local/runtime state
 backend/.venv

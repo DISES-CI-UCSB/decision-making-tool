@@ -29,6 +29,7 @@ from app.models import (
     CustomAreaProfileRequest,
     CustomAreaProfileResponse,
     CustomAreaProfileSelection,
+    DetailedSpeciesCoverageRequest,
     EcosystemAreaProfileSection,
 )
 from app.species_index import (
@@ -45,6 +46,7 @@ from raster_metrics import read_solution_raster
 from mec_compact import build_composite_taxonomy, load_composite_crosswalk
 from sparse.species_bitset import build_species_bitset
 from tests.test_raster_polygon_metrics import (
+    POLYGON_FULL_GRID,
     POLYGON_LEFT_COLUMN,
     raster_artifact,
     raster_artifact_with_species,
@@ -281,6 +283,184 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
     assert bird.contribution_to_national_target is None
 
 
+def test_detailed_species_coverage_keeps_nodata_planning_units_in_aoi_range(
+    tmp_path: Path,
+) -> None:
+    """SIRAP reference rasters often store unselected PUs as nodata.
+
+    Clipping the AOI to that valid mask would make every overlapping species
+    look 100% covered. The unclipped polygon mask must stay in the denominator.
+    """
+    from app.metric_adapters import rasterize_custom_polygon_mask
+
+    reference = write_tif(
+        tmp_path / "selected_only_reference.tif",
+        np.array([[1, 255], [255, 255]], dtype=np.uint8),
+        nodata=255,
+    )
+    matrix = write_species_matrix(
+        tmp_path / "species_mammals.smtx.gz",
+        [("Orinoquia mammal", "LC", "Mammalia", [0, 1])],
+    )
+    data_path = tmp_path / "species.cells.bits"
+    metadata_path = tmp_path / "species.cells.json"
+    build_species_bitset({"mammals": matrix}, data_path, metadata_path)
+    index = load_runtime_species_bitset_index(data_path, metadata_path)
+    aoi, polygon_mask = rasterize_custom_polygon_mask(reference, POLYGON_FULL_GRID)
+    solution_path = write_tif(
+        tmp_path / "solution.tif",
+        np.array([[2, 255], [255, 255]], dtype=np.uint8),
+        nodata=255,
+    )
+    solution = read_solution_raster(solution_path)
+
+    clipped = {
+        record.scientific_name: record
+        for record in index.detailed_coverage_records(aoi, solution)
+    }
+    honest = {
+        record.scientific_name: record
+        for record in index.detailed_coverage_records(
+            aoi,
+            solution,
+            aoi_presence_mask=polygon_mask,
+        )
+    }
+
+    assert clipped["Orinoquia mammal"].solution_covered_in_aoi_pct == pytest.approx(100.0)
+    assert honest["Orinoquia mammal"].range_in_aoi_area_km2 == pytest.approx(2.0)
+    assert honest["Orinoquia mammal"].solution_covered_in_aoi_pct == pytest.approx(50.0)
+    assert honest["Orinoquia mammal"].held_in_aoi == 1
+    assert honest["Orinoquia mammal"].total_in_aoi == 2
+
+
+def test_detailed_species_coverage_full_grid_keeps_nodata_planning_units(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """SIRAP-wide scoring must keep nodata cells in the range denominator."""
+    reference = write_tif(
+        tmp_path / "selected_only_reference.tif",
+        np.array([[1, 255], [255, 255]], dtype=np.uint8),
+        nodata=255,
+    )
+    matrix = write_species_matrix(
+        tmp_path / "species_mammals.smtx.gz",
+        [("Orinoquia mammal", "LC", "Mammalia", [0, 1])],
+    )
+    data_path = tmp_path / "species.cells.bits"
+    metadata_path = tmp_path / "species.cells.json"
+    build_species_bitset({"mammals": matrix}, data_path, metadata_path)
+    index = load_runtime_species_bitset_index(data_path, metadata_path)
+    solution_path = write_tif(
+        tmp_path / "solution.tif",
+        np.array([[2, 255], [255, 255]], dtype=np.uint8),
+        nodata=255,
+    )
+    solution = read_solution_raster(solution_path)
+    artifact = SimpleNamespace(
+        manifest={"artifact_version": "artifact"},
+        species_index=index,
+        reference_raster_path=reference,
+        solution_registry=SimpleNamespace(load=lambda _solution_id: (solution, "checksum")),
+        mesa_coverage=None,
+    )
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
+
+    result = main_module._calculate_detailed_species_coverage(
+        {
+            "artifact_version": "artifact",
+            "coverage_scope": "full-grid",
+            "solution_id": "solution",
+        },
+        lambda: False,
+    )
+    records = {record["scientific_name"]: record for record in result["records"]}
+    mammal = records["Orinoquia mammal"]
+
+    assert mammal["range_in_aoi_area_km2"] == pytest.approx(2.0)
+    assert mammal["solution_covered_in_aoi_pct"] == pytest.approx(50.0)
+    assert mammal["solution_covered_in_aoi_pct"] < 100.0
+    assert mammal["held_in_aoi"] == 1
+    assert mammal["total_in_aoi"] == 2
+
+
+def test_detailed_species_full_grid_does_not_rasterize_polygon(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeIndex:
+        def detailed_coverage_records(
+            self,
+            aoi_raster,
+            solution_raster,
+            is_cancelled,
+            *,
+            target_for_species,
+            aoi_presence_mask=None,
+        ) -> list:
+            assert aoi_raster == "aoi"
+            assert aoi_presence_mask == "full-grid"
+            assert solution_raster == "solution-raster"
+            assert is_cancelled() is False
+            assert target_for_species is None
+            return []
+
+    artifact = SimpleNamespace(
+        manifest={"artifact_version": "artifact"},
+        species_index=FakeIndex(),
+        reference_raster_path=Path("reference.tif"),
+        solution_registry=SimpleNamespace(
+            load=lambda solution_id: ("solution-raster", "checksum")
+        ),
+        mesa_coverage=None,
+    )
+    monkeypatch.setattr(main_module, "RuntimeSpeciesBitsetIndex", FakeIndex)
+    monkeypatch.setattr(
+        main_module,
+        "get_runtime_artifact_for_solution",
+        lambda settings, solution_id=None: artifact,
+    )
+    monkeypatch.setattr(
+        main_module,
+        "build_full_grid_presence_raster",
+        lambda path: ("aoi", "full-grid"),
+    )
+
+    def fail_if_rasterized(*_args, **_kwargs):
+        raise AssertionError("full-grid coverage must not rasterize a polygon")
+
+    monkeypatch.setattr(main_module, "rasterize_custom_polygon_mask", fail_if_rasterized)
+
+    result = main_module._calculate_detailed_species_coverage(
+        {
+            "artifact_version": "artifact",
+            "coverage_scope": "full-grid",
+            "solution_id": "solution",
+        },
+        lambda: False,
+    )
+
+    assert result["records"] == []
+
+
+def test_detailed_species_request_requires_geometry_only_for_polygon_scope() -> None:
+    with pytest.raises(ValidationError):
+        DetailedSpeciesCoverageRequest(solution_id="solution")
+    with pytest.raises(ValidationError):
+        DetailedSpeciesCoverageRequest(solution_id="solution", coverage_scope="polygon")
+
+    request = DetailedSpeciesCoverageRequest(
+        solution_id="solution",
+        coverage_scope="full-grid",
+    )
+    assert request.geometry is None
+    assert request.coverage_scope == "full-grid"
+
+
 def test_detailed_species_coverage_without_overlay_leaves_coverage_null(
     tmp_path: Path,
 ) -> None:
@@ -377,8 +557,10 @@ def test_detailed_species_job_builds_one_normalized_target_lookup(
             is_cancelled,
             *,
             target_for_species,
+            aoi_presence_mask=None,
         ) -> list:
             assert aoi_raster == "aoi"
+            assert aoi_presence_mask == "polygon"
             assert solution_raster == "solution-raster"
             assert is_cancelled() is False
             assert target_for_species(" Species_ONE ") == 0.5
@@ -403,8 +585,8 @@ def test_detailed_species_job_builds_one_normalized_target_lookup(
     )
     monkeypatch.setattr(
         main_module,
-        "build_custom_aoi_raster",
-        lambda path, geometry: "aoi",
+        "rasterize_custom_polygon_mask",
+        lambda path, geometry: ("aoi", "polygon"),
     )
 
     result = main_module._calculate_detailed_species_coverage(

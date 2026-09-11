@@ -282,14 +282,28 @@ class RuntimeSpeciesBitsetIndex:
         is_cancelled: Callable[[], bool] | None = None,
         *,
         target_for_species: Callable[[str], float | None] | None = None,
+        aoi_presence_mask: np.ndarray | None = None,
     ) -> list[SpeciesCoverageRecord]:
+        """Score species range inside the AOI against the solution overlay.
+
+        Pass ``aoi_presence_mask`` when the AOI raster's selected_mask is
+        clipped to solution-valid cells. SIRAP reference rasters often store
+        unselected planning units as nodata, which would otherwise drop them
+        from the range denominator and report 100% coverage.
+        """
         if solution_raster is not None and not aoi_raster.fingerprint.matches(
             solution_raster.fingerprint
         ):
             raise SpeciesIndexQueryError("solution_raster_grid_mismatch")
 
         grid = self.metadata_document.grid
-        aoi_window = selected_window_for_species_grid(
+        presence_source = aoi_raster.selected_mask
+        if aoi_presence_mask is not None:
+            presence_source = np.asarray(aoi_presence_mask, dtype=bool)
+            if presence_source.shape != aoi_raster.selected_mask.shape:
+                raise SpeciesIndexQueryError("aoi_presence_mask_shape_mismatch")
+        aoi_window = _array_window_for_species_grid(
+            presence_source,
             aoi_raster,
             grid,
             "cell-major",

@@ -2373,7 +2373,11 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
+      solution_id: solution.id,
+      coverage_scope: 'full-grid',
+    });
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
 
     (
       fixture.componentInstance as unknown as {
@@ -2561,11 +2565,129 @@ describe('PanelSwitcherComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'orinoquia');
-    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
+      solution_id: solution.id,
+      coverage_scope: 'full-grid',
+    });
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
     expect(component.getGoalsModalTitleKey()).toBe(
       'analysis.overview.goalsWidget.modal.sirapSpeciesTitle',
     );
+  });
+
+  it('computes SIRAP overview species coverage live over the full grid', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildOrinoquiaGoalsDocument(solution.id);
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(buildRegionalSirapMetricsDocument(solution.id, 'orinoquia')),
+    );
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      scope: 'sirap',
+      sirapId: 'orinoquia',
+      precomputedMetricUrls: {
+        goals: '/releases/sirap-test/goals/cache/orinoquia.goals.json',
+        speciesGoalsCatalog: '/releases/sirap-test/species-goals/catalog/v1/catalog.json',
+        speciesGoalsByGeography: {
+          siraps: '/releases/sirap-test/species-goals/test-solution/siraps.json',
+        },
+      },
+    } as CatalogSolution);
+    const liveCoverage = buildDetailedSpeciesJob('complete');
+    liveCoverage.result!.records = [buildSirapOverviewLiveCoverageRecord()];
+    vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(of(liveCoverage));
+    appState.activeSolution$.set(solution);
+    appState.clearAOI();
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    (
+      fixture.componentInstance as unknown as {
+        openGoalsModal(domainId: string, source?: 'overview' | 'aoi'): void;
+      }
+    ).openGoalsModal('species', 'overview');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
+      solution_id: solution.id,
+      coverage_scope: 'full-grid',
+    });
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
+        ?.textContent,
+    ).toContain('14');
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
+        ?.textContent,
+    ).not.toContain('100');
+    expect(
+      (
+        fixture.componentInstance as unknown as {
+          goalsModalSpeciesRows(): { name: string; relativeHeld: number }[];
+        }
+      ).goalsModalSpeciesRows(),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'Zygodontomys brevicauda',
+        relativeHeld: 0.14,
+      }),
+    ]);
+  });
+
+  it('falls back to published SIRAP compact when live overview coverage is unavailable', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildSirapGoalsDocument(solution.id);
+    mockSirapCatalogSolution(solution);
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(buildRegionalSirapMetricsDocument(solution.id)),
+    );
+    vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(
+      of(buildDetailedSpeciesJob('failed')),
+    );
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of([
+        {
+          ...buildHydratedSpeciesRecords(buildGoalsDocument())[0],
+          solution_covered_in_aoi_pct: 100,
+        },
+      ]),
+    );
+    appState.activeSolution$.set(solution);
+    appState.clearAOI();
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    (
+      fixture.componentInstance as unknown as {
+        openGoalsModal(domainId: string, source?: 'overview' | 'aoi'): void;
+      }
+    ).openGoalsModal('species', 'overview');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
+      solution_id: solution.id,
+      coverage_scope: 'full-grid',
+    });
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
+    expect(
+      (
+        fixture.componentInstance as unknown as {
+          goalsModalSpeciesRows(): { id: string }[];
+        }
+      ).goalsModalSpeciesRows().length,
+    ).toBeGreaterThan(0);
+    expect(
+      fixture.nativeElement.querySelector('#conservation-goals-modal-species-error'),
+    ).toBeNull();
   });
 
   it('titles national overview coverage as National', async () => {
@@ -3222,6 +3344,50 @@ describe('PanelSwitcherComponent', () => {
     );
   });
 
+  it('uses the species-goals catalog for overview taxa counts', async () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = 'species';
+    goalsDocument.targetContext.targetFeatureIds = ['species'];
+    goalsDocument.rollups.species.byTaxa = {
+      Amphibians: { label: 'Amphibians', metSpeciesCount: 0, totalSpeciesCount: 1, pctMet: 0 },
+    };
+    const [bear, rail, frog] = buildHydratedSpeciesRecords(goalsDocument);
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of([
+        bear,
+        rail,
+        { ...frog, configured_target_met: true },
+        ...Array.from({ length: 3 }, (_, index) => ({
+          ...frog,
+          id: `extra-frog-${index}`,
+          scientific_name: `Extra frog ${index}`,
+          configured_target_percent: null,
+          configured_target_met: null,
+        })),
+      ]),
+    );
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
+      buildTestSolution().id,
+      'national',
+      'colombia',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-taxa-count-amphibians')?.textContent,
+    ).toContain('1 / 4');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-taxa-count-Amphibians'),
+    ).toBeNull();
+  });
+
   it('shows raster-derived strategic outcomes without changing solver target progress', async () => {
     goalsDocument = buildGoalsDocument();
     strategicOutcomesDocument = buildStrategicOutcomesDocument();
@@ -3413,6 +3579,433 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#conservation-goals-modal-preparing-status')).toBeNull();
   });
 
+  it('sorts species coverage from headers and keeps the sort dropdown in sync', async () => {
+    goalsDocument = buildGoalsDocument();
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalRows: () => { name: string; relativeHeld: number | null }[];
+      goalsModalSortSelectValue: () => string;
+    };
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(component.goalsModalRows().map((row) => row.name)).toEqual([
+      'Andean bear',
+      'Bogota rail',
+      'Tree frog',
+    ]);
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-desc');
+    expect(
+      compiled
+        .querySelector('#conservation-goals-modal-national-virtual-heading-total-coverage')
+        ?.getAttribute('aria-sort'),
+    ).toBe('descending');
+    expect(
+      compiled.querySelector(
+        '#conservation-goals-modal-national-virtual-heading-checkpoints-sort-button',
+      ),
+    ).toBeNull();
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-national-virtual-heading-total-coverage-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(component.goalsModalRows().map((row) => row.name)).toEqual([
+      'Tree frog',
+      'Bogota rail',
+      'Andean bear',
+    ]);
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-asc');
+    expect(
+      (compiled.querySelector('#conservation-goals-modal-sort-select') as HTMLSelectElement).value,
+    ).toBe('coverage-asc');
+    expect(compiled.querySelector('#conservation-goals-modal-sort-status')?.textContent).toContain(
+      'sortedByColumnAsc',
+    );
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-national-virtual-heading-total-coverage-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(component.goalsModalRows().map((row) => row.name)).toEqual([
+      'Andean bear',
+      'Bogota rail',
+      'Tree frog',
+    ]);
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-desc');
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-national-virtual-heading-species-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(component.goalsModalRows().map((row) => row.name)).toEqual([
+      'Andean bear',
+      'Bogota rail',
+      'Tree frog',
+    ]);
+    expect(component.goalsModalSortSelectValue()).toBe('name');
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-national-virtual-heading-species-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(component.goalsModalRows().map((row) => row.name)).toEqual([
+      'Tree frog',
+      'Bogota rail',
+      'Andean bear',
+    ]);
+    expect(component.goalsModalSortSelectValue()).toBe('name:desc');
+    expect(
+      (compiled.querySelector('#conservation-goals-modal-sort-generated') as HTMLOptionElement)
+        .value,
+    ).toBe('name:desc');
+    expect(
+      (compiled.querySelector('#conservation-goals-modal-sort-select') as HTMLSelectElement).value,
+    ).toBe('name:desc');
+
+    const sortSelect = compiled.querySelector(
+      '#conservation-goals-modal-sort-select',
+    ) as HTMLSelectElement;
+    sortSelect.value = 'coverage-desc';
+    sortSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(component.goalsModalRows().map((row) => row.name)).toEqual([
+      'Andean bear',
+      'Bogota rail',
+      'Tree frog',
+    ]);
+    expect(compiled.querySelector('#conservation-goals-modal-sort-generated')).toBeNull();
+  });
+
+  it('sorts expanded custom AOI and SIRAP species columns by the matching coverage fields', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildGoalsDocument();
+    const [bear, rail, frog] = buildHydratedSpeciesRecords(goalsDocument);
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of([
+        {
+          ...bear!,
+          range_area_km2: 10,
+          range_in_aoi_pct: 90,
+          pre_existing_covered_in_aoi_pct: 5,
+          new_covered_in_aoi_pct: 70,
+          solution_covered_in_aoi_pct: 80,
+        },
+        {
+          ...rail!,
+          range_area_km2: 200,
+          range_in_aoi_pct: 10,
+          pre_existing_covered_in_aoi_pct: 50,
+          new_covered_in_aoi_pct: 5,
+          solution_covered_in_aoi_pct: 20,
+        },
+        {
+          ...frog!,
+          range_area_km2: 80,
+          range_in_aoi_pct: 40,
+          pre_existing_covered_in_aoi_pct: 25,
+          new_covered_in_aoi_pct: 30,
+          solution_covered_in_aoi_pct: 45,
+        },
+      ]),
+    );
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      capabilities: { aoiCoverageMetrics: 'v2' },
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalRows: () => {
+        name: string;
+        relativeHeld: number | null;
+        rangeInAoiPercent: number | null;
+        preExistingRelativeHeld: number | null;
+        newRelativeHeld: number | null;
+        nationalRangeKm2: number | null;
+      }[];
+      goalsModalSortSelectValue: () => string;
+      openGoalsModal(domainId: string, source?: 'overview' | 'aoi'): void;
+    };
+    fixture.detectChanges();
+    component.openGoalsModal('species', 'aoi');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(component.goalsModalRows().map((row) => row.name)).toEqual([
+      'Andean bear',
+      'Tree frog',
+      'Bogota rail',
+    ]);
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-desc');
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-virtual-heading-rangeInAoi-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(component.goalsModalRows().map((row) => row.rangeInAoiPercent)).toEqual([0.1, 0.4, 0.9]);
+    expect(component.goalsModalSortSelectValue()).toBe('rangeInAoiPercent:asc');
+    expect(
+      (compiled.querySelector('#conservation-goals-modal-sort-generated') as HTMLOptionElement)
+        .value,
+    ).toBe('rangeInAoiPercent:asc');
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-virtual-heading-preExistingCoverage-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(component.goalsModalRows().map((row) => row.preExistingRelativeHeld)).toEqual([
+      0.05, 0.25, 0.5,
+    ]);
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-virtual-heading-newCoverage-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(component.goalsModalRows().map((row) => row.newRelativeHeld)).toEqual([0.05, 0.3, 0.7]);
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-virtual-heading-nationalRange-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(component.goalsModalRows().map((row) => row.nationalRangeKm2)).toEqual([10, 80, 200]);
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-virtual-heading-solutionCoverage-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(component.goalsModalRows().map((row) => row.relativeHeld)).toEqual([0.2, 0.45, 0.8]);
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-asc');
+  });
+
+  it('reverses tied 100% coverage from the expanded scenario-coverage header and sort dropdown', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildGoalsDocument();
+    const [adenophora, auriculata, zygia] = buildHydratedSpeciesRecords(goalsDocument);
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of([
+        {
+          ...adenophora!,
+          id: 'abarema-adenophora',
+          scientific_name: 'Abarema adenophora',
+          solution_covered_in_aoi_pct: 100,
+          met_17_percent: true,
+          met_30_percent: true,
+        },
+        {
+          ...auriculata!,
+          id: 'abarema-auriculata',
+          scientific_name: 'Abarema auriculata',
+          solution_covered_in_aoi_pct: 100,
+          met_17_percent: true,
+          met_30_percent: true,
+        },
+        {
+          ...zygia!,
+          id: 'zygia-latifolia',
+          scientific_name: 'Zygia latifolia',
+          solution_covered_in_aoi_pct: 100,
+          met_17_percent: true,
+          met_30_percent: true,
+        },
+      ]),
+    );
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      capabilities: { aoiCoverageMetrics: 'v2' },
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalRows: () => { name: string; relativeHeld: number | null }[];
+      goalsModalSortSelectValue: () => string;
+      openGoalsModal(domainId: string, source?: 'overview' | 'aoi'): void;
+    };
+    fixture.detectChanges();
+    component.openGoalsModal('species', 'aoi');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const renderedNames = () =>
+      [...compiled.querySelectorAll('[id^="conservation-goals-modal-feature-name-"]')].map((node) =>
+        node.textContent?.trim(),
+      );
+    const rowNames = () => component.goalsModalRows().map((row) => row.name);
+
+    expect(
+      compiled.querySelector('#conservation-goals-modal-virtual-heading-solutionCoverage'),
+    ).not.toBeNull();
+    expect(rowNames()).toEqual(['Zygia latifolia', 'Abarema auriculata', 'Abarema adenophora']);
+    expect(renderedNames()[0]).toBe(component.goalsModalRows()[0]?.name);
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-desc');
+    expect(
+      (compiled.querySelector('#conservation-goals-modal-sort-select') as HTMLSelectElement).value,
+    ).toBe('coverage-desc');
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-virtual-heading-solutionCoverage-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(rowNames()).toEqual(['Abarema adenophora', 'Abarema auriculata', 'Zygia latifolia']);
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-asc');
+    expect(
+      (compiled.querySelector('#conservation-goals-modal-sort-select') as HTMLSelectElement).value,
+    ).toBe('coverage-asc');
+    expect(renderedNames()[0]).toBe('Abarema adenophora');
+    expect(renderedNames()[0]).toBe(component.goalsModalRows()[0]?.name);
+
+    (
+      compiled.querySelector(
+        '#conservation-goals-modal-virtual-heading-solutionCoverage-sort-button',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+    expect(rowNames()).toEqual(['Zygia latifolia', 'Abarema auriculata', 'Abarema adenophora']);
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-desc');
+
+    const sortSelect = compiled.querySelector(
+      '#conservation-goals-modal-sort-select',
+    ) as HTMLSelectElement;
+    sortSelect.value = 'coverage-asc';
+    sortSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(sortSelect.value).toBe('coverage-asc');
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-asc');
+    expect(rowNames()).toEqual(['Abarema adenophora', 'Abarema auriculata', 'Zygia latifolia']);
+    expect(renderedNames()[0]).toBe(component.goalsModalRows()[0]?.name);
+  });
+
+  it('puts the lowest coverage species first when sorting the expanded layout ascending', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildGoalsDocument();
+    const [adenophora, auriculata, zygia] = buildHydratedSpeciesRecords(goalsDocument);
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of([
+        {
+          ...adenophora!,
+          id: 'abarema-adenophora',
+          scientific_name: 'Abarema adenophora',
+          solution_covered_in_aoi_pct: 100,
+          met_17_percent: true,
+          met_30_percent: true,
+        },
+        {
+          ...auriculata!,
+          id: 'abarema-auriculata',
+          scientific_name: 'Abarema auriculata',
+          solution_covered_in_aoi_pct: 100,
+          met_17_percent: true,
+          met_30_percent: true,
+        },
+        {
+          ...zygia!,
+          id: 'zygia-latifolia',
+          scientific_name: 'Zygia latifolia',
+          solution_covered_in_aoi_pct: 12,
+          met_17_percent: false,
+          met_30_percent: false,
+        },
+      ]),
+    );
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      capabilities: { aoiCoverageMetrics: 'v2' },
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalRows: () => { name: string; relativeHeld: number | null }[];
+      goalsModalSortSelectValue: () => string;
+      openGoalsModal(domainId: string, source?: 'overview' | 'aoi'): void;
+    };
+    fixture.detectChanges();
+    component.openGoalsModal('species', 'aoi');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(component.goalsModalRows().map((row) => row.name)).toEqual([
+      'Abarema auriculata',
+      'Abarema adenophora',
+      'Zygia latifolia',
+    ]);
+    expect(component.goalsModalRows().map((row) => row.relativeHeld)).toEqual([1, 1, 0.12]);
+
+    const sortSelect = compiled.querySelector(
+      '#conservation-goals-modal-sort-select',
+    ) as HTMLSelectElement;
+    sortSelect.value = 'coverage-asc';
+    sortSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(sortSelect.value).toBe('coverage-asc');
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-asc');
+    expect(component.goalsModalRows().map((row) => row.name)).toEqual([
+      'Zygia latifolia',
+      'Abarema adenophora',
+      'Abarema auriculata',
+    ]);
+    expect(component.goalsModalRows()[0]?.relativeHeld).toBe(0.12);
+    expect(
+      compiled.querySelector('#conservation-goals-modal-feature-name-0')?.textContent?.trim(),
+    ).toBe(component.goalsModalRows()[0]?.name);
+  });
+
   it('gates expanded known-AOI species metrics while preserving checkpoints', async () => {
     const solution = buildTestSolution();
     goalsDocument = buildGoalsDocument();
@@ -3557,6 +4150,73 @@ describe('PanelSwitcherComponent', () => {
     expect(
       fixture.nativeElement.querySelectorAll('[id^="conservation-goals-modal-row-"]').length,
     ).toBeLessThan(100);
+  });
+
+  it('rebinds the virtualized species table so the first painted row matches the sorted array', async () => {
+    const document = buildGoalsDocument();
+    const baseRecord = buildHydratedSpeciesRecords(document)[0]!;
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of([
+        ...Array.from({ length: 200 }, (_, index) => ({
+          ...baseRecord,
+          id: `abarema-${index}`,
+          scientific_name: `Abarema species ${String(index).padStart(3, '0')}`,
+          solution_covered_in_aoi_pct: 100,
+          met_17_percent: true,
+          met_30_percent: true,
+        })),
+        {
+          ...baseRecord,
+          id: 'zygia-low',
+          scientific_name: 'Zygia latifolia',
+          solution_covered_in_aoi_pct: 5,
+          met_17_percent: false,
+          met_30_percent: false,
+        },
+      ]),
+    );
+    goalsDocument = document;
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    const component = fixture.componentInstance as unknown as {
+      goalsModalRows: () => { name: string }[];
+      goalsModalSortSelectValue: () => string;
+    };
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-domain-view-species',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const firstRenderedName = () =>
+      compiled.querySelector('#conservation-goals-modal-feature-name-0')?.textContent?.trim();
+
+    expect(component.goalsModalRows()).toHaveLength(201);
+    expect(component.goalsModalRows()[0]?.name).toBe('Abarema species 199');
+    expect(firstRenderedName()).toBe(component.goalsModalRows()[0]?.name);
+
+    const sortSelect = compiled.querySelector(
+      '#conservation-goals-modal-sort-select',
+    ) as HTMLSelectElement;
+    sortSelect.value = 'coverage-asc';
+    sortSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    expect(sortSelect.value).toBe('coverage-asc');
+    expect(component.goalsModalSortSelectValue()).toBe('coverage-asc');
+    expect(component.goalsModalRows()[0]?.name).toBe('Zygia latifolia');
+    expect(firstRenderedName()).toBe('Zygia latifolia');
+    expect(firstRenderedName()).toBe(component.goalsModalRows()[0]?.name);
   });
 
   it('uses hydrated national species rows for targeted coverage details', async () => {
@@ -4620,6 +5280,26 @@ function buildSirapLiveSpeciesCoverageRecord(): DetailedSpeciesCoverageRecord {
   delete record.contribution_to_national_coverage;
   delete record.contribution_to_national_target;
   return record;
+}
+
+function buildSirapOverviewLiveCoverageRecord(): DetailedSpeciesCoverageRecord {
+  return {
+    ...buildSirapLiveSpeciesCoverageRecord(),
+    id: 'zygodontomys-brevicauda',
+    scientific_name: 'Zygodontomys brevicauda',
+    group: 'Mammals',
+    range_in_aoi_area_km2: 100,
+    range_in_aoi_pct: 10,
+    solution_covered_in_aoi_area_km2: 14,
+    solution_covered_in_aoi_pct: 14,
+    pre_existing_covered_in_aoi_area_km2: 8,
+    pre_existing_covered_in_aoi_pct: 8,
+    new_covered_in_aoi_area_km2: 6,
+    new_covered_in_aoi_pct: 6,
+    total_in_aoi: 100,
+    held_in_aoi: 14,
+    coverage_within_aoi: 0.14,
+  };
 }
 
 function buildNationalLiveSpeciesCoverageRecord(): DetailedSpeciesCoverageRecord {

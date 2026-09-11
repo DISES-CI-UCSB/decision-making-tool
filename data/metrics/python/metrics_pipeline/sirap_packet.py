@@ -153,8 +153,9 @@ def regional_species_accumulator(
     """Compute packet SMSP species metrics for the primary and nested scopes.
 
     SMSP cells are already on the packet grid.  We use each cell's grid-area
-    weight as the species-range denominator, preserving the regular pipeline's
-    per-scope coverage rule without accessing national species sources.
+    weight as the species-range denominator, including cells the solution
+    GeoTIFF stores as nodata. SIRAP exports often omit 0 (unselected PU), so
+    clipping range to solution_data_valid_mask would make every species 100%.
     """
     matrices = species_binding["matrices"]
     metadata_download = download_pinned(
@@ -188,6 +189,8 @@ def regional_species_accumulator(
 
     regional_names: set[str] = set()
     provenance: list[dict[str, str]] = []
+    ranged_species = 0
+    fully_covered_species = 0
     pool_sizes = compute_pool_sizes(national_records)
     accumulator = SpeciesAccumulator(
         target_pct=target_policy.scalar_target_pct,
@@ -201,7 +204,6 @@ def regional_species_accumulator(
     selected = raster.selected_mask.ravel()
     pre_existing = raster.pre_existing_mask.ravel()
     new_prioritizr = raster.new_prioritizr_mask.ravel()
-    solution_valid = raster.solution_data_valid_mask.ravel()
     area_m2 = raster.pixel_area_km2_per_row * 1_000_000.0
     for binding in matrices:
         if binding["gridSha256"] != packet_grid_sha256:
@@ -254,7 +256,7 @@ def regional_species_accumulator(
                     f"{first_entry.csv_class!r} "
                     f"does not match national class {record.csv_class!r}."
                 )
-            has_cells = _record_species_in_chunks(
+            has_cells, selected_equals_total = _record_species_in_chunks(
                 accumulator=accumulator,
                 record=record,
                 species_name=first_entry.name,
@@ -264,13 +266,15 @@ def regional_species_accumulator(
                 selected=selected,
                 pre_existing=pre_existing,
                 new_prioritizr=new_prioritizr,
-                solution_valid=solution_valid,
                 boundary_indexes=boundary_indexes,
             )
             accumulator.species_processed += 1
             accumulator.species_aligned += 1
             if has_cells:
                 accumulator.species_with_range += 1
+                ranged_species += 1
+                if selected_equals_total:
+                    fully_covered_species += 1
         provenance.append(
             {
                 "taxonomicClass": binding["taxonomicClass"],
@@ -279,6 +283,7 @@ def regional_species_accumulator(
             }
         )
 
+    _reject_selected_equals_total_tautology(ranged_species, fully_covered_species)
     accumulator.species_expected = len(regional_names)
     provenance.append(
         {
@@ -306,9 +311,8 @@ def _record_species_in_chunks(
     selected: np.ndarray,
     pre_existing: np.ndarray,
     new_prioritizr: np.ndarray,
-    solution_valid: np.ndarray,
     boundary_indexes: dict[str, AnyBoundaryIndex],
-) -> bool:
+) -> tuple[bool, bool]:
     national = np.zeros(4, dtype=np.float64)
     has_cells = False
     per_level = {
@@ -324,7 +328,10 @@ def _record_species_in_chunks(
             raise SparseFormatError(
                 f"SMSP entry {species_name!r} contains an out-of-grid cell index."
             )
-        cells = cells[solution_valid[cells]]
+        # Keep every in-grid SMSP cell. SIRAP solution GeoTIFFs often store
+        # unselected planning units as nodata, so clipping to
+        # solution_data_valid_mask collapses range to selected cells and
+        # reports 100% coverage for every species.
         has_cells = has_cells or bool(cells.size)
         weights = area_m2[cells // raster_width]
         selected_cells = selected[cells]
@@ -376,7 +383,29 @@ def _record_species_in_chunks(
             pre_existing_per_boundary=pre_existing_area,
             new_prioritizr_per_boundary=new_area,
         )
-    return has_cells
+    return has_cells, bool(has_cells and national[0] > 0 and national[1] + 1e-9 >= national[0])
+
+
+_SIRAP_SPECIES_TAUTOLOGY_MIN_RANGED = 50
+
+
+def _reject_selected_equals_total_tautology(
+    ranged_species: int, fully_covered_species: int
+) -> None:
+    """Fail closed when every in-range species is 100% covered.
+
+    That pattern is the signature of clipping species range to selected-only
+    solution rasters (unselected planning units stored as nodata).
+    """
+    if (
+        ranged_species >= _SIRAP_SPECIES_TAUTOLOGY_MIN_RANGED
+        and fully_covered_species == ranged_species
+    ):
+        raise ValueError(
+            "SIRAP species coverage is tautological: every in-range species has "
+            "selected area equal to range area. Unselected planning units must "
+            "remain in the species-range denominator."
+        )
 
 
 def _number_species_chunks(chunks):

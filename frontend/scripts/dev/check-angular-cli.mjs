@@ -11,9 +11,9 @@ async function main() {
     await access(angularCliPath);
   } catch {
     console.error('[check:dependencies] Angular CLI is unavailable because project dependencies are missing.');
-    console.error('[check:dependencies] Run `npm ci` in the frontend directory, then retry `npm start`.');
+    console.error('[check:dependencies] Run `yarn install --immutable` in the frontend directory, then retry `yarn start`.');
     console.error(
-      '[check:dependencies] `npm ci` recreates node_modules from package-lock.json without changing package.json.',
+      '[check:dependencies] `yarn install --immutable` recreates node_modules from yarn.lock without changing package.json.',
     );
     process.exit(1);
   }

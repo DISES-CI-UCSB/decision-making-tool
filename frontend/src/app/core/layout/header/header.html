@@ -104,12 +104,14 @@
     id="foundation-header-controls"
     class="relative flex shrink-0 items-center gap-2 text-sm sm:gap-3"
   >
-    <app-dev-tools-panel
-      id="foundation-header-dev-tools-panel"
-      class="hidden sm:block"
-      [coordinateToolEnabled]="coordinateToolEnabled"
-      (coordinateToolEnabledChange)="coordinateToolEnabledChange.emit($event)"
-    ></app-dev-tools-panel>
+    @if (showDevTools) {
+      <app-dev-tools-panel
+        id="foundation-header-dev-tools-panel"
+        class="hidden sm:block"
+        [coordinateToolEnabled]="coordinateToolEnabled"
+        (coordinateToolEnabledChange)="coordinateToolEnabledChange.emit($event)"
+      ></app-dev-tools-panel>
+    }
 
     <a
       id="foundation-header-about-link"

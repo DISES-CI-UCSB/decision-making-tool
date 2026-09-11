@@ -2,11 +2,19 @@
 
 # Publicación y reversión
 
+## Empiece aquí
+
+- [Antes de cualquier publicación](#antes-de-cualquier-publicación)
+- [Los cuatro manifiestos](#los-cuatro-manifiestos)
+- [Procedimiento 1: manifiesto de tiempo de ejecución](#procedimiento-1-generar-probar-validar-y-publicar-el-manifiesto-de-tiempo-de-ejecución) — publicación condicionada `--catalog`
+- [Procedimiento 4: métricas](#procedimiento-4-inspeccionar-publicar-y-verificar-métricas)
+- [Procedimientos de reversión](#procedimientos-de-reversión)
+
 > **Audiencia:** Publicadores de datos y operadores de pipelines que lanzan productos de datos validados o restauran una versión en buen estado.
 >
 > Los comandos marcados como **admitidos** están presentes en este repositorio. Los pasos marcados como **manual** no tienen automatización de repositorio dedicada y requieren un procedimiento Blob/host aprobado más un nombre de ruta, suma de verificación, operador y marca de tiempo registrados.
 
-Ejecute comandos desde la raíz del repositorio a menos que un procedimiento indique lo contrario. Nunca coloque valores de variables de entorno en la documentación o en la salida de comandos.
+Ejecute comandos desde la raíz del repositorio a menos que un procedimiento indique lo contrario. Nunca coloque valores de variables de entorno en la documentación o en la salida de comandos. El texto autoritativo de la CLI está en [frontend/layer-manifest/README.md](../../../../../frontend/layer-manifest/README.md) y [data/metrics/README.md](../../../../../data/metrics/README.md). La promoción del catálogo nacional/marino es esta guía; los catálogos regionales SIRAP (`releases/sirap-…/`) usan una canalización aparte.
 
 ## Antes de cualquier publicación
 
@@ -21,12 +29,12 @@ Ejecute comandos desde la raíz del repositorio a menos que un procedimiento ind
 
 | Manifiesto                  | Ubicación canónica                                                                                        | Propósito del operador                                                                        | Comportamiento de publicación                                                                                                   |
 | ------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Manifiesto de capa de tiempo de ejecución    | Local `frontend/public/data/layer-manifest/manifest.json`; en producción `manifest/manifest.json`                  | Capas de aplicaciones, categorías, soluciones, renderizado, URL de métricas y puntero de manifiesto de especies | Comandos dedicados de publicación y reversión; la versión activa anterior se archiva en `manifest/archive/`                   |
+| Manifiesto de capa de tiempo de ejecución    | Local `frontend/public/data/layer-manifest/manifest.json`; en producción `manifest/manifest.json`                  | Capas, categorías, soluciones, renderizado, URL de métricas y puntero de especies (nacional/marino) | Publicación condicionada (`--catalog`, `--confirm-release`, `--expected-live-sha256`); el puntero activo anterior se archiva; revisiones en `manifest/releases/{releaseId}/revisions/` |
 | Manifiesto de especies          | Local `frontend/public/data/layer-manifest/species.manifest.json`; en producción `manifests/species.manifest.json` | Catálogo secundario para especies individuales.                                                | La generación publica de forma predeterminada cuando un token está disponible y archiva la versión anterior en `manifests/archive/` |
 | Manifiesto de artefactos de backend | VM local `backend/runtime-artifacts/manifest.json`                                                        | Disponibilidad de FastAPI y entradas ráster y de especies para AOI personalizadas                                  | Construido sobre el host de métricas; no es un manifiesto del navegador y no está publicado por los scripts del frontend                            |
 | Manifiesto de activos de despliegue     | `frontend/scripts/data-deploy/manifest.json`                                                              | Validación en tiempo de compilación de activos copiados en `frontend/public/`                          | Utilizado por herramientas de construcción frontend; no el catálogo de capas de tiempo de ejecución                                                          |
 
-No reemplace un manifiesto por otro ni infiera la visibilidad de la aplicación a partir de la existencia de un manifiesto de despliegue o del backend.
+La aplicación activa carga dos lotes de catálogo: el nacional `manifest/manifest.json` más un manifiesto de publicación SIRAP en `releases/sirap-…/manifest.json` (véase `frontend/layer-manifest/catalog-releases/`). No reemplace un lote por el otro. No infiera la visibilidad de la aplicación a partir de un manifiesto de despliegue o del backend.
 
 ## Registros y conciliaciones
 
@@ -61,63 +69,93 @@ Revise los activos faltantes/inesperados, las discrepancias de categorías, las 
 | --------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Manifiesto de capa de tiempo de ejecución      | `manifest/manifest.json`                                                                                    |
 | Archivos de manifiesto en tiempo de ejecución   | `manifest/archive/manifest.<timestamp>.json`                                                                |
+| Revisiones del manifiesto de tiempo de ejecución | `manifest/releases/{releaseId}/revisions/{sha256}.json`                                                    |
 | Manifiesto de especies            | `manifests/species.manifest.json`                                                                           |
 | Archivos de manifiesto de especies   | `manifests/archive/species.manifest.<timestamp>.json`                                                       |
 | Insumos de capas de características              | `inputs/features/`                                                                                          |
 | Entradas de especies              | `inputs/features/species/`                                                                                  |
 | Entradas de costos                 | `inputs/costs/`                                                                                             |
 | Insumos de inclusión              | `inputs/includes/`                                                                                          |
-| Soluciones nacionales          | `solutions/nacional/`                                                                                       |
+| Soluciones nacionales (legado mutable) | `solutions/nacional/` — no lo use para versiones nuevas de catálogo                                 |
+| Fuentes de solución de una versión    | `releases/<releaseId>/solutions/{land\|marine}/`                                                            |
 | COG de solución               | Utilice el `expectedBlobPath` de cada informe de carga; no invente un prefijo paralelo                                |
-| Métricas precalculadas predeterminadas | `metrics/cache/<solution-id>.metrics.json`                                                                  |
-| Métricas versionadas           | Utilice la configuración de versión seleccionada por `--release-id`                                                    |
+| Métricas de una versión       | `releases/<releaseId>/` (regular detallada/compacta, metas, MEC v2)                                         |
+| Métricas predeterminadas heredadas | `metrics/cache/<solution-id>.metrics.json` — no es el contrato de publicación de catálogo                    |
+| Catálogo regional SIRAP       | `releases/sirap-…/manifest.json` — canalización aparte, no esta publicación nacional                        |
 | Límites                  | Nombre de ruta de límite registrado existente; preserve el contrato de URL a menos que un cambio revisado actualice a los consumidores |
 
 No existe un flujo de trabajo que examine `inputs/excludes/`. El contrato de metadatos admite `excludes[]`, pero los rásteres de exclusión y los controles de Finder todavía no están listos para su operación.
 
 ## Procedimiento 1: generar, probar, validar y publicar el manifiesto de tiempo de ejecución
 
-1. Genere el manifiesto local y los informes de conciliación (**admitido**):
+Las versiones de soluciones y métricas nacionales/marinas usan promoción condicionada. No existe `--skip-archive`. `--catalog` es obligatorio. Copie `--expected-live-sha256` de la simulación inmediatamente anterior. Los cambios PATCH solo de capas de vista usan `yarn --cwd frontend catalog publish-patch`; no deben alterar `solutions`.
+
+1. Genere el manifiesto local a partir de `solution-catalog-v1` (**admitido**):
 
    ```bash
-   npm --prefix frontend run generate:layer-manifest
+   yarn --cwd frontend generate:layer-manifest \
+     --catalog ../path/to/solution-catalog.json
    ```
 
 2. Revise los tres informes de conciliación enumerados anteriormente (**revisión manual**).
-3. Ejecute validación de esquema y pruebas de manifiesto (**admitido**):
+3. Ejecute validación de esquema y pruebas de manifiesto contra el mismo catálogo (**admitido**):
 
    ```bash
-   npm --prefix frontend run validate:layer-manifest
-   npm --prefix frontend run test:layer-manifest
+   yarn --cwd frontend validate:layer-manifest \
+     public/data/layer-manifest/manifest.json \
+     --catalog ../path/to/solution-catalog.json
+   yarn --cwd frontend test:layer-manifest
    ```
 
    Establezca `CHECK_REMOTE_DISPLAY_URLS=true` para que el validador analice las URL visibles remotas; la validación predeterminada no realiza esas solicitudes remotas.
 
 4. Confirme que cada URL apunte a un recurso ya publicado (**revisión manual**). En particular:
+   - Las URL de métricas de la versión deben quedar bajo `releases/{releaseId}/`.
    - `compressedDataForLiveMetricsUrl` puede generarse como `metrics/live/{id}.bin.gz`, mientras que los generadores de artefactos dispersos publican `*.sparse.gz` junto a las entradas de origen. Verifique el formato de producción y la URL.
    - Las métricas de producción deben tener `precomputedMetricUrls` explícito y versionado; la interfaz tiene un fallback de preproducción codificado para `solutions/nick-runs/...`.
-5. Publique el manifiesto local validado (**admitido**):
+5. Recopile inventarios `metric-artifact-verification-v1` de `verify_artifacts.py` (regular, compacta, metas y MEC para terrestre). Simule la publicación condicionada (**admitido**):
 
    ```bash
-   npm --prefix frontend run publish:layer-manifest
+   yarn --cwd frontend publish:layer-manifest \
+     --source public/data/layer-manifest/manifest.json \
+     --catalog ../path/to/solution-catalog.json \
+     --artifact-inventory ../path/to/regular-verification.json \
+     --artifact-inventory ../path/to/compact-verification.json \
+     --artifact-inventory ../path/to/goals-verification.json \
+     --artifact-inventory ../path/to/mec-verification.json \
+     --dry-run
    ```
 
-   El comando archiva el manifiesto en vivo actual antes de reemplazar `manifest/manifest.json`.
+6. Promueva solo después de que la simulación coincida con el SHA activo (**admitido**):
 
-6. Registre el nombre de la ruta del archivo impreso por el comando, la nueva URL del manifiesto, la confirmación/referencia local, el operador y la marca de tiempo (**manual**).
+   ```bash
+   yarn --cwd frontend publish:layer-manifest \
+     --source public/data/layer-manifest/manifest.json \
+     --catalog ../path/to/solution-catalog.json \
+     --artifact-inventory ../path/to/regular-verification.json \
+     --artifact-inventory ../path/to/compact-verification.json \
+     --artifact-inventory ../path/to/goals-verification.json \
+     --artifact-inventory ../path/to/mec-verification.json \
+     --confirm-release <releaseId> \
+     --expected-live-sha256 <digest-from-dry-run>
+   ```
+
+   El publicador escribe `manifest/releases/{releaseId}/revisions/{sha256}.json`, archiva el puntero remoto actual y luego promueve con un put condicionado al destino. `--dry-run` realiza las mismas lecturas remotas y omite todas las escrituras.
+
+7. Registre la ruta de la revisión, la ruta del archivo, la URL publicada, el archivo de catálogo, los inventarios, el operador y la marca de tiempo (**manual**).
 
 ## Procedimiento 2: Generar y publicar el manifiesto de especies
 
 1. Asegúrese de que las cargas de archivos TIFF de especies estén completas. El proceso de carga y generación del manifiesto está **admitido**:
 
    ```bash
-   npm --prefix frontend run upload:species-tifs:manifest
+   yarn --cwd frontend upload:species-tifs:manifest
    ```
 
    Para generar a partir de TIFF ya publicados:
 
    ```bash
-   npm --prefix frontend run generate:species-manifest
+   yarn --cwd frontend generate:species-manifest
    ```
 
 2. Comprenda el límite de escritura: `generate:species-manifest` escribe el archivo local y, cuando `BLOB_READ_WRITE_TOKEN` está disponible, publica `manifests/species.manifest.json` de forma predeterminada. Archiva el manifiesto activo de especies anterior en `manifests/archive/`.
@@ -136,28 +174,28 @@ No existe un flujo de trabajo que examine `inputs/excludes/`. El contrato de met
 2. Obtenga una vista previa de una carga e inspeccione el informe generado (**comando admitido, revisión manual**):
 
    ```bash
-   npm --prefix frontend run upload:solutions-cogs -- --dry-run --limit 1
+   yarn --cwd frontend upload:solutions-cogs --dry-run --limit 1
    ```
 
 3. Cargue el conjunto COG (**admitido**):
 
    ```bash
-   npm --prefix frontend run upload:solutions-cogs
+   yarn --cwd frontend upload:solutions-cogs
    ```
 
 4. Produzca y valide un manifiesto candidato sin publicarlo (**admitido**):
 
    ```bash
-   npm --prefix frontend run publish:solution-cog-manifest
+   yarn --cwd frontend publish:solution-cog-manifest
    ```
 
 5. Publique el candidato después de la revisión (**admitido**):
 
    ```bash
-   npm --prefix frontend run publish:solution-cog-manifest -- --publish
+   yarn --cwd frontend publish:solution-cog-manifest --publish
    ```
 
-   Esto utiliza el publicador habitual del manifiesto de tiempo de ejecución, por lo que se archiva el manifiesto activo anterior.
+   Esto utiliza el publicador condicionado del manifiesto de tiempo de ejecución, de modo que aplican `--catalog`, inventarios, `--confirm-release` y `--expected-live-sha256`. El puntero activo anterior se archiva.
 
 ## Procedimiento 4: inspeccionar, publicar y verificar métricas
 
@@ -192,18 +230,10 @@ No existe un flujo de trabajo que examine `inputs/excludes/`. El contrato de met
      data/metrics/generated/tier1/publish-report.json
    ```
 
-7. Regenere, valide y publique el manifiesto de tiempo de ejecución si las URL de métricas cambiaron (**admitido**):
-
-   ```bash
-   npm --prefix frontend run generate:layer-manifest
-   npm --prefix frontend run validate:layer-manifest
-   npm --prefix frontend run test:layer-manifest
-   npm --prefix frontend run publish:layer-manifest
-   ```
-
+7. Si las URL de métricas cambiaron, regenere y promueva el manifiesto de tiempo de ejecución con el Procedimiento 1 (`--catalog`, inventarios, `--dry-run` y luego `--confirm-release` / `--expected-live-sha256`). Un `publish:layer-manifest` sin esas banderas se rechaza.
 8. Verifique un resultado nacional y una AOI conocida de cada geografía afectada frente a las expectativas científicas (**manual**).
 
-El publicador sobrescribe con `--force`; por lo tanto, los encabezados de caché Blob de larga duración pueden servir bytes antiguos en una URL sin cambios. Prefiera `--release-id` durante la generación y rutas de versión inmutables. Si los bytes ráster de origen cambiaron, regenere con `--no-cache`; si es necesario volver a calcular los resultados del cálculo, utilice `--force`. Esas opciones abordan diferentes cachés.
+Las métricas de publicación se niegan a sobrescribir en silencio: `publish.py` no tiene `--force`. Una ruta remota existente solo se acepta cuando su SHA-256 coincide con el artefacto local. Prefiera rutas `releases/{releaseId}/`. Si los bytes ráster de origen cambiaron, regenere con `--no-cache`; si es necesario volver a calcular los resultados del cálculo, use `--force` en la generación. Esas opciones abordan diferentes cachés y no autorizan sobrescribir Blob.
 
 ## Procedimiento 5: Publicar activos y límites genéricos
 
@@ -258,17 +288,29 @@ La reversión del manifiesto restaura únicamente los metadatos de enrutamiento.
 1. Liste los archivos disponibles sin cambiar el estado activo (**admitido**):
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest
+   yarn --cwd frontend rollback:layer-manifest
    ```
 
-2. Revise la lista de archivos numerados y elija la entrada en buen estado (**decisión manual**).
-3. Vuelva a publicar ese archivo (**admitido**):
+2. Revise la lista de archivos numerados y elija la entrada en buen estado (**decisión manual**). Se rechazan archivos sin identidad de versión.
+3. Simule contra el `solution-catalog-v1` histórico de ese archivo (**admitido**):
 
    ```bash
-   npm --prefix frontend run rollback:layer-manifest -- --use <index|pathname|url>
+   yarn --cwd frontend rollback:layer-manifest \
+     --use <index|pathname|url> \
+     --catalog ../path/to/historical-solution-catalog.json \
+     --dry-run
    ```
 
-4. Actualice el navegador y repita las comprobaciones posteriores a la publicación afectadas.
+4. Confirme la restauración (**admitido**):
+
+   ```bash
+   yarn --cwd frontend rollback:layer-manifest \
+     --use <index|pathname|url> \
+     --catalog ../path/to/historical-solution-catalog.json \
+     --confirm-rollback
+   ```
+
+5. Actualice el navegador y repita las comprobaciones posteriores a la publicación afectadas.
 
 ### Manifiesto de especies
 
@@ -340,7 +382,7 @@ Los valores nunca deben aparecer en esta guía ni en los registros de versiones.
 | Carga de especies-TIF                 | `SPECIES_TIF_UPLOAD_SOURCE`, `SPECIES_TIF_BLOB_PREFIX`, `SPECIES_TIF_UPLOAD_CONCURRENCY`, `SPECIES_TIF_UPLOAD_MAX`, `SPECIES_TIF_UPLOAD_DRY_RUN`, `SPECIES_TIF_UPLOAD_RUN_SPECIES_MANIFEST`                                                                                                   |
 | Publicación del manifiesto de especies       | `SPECIES_MANIFEST_SKIP_BLOB_UPLOAD`, `SPECIES_MANIFEST_MAX_LAYERS`, `SPECIES_MANIFEST_ALLOW_PARTIAL_UPLOAD`, `SPECIES_MANIFEST_BLOB_PATHNAME`, `SPECIES_MANIFEST_ARCHIVE_PREFIX`, `SPECIES_MANIFEST_SKIP_ARCHIVE`                                                                             |
 | Fuente y ajuste del manifiesto de especies | `SPECIES_MANIFEST_CONCURRENCY`, `SPECIES_RASTER_SAMPLE_GRID_SIZE`, `SPECIES_MANIFEST_RASTER_READ_RETRY_ATTEMPTS`, `SPECIES_MANIFEST_BASE_REQUEST_DELAY_MS`, `SPECIES_MANIFEST_REQUEST_JITTER_MS`, `SPECIES_MANIFEST_RETRY_JITTER_MS`, `SPECIES_TAXONOMY_CSV_PATH`, `SPECIES_TAXONOMY_CSV_URL` |
-| Editor del manifiesto                    | `ENABLE_MANIFEST_EDITOR`, `ENABLE_MANIFEST_EDITOR_WRITES`                                                                                                                                                                                                                                     |
+| Editor del manifiesto (retirado)   | `ENABLE_MANIFEST_EDITOR`, `ENABLE_MANIFEST_EDITOR_WRITES` — **retiradas**. No las active. La apariencia de capas en la aplicación es la vía de estilo. |
 | Cliente de Firebase                    | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID`, `FIREBASE_MEASUREMENT_ID`                                                                                                                    |
 
 ## Brechas de automatización actuales
@@ -350,6 +392,6 @@ Los valores nunca deben aparecer en esta guía ni en los registros de versiones.
 - El almacenamiento, el registro y el comportamiento del Finder de la capa de exclusión no se implementan como un flujo de trabajo del operador.
 - Las URL del manifiesto de métricas en vivo comprimidas y las convenciones de salida del generador disperso no coinciden claramente.
 - La interfaz tiene un fallback de métricas compactas de preproducción codificado de forma rígida.
-- Las sobrescrituras de métricas no se archivan automáticamente.
+- Las sobrescrituras de métricas no se archivan automáticamente; las rutas de publicación también rechazan un SHA-256 remoto distinto.
 - La reversión de especies, la reversión de límites y la reversión de artefactos de backend requieren registros manuales de versiones.
 - La recuperación ante desastres Blob/Firestore no está automatizada ni probada.

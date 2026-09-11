@@ -25,7 +25,8 @@ export const environment = {
   blobAssetProxyPath: '',
   solutionCapabilityOverrides: {},
   metricsApiBaseUrl: '/metrics-api',
-  ENABLE_MANIFEST_EDITOR: true,
+  // Retired: the manifest style editor is archived; layer appearance in the map layers panel is the supported styling path.
+  ENABLE_MANIFEST_EDITOR: false,
   bypassLoginForDevelopment: false,
 } as const;
 

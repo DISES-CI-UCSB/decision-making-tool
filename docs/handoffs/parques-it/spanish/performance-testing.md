@@ -2,7 +2,15 @@
 
 # Pruebas de rendimiento, carga y saturación
 
-> **Estado actual: 🔴 Brecha — no se encontró evidencia.** No existe un resultado validado de saturación. Existen pruebas automatizadas de exactitud y una prueba de humo limitada de capacidad de respuesta del navegador, pero no establecen la concurrencia, el rendimiento de procesamiento ni la latencia en producción bajo carga, ni un límite operativo seguro. Esta es la mayor brecha de evidencia de toda la entrega técnica.
+> **Estado actual: ⚪ Planificado, aún no ejecutado.** Las pruebas de carga, saturación y resistencia siguen siendo un plan. Las muestras del 7 de septiembre de 2026 están en inglés en [`../english/performance-results-2026-09-07.md`](../english/performance-results-2026-09-07.md).
+
+## Decisiones necesarias ahora
+
+- Congelar el candidato de versión, el manifiesto, los artefactos del backend y los objetivos de servicio medibles.
+- Acordar sesiones máximas, mezcla de transacciones, latencia p95/p99 y criterios de cancelación.
+- Obtener permiso para generar tráfico contra Vercel Blob, ArcGIS, Firebase y Firestore, o sustitutos aprobados.
+
+El detalle está en [Decisiones necesarias antes de las pruebas de rendimiento](#decisiones-necesarias-antes-de-las-pruebas-de-rendimiento). Al 2026-09-07 hay **165** pruebas bajo `backend/tests/`.
 
 ## Qué establece cada tipo de prueba
 
@@ -17,16 +25,16 @@ Las sesiones de pruebas de usabilidad y las UAT ([`usability-testing.md`](./usab
 
 ## Evidencia actual de pruebas
 
-Una ejecución local del 29 de julio de 2026 produjo los resultados que aparecen a continuación. Son cifras reales y reproducidas, no estimaciones.
+Una ejecución local del 29 de julio de 2026 produjo los resultados del frontend, el manifiesto, el navegador y el proceso de métricas que aparecen a continuación. Son cifras reales y reproducidas, no estimaciones.
 
 | Conjunto de pruebas                              | Resultado                                                                                                                |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| Pruebas unitarias del frontend (`npm test`)      | ✅ 303 aprobadas / 36 archivos                                                                                           |
+| Pruebas unitarias del frontend (`yarn test`)      | ✅ 303 aprobadas / 36 archivos                                                                                           |
 | Pruebas de validación del manifiesto             | ✅ 48 aprobadas                                                                                                          |
 | Validación del esquema del manifiesto de ejemplo | ✅ Aprobada                                                                                                              |
 | Prueba de humo del panel de mapa en Chromium     | ✅ 2 aprobadas                                                                                                           |
 | Pruebas del proceso de métricas (Python)         | ✅ 266 aprobadas, 1 omitida                                                                                              |
-| **Pruebas del backend (`backend/tests/`, pytest)** | ✅ **24 aprobadas con Python 3.12 y 3.13** después de corregir un fixture desactualizado de ráster sintético            |
+| **Pruebas del backend (`backend/tests/`, pytest)** | 165 pruebas bajo `backend/tests/` al 2026-09-07. |
 
 Las verificaciones iniciales de evidencia dejaron limpio el árbol de trabajo. La corrección posterior del fixture y las actualizaciones de la documentación de entrega son los cambios revisados que se describen aquí.
 
@@ -40,11 +48,11 @@ app.polygon_metrics.PolygonMetricError: Custom polygon raster calculation failed
 Solution selected_mask must equal the union of values 1 and 2.
 ```
 
-El fixture de solución sintética marcaba las cuatro celdas del ráster como categoría `1`, mientras que su AOI seleccionaba únicamente las dos celdas de la izquierda. Esto incumplía el contrato actual de la solución: `selected_mask` debe ser igual a la unión de los valores de categoría `1` y `2`. Ahora, el fixture representa de forma coherente la columna izquierda seleccionada, sin debilitar la validación en producción. El conjunto completo de pruebas se aprueba con Python 3.12 y 3.13.
+El fixture de solución sintética marcaba las cuatro celdas del ráster como categoría `1`, mientras que su AOI seleccionaba únicamente las dos celdas de la izquierda. Esto incumplía el contrato actual de la solución: `selected_mask` debe ser igual a la unión de los valores de categoría `1` y `2`. Ahora, el fixture representa de forma coherente la columna izquierda seleccionada, sin debilitar la validación en producción. Esa ejecución del 29 de julio reportó entonces 24 pruebas aprobadas con Python 3.12 y 3.13; al 2026-09-07 el conjunto bajo `backend/tests/` contiene 165 pruebas.
 
 **Persiste un problema distinto en producción:** `build_custom_aoi_raster()` reemplaza `selected_mask` para el polígono solicitado, pero conserva las máscaras de categoría de la solución original. Un AOI arbitrario que no coincida exactamente con esas categorías puede provocar el mismo error de validación. Esto no se ha corregido ni está cubierto por una prueba de regresión explícita para AOI arbitrarios, y requiere una revisión de ingeniería independiente.
 
-La evidencia actual respalda afirmaciones de exactitud para cálculos específicos, transiciones de estado, contratos de manifiestos y comportamiento de la API basado en fixtures. **No** demuestra la exactitud de las máscaras de categorías para AOI arbitrarios ni respalda una afirmación de capacidad a escala de producción: no existen un conjunto de pruebas y un informe conservados de carga, estrés, pruebas prolongadas o saturación de extremo a extremo. Los resultados remotos recientes de GitHub Actions no se inspeccionaron como parte de esta revisión.
+La evidencia actual respalda afirmaciones de exactitud para cálculos específicos, transiciones de estado, contratos de manifiestos y comportamiento de la API basado en fixtures. **No** demuestra la exactitud de las máscaras de categorías para AOI arbitrarios. Los resultados remotos recientes de GitHub Actions no se inspeccionaron como parte de esta revisión.
 
 ## Brechas de evidencia
 
