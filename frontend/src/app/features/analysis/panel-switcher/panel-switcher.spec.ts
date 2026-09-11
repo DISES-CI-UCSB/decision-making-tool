@@ -4561,21 +4561,24 @@ describe('PanelSwitcherComponent', () => {
         '#conservation-goals-modal-virtual-heading-nationalRange',
       ),
     ).not.toBeNull();
-    expect(
-      fixture.nativeElement.querySelector('#conservation-goals-modal-national-species-range-0')
-        ?.textContent,
-    ).toContain('km²');
+    const speciesRows = (
+      fixture.componentInstance as unknown as {
+        goalsModalSpeciesRows(): {
+          nationalRangeKm2: number | null;
+          remainingRelativeHeld: number | null;
+        }[];
+      }
+    ).goalsModalSpeciesRows();
+    expect(speciesRows[0]?.nationalRangeKm2).toBe(100);
+    expect(speciesRows[0]?.remainingRelativeHeld).toBe(0.75);
     expect(
       fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
         ?.textContent,
     ).toContain('25');
     expect(
-      (
-        fixture.componentInstance as unknown as {
-          goalsModalSpeciesRows(): { remainingRelativeHeld: number }[];
-        }
-      ).goalsModalSpeciesRows()[0]?.remainingRelativeHeld,
-    ).toBe(0.75);
+      fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-area-0')
+        ?.textContent,
+    ).toContain('km²');
     expect(fixture.nativeElement.querySelector('#conservation-goals-modal')).not.toBeNull();
     expect(
       fixture.nativeElement.querySelector('#conservation-goals-modal-virtual-table-head')
