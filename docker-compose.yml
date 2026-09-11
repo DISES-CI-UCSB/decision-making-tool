@@ -23,7 +23,8 @@ services:
       DMT_CUSTOM_POLYGON_JOB_DB: ${DMT_CUSTOM_POLYGON_JOB_DB:-/backend/runtime-cache/jobs.sqlite3}
       DMT_OPS_TOKEN: ${DMT_OPS_TOKEN:-}
       DMT_CORS_ORIGINS: ${DMT_CORS_ORIGINS:-}
-      MANIFEST_BLOB_URL: ${MANIFEST_BLOB_URL:-}
+      MANIFEST_BLOB_URL: ${MANIFEST_BLOB_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-2-0/manifest.json}
+      DMT_MANIFEST_URL: ${DMT_MANIFEST_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-2-0/manifest.json}
     ports:
       - "8000:8000"
     volumes:

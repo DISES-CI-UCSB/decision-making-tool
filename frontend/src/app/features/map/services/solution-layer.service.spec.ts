@@ -227,7 +227,67 @@ describe('SolutionLayerService', () => {
     expect(addedLayer.renderer).toBeTruthy();
   });
 
-  it('uses the raster EPSG code when georeferencing canvas-rendered solutions', () => {
+  it('renders SIRAP solutions without a display COG through an in-memory imagery tile layer', async () => {
+    const loaded: LoadedSolution = {
+      ...createLoadedSolution('eje-cafetero-001', {
+        scope: 'sirap',
+        sirapId: 'eje-cafetero',
+        displayCogUrl: null,
+      }),
+      rasterMeta: {
+        ...createLoadedSolution('eje-cafetero-001').rasterMeta,
+        bbox: [4_310_000, 1_047_000, 5_702_000, 2_965_000] as [
+          number,
+          number,
+          number,
+          number,
+        ],
+        resolution: [1000, -1000] as [number, number],
+        crs: 'EPSG:9377',
+        noDataValue: 255,
+      },
+      rasterData: new Float64Array([2, 1, 255, 0]),
+    };
+    loaderMock.loadSolution.mockResolvedValue(loaded);
+
+    await service.showSolution('eje-cafetero-001');
+
+    const addedLayer = mapMock.add.mock.calls[0]?.[0] as {
+      type: string;
+      interpolation: string;
+      url?: string;
+      source: {
+        extent: {
+          xmin: number;
+          ymin: number;
+          xmax: number;
+          ymax: number;
+          spatialReference: { wkid: number };
+        };
+        pixelBlock: {
+          width: number;
+          height: number;
+          pixels: Uint8Array[];
+          mask: Uint8Array;
+        };
+      };
+    };
+
+    expect(addedLayer.type).toBe('imagery-tile');
+    expect(addedLayer.interpolation).toBe('nearest');
+    expect(addedLayer.url).toBeFalsy();
+    expect([
+      addedLayer.source.extent.xmin,
+      addedLayer.source.extent.ymin,
+      addedLayer.source.extent.xmax,
+      addedLayer.source.extent.ymax,
+    ]).toEqual(loaded.rasterMeta.bbox);
+    expect(addedLayer.source.extent.spatialReference.wkid).toBe(9377);
+    expect(Array.from(addedLayer.source.pixelBlock.pixels[0] ?? [])).toEqual([2, 1, 255, 0]);
+    expect(Array.from(addedLayer.source.pixelBlock.mask)).toEqual([1, 1, 0, 1]);
+  });
+
+  it('uses the raster EPSG code when georeferencing in-memory solution rasters', () => {
     const spatialReference = spatialReferenceForRaster({
       ...createLoadedSolution('baseline').rasterMeta,
       crs: 'EPSG:9377',
@@ -622,31 +682,22 @@ describe('SolutionLayerService', () => {
     expect(ensureOverlapLayerSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('replaces the solution image element when color changes', async () => {
+  it('updates the imagery renderer when color changes without rebuilding the pixel source', async () => {
     const loaded = createLoadedSolution('baseline');
     loaderMock.loadSolution.mockResolvedValue(loaded);
     await service.showSolution('baseline');
 
-    const currentLayer = (
-      service as unknown as {
-        currentLayer: {
-          source: {
-            elements: {
-              getItemAt(index: number): unknown;
-              length: number;
-            };
-          };
-        } | null;
-      }
-    ).currentLayer;
+    const currentLayer = mapMock.add.mock.calls[0]?.[0] as {
+      source: unknown;
+      renderer: unknown;
+    };
 
-    expect(currentLayer).not.toBeNull();
-    const before = currentLayer!.source.elements.getItemAt(0);
+    const initialSource = currentLayer.source;
+    const initialRenderer = currentLayer.renderer;
     service.setColor('#ff0000');
-    const after = currentLayer!.source.elements.getItemAt(0);
 
-    expect(currentLayer!.source.elements.length).toBe(1);
-    expect(after).not.toBe(before);
+    expect(currentLayer.source).toBe(initialSource);
+    expect(currentLayer.renderer).not.toBe(initialRenderer);
   });
 
   it('clears map layers and app state when removing solution', async () => {

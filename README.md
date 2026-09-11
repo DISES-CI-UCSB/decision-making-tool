@@ -86,7 +86,7 @@ Name future catalogs with a version (`3.0.7`, a date). `*-land-use-aoi-test` is 
 | Who should change | Environment variable | Default if empty | What moves |
 |-------------------|----------------------|------------------|------------|
 | **What the SPA shows** | `CATALOG_RELEASE_INDEX_BLOB_URL` in `.env` (Docker/Vercel build). For `yarn start`, also `catalogReleaseIndexBlobUrl` in `frontend/src/environments/environment.ts`. | `https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.0.6/catalog-release-index.json` | Solutions, known-AOI dashboard numbers |
-| **What custom polygons calculate against** | `MANIFEST_BLOB_URL` or `DMT_MANIFEST_URL` in `.env` / `backend/.env` | `https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json` | Hydrate recipe (`hydrationPackage`) |
+| **What custom polygons calculate against** | `MANIFEST_BLOB_URL` or `DMT_MANIFEST_URL` in `.env` / `backend/.env` | `https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-2-0/manifest.json` | Hydrate recipe (`hydrationPackage`) |
 
 These names drifted. Mentally: first var = **frontend catalog index**, second = **hydrate layer manifest**. Bump only the pointer for the surface that changed.
 

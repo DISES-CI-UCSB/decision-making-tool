@@ -1,10 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import Extent from '@arcgis/core/geometry/Extent';
 import ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
-import MediaLayer from '@arcgis/core/layers/MediaLayer';
-import ImageElement from '@arcgis/core/layers/support/ImageElement';
-import ExtentAndRotationGeoreference from '@arcgis/core/layers/support/ExtentAndRotationGeoreference';
-import LocalMediaElementSource from '@arcgis/core/layers/support/LocalMediaElementSource';
 import PixelBlock from '@arcgis/core/layers/support/PixelBlock';
 import ClassBreaksRenderer from '@arcgis/core/renderers/ClassBreaksRenderer';
 import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
@@ -20,13 +16,13 @@ import {
   buildOverlapRasterData,
   calculateLiveComparisonMetrics,
   calculateLiveSolutionMetrics,
+  isValidSolutionCell,
   NEW_COVERAGE_VALUE,
   type LiveComparisonMetrics,
   type LiveSolutionMetrics,
 } from '../utils/solution-raster.utils';
 import {
   defaultExistingProtectedColor,
-  defaultSolutionClassColors,
   DEFAULT_COMPARISON_BASELINE_HEX,
   DEFAULT_COMPARISON_CANDIDATE_HEX,
   DEFAULT_COMPARISON_OVERLAP_HEX,
@@ -46,9 +42,8 @@ const BASELINE_LAYER_ID = 'solution-raster-layer-baseline';
 const CANDIDATE_LAYER_ID = 'solution-raster-layer-candidate';
 const OVERLAP_LAYER_ID = 'solution-raster-layer-overlap';
 
-const SOLUTION_ALPHA = 255;
 type SidebarSolutionLayerType = 'solution-baseline' | 'solution-candidate' | 'solution-overlap';
-type SolutionDisplayLayer = InstanceType<typeof MediaLayer> | InstanceType<typeof ImageryTileLayer>;
+type SolutionDisplayLayer = InstanceType<typeof ImageryTileLayer>;
 
 @Injectable({ providedIn: 'root' })
 export class SolutionLayerService {
@@ -536,13 +531,15 @@ export class SolutionLayerService {
       return this.createImageryTileLayer(loaded, layerId, title, colorHex, renderOptions);
     }
 
-    return new MediaLayer({
-      id: layerId,
-      source: new LocalMediaElementSource({
-        elements: [this.createImageElement(loaded, colorHex, renderOptions)],
-      }),
-      opacity: DEFAULT_SOLUTION_LAYER_OPACITY,
+    // No published COG: draw the already-loaded raster with nearest-neighbor
+    // imagery instead of a resampled canvas MediaLayer.
+    return this.createInMemoryImageryTileLayer({
+      loaded,
+      rasterData: loaded.rasterData,
+      layerId,
       title,
+      colorHex,
+      renderOptions,
     });
   }
 
@@ -637,33 +634,6 @@ export class SolutionLayerService {
     };
   }
 
-  private createImageElement(
-    loaded: LoadedSolution,
-    colorHex: string,
-    renderOptions: SolutionRenderOptions = {},
-  ): ImageElement {
-    const canvas = this.rasterToCanvasWithColor(
-      loaded.rasterData,
-      loaded.rasterMeta,
-      colorHex,
-      loaded,
-      renderOptions,
-    );
-    const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
-    return new ImageElement({
-      image: canvas,
-      georeference: new ExtentAndRotationGeoreference({
-        extent: new Extent({
-          xmin,
-          ymin,
-          xmax,
-          ymax,
-          spatialReference: spatialReferenceForRaster(loaded.rasterMeta),
-        }),
-      }),
-    });
-  }
-
   private createImageryTileLayer(
     loaded: LoadedSolution,
     layerId: string,
@@ -719,27 +689,7 @@ export class SolutionLayerService {
     colorHex: string,
     renderOptions: SolutionRenderOptions = {},
   ): void {
-    if (this.isImageryTileLayer(layer)) {
-      layer.renderer = this.createSolutionRenderer(loaded, colorHex, renderOptions);
-      return;
-    }
-    this.replaceLayerSourceColor(layer, loaded, colorHex, renderOptions);
-  }
-
-  private replaceLayerSourceColor(
-    layer: InstanceType<typeof MediaLayer>,
-    loaded: LoadedSolution,
-    colorHex: string,
-    renderOptions: SolutionRenderOptions = {},
-  ): void {
-    const nextImageElement = this.createImageElement(loaded, colorHex, renderOptions);
-    const source = layer.source;
-    if (source instanceof LocalMediaElementSource) {
-      source.elements.removeAll();
-      source.elements.add(nextImageElement);
-      return;
-    }
-    layer.source = new LocalMediaElementSource({ elements: [nextImageElement] });
+    layer.renderer = this.createSolutionRenderer(loaded, colorHex, renderOptions);
   }
 
   private ensureOverlapLayer(): void {
@@ -790,83 +740,65 @@ export class SolutionLayerService {
     loaded: LoadedSolution,
     rasterData: LoadedSolution['rasterData'],
   ): InstanceType<typeof ImageryTileLayer> {
-    const [xmin, ymin, xmax, ymax] = loaded.rasterMeta.bbox;
-    const pixels = Uint8Array.from(rasterData);
-    const mask = Uint8Array.from(rasterData, (value) => (value === NEW_COVERAGE_VALUE ? 1 : 0));
+    return this.createInMemoryImageryTileLayer({
+      loaded,
+      rasterData,
+      layerId: OVERLAP_LAYER_ID,
+      title: 'Overlap',
+      colorHex: this.overlapColor$(),
+      renderOptions: { collapseExistingProtectedCoverage: true },
+      includeValue: (value) => value === NEW_COVERAGE_VALUE,
+      opacity: this.overlapComparisonOpacity,
+      visible: this.overlapComparisonVisible,
+    });
+  }
+
+  private createInMemoryImageryTileLayer(config: {
+    loaded: LoadedSolution;
+    rasterData: LoadedSolution['rasterData'];
+    layerId: string;
+    title: string;
+    colorHex: string;
+    renderOptions?: SolutionRenderOptions;
+    includeValue?: (value: number) => boolean;
+    opacity?: number;
+    visible?: boolean;
+  }): InstanceType<typeof ImageryTileLayer> {
+    const [xmin, ymin, xmax, ymax] = config.loaded.rasterMeta.bbox;
+    const includeValue =
+      config.includeValue ??
+      ((value: number) => isValidSolutionCell(value, config.loaded.rasterMeta.noDataValue));
+    const pixels = Uint8Array.from(config.rasterData);
+    const mask = Uint8Array.from(config.rasterData, (value) => (includeValue(value) ? 1 : 0));
 
     return new ImageryTileLayer({
-      id: OVERLAP_LAYER_ID,
+      id: config.layerId,
       source: {
         extent: new Extent({
           xmin,
           ymin,
           xmax,
           ymax,
-          spatialReference: spatialReferenceForRaster(loaded.rasterMeta),
+          spatialReference: spatialReferenceForRaster(config.loaded.rasterMeta),
         }),
         pixelBlock: new PixelBlock({
-          width: loaded.rasterMeta.width,
-          height: loaded.rasterMeta.height,
+          width: config.loaded.rasterMeta.width,
+          height: config.loaded.rasterMeta.height,
           pixelType: 'u8',
           pixels: [pixels],
           mask,
         }),
       },
       interpolation: 'nearest',
-      renderer: this.createSolutionRenderer(loaded, this.overlapColor$(), {
-        collapseExistingProtectedCoverage: true,
-      }),
-      opacity: this.overlapComparisonOpacity,
-      title: 'Overlap',
-      visible: this.overlapComparisonVisible,
+      renderer: this.createSolutionRenderer(
+        config.loaded,
+        config.colorHex,
+        config.renderOptions ?? {},
+      ),
+      opacity: config.opacity ?? DEFAULT_SOLUTION_LAYER_OPACITY,
+      title: config.title,
+      visible: config.visible ?? true,
     });
-  }
-
-  private rasterToCanvasWithColor(
-    rasterData: LoadedSolution['rasterData'],
-    rasterMeta: LoadedSolution['rasterMeta'],
-    colorHex: string,
-    loaded?: LoadedSolution,
-    renderOptions: SolutionRenderOptions = {},
-  ): HTMLCanvasElement {
-    const classColorByValue = new Map(
-      (loaded
-        ? this.getSolutionClassColors(loaded, colorHex, renderOptions)
-        : defaultSolutionClassColors(colorHex)
-      ).map((entry) => [entry.value, entry.color]),
-    );
-    const canvas = document.createElement('canvas');
-    canvas.width = rasterMeta.width;
-    canvas.height = rasterMeta.height;
-    const context = canvas.getContext('2d');
-    if (!context) {
-      return canvas;
-    }
-
-    const imageData = context.createImageData(rasterMeta.width, rasterMeta.height);
-    const pixels = imageData.data;
-    for (let index = 0; index < rasterData.length; index++) {
-      const value = rasterData[index];
-      const pixelOffset = index * 4;
-      const isNoData =
-        !Number.isFinite(value) ||
-        (typeof rasterMeta.noDataValue === 'number' && value === rasterMeta.noDataValue);
-      const color = isNoData ? undefined : classColorByValue.get(value);
-      if (color) {
-        const [r, g, b] = hexToRgb(color) ?? [22, 163, 74];
-        pixels[pixelOffset] = r;
-        pixels[pixelOffset + 1] = g;
-        pixels[pixelOffset + 2] = b;
-        pixels[pixelOffset + 3] = SOLUTION_ALPHA;
-      } else {
-        pixels[pixelOffset] = 0;
-        pixels[pixelOffset + 1] = 0;
-        pixels[pixelOffset + 2] = 0;
-        pixels[pixelOffset + 3] = 0;
-      }
-    }
-    context.putImageData(imageData, 0, 0);
-    return canvas;
   }
 
   private getSolutionClassColors(
@@ -890,12 +822,6 @@ export class SolutionLayerService {
       return this.candidateComparisonLayer;
     }
     return this.overlapComparisonLayer;
-  }
-
-  private isImageryTileLayer(
-    layer: SolutionDisplayLayer,
-  ): layer is InstanceType<typeof ImageryTileLayer> {
-    return layer instanceof ImageryTileLayer;
   }
 
   /** Reorder an arbitrary set of ArcGIS layers by their IDs. `idsTopToBottom[0]` ends up on top. */
