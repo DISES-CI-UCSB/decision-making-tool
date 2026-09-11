@@ -1,6 +1,7 @@
 import type { CustomPolygonMetricId, MetricValue } from '@core/models';
 
 export type OverviewMetricSection = 'gains' | 'ecosystemServices' | 'costs';
+export type OverviewMetricPlanningDomain = 'land' | 'marine';
 export type ComparisonSectionId = 'general' | 'biodiversity' | 'ecosystems' | 'protection';
 export type ComparisonDeltaTone = 'positive' | 'negative' | 'neutral';
 
@@ -18,6 +19,14 @@ export interface OverviewMetricBlueprint {
   dummyAreaKm2?: number;
   dummyUnitKey?: string;
   conditional?: boolean;
+  planningDomains?: readonly OverviewMetricPlanningDomain[];
+}
+
+export function overviewBlueprintVisibleForDomain(
+  blueprint: OverviewMetricBlueprint,
+  domain: OverviewMetricPlanningDomain,
+): boolean {
+  return blueprint.planningDomains === undefined || blueprint.planningDomains.includes(domain);
 }
 
 export interface ComparisonMetricBlueprint {
@@ -352,7 +361,9 @@ export const OVERVIEW_SECTION_LOOKUP: Record<string, { id: string; labelKey: str
   ecosystem_coverage_dry_forest: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   ecosystem_coverage_wetlands: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   mangrove_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
+  coral_reef_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   marine_mangrove_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
+  seagrass_coverage: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   indigenous_reservations_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   community_councils_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   // T10 additions
@@ -364,6 +375,42 @@ export const OVERVIEW_SECTION_LOOKUP: Record<string, { id: string; labelKey: str
 };
 export const OVERVIEW_SECTION_ORDER = ['ecology', 'climate', 'finance'];
 export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
+  {
+    id: 'metric-61-coral-reef-coverage',
+    section: 'gains',
+    labelKey: 'analysis.overview.metrics.coralReefCoverage',
+    descriptionKey: 'analysis.overview.metrics.coralReefCoverageDesc',
+    iconClass: 'fas fa-fish',
+    realMetricId: 'coral_reef_coverage',
+    dummyValue: '18 km²',
+    dummyAreaKm2: 18,
+    dummyUnitKey: 'analysis.overview.metricUnits.selected',
+    planningDomains: ['marine'],
+  },
+  {
+    id: 'metric-62-marine-mangrove-coverage',
+    section: 'gains',
+    labelKey: 'analysis.overview.metrics.marineMangroveCoverage',
+    descriptionKey: 'analysis.overview.metrics.marineMangroveCoverageDesc',
+    iconClass: 'fas fa-seedling',
+    realMetricId: 'marine_mangrove_coverage',
+    dummyValue: '12 km²',
+    dummyAreaKm2: 12,
+    dummyUnitKey: 'analysis.overview.metricUnits.selected',
+    planningDomains: ['marine'],
+  },
+  {
+    id: 'metric-63-seagrass-coverage',
+    section: 'gains',
+    labelKey: 'analysis.overview.metrics.seagrassCoverage',
+    descriptionKey: 'analysis.overview.metrics.seagrassCoverageDesc',
+    iconClass: 'fas fa-wheat-awn',
+    realMetricId: 'seagrass_coverage',
+    dummyValue: '9 km²',
+    dummyAreaKm2: 9,
+    dummyUnitKey: 'analysis.overview.metricUnits.selected',
+    planningDomains: ['marine'],
+  },
   {
     id: 'metric-01-conservation-goals-met',
     section: 'gains',
@@ -383,6 +430,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     realMetricId: 'species_groups_protected',
     dummyValue: '45 / 50',
     dummyUnitKey: 'analysis.overview.metricUnits.ninetyPercentOfTotal',
+    planningDomains: ['land'],
   },
   {
     id: 'metric-03-threatened-species-secured',
@@ -393,6 +441,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     realMetricId: 'threatened_species_secured',
     dummyValue: '28 / 32',
     dummyUnitKey: 'analysis.overview.metricUnits.eightyEightPercentSecured',
+    planningDomains: ['land'],
   },
   {
     id: 'metric-18-priority-area-total',
@@ -415,6 +464,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     dummyValue: '47k km²',
     dummyAreaKm2: 47_000,
     dummyUnitKey: 'analysis.overview.metricUnits.resguardos',
+    planningDomains: ['land'],
   },
   {
     id: 'metric-60-community-councils',
@@ -426,6 +476,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     dummyValue: '2.8k km²',
     dummyAreaKm2: 2_800,
     dummyUnitKey: 'analysis.overview.metricUnits.communities',
+    planningDomains: ['land'],
   },
   {
     id: 'metric-05-carbon-storage-capacity',
@@ -439,6 +490,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     realMetricId: 'carbon_storage_biomass',
     dummyValue: '2,300,000',
     dummyUnitKey: 'analysis.overview.metricUnits.megagrams',
+    planningDomains: ['land'],
   },
   {
     id: 'metric-06-water-regulation-services',
@@ -453,6 +505,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     dummyValue: '45k km²',
     dummyAreaKm2: 45_000,
     dummyUnitKey: 'analysis.overview.metricUnits.selected',
+    planningDomains: ['land'],
   },
   {
     id: 'metric-09-affected-agricultural-area',
@@ -464,6 +517,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     dummyValue: '8,500 km²',
     dummyAreaKm2: 8_500,
     dummyUnitKey: 'analysis.overview.metricUnits.fifteenPercentOverlap',
+    planningDomains: ['land'],
   },
 ];
 export const COMPARISON_SECTION_META: Record<ComparisonSectionId, ComparisonSectionMeta> = {

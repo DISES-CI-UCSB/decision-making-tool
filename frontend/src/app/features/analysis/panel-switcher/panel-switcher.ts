@@ -130,6 +130,7 @@ import {
   OVERVIEW_METRIC_BLUEPRINTS,
   OVERVIEW_SECTION_LOOKUP,
   OVERVIEW_SECTION_ORDER,
+  overviewBlueprintVisibleForDomain,
   type ComparisonDeltaTone,
   type ComparisonMetricBlueprint,
   type ComparisonSectionId,
@@ -1331,7 +1332,7 @@ export class PanelSwitcherComponent {
     carbon: false,
     land: false,
     cultural: false,
-    marine: false,
+    marine: true,
   });
   protected readonly strategicEcosystemBars = STRATEGIC_ECOSYSTEM_BARS;
   protected readonly mecBreakdowns = MEC_BREAKDOWNS;
@@ -2356,7 +2357,10 @@ export class PanelSwitcherComponent {
       },
     ];
 
-    return entries.filter((entry) => entry.totalCount > 0);
+    const visibleEntries = this.isMarineSolution()
+      ? entries.filter((entry) => entry.featureType === 'ecosystems')
+      : entries;
+    return visibleEntries.filter((entry) => entry.totalCount > 0);
   }
 
   /** Counts, from real measured relativeHeld values, how many features reached each
@@ -5282,90 +5286,11 @@ export class PanelSwitcherComponent {
     const shouldFillDummy = this.fillDummyOverviewMetrics();
     const planningDomain = this.isMarineSolution() ? 'marine' : 'land';
 
-    return OVERVIEW_METRIC_BLUEPRINTS.filter((metric) => metric.section === section).map(
-      (metric) => {
-        if (metric.conditional) {
-          return {
-            id: metric.id,
-            labelKey: metric.labelKey,
-            descriptionKey: metric.descriptionKey,
-            methodologyKey: metric.methodologyKey,
-            sourceLabelKey: metric.sourceLabelKey,
-            sourceUrlKey: metric.sourceUrlKey,
-            iconClass: metric.iconClass,
-            value: '--',
-            fullValue: null,
-            unit: '--',
-            partialNote: '',
-            conditional: true,
-            unavailable: true,
-          };
-        }
-
-        const realMetric = metric.realMetricId
-          ? this.resolveOverviewMetricForPanel(metricsById, metric.realMetricId, planningDomain)
-          : undefined;
-        const realValueAvailable =
-          isDisplayableMetricValue(realMetric) ||
-          Boolean(realMetric && readSpeciesReferenceSummary(realMetric));
-        const priorityAreaKm2 =
-          metric.realMetricId === 'priority_area_in_region'
-            ? displayableMetricValue(realMetric)
-            : null;
-        if (priorityAreaKm2 !== null) {
-          return {
-            id: metric.id,
-            labelKey: metric.labelKey,
-            descriptionKey: metric.descriptionKey,
-            methodologyKey: metric.methodologyKey,
-            sourceLabelKey: metric.sourceLabelKey,
-            sourceUrlKey: metric.sourceUrlKey,
-            iconClass: metric.iconClass,
-            value: this.formatOverviewPriorityAreaValue(priorityAreaKm2, metricsById),
-            fullValue: this.formatOverviewPriorityAreaValue(priorityAreaKm2, metricsById, 'full'),
-            unit: '',
-            partialNote: this.metricPartialNote(realMetric),
-            conditional: Boolean(metric.conditional),
-            unavailable: false,
-          };
-        }
-
-        if (realMetric && realValueAvailable) {
-          return {
-            id: metric.id,
-            labelKey: metric.labelKey,
-            descriptionKey: metric.descriptionKey,
-            methodologyKey: metric.methodologyKey,
-            sourceLabelKey: metric.sourceLabelKey,
-            sourceUrlKey: metric.sourceUrlKey,
-            iconClass: metric.iconClass,
-            value: this.formatOverviewMetricForPanel(realMetric),
-            fullValue: this.formatOverviewMetricForPanel(realMetric, 'full'),
-            unit: '',
-            partialNote: this.metricPartialNote(realMetric),
-            conditional: Boolean(metric.conditional),
-            unavailable: false,
-          };
-        }
-
-        if (shouldFillDummy) {
-          return {
-            id: metric.id,
-            labelKey: metric.labelKey,
-            descriptionKey: metric.descriptionKey,
-            methodologyKey: metric.methodologyKey,
-            sourceLabelKey: metric.sourceLabelKey,
-            sourceUrlKey: metric.sourceUrlKey,
-            iconClass: metric.iconClass,
-            value: this.formatOverviewDummyValue(metric),
-            fullValue: null,
-            unit: this.localizedText(metric.dummyUnitKey ?? ''),
-            partialNote: '',
-            conditional: Boolean(metric.conditional),
-            unavailable: false,
-          };
-        }
-
+    return OVERVIEW_METRIC_BLUEPRINTS.filter(
+      (metric) =>
+        metric.section === section && overviewBlueprintVisibleForDomain(metric, planningDomain),
+    ).map((metric) => {
+      if (metric.conditional) {
         return {
           id: metric.id,
           labelKey: metric.labelKey,
@@ -5378,11 +5303,91 @@ export class PanelSwitcherComponent {
           fullValue: null,
           unit: '--',
           partialNote: '',
-          conditional: Boolean(metric.conditional),
+          conditional: true,
           unavailable: true,
         };
-      },
-    );
+      }
+
+      const realMetric = metric.realMetricId
+        ? this.resolveOverviewMetricForPanel(metricsById, metric.realMetricId, planningDomain)
+        : undefined;
+      const realValueAvailable =
+        isDisplayableMetricValue(realMetric) ||
+        Boolean(realMetric && readSpeciesReferenceSummary(realMetric));
+      const priorityAreaKm2 =
+        metric.realMetricId === 'priority_area_in_region'
+          ? displayableMetricValue(realMetric)
+          : null;
+      if (priorityAreaKm2 !== null) {
+        return {
+          id: metric.id,
+          labelKey: metric.labelKey,
+          descriptionKey: metric.descriptionKey,
+          methodologyKey: metric.methodologyKey,
+          sourceLabelKey: metric.sourceLabelKey,
+          sourceUrlKey: metric.sourceUrlKey,
+          iconClass: metric.iconClass,
+          value: this.formatOverviewPriorityAreaValue(priorityAreaKm2, metricsById),
+          fullValue: this.formatOverviewPriorityAreaValue(priorityAreaKm2, metricsById, 'full'),
+          unit: '',
+          partialNote: this.metricPartialNote(realMetric),
+          conditional: Boolean(metric.conditional),
+          unavailable: false,
+        };
+      }
+
+      if (realMetric && realValueAvailable) {
+        return {
+          id: metric.id,
+          labelKey: metric.labelKey,
+          descriptionKey: metric.descriptionKey,
+          methodologyKey: metric.methodologyKey,
+          sourceLabelKey: metric.sourceLabelKey,
+          sourceUrlKey: metric.sourceUrlKey,
+          iconClass: metric.iconClass,
+          value: this.formatOverviewMetricForPanel(realMetric),
+          fullValue: this.formatOverviewMetricForPanel(realMetric, 'full'),
+          unit: '',
+          partialNote: this.metricPartialNote(realMetric),
+          conditional: Boolean(metric.conditional),
+          unavailable: false,
+        };
+      }
+
+      if (shouldFillDummy) {
+        return {
+          id: metric.id,
+          labelKey: metric.labelKey,
+          descriptionKey: metric.descriptionKey,
+          methodologyKey: metric.methodologyKey,
+          sourceLabelKey: metric.sourceLabelKey,
+          sourceUrlKey: metric.sourceUrlKey,
+          iconClass: metric.iconClass,
+          value: this.formatOverviewDummyValue(metric),
+          fullValue: null,
+          unit: this.localizedText(metric.dummyUnitKey ?? ''),
+          partialNote: '',
+          conditional: Boolean(metric.conditional),
+          unavailable: false,
+        };
+      }
+
+      return {
+        id: metric.id,
+        labelKey: metric.labelKey,
+        descriptionKey: metric.descriptionKey,
+        methodologyKey: metric.methodologyKey,
+        sourceLabelKey: metric.sourceLabelKey,
+        sourceUrlKey: metric.sourceUrlKey,
+        iconClass: metric.iconClass,
+        value: '--',
+        fullValue: null,
+        unit: '--',
+        partialNote: '',
+        conditional: Boolean(metric.conditional),
+        unavailable: true,
+      };
+    });
   }
 
   private findOverviewMetric(metricId: string): MetricValue | null {

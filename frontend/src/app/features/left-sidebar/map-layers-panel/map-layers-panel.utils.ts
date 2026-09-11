@@ -341,6 +341,13 @@ export function scenarioLayerStatus(
 }
 
 export function layerPlanningDomain(rowId: string, groupId: string): LayerPlanningDomain {
+  if (
+    rowId === 'siraps_marine' ||
+    rowId === 'boundary-siraps_marine' ||
+    rowId === 'layer-siraps_marine'
+  ) {
+    return 'marine';
+  }
   if (groupId === 'group-admin-boundaries') {
     return 'context';
   }

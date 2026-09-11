@@ -8,7 +8,12 @@ import math
 from collections.abc import Iterable
 from typing import Any
 
-from boundaries.boundary_loader import BOUNDARY_SOURCE_SPECS
+from boundaries.boundary_loader import (
+    BOUNDARY_SOURCE_SPECS,
+    EXPECTED_MARINE_SIRAP_CATALOG,
+    MARINE_SIRAP_SOURCE_SPEC,
+    BoundarySourceSpec,
+)
 from boundaries.boundary_topology import boundary_fanout_identity
 from boundaries.boundary_weighted_fanout import weighted_execution_identity
 from metric_definitions import (
@@ -34,6 +39,8 @@ EXPECTED_BOUNDARY_COUNTS = {
     "runaps": 1879,
     "omecs": 614,
 }
+MARINE_SIRAP_PROVENANCE_KEY = "sirapsMarine"
+MARINE_SIRAP_IDS = frozenset(item[0] for item in EXPECTED_MARINE_SIRAP_CATALOG)
 BOUNDARY_RASTERIZATION = {
     "boundaryInclusion": "pixel-center",
     "allTouched": False,
@@ -44,6 +51,45 @@ NATIONAL_RASTERIZATION = {
     "allTouched": False,
     "referenceGrid": "solution raster grid",
 }
+
+
+def _boundary_source_provenance(spec: BoundarySourceSpec) -> dict[str, Any]:
+    return {
+        "url": spec.url,
+        "sha256": spec.expected_sha256,
+        "catalogSha256": spec.expected_catalog_sha256,
+        "geometryCollectionSha256": spec.expected_geometry_collection_sha256,
+        "crs": spec.expected_crs,
+        "featureCount": spec.expected_feature_count,
+        "idField": spec.id_field,
+        "nameField": spec.name_field,
+        "featureBehavior": spec.feature_behavior,
+        "rasterization": BOUNDARY_RASTERIZATION,
+    }
+
+
+def expected_scope_boundary_source_sha256(
+    geography_level: str,
+    scope_id: str,
+    boundary_sources: dict[str, Any],
+) -> str | None:
+    """Resolve the pinned source SHA for one geography scope.
+
+    Marine SIRAP extents come from a separate GeoJSON, so they must not be
+    checked against the land SIRAP collection pin.
+    """
+
+    if geography_level == "siraps" and scope_id in MARINE_SIRAP_IDS:
+        marine = boundary_sources.get(MARINE_SIRAP_PROVENANCE_KEY)
+        if isinstance(marine, dict):
+            sha256 = marine.get("sha256")
+            return sha256 if isinstance(sha256, str) else None
+        return None
+    source = boundary_sources.get(geography_level)
+    if isinstance(source, dict):
+        sha256 = source.get("sha256")
+        return sha256 if isinstance(sha256, str) else None
+    return None
 
 METRIC_OUTPUT_FIELDS = (
     "metricId",
@@ -401,22 +447,19 @@ def build_metrics_provenance(
         {}
         if national_only and regional_packet
         else {
-            level: {
-                "url": spec.url,
-                "sha256": spec.expected_sha256,
-                "catalogSha256": spec.expected_catalog_sha256,
-                "geometryCollectionSha256": spec.expected_geometry_collection_sha256,
-                "crs": spec.expected_crs,
-                "featureCount": spec.expected_feature_count,
-                "idField": spec.id_field,
-                "nameField": spec.name_field,
-                "featureBehavior": spec.feature_behavior,
-                "rasterization": BOUNDARY_RASTERIZATION,
-            }
+            level: _boundary_source_provenance(spec)
             for level, spec in sorted(BOUNDARY_SOURCE_SPECS.items())
             if not regional_packet or level in {"departments", "municipalities"}
         }
     )
+    if (
+        domain == "marine"
+        and not national_only
+        and not regional_packet
+    ):
+        boundary_sources[MARINE_SIRAP_PROVENANCE_KEY] = _boundary_source_provenance(
+            MARINE_SIRAP_SOURCE_SPEC
+        )
     boundary_signature = hashlib.sha256(
         json.dumps(
             boundary_sources,
@@ -643,6 +686,34 @@ def provenance_issues(
                 ):
                     if source.get(field) != expected_source[field]:
                         issues.append(f"{level} boundary {field} is missing or stale")
+            if (
+                domain == "marine"
+                and not bool(config.get("nationalOnly") if isinstance(config, dict) else False)
+                and not regional_packet
+            ):
+                marine_source = sources.get(MARINE_SIRAP_PROVENANCE_KEY)
+                expected_marine = expected["sources"].get(MARINE_SIRAP_PROVENANCE_KEY)
+                if not isinstance(marine_source, dict) or expected_marine is None:
+                    issues.append("missing boundary provenance for sirapsMarine")
+                else:
+                    if marine_source.get("featureCount") != MARINE_SIRAP_SOURCE_SPEC.expected_feature_count:
+                        issues.append(
+                            "sirapsMarine boundary count mismatch: found "
+                            f"{marine_source.get('featureCount')!r}, expected "
+                            f"{MARINE_SIRAP_SOURCE_SPEC.expected_feature_count}"
+                        )
+                    for field in (
+                        "url",
+                        "sha256",
+                        "catalogSha256",
+                        "geometryCollectionSha256",
+                        "crs",
+                        "rasterization",
+                    ):
+                        if marine_source.get(field) != expected_marine[field]:
+                            issues.append(
+                                f"sirapsMarine boundary {field} is missing or stale"
+                            )
             encoded = json.dumps(
                 sources,
                 ensure_ascii=False,
@@ -836,9 +907,12 @@ def regular_artifact_completeness_issues(
                     expected_target_grid_sha256=expected_target_grid_sha256,
                     expected_solution_validity_mask_sha256=expected_validity_mask_sha256,
                     expected_boundary_source_sha256=(
-                        boundary_sources.get(level, {}).get("sha256")
+                        expected_scope_boundary_source_sha256(
+                            level,
+                            scope_id,
+                            boundary_sources,
+                        )
                         if level != "national"
-                        and isinstance(boundary_sources.get(level), dict)
                         else None
                     ),
                 )

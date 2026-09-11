@@ -140,6 +140,45 @@ EXPECTED_THEMATIC_SIRAP_IDS = {
     "thematic_eje_cafetero_1",
     "thematic_macizo_2",
 }
+EXPECTED_MARINE_SIRAP_CATALOG: tuple[tuple[str, str], ...] = (
+    ("territorial_marine_caribe", "Caribe marino"),
+    ("territorial_marine_pacifico", "Pacífico marino"),
+)
+MARINE_SIRAP_LOCAL_PATH = (
+    Path(__file__).resolve().parents[4]
+    / "boundaries/sirap/siraps_marine_caribe_pacifico_v1.geojson"
+)
+MARINE_SIRAP_SOURCE_SPEC = BoundarySourceSpec(
+    geo_level="siraps",
+    url=(
+        f"{PUBLIC_BLOB_HOST}/inputs/boundaries/sirap/v1/"
+        "sha256-183dce77b1695649926c91d2fd1f6ed4b973cc336c3816035b4c91dccd9e6149/"
+        "siraps_marine_caribe_pacifico_v1.geojson"
+    ),
+    cache_filename="siraps_marine_caribe_pacifico_v1.183dce77.geojson",
+    expected_sha256="183dce77b1695649926c91d2fd1f6ed4b973cc336c3816035b4c91dccd9e6149",
+    expected_crs="EPSG:4326",
+    id_field="sirap_id",
+    name_field="sirap_name",
+    expected_feature_count=2,
+    expected_catalog_sha256="2616f5938e7b18a9be381d97d0f73caf1817edac26d5f4d41105b9a84ead5f44",
+    expected_geometry_collection_sha256=(
+        "5e98906d4ba46a143fdf69b58fcdf55d1d0ead93ccd485a367903447dd7d100c"
+    ),
+    feature_behavior="marine_analysis_feature",
+    required_fields=("sirap_kind", "source_file"),
+    representative_geometry_sha256=(
+        (
+            "territorial_marine_caribe",
+            "12e79bbcc44d5e723f3cd7b8a6349b28f8919547a035321fe8a08c7cf66bf96b",
+        ),
+        (
+            "territorial_marine_pacifico",
+            "41c9f448f5314cc27c4effdf0f67e046ebbc08e601ae64c8e24b2b4193478337",
+        ),
+    ),
+    allowed_geometry_types=("Polygon", "MultiPolygon"),
+)
 
 
 BOUNDARY_SOURCE_SPECS: dict[str, BoundarySourceSpec] = {
@@ -385,6 +424,16 @@ def _validate_source_behavior(
                     "territorial feature."
                 )
         return
+    if spec.feature_behavior == "marine_analysis_feature":
+        for feature in features:
+            if (
+                feature.properties.get("sirap_kind") != "marine"
+                or feature.properties.get("source_file") != "caribe_pacifico.shp"
+            ):
+                raise BoundaryLoadError(
+                    f"SIRAP {feature.boundary_id!r} is not a marine analysis feature."
+                )
+        return
     if spec.feature_behavior != "whole_merged_feature_only":
         return
     for feature in features:
@@ -579,3 +628,41 @@ def load_all_boundaries(
         except BoundaryLoadError as exc:
             errors[level_name] = str(exc)
     return result, errors
+
+
+def load_marine_sirap_boundaries(cache_dir: Path) -> list[BoundaryFeature]:
+    """Load the two marine Caribe/Pacífico analysis extents.
+
+    Seeds the metric cache from the committed local GeoJSON when present so a
+    Blob publish is not required for marine-only backfill smokes.
+    """
+    spec = MARINE_SIRAP_SOURCE_SPEC
+    cache_path = cache_dir / "boundaries" / spec.cache_filename
+    if not cache_path.exists() and MARINE_SIRAP_LOCAL_PATH.exists():
+        raw = MARINE_SIRAP_LOCAL_PATH.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != spec.expected_sha256:
+            raise BoundaryLoadError(
+                "local marine SIRAP artifact checksum mismatch: "
+                f"expected {spec.expected_sha256}."
+            )
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_bytes(raw)
+    return _load_geojson_source(cache_path, spec)
+
+
+def augment_boundaries_for_domain(
+    boundaries_by_level: dict[str, list[BoundaryFeature]],
+    domain: str,
+    marine_siraps: list[BoundaryFeature],
+) -> dict[str, list[BoundaryFeature]]:
+    """Append marine SIRAP extents only for marine solutions."""
+    if domain != "marine" or not marine_siraps:
+        return boundaries_by_level
+    current = list(boundaries_by_level.get("siraps", []))
+    seen = {feature.boundary_id for feature in current}
+    extra = [
+        feature for feature in marine_siraps if feature.boundary_id not in seen
+    ]
+    if not extra:
+        return boundaries_by_level
+    return {**boundaries_by_level, "siraps": current + extra}

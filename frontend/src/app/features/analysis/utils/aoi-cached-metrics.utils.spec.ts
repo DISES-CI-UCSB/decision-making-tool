@@ -48,6 +48,7 @@ describe('AOI cached metrics utilities', () => {
     ['siraps', 'aoi-siraps-combined-colombia'],
     ['siraps_territorial_updated', 'aoi-siraps-territorial-updated-colombia'],
     ['siraps_thematic', 'aoi-siraps-thematic-colombia'],
+    ['siraps_marine', 'aoi-siraps-marine-colombia'],
   ])('preserves cached SIRAP metrics for production source %s', (layerKey, sourceId) => {
     const aoi = buildSirapAoi(layerKey, sourceId);
     const sirapDocument = buildSirapDocument(bogotaMetric);

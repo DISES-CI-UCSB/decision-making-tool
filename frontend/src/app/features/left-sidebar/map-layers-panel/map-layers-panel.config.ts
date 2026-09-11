@@ -242,6 +242,7 @@ export const MANIFEST_ADMIN_BOUNDARY_LAYER_TO_SYNC: Record<
     boundaryLayerKey: 'siraps_territorial_updated',
   },
   siraps_thematic: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_thematic' },
+  siraps_marine: { boundaryType: 'sirap', boundaryLayerKey: 'siraps_marine' },
   admin_country_outline: {
     boundaryType: 'department',
     boundaryLayerKey: 'admin_country_outline',
@@ -260,6 +261,8 @@ export function isAdminBoundaryLayerEnabled(layerKey: AdminBoundaryLayerKey): bo
       return FEATURE_FLAGS.sirapLayers.territorialUpdated;
     case 'siraps_thematic':
       return FEATURE_FLAGS.sirapLayers.thematic;
+    case 'siraps_marine':
+      return FEATURE_FLAGS.sirapLayers.marine;
     default:
       return true;
   }
@@ -269,11 +272,18 @@ export type SirapBoundaryLayerKey =
   | 'siraps'
   | 'siraps_territorial'
   | 'siraps_territorial_updated'
-  | 'siraps_thematic';
+  | 'siraps_thematic'
+  | 'siraps_marine';
 
 export function enabledSirapBoundaryLayerKeys(): SirapBoundaryLayerKey[] {
   return (
-    ['siraps', 'siraps_territorial', 'siraps_territorial_updated', 'siraps_thematic'] as const
+    [
+      'siraps',
+      'siraps_territorial',
+      'siraps_territorial_updated',
+      'siraps_thematic',
+      'siraps_marine',
+    ] as const
   ).filter(isAdminBoundaryLayerEnabled);
 }
 
@@ -332,6 +342,7 @@ export const LEGEND_BOUNDARY_STYLES: Record<
   siraps_territorial: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
   siraps_territorial_updated: { lineStyle: 'solid', lineWidth: 1.25, color: '#111827' },
   siraps_thematic: { lineStyle: 'dashed', lineWidth: 1.25, color: '#475569' },
+  siraps_marine: { lineStyle: 'solid', lineWidth: 1.5, color: '#0ea5e9' },
   admin_country_outline: { lineStyle: 'solid', lineWidth: 1.6, color: '#111827' },
   admin_departments: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },
   admin_municipalities: { lineStyle: 'solid', lineWidth: 1, color: '#111827' },

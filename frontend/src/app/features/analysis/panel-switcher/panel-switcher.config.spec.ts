@@ -9,11 +9,15 @@ import {
   CUSTOM_AOI_SPECIES_METRIC_IDS,
   OVERVIEW_METRIC_BLUEPRINTS,
   OVERVIEW_SECTION_ORDER,
+  overviewBlueprintVisibleForDomain,
 } from './panel-switcher.config';
 
 describe('panel switcher metric configuration', () => {
   it('keeps metric blueprint IDs unique and in display order', () => {
     expectBlueprintIds(OVERVIEW_METRIC_BLUEPRINTS, [
+      'metric-61-coral-reef-coverage',
+      'metric-62-marine-mangrove-coverage',
+      'metric-63-seagrass-coverage',
       'metric-01-conservation-goals-met',
       'metric-02-species-groups-protected',
       'metric-03-threatened-species-secured',
@@ -54,6 +58,27 @@ describe('panel switcher metric configuration', () => {
     expect(new Set(COMPARISON_METRIC_BLUEPRINTS.map(({ section }) => section))).toEqual(
       new Set(COMPARISON_SECTION_ORDER),
     );
+  });
+
+  it('keeps marine coverage cards first and hides land-only overview cards', () => {
+    const marineIds = OVERVIEW_METRIC_BLUEPRINTS.filter((blueprint) =>
+      overviewBlueprintVisibleForDomain(blueprint, 'marine'),
+    ).map((blueprint) => blueprint.id);
+    const landIds = OVERVIEW_METRIC_BLUEPRINTS.filter((blueprint) =>
+      overviewBlueprintVisibleForDomain(blueprint, 'land'),
+    ).map((blueprint) => blueprint.id);
+
+    expect(marineIds.slice(0, 3)).toEqual([
+      'metric-61-coral-reef-coverage',
+      'metric-62-marine-mangrove-coverage',
+      'metric-63-seagrass-coverage',
+    ]);
+    expect(marineIds).toContain('metric-18-priority-area-total');
+    expect(marineIds).not.toContain('metric-02-species-groups-protected');
+    expect(marineIds).not.toContain('metric-05-carbon-storage-capacity');
+    expect(landIds).not.toContain('metric-61-coral-reef-coverage');
+    expect(landIds).toContain('metric-02-species-groups-protected');
+    expect(landIds).toContain('metric-05-carbon-storage-capacity');
   });
 
   it('defines every requested custom AOI metric under its own ID', () => {
