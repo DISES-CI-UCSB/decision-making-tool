@@ -686,7 +686,14 @@
               Scan this QR code with an authenticator app, then enter the 6-digit code.
             </p>
             <p id="auth-modal-mfa-enroll-apps" class="mt-1 text-xs text-slate-500">
-              Works with Google Authenticator, Authy, 1Password, or Microsoft Authenticator.
+              Works with Duo Mobile, Google Authenticator, Authy, 1Password, or Microsoft
+              Authenticator.
+            </p>
+            <p id="auth-modal-mfa-enroll-duo-hint" class="mt-1 text-xs text-slate-500">
+              Duo Mobile lists this as a Third Party account named
+              <span id="auth-modal-mfa-enroll-issuer" class="font-semibold text-slate-700"
+                >{{ totpIssuer }}</span
+              >.
             </p>
           </header>
 
@@ -822,7 +829,17 @@
               Open your authenticator app and enter the 6-digit code.
             </p>
             <p id="auth-modal-mfa-challenge-apps" class="mt-1 text-xs text-slate-500">
-              Use the same app you set up &mdash; not a text message.
+              In Duo Mobile this is a Third Party account named
+              <span id="auth-modal-mfa-challenge-issuer" class="font-semibold text-slate-700"
+                >{{ totpIssuer }}</span
+              >. Use that entry &mdash; not a text message.
+            </p>
+            <p id="auth-modal-mfa-challenge-lost" class="mt-2 text-xs text-slate-500">
+              Lost your authenticator?
+              <span id="auth-modal-mfa-challenge-admin-help" class="font-semibold text-slate-700">
+                Contact your administrator
+              </span>
+              to reset MFA, then scan a new Eco Plan Tool QR.
             </p>
           </header>
 
