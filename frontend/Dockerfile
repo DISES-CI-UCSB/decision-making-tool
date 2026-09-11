@@ -18,7 +18,7 @@ ARG FIREBASE_MEASUREMENT_ID
 ARG ACCESS_REQUEST_NOTIFICATION_EMAIL
 ARG GOOGLE_CLIENT_ID
 ARG MANIFEST_BLOB_URL
-ARG CATALOG_RELEASE_INDEX_BLOB_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.1.0/catalog-release-index.json
+ARG CATALOG_RELEASE_INDEX_BLOB_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.2.0/catalog-release-index.json
 ARG SIRAP_MANIFEST_BLOB_URL
 ARG BLOB_ASSET_PROXY_PATH
 ARG METRICS_API_BASE_URL=/metrics-api
