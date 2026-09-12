@@ -407,6 +407,9 @@ export class MapLayersPanelComponent implements OnDestroy {
       ...catalogSolution.finderInputs.excludeLayerIds,
       catalogSolution.finderInputs.targetFeatureSet,
       catalogSolution.finderInputs.costLayerId,
+      ...(catalogSolution.finderInputs.structuredTargets?.strategicEcosystems.map(
+        (target) => target.featureId,
+      ) ?? []),
     ]);
   });
   protected readonly hasScenarioLayerStatus = computed(
