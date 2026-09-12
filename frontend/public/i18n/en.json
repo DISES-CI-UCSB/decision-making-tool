@@ -1259,7 +1259,7 @@
         },
         "targets": {
           "strategicEcosystemsLabel": "Strategic ecosystems",
-          "strategicEcosystemsHelp": "Sets the relative solver target for the region’s strategic-ecosystem features.",
+          "strategicEcosystemsHelp": "The tool will identify candidate areas that ensure that the selected proportion of each of the region’s strategic ecosystems is contained within existing and candidate conservation areas.",
           "strategicEcosystemsQuestion": "What proportion of each strategic ecosystem would you like to conserve?",
           "strategicTargetRationaleToggle": "Why these values?",
           "strategicTargetRationale": "These target levels come from the certified scenario catalog for the selected SIRAP. Values that are not available for that region are disabled.",
@@ -1271,13 +1271,13 @@
           "inheritStrategic": "Inherit strategic target",
           "separate100": "Separate 100%",
           "ejeWetlandsLabel": "Eje Cafetero wetlands",
-          "ejeWetlandsHelp": "Sets the relative solver target for the Eje-specific wetlands feature.",
+          "ejeWetlandsHelp": "The tool will identify candidate areas that ensure that the selected proportion of each of the Eje Cafetero wetlands is contained within existing and candidate conservation areas.",
           "ejeWetlandsQuestion": "What proportion of Eje Cafetero wetlands would you like to conserve?",
           "congrialesLabel": "Congriales",
           "congrialesHelp": "Congriales is a supplied model feature. Its certified target is paired with the same strategic-ecosystems target.",
           "paired": "Paired",
           "savannasLabel": "Savannas",
-          "savannasHelp": "Sets the relative solver target for the supplied Orinoquía savannas feature.",
+          "savannasHelp": "The tool will identify candidate areas that ensure that the selected proportion of each of the Orinoquía savannas is contained within existing and candidate conservation areas.",
           "savannasQuestion": "What proportion of Orinoquía savannas would you like to conserve?"
         }
       },

@@ -1259,7 +1259,7 @@
         },
         "targets": {
           "strategicEcosystemsLabel": "Ecosistemas estratégicos",
-          "strategicEcosystemsHelp": "Define la meta relativa del solucionador para los elementos de ecosistemas estratégicos de la región.",
+          "strategicEcosystemsHelp": "La herramienta identifica áreas candidatas que garantizan que la proporción seleccionada de cada uno de los ecosistemas estratégicos de la región quede dentro de las áreas de conservación existentes y candidatas.",
           "strategicEcosystemsQuestion": "¿Qué proporción de cada ecosistema estratégico le gustaría conservar?",
           "strategicTargetRationaleToggle": "¿Por qué estos valores?",
           "strategicTargetRationale": "Estos niveles de meta provienen del catálogo certificado de escenarios del SIRAP seleccionado. Los valores que no están disponibles para esa región están deshabilitados.",
@@ -1271,13 +1271,13 @@
           "inheritStrategic": "Heredar meta estratégica",
           "separate100": "100% por separado",
           "ejeWetlandsLabel": "Humedales del Eje Cafetero",
-          "ejeWetlandsHelp": "Define la meta relativa del solucionador para el elemento regional de humedales del Eje Cafetero.",
+          "ejeWetlandsHelp": "La herramienta identifica áreas candidatas que garantizan que la proporción seleccionada de cada uno de los humedales del Eje Cafetero quede dentro de las áreas de conservación existentes y candidatas.",
           "ejeWetlandsQuestion": "¿Qué proporción de los humedales del Eje Cafetero le gustaría conservar?",
           "congrialesLabel": "Congriales",
           "congrialesHelp": "Congriales es un elemento del modelo suministrado. Su meta certificada está emparejada con la misma meta de ecosistemas estratégicos.",
           "paired": "Emparejado",
           "savannasLabel": "Sabanas",
-          "savannasHelp": "Define la meta relativa del solucionador para el elemento suministrado de sabanas de la Orinoquía.",
+          "savannasHelp": "La herramienta identifica áreas candidatas que garantizan que la proporción seleccionada de cada una de las sabanas de la Orinoquía quede dentro de las áreas de conservación existentes y candidatas.",
           "savannasQuestion": "¿Qué proporción de las sabanas de la Orinoquía le gustaría conservar?"
         }
       },
