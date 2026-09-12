@@ -23,6 +23,7 @@ import {
 } from '../services/auth-request.service';
 import { GoogleIdentityService, type GoogleProfile } from '../services/google-identity.service';
 import {
+  TOTP_ISSUER,
   TOTP_RESTART_MESSAGE,
   TotpMfaService,
   isTotpMfaError,
@@ -114,6 +115,7 @@ export class AuthModalComponent {
   protected readonly pendingGoogleProfile = signal<GoogleProfile | null>(null);
   protected readonly confirmedRequest = signal<StoredPendingRequest | null>(null);
   protected readonly googleIntent = signal<GoogleIntent>('login');
+  protected readonly totpIssuer = TOTP_ISSUER;
   protected readonly totpCode = signal('');
   protected readonly totpError = signal<string | null>(null);
   protected readonly totpErrorKind = signal<TotpErrorKind | null>(null);

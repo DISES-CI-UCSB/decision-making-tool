@@ -22,9 +22,17 @@ export const AUTH_ERROR_MISSING_MFA_INFO = 'auth/missing-multi-factor-info';
 export const AUTH_ERROR_SECOND_FACTOR_ALREADY_ENROLLED = 'auth/second-factor-already-in-use';
 export const TOTP_ENROLLMENT_EXPIRED_CODE = 'totp/enrollment-expired';
 
-export const TOTP_ISSUER = 'Decision Making Tool';
+export const TOTP_ISSUER = 'Eco Plan Tool';
 export const TOTP_DISPLAY_NAME = 'Authenticator app';
 export const TOTP_INVALID_FORMAT_CODE = 'totp/invalid-format';
+
+export function totpAccountLabel(accountName: string, issuer = TOTP_ISSUER): string {
+  const trimmed = accountName.trim();
+  if (!trimmed || trimmed === issuer || trimmed.startsWith(`${issuer} (`)) {
+    return trimmed || issuer;
+  }
+  return `${issuer} (${trimmed})`;
+}
 
 export const TOTP_RETRY_MESSAGE =
   'That code was incorrect or expired. Try the current 6-digit code.';
@@ -187,16 +195,17 @@ export class TotpMfaService {
   }
 
   async beginEnrollment(user: User, accountName: string): Promise<TotpEnrollmentSession> {
+    const labeledAccount = totpAccountLabel(accountName);
     const secret = await TotpMultiFactorGenerator.generateSecret(
       await multiFactor(user).getSession(),
     );
-    const qrCodeUrl = secret.generateQrCodeUrl(accountName, TOTP_ISSUER);
+    const qrCodeUrl = secret.generateQrCodeUrl(labeledAccount, TOTP_ISSUER);
     return {
       secret,
       qrCodeUrl,
       qrCodeDataUrl: this.qrCode.toDataUrl(qrCodeUrl),
       secretKey: secret.secretKey,
-      accountName,
+      accountName: labeledAccount,
       issuer: TOTP_ISSUER,
       enrollmentCompletionDeadline: secret.enrollmentCompletionDeadline,
       codeLength: secret.codeLength,
