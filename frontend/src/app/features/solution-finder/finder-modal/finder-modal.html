@@ -1393,18 +1393,22 @@
                   class="finder-subtext-dark mt-1 text-xs leading-snug"
                 >
                   {{
-                    'solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsHelp'
-                      | translate
+                    (selectedSirapRegion === 'eje-cafetero'
+                      ? 'solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsHelpEjeCafetero'
+                      : 'solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsHelp'
+                    ) | translate
                   }}
                 </p>
-                <a
-                  id="solution-finder-modal-sirap-strategic-source"
-                  class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
-                  [href]="'solutionControls.finder.sirapWorkflow.sourceUrl' | translate"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >{{ 'solutionControls.finder.sirapWorkflow.sourceLabel' | translate }}</a
-                >
+                @if (selectedSirapRegion !== 'eje-cafetero') {
+                  <a
+                    id="solution-finder-modal-sirap-strategic-source"
+                    class="mt-1 inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline"
+                    [href]="'solutionControls.finder.sirapWorkflow.sourceUrl' | translate"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >{{ 'solutionControls.finder.sirapWorkflow.sourceLabel' | translate }}</a
+                  >
+                }
                 <div
                   id="solution-finder-modal-sirap-strategic-target-level-panel"
                   class="finder-target-level-panel finder-target-level-panel-visible rounded-md bg-white"
@@ -1419,7 +1423,7 @@
                     >
                       <span
                         id="solution-finder-modal-sirap-strategic-target-level-label-row"
-                        class="inline-flex items-center gap-1"
+                        class="finder-target-coverage-question-label leading-snug"
                       >
                         <span
                           id="solution-finder-modal-sirap-strategic-target-level-question"
@@ -1432,29 +1436,71 @@
                         </span>
                         <span
                           id="solution-finder-modal-sirap-strategic-target-level-rationale"
-                          class="group relative z-20 inline-flex normal-case tracking-normal hover:z-100 focus-within:z-100"
+                          class="finder-inline-help normal-case tracking-normal"
+                          (mouseenter)="
+                            showFinderTooltip(
+                              $event,
+                              'solution-finder-modal-sirap-strategic-target-level-rationale-tooltip'
+                            )
+                          "
+                          (mouseleave)="
+                            scheduleHideFinderTooltip(
+                              'solution-finder-modal-sirap-strategic-target-level-rationale-tooltip'
+                            )
+                          "
+                          (focusin)="
+                            showFinderTooltip(
+                              $event,
+                              'solution-finder-modal-sirap-strategic-target-level-rationale-tooltip'
+                            )
+                          "
+                          (focusout)="
+                            scheduleHideFinderTooltip(
+                              'solution-finder-modal-sirap-strategic-target-level-rationale-tooltip'
+                            )
+                          "
                         >
                           <button
                             id="solution-finder-modal-sirap-strategic-target-level-rationale-toggle"
                             type="button"
-                            class="finder-layer-info-button tooltip-info-icon-glyph inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            class="finder-inline-help-trigger"
                             [attr.aria-label]="
                               'solutionControls.finder.sirapWorkflow.targets.strategicTargetRationaleToggle'
                                 | translate
                             "
-                            aria-describedby="solution-finder-modal-sirap-strategic-target-level-rationale-tooltip"
+                            [attr.aria-describedby]="
+                              'solution-finder-modal-sirap-strategic-target-level-rationale-tooltip'
+                            "
+                            (click)="$event.stopPropagation()"
                           >
-                            i
+                            <app-info-icon
+                              [rootId]="
+                                'solution-finder-modal-sirap-strategic-target-level-rationale-icon'
+                              "
+                              colorClass="text-slate-400"
+                            />
                           </button>
                           <span
                             id="solution-finder-modal-sirap-strategic-target-level-rationale-tooltip"
                             role="tooltip"
-                            class="pointer-events-none absolute left-1/2 top-full z-100 mt-2 w-72 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
+                            popover="manual"
+                            class="finder-tooltip-overlay"
+                            (mouseenter)="cancelHideFinderTooltip()"
+                            (mouseleave)="
+                              scheduleHideFinderTooltip(
+                                'solution-finder-modal-sirap-strategic-target-level-rationale-tooltip'
+                              )
+                            "
                           >
-                            {{
-                              'solutionControls.finder.sirapWorkflow.targets.strategicTargetRationale'
-                                | translate
-                            }}
+                            <span
+                              id="solution-finder-modal-sirap-strategic-target-level-rationale-text"
+                              class="block"
+                            >
+                              {{
+                                'solutionControls.finder.sirapWorkflow.targets.strategicTargetRationale'
+                                  | translate
+                              }}
+                            </span>
                           </span>
                         </span>
                       </span>
@@ -1531,7 +1577,7 @@
                       >
                         <span
                           id="solution-finder-modal-sirap-dry-forest-target-level-label-row"
-                          class="inline-flex items-center gap-1"
+                          class="finder-target-coverage-question-label leading-snug"
                         >
                           <span
                             id="solution-finder-modal-sirap-dry-forest-target-level-question"
@@ -1544,29 +1590,71 @@
                           </span>
                           <span
                             id="solution-finder-modal-sirap-dry-forest-target-level-rationale"
-                            class="group relative z-20 inline-flex normal-case tracking-normal hover:z-100 focus-within:z-100"
+                            class="finder-inline-help normal-case tracking-normal"
+                            (mouseenter)="
+                              showFinderTooltip(
+                                $event,
+                                'solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip'
+                              )
+                            "
+                            (mouseleave)="
+                              scheduleHideFinderTooltip(
+                                'solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip'
+                              )
+                            "
+                            (focusin)="
+                              showFinderTooltip(
+                                $event,
+                                'solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip'
+                              )
+                            "
+                            (focusout)="
+                              scheduleHideFinderTooltip(
+                                'solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip'
+                              )
+                            "
                           >
                             <button
                               id="solution-finder-modal-sirap-dry-forest-target-level-rationale-toggle"
                               type="button"
-                              class="finder-layer-info-button tooltip-info-icon-glyph inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] font-bold text-slate-600 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                              class="finder-inline-help-trigger"
                               [attr.aria-label]="
                                 'solutionControls.finder.sirapWorkflow.targets.dryForestRationaleToggle'
                                   | translate
                               "
-                              aria-describedby="solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip"
+                              [attr.aria-describedby]="
+                                'solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip'
+                              "
+                              (click)="$event.stopPropagation()"
                             >
-                              i
+                              <app-info-icon
+                                [rootId]="
+                                  'solution-finder-modal-sirap-dry-forest-target-level-rationale-icon'
+                                "
+                                colorClass="text-slate-400"
+                              />
                             </button>
                             <span
                               id="solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip"
                               role="tooltip"
-                              class="pointer-events-none absolute left-1/2 top-full z-100 mt-2 w-72 -translate-x-1/2 rounded-md border border-slate-200 bg-white p-3 text-xs font-normal leading-snug text-slate-600 opacity-0 shadow-lg transition-opacity duration-75 group-hover:opacity-100 group-focus-within:opacity-100"
+                              popover="manual"
+                              class="finder-tooltip-overlay"
+                              (mouseenter)="cancelHideFinderTooltip()"
+                              (mouseleave)="
+                                scheduleHideFinderTooltip(
+                                  'solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip'
+                                )
+                              "
                             >
-                              {{
-                                'solutionControls.finder.sirapWorkflow.targets.dryForestRationale'
-                                  | translate
-                              }}
+                              <span
+                                id="solution-finder-modal-sirap-dry-forest-target-level-rationale-text"
+                                class="block"
+                              >
+                                {{
+                                  'solutionControls.finder.sirapWorkflow.targets.dryForestRationale'
+                                    | translate
+                                }}
+                              </span>
                             </span>
                           </span>
                         </span>
@@ -1895,7 +1983,7 @@
             id="solution-finder-modal-sirap-step2-help"
             class="finder-step-intro finder-subtext-dark text-xs leading-snug"
           >
-            {{ 'solutionControls.finder.sirapWorkflow.step3.help' | translate }}
+            {{ 'solutionControls.finder.stepIntros.step2b' | translate }}
           </p>
         </div>
         <section
@@ -1999,7 +2087,7 @@
             id="solution-finder-modal-sirap-step3-help"
             class="finder-step-intro finder-subtext-dark text-xs leading-snug"
           >
-            {{ 'solutionControls.finder.sirapWorkflow.step2.help' | translate }}
+            {{ 'solutionControls.finder.stepIntros.step2a' | translate }}
           </p>
         </div>
         <section
