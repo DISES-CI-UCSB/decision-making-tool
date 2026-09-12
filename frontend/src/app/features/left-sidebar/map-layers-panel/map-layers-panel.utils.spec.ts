@@ -1,5 +1,6 @@
 import {
   buildConsideredLayerIdSet,
+  implicitConsideredIncludeIds,
   buildLegendLayerEntry,
   shouldIncludeInMasterLegend,
   computeSelectedLayerOrder,
@@ -180,6 +181,24 @@ describe('scenario status aliases', () => {
         true,
       ),
     ).toBe('considered');
+  });
+
+  it('considers RUNAP on SIRAP packets even when catalog include lists are empty', () => {
+    const consideredIds = buildConsideredLayerIdSet([
+      ...implicitConsideredIncludeIds({ scope: 'sirap', sirapId: 'eje-cafetero' }),
+      'strategic-ecosystems',
+    ]);
+
+    expect(scenarioLayerStatus('overlay-runap', 'runap', consideredIds, true)).toBe('considered');
+    expect(
+      scenarioLayerStatus(
+        'overlay-runap-national-parks',
+        'runap_national_parks',
+        consideredIds,
+        true,
+      ),
+    ).toBe('considered');
+    expect(implicitConsideredIncludeIds({ scope: 'national', sirapId: null })).toEqual([]);
   });
 
   it('returns reference or no status when aliases do not match or status is unavailable', () => {

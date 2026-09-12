@@ -1418,7 +1418,23 @@ describe('FinderModalComponent', () => {
     expect(strategicTooltip?.getAttribute('popover')).toBe('manual');
     expect(strategicTooltip?.classList.contains('finder-tooltip-overlay')).toBe(true);
     expect(strategicToggle).not.toBeNull();
+    expect(strategicToggle?.getAttribute('aria-label')).toContain(
+      'solutionControls.finder.step1.targetLevelRationaleToggle',
+    );
     expect(strategicToggle?.querySelector('app-info-icon')).not.toBeNull();
+    expect(strategicTooltip?.textContent).toContain(
+      'solutionControls.finder.step1.targetLevelRationale',
+    );
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-strategic-target-level-rationale-aichi-source',
+      )?.textContent,
+    ).toContain('solutionControls.finder.step1.targetLevelAichiSourceLabel');
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-strategic-target-level-rationale-kunming-source',
+      )?.textContent,
+    ).toContain('solutionControls.finder.step1.targetLevelKunmingSourceLabel');
     for (const target of [17, 30, 50, 100]) {
       const button = fixture.nativeElement.querySelector(
         `#solution-finder-modal-sirap-strategic-${target}`,
@@ -1540,6 +1556,24 @@ describe('FinderModalComponent', () => {
         ?.classList.contains('finder-tooltip-overlay'),
     ).toBe(true);
     expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-strategic-target-level-rationale-tooltip',
+      )?.textContent,
+    ).toContain('solutionControls.finder.step1.targetLevelRationale');
+    const savannasTooltip = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-sirap-savannas-target-level-rationale-tooltip',
+    );
+    expect(savannasTooltip?.getAttribute('popover')).toBe('manual');
+    expect(savannasTooltip?.classList.contains('finder-tooltip-overlay')).toBe(true);
+    expect(savannasTooltip?.textContent).toContain(
+      'solutionControls.finder.step1.targetLevelRationale',
+    );
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-savannas-target-level-rationale-aichi-source',
+      )?.textContent,
+    ).toContain('solutionControls.finder.step1.targetLevelAichiSourceLabel');
+    expect(
       fixture.nativeElement.querySelector('#solution-finder-modal-sirap-strategic-help')
         ?.textContent,
     ).toContain('solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsHelp');
@@ -1553,15 +1587,10 @@ describe('FinderModalComponent', () => {
       fixture.nativeElement.querySelector('#solution-finder-modal-sirap-savannas-card'),
     ).not.toBeNull();
     expect(
-      fixture.nativeElement
-        .querySelector('#solution-finder-modal-sirap-savannas-target-level-panel')
-        ?.classList.contains('finder-target-level-panel'),
-    ).toBe(true);
-    expect(
-      fixture.nativeElement
-        .querySelector('#solution-finder-modal-sirap-savannas-target-level-panel')
-        ?.classList.contains('bg-white'),
-    ).toBe(true);
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-congriales-target-level-question',
+      )?.textContent,
+    ).toContain('solutionControls.finder.sirapWorkflow.targets.congrialesQuestion');
     expect(
       fixture.nativeElement.querySelector(
         '#solution-finder-modal-sirap-savannas-target-level-question',
@@ -1573,17 +1602,29 @@ describe('FinderModalComponent', () => {
     const nationalTargetQuestion = fixture.nativeElement.querySelector(
       '#solution-finder-modal-step1-target-level-label-row-ecosystems',
     ) as HTMLElement;
-    const savannasTitle = fixture.nativeElement.querySelector(
-      '#solution-finder-modal-sirap-savannas-target-level-title',
-    ) as HTMLElement;
-    const savannasQuestion = fixture.nativeElement.querySelector(
-      '#solution-finder-modal-sirap-savannas-target-level-question',
-    ) as HTMLElement;
-    expect([...savannasTitle.classList].sort()).toEqual([...nationalTargetTitle.classList].sort());
-    expect(savannasQuestion.classList.contains('finder-target-coverage-question-label')).toBe(true);
     expect(nationalTargetQuestion.classList.contains('finder-target-coverage-question-label')).toBe(
       true,
     );
+    for (const target of ['congriales', 'savannas'] as const) {
+      expect(
+        fixture.nativeElement
+          .querySelector(`#solution-finder-modal-sirap-${target}-target-level-panel`)
+          ?.classList.contains('finder-target-level-panel'),
+      ).toBe(true);
+      expect(
+        fixture.nativeElement
+          .querySelector(`#solution-finder-modal-sirap-${target}-target-level-panel`)
+          ?.classList.contains('bg-white'),
+      ).toBe(true);
+      const title = fixture.nativeElement.querySelector(
+        `#solution-finder-modal-sirap-${target}-target-level-title`,
+      ) as HTMLElement;
+      const question = fixture.nativeElement.querySelector(
+        `#solution-finder-modal-sirap-${target}-target-level-question`,
+      ) as HTMLElement;
+      expect([...title.classList].sort()).toEqual([...nationalTargetTitle.classList].sort());
+      expect(question.classList.contains('finder-target-coverage-question-label')).toBe(true);
+    }
     for (const target of [17, 30]) {
       expect(
         fixture.nativeElement
@@ -1618,10 +1659,16 @@ describe('FinderModalComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
+    const congrialesValue = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-sirap-congriales-paired-value',
+    ) as HTMLElement;
+    expect(congrialesValue?.textContent).toContain('17%');
+    expect(congrialesValue?.classList.contains('finder-target-level-choice-button')).toBe(true);
+    expect(congrialesValue?.classList.contains('bg-sky-600')).toBe(true);
     expect(
-      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-congriales-paired-value')
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-congriales-paired-badge')
         ?.textContent,
-    ).toContain('17%');
+    ).toContain('solutionControls.finder.sirapWorkflow.targets.paired');
     expect(component.matchResults).toHaveLength(1);
     expect(component.matchResults[0].solutionId).not.toBe('invalid-pair');
   });
