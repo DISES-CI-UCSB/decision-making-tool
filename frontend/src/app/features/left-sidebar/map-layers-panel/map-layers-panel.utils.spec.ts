@@ -187,6 +187,48 @@ describe('scenario status aliases', () => {
 
     expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, true)).toBe('reference');
     expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, false)).toBeNull();
+    expect(scenarioLayerStatus('layer-strategic-ecosystems', undefined, consideredIds, true)).toBe(
+      'reference',
+    );
+  });
+
+  it('considers the strategic ecosystem family when a SIRAP packet targets the aggregate', () => {
+    const consideredIds = buildConsideredLayerIdSet([
+      'strategic-ecosystems',
+      'dry-forest',
+      'eje-wetlands',
+    ]);
+
+    expect(scenarioLayerStatus('layer-strategic-ecosystems', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-paramos', undefined, consideredIds, true)).toBe('considered');
+    expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-bosque_seco', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-mangroves', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+  });
+
+  it('matches wetlands and dry forest through SIRAP feature aliases', () => {
+    const consideredIds = buildConsideredLayerIdSet(['humedales', 'bosque-seco']);
+
+    expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-bosque_seco', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-eco-wetlands', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-eco-dry-forest', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
   });
 
   it('returns no status for layers that cannot be considered in a scenario', () => {
@@ -237,6 +279,40 @@ describe('scenario status aliases', () => {
         false,
       ),
     ).toBeNull();
+    expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['strategic-ecosystems', 'dry-forest', 'eje-wetlands'],
+          structuredTargets: {
+            speciesRepresentation: [],
+            espRn: [],
+          },
+          isSirapPacket: true,
+        },
+        true,
+      ),
+    ).toBe('reference');
+    expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['strategic-ecosystems', 'congriales', 'savannas'],
+          structuredTargets: {
+            speciesRepresentation: [],
+            espRn: [],
+          },
+        },
+        true,
+      ),
+    ).toBe('reference');
+    expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['FEAT_TREMARCTOS_ORNATUS'],
+          isSirapPacket: true,
+        },
+        true,
+      ),
+    ).toBe('reference');
     expect(
       scenarioLayerStatus('layer-species', 'species', buildConsideredLayerIdSet(['runap']), true),
     ).toBe('reference');
