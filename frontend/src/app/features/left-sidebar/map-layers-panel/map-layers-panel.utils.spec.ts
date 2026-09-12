@@ -238,6 +238,40 @@ describe('scenario status aliases', () => {
       ),
     ).toBeNull();
     expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['strategic-ecosystems', 'dry-forest', 'eje-wetlands'],
+          structuredTargets: {
+            speciesRepresentation: [],
+            espRn: [],
+          },
+          isSirapPacket: true,
+        },
+        true,
+      ),
+    ).toBe('reference');
+    expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['strategic-ecosystems', 'congriales', 'savannas'],
+          structuredTargets: {
+            speciesRepresentation: [],
+            espRn: [],
+          },
+        },
+        true,
+      ),
+    ).toBe('reference');
+    expect(
+      individualSpeciesCollectionScenarioStatus(
+        {
+          targetFeatureIds: ['FEAT_TREMARCTOS_ORNATUS'],
+          isSirapPacket: true,
+        },
+        true,
+      ),
+    ).toBe('reference');
+    expect(
       scenarioLayerStatus('layer-species', 'species', buildConsideredLayerIdSet(['runap']), true),
     ).toBe('reference');
     expect(

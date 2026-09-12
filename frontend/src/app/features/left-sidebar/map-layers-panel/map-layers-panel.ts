@@ -833,6 +833,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         {
           targetFeatureIds: catalogSolution.finderInputs.targetFeatureIds,
           structuredTargets: catalogSolution.finderInputs.structuredTargets,
+          isSirapPacket: catalogSolution.scope === 'sirap' || catalogSolution.sirapId != null,
         },
         this.hasScenarioLayerStatus(),
       );

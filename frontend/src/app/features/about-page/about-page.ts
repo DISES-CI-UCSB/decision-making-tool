@@ -11,4 +11,5 @@ import { aboutPartnerSections } from '@core/config/partner-logos';
 })
 export class AboutPageComponent {
   protected readonly partnerSections = aboutPartnerSections;
+  protected readonly contactEmail = 'prioridades.conservacion@parquesnacionales.gov.co';
 }

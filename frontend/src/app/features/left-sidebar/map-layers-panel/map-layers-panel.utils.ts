@@ -278,6 +278,10 @@ const AGGREGATE_SCENARIO_TARGET_IDS = new Set([
   'paramos',
   'wetlands',
   'bosque_seco',
+  'dry_forest',
+  'eje_wetlands',
+  'congriales',
+  'savannas',
   'mangroves',
   'species_richness',
   'marine_ecosystems',
@@ -301,11 +305,17 @@ export interface IndividualSpeciesScenarioTargetInput {
     speciesRepresentation?: readonly { featureId: string }[];
     espRn?: readonly { featureId: string }[];
   };
+  /** SIRAP packets report species coverage post-hoc; they never target individual ranges. */
+  isSirapPacket?: boolean;
 }
 
 export function hasIndividualSpeciesScenarioTargets(
   input: IndividualSpeciesScenarioTargetInput,
 ): boolean {
+  if (input.isSirapPacket) {
+    return false;
+  }
+
   if ((input.structuredTargets?.espRn?.length ?? 0) > 0) {
     return true;
   }
@@ -318,6 +328,10 @@ export function hasIndividualSpeciesScenarioTargets(
     })
   ) {
     return true;
+  }
+
+  if (input.structuredTargets) {
+    return false;
   }
 
   return input.targetFeatureIds.some((rawId) => {
