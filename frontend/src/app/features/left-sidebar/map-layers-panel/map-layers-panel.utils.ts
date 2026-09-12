@@ -246,6 +246,21 @@ export function buildConsideredLayerIdSet(ids: (string | null | undefined)[]): S
   return new Set(ids.flatMap((id) => normalizeLayerIdAliases(id)));
 }
 
+export function isSirapCatalogPacket(solution: {
+  scope?: string | null;
+  sirapId?: string | null;
+}): boolean {
+  return solution.scope === 'sirap' || solution.sirapId != null;
+}
+
+/** SIRAP packets always lock RUNAP in; their catalog include lists are empty. */
+export function implicitConsideredIncludeIds(solution: {
+  scope?: string | null;
+  sirapId?: string | null;
+}): string[] {
+  return isSirapCatalogPacket(solution) ? ['runap'] : [];
+}
+
 const SCENARIO_CONSIDERABLE_LAYER_IDS = buildConsideredLayerIdSet([
   'ecosistemas',
   'layer-ecosistemas',
