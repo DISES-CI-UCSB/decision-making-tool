@@ -38,7 +38,7 @@ describe('HeaderComponent auth state', () => {
 
     TestBed.inject(TranslateService).setTranslation('en', {
       header: {
-        appTitle: 'Eco Plan Tool',
+        appTitle: 'Prioritizing Nature',
         logout: 'Logout',
         loginRegister: 'Login / Register',
         pendingAccess: 'Signed in · Access pending',
@@ -66,16 +66,14 @@ describe('HeaderComponent auth state', () => {
     expect(header.querySelector('#dev-tools-toggle-btn')).toBeNull();
   });
 
-  it('shows the app logo with translated alt text instead of a visible title', () => {
+  it('shows the translated app title as a home link', () => {
     const fixture = TestBed.createComponent(HeaderComponent);
     fixture.detectChanges();
 
-    const logo = fixture.nativeElement.querySelector(
-      '#foundation-header-app-logo',
-    ) as HTMLImageElement;
-    expect(logo).not.toBeNull();
-    expect(logo.getAttribute('src')).toBe('/images/institutions/ecoplan.png');
-    expect(logo.getAttribute('alt')).toBe('Eco Plan Tool');
+    const title = fixture.nativeElement.querySelector('#foundation-header-app-title');
+    expect(title).not.toBeNull();
+    expect(title?.textContent?.trim()).toBe('Prioritizing Nature');
+    expect(fixture.nativeElement.querySelector('#foundation-header-app-logo')).toBeNull();
     expect(fixture.nativeElement.querySelector('#foundation-header-home-link')).not.toBeNull();
   });
 

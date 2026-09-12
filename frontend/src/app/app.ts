@@ -59,6 +59,8 @@ export class App implements OnInit {
     const runtimePort = window.location.port || '(default)';
     console.info(`[App][${this.debugMarker}] ngOnInit on port ${runtimePort}`);
     (window as Window & { __ecoPlanDebugMarker?: string }).__ecoPlanDebugMarker = this.debugMarker;
+    this.syncDocumentTitle();
+    this.translate.onLangChange.subscribe(() => this.syncDocumentTitle());
   }
 
   protected get activeLanguage(): string {
@@ -85,6 +87,12 @@ export class App implements OnInit {
   protected setLanguage(language: LayerLocale): void {
     this.translate.use(language).subscribe(() => {
       this.appLocaleService.setLocale(language);
+    });
+  }
+
+  private syncDocumentTitle(): void {
+    this.translate.get('header.appTitle').subscribe((title) => {
+      document.title = title;
     });
   }
 
