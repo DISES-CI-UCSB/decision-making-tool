@@ -17,23 +17,25 @@ const logoPath = '/images/partners/';
 const headerLogoPath = `${logoPath}header/`;
 const institutionLogoPath = '/images/institutions/';
 
+/** National institutions — NM 9/11 order from `1_instituciones_nacionales`. */
 export const nationalInstitutionLogos: readonly PartnerLogo[] = [
   {
-    id: 'minambiente-temporal',
+    id: 'minambiente',
     name: 'Ministerio de Ambiente y Desarrollo Sostenible',
-    src: `${logoPath}46-minambiente-temporal.webp`,
+    src: `${logoPath}46-minambiente.png`,
+    headerSrc: `${headerLogoPath}46-minambiente.png`,
   },
   {
     id: 'pnnc',
     name: 'Parques Nacionales Naturales de Colombia',
     src: `${logoPath}07-pnnc.jpeg`,
-    headerSrc: `${headerLogoPath}07-pnnc.png`,
+    headerSrc: `${headerLogoPath}07-pnnc.jpeg`,
   },
   {
     id: 'iavh',
     name: 'Instituto de Investigación de Recursos Biológicos Alexander von Humboldt',
     src: `${logoPath}09-iavh.jpg`,
-    headerSrc: `${headerLogoPath}09-iavh.png`,
+    headerSrc: `${headerLogoPath}09-iavh.jpg`,
   },
   {
     id: 'invemar',
@@ -42,39 +44,37 @@ export const nationalInstitutionLogos: readonly PartnerLogo[] = [
     headerSrc: `${headerLogoPath}08-invemar.png`,
   },
   {
-    id: 'ideam',
-    name: 'IDEAM',
-    src: `${logoPath}01-ideam.png`,
-    headerSrc: `${headerLogoPath}01-ideam.png`,
-  },
-  {
     id: 'sinchi',
     name: 'Instituto Amazónico de Investigaciones Científicas SINCHI',
     src: `${logoPath}06-sinchi.png`,
     headerSrc: `${headerLogoPath}06-sinchi.png`,
   },
   {
+    id: 'ideam',
+    name: 'IDEAM',
+    src: `${logoPath}01-ideam.png`,
+    headerSrc: `${headerLogoPath}01-ideam.png`,
+  },
+  {
     id: 'iiap',
     name: 'Instituto de Investigaciones Ambientales del Pacífico',
     src: `${logoPath}47-iiap.png`,
+    headerSrc: `${headerLogoPath}47-iiap.png`,
   },
 ];
 
+/** Funders — NM 9/11 order from `2_financiadores`. */
 export const funderLogos: readonly PartnerLogo[] = [
   {
-    id: 'rdm',
-    name: 'Rapid Deployment Mechanism (RDM) Awardee 2025',
-    src: `${logoPath}49-rdm-awardee-2025.jpeg`,
+    id: 'hac',
+    name: 'HAC',
+    src: `${logoPath}49-hac.jpeg`,
+    headerSrc: `${headerLogoPath}49-hac.jpeg`,
   },
   {
     id: 'pnud',
     name: 'Programa de las Naciones Unidas para el Desarrollo',
-    src: `${logoPath}48-pnud.svg`,
-  },
-  {
-    id: 'ecoplan',
-    name: 'ECO-PLAN',
-    src: `${institutionLogoPath}ecoplan.png`,
+    src: `${logoPath}48-pnud.webp`,
   },
   {
     id: 'nsf',
@@ -82,18 +82,19 @@ export const funderLogos: readonly PartnerLogo[] = [
     src: `${institutionLogoPath}nsf.svg`,
   },
   {
-    id: 'ucsb',
-    name: 'University of California, Santa Barbara',
-    src: `${institutionLogoPath}ucsb.jpg`,
+    id: 'ecoplan',
+    name: 'ECO-PLAN',
+    src: `${institutionLogoPath}ecoplan.png`,
   },
 ];
 
+/** Allies — NM 9/11 order from `3_aliados`. */
 export const allyLogos: readonly PartnerLogo[] = [
   {
     id: 'wwf',
     name: 'World Wildlife Fund',
-    src: `${logoPath}03-wwf.webp`,
-    headerSrc: `${headerLogoPath}03-wwf.png`,
+    src: `${logoPath}03-wwf.jpg`,
+    headerSrc: `${headerLogoPath}03-wwf.jpg`,
   },
   {
     id: 'procat',
@@ -117,27 +118,35 @@ export const allyLogos: readonly PartnerLogo[] = [
     id: 'tropembos',
     name: 'Tropenbos Colombia',
     src: `${logoPath}10-tropembos.png`,
-    headerSrc: `${headerLogoPath}10-tropembos.png`,
   },
   {
     id: 'fundacion-malpelo',
     name: 'Fundación Malpelo',
     src: `${logoPath}11-fundacion-malpelo.jpg`,
-    headerSrc: `${headerLogoPath}11-fundacion-malpelo.png`,
   },
   {
     id: 'fundacion-natura',
     name: 'Fundación Natura Colombia',
     src: `${logoPath}05-fundacion-natura.png`,
-    headerSrc: `${headerLogoPath}05-fundacion-natura.png`,
   },
   {
     id: 'sib-colombia',
     name: 'SiB Colombia',
     src: `${logoPath}28-sib-colombia.png`,
   },
+  {
+    id: 'ucsb',
+    name: 'University of California, Santa Barbara',
+    src: `${logoPath}50-ucsb.jpg`,
+  },
+  {
+    id: 'conservation-international',
+    name: 'Conservation International',
+    src: `${logoPath}51-conservation-international.png`,
+  },
 ];
 
+/** Regional protected area systems — assets pending in `4_SIRAPs`. */
 export const sirapLogos: readonly PartnerLogo[] = [];
 
 export const regionalCorporationLogos: readonly PartnerLogo[] = [
@@ -158,7 +167,7 @@ export const regionalCorporationLogos: readonly PartnerLogo[] = [
   { id: 'crq', name: 'CRQ', src: `${logoPath}27-crq.png` },
   { id: 'corpoguajira', name: 'Corpoguajira', src: `${logoPath}29-corpoguajira.jpg` },
   { id: 'cra', name: 'CRA', src: `${logoPath}30-cra.jpeg` },
-  { id: 'codechoco', name: 'Codechocó', src: `${logoPath}31-codechoco.png` },
+  { id: 'codechoco', name: 'Codechocó', src: `${logoPath}31-codechoco.jpg` },
   { id: 'cornare', name: 'Cornare', src: `${logoPath}32-cornare.png` },
   { id: 'cvs', name: 'CVS', src: `${logoPath}33-cvs.png` },
   { id: 'corpouraba', name: 'Corpourabá', src: `${logoPath}34-corpouraba.webp` },
@@ -209,19 +218,13 @@ export const aboutPartnerSections: readonly AboutPartnerSection[] = [
   },
 ];
 
-const hacHeaderLogo: PartnerLogo = {
-  id: 'hac',
-  name: 'HAC',
-  src: `${logoPath}49-rdm-awardee-2025.jpeg`,
-};
-
 const partnerLogoCatalog = new Map<string, PartnerLogo>(
-  [...nationalInstitutionLogos, ...allyLogos, hacHeaderLogo].map((logo) => [logo.id, logo]),
+  [...nationalInstitutionLogos, ...allyLogos, ...funderLogos].map((logo) => [logo.id, logo]),
 );
 
-/** Header carousel logos — NM 9/4 order. */
+/** Header carousel logos — NM 9/11 order from `0_Tool_header`. */
 const primaryPartnerLogoIds = [
-  'minambiente-temporal',
+  'minambiente',
   'pnnc',
   'iavh',
   'invemar',
