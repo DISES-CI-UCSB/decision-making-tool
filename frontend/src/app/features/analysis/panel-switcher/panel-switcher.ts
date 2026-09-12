@@ -3586,28 +3586,6 @@ export class PanelSwitcherComponent {
     return this.isCustomAoiSelected() ? null : this.getAoiMetricFullValue(metricId);
   }
 
-  protected getMarineCoveragePercentLabel(metricId: string, dummyPercent: number): string {
-    const percent = this.getMarineCoveragePercent(metricId);
-    if (percent !== null) {
-      return this.appendUnit(this.formatNumber(percent, this.metricNumberFormatMode(), 0, 1), '%');
-    }
-    if (!this.isCustomAoiSelected() && this.fillDummyAoiMetrics()) {
-      return `${dummyPercent}%`;
-    }
-    return '--';
-  }
-
-  protected getMarineCoveragePercentFullValue(metricId: string): string | null {
-    const percent = this.getMarineCoveragePercent(metricId);
-    if (percent === null) {
-      return null;
-    }
-
-    const compactValue = this.appendUnit(this.formatNumber(percent, 'compact', 0, 1), '%');
-    const fullValue = this.appendUnit(this.formatNumber(percent, 'full', 0, 2), '%');
-    return compactValue === fullValue ? null : fullValue;
-  }
-
   protected getMecAoiAreaValue(): string {
     const scopeAreaKm2 = this.mecScopeSummary()?.scopeAreaKm2;
     if (scopeAreaKm2 !== undefined) {
@@ -3856,10 +3834,6 @@ export class PanelSwitcherComponent {
         color: bar.color,
       };
     });
-  }
-
-  private getMarineCoveragePercent(metricId: string): number | null {
-    return this.isCustomAoiSelected() ? null : this.getAoiOverlapPercent(metricId);
   }
 
   private getAoiOverlapPercent(metricId: string): number | null {

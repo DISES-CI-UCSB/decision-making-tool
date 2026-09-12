@@ -1001,12 +1001,17 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('30%');
   });
 
-  it('renders fixed-AOI marine coverage from compact metrics and prioritized area', async () => {
+  it.each([
+    { label: 'national marine', catalog: { domain: 'marine' } },
+    { label: 'SIRAP marine', catalog: { domain: 'marine', scope: 'sirap', sirapId: 'eje-cafetero' } },
+  ])(
+    'keeps $label AOI to candidate area and mangroves',
+    async ({ catalog }) => {
     const solution = buildTestSolution();
     const solutionCatalog = TestBed.inject(SolutionCatalogService);
     vi.spyOn(solutionCatalog, 'getById').mockReturnValue({
       id: solution.id,
-      domain: 'marine',
+      ...catalog,
     } as CatalogSolution);
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
       of(
@@ -1041,24 +1046,21 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-section-carbon')).toBeNull();
     expect(compiled.querySelector('#aoi-section-cultural')).toBeNull();
     expect(compiled.querySelector('#aoi-protect-stats')).toBeNull();
+    expect(compiled.querySelector('#aoi-section-land')).toBeNull();
+    expect(compiled.querySelector('#aoi-row-coral')).toBeNull();
+    expect(compiled.querySelector('#aoi-row-seagrass')).toBeNull();
+    expect(compiled.querySelector('#aoi-row-mpa')).toBeNull();
+    expect(compiled.querySelector('#aoi-row-eez')).toBeNull();
+    expect(compiled.querySelector('#aoi-marine-narrative')).toBeNull();
     expect(compiled.querySelector('#aoi-section-general')).not.toBeNull();
-    expect(compiled.querySelector('#aoi-section-land')).not.toBeNull();
     const marineSection = compiled.querySelector('#aoi-section-marine');
     const generalSection = compiled.querySelector('#aoi-section-general');
-    const landSection = compiled.querySelector('#aoi-section-land');
     expect(marineSection).not.toBeNull();
     expect(
       generalSection &&
         marineSection &&
         Boolean(
           generalSection.compareDocumentPosition(marineSection) & Node.DOCUMENT_POSITION_FOLLOWING,
-        ),
-    ).toBe(true);
-    expect(
-      marineSection &&
-        landSection &&
-        Boolean(
-          marineSection.compareDocumentPosition(landSection) & Node.DOCUMENT_POSITION_FOLLOWING,
         ),
     ).toBe(true);
     expect(compiled.querySelector('#aoi-head-marine')?.getAttribute('aria-expanded')).toBe('true');
@@ -1068,31 +1070,14 @@ describe('PanelSwitcherComponent', () => {
     const marineRowIds = [...compiled.querySelectorAll('#aoi-marine-metrics .aoi-metric-row')].map(
       (row) => row.id,
     );
-    expect(marineRowIds).toEqual([
-      'aoi-row-coral',
-      'aoi-row-mangrove',
-      'aoi-row-seagrass',
-      'aoi-row-mpa',
-      'aoi-row-eez',
-    ]);
-    expect(compiled.querySelector('#aoi-row-coral-value')?.textContent).toContain('5 km²');
-    expect(compiled.querySelector('#aoi-row-coral-unit')?.textContent).toContain('25%');
+    expect(marineRowIds).toEqual(['aoi-row-mangrove']);
+    expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('20 km²');
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).toContain('0 km²');
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('9 km²');
-    expect(compiled.querySelector('#aoi-row-mangrove-unit')?.textContent).toContain('0%');
-    expect(compiled.querySelector('#aoi-row-seagrass-value')?.textContent).toContain('2,5 km²');
-    expect(compiled.querySelector('#aoi-row-seagrass-unit')?.textContent).toContain('12,5%');
-    expect(compiled.querySelector('#aoi-row-mpa-value')?.textContent).toContain('--');
-    expect(compiled.querySelector('#aoi-row-eez-value')?.textContent).toContain('--');
-    expect(compiled.querySelector('#aoi-row-mpa-conditional')).not.toBeNull();
-    expect(compiled.querySelector('#aoi-row-eez-conditional')).not.toBeNull();
-    expect(
-      compiled.querySelector('#aoi-row-mpa-unavailable-trigger')?.getAttribute('aria-describedby'),
-    ).toBe('aoi-row-mpa-unavailable-tooltip');
-    expect(
-      compiled.querySelector('#aoi-row-eez-unavailable-trigger')?.getAttribute('aria-describedby'),
-    ).toBe('aoi-row-eez-unavailable-tooltip');
-  });
+    expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('%');
+    expect(compiled.querySelector('#aoi-row-mangrove-unit')).toBeNull();
+    },
+  );
 
   it('omits marine Section F for land solutions', async () => {
     const solution = buildTestSolution();
@@ -1130,6 +1115,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-section-strategic')).not.toBeNull();
     expect(compiled.querySelector('#aoi-section-carbon')).not.toBeNull();
     expect(compiled.querySelector('#aoi-section-cultural')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-section-land')).not.toBeNull();
     expect(compiled.querySelector('#aoi-protect-stats')).not.toBeNull();
     expect(compiled.querySelector('#aoi-head-bio')?.getAttribute('aria-expanded')).toBe('true');
   });
@@ -1156,15 +1142,12 @@ describe('PanelSwitcherComponent', () => {
 
     expect(compiled.querySelector('#aoi-section-marine')).not.toBeNull();
     expect(compiled.querySelector('#aoi-section-bio')).toBeNull();
-    expect(compiled.querySelector('#aoi-row-coral-value')?.textContent.trim()).toBe('--');
-    expect(compiled.querySelector('#aoi-row-coral-unit')?.textContent.trim()).toBe('--');
+    expect(compiled.querySelector('#aoi-section-land')).toBeNull();
+    expect(compiled.querySelector('#aoi-row-coral')).toBeNull();
+    expect(compiled.querySelector('#aoi-row-seagrass')).toBeNull();
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent.trim()).toBe('--');
-    expect(compiled.querySelector('#aoi-row-mangrove-unit')?.textContent.trim()).toBe('--');
-    expect(compiled.querySelector('#aoi-row-seagrass-value')?.textContent.trim()).toBe('--');
-    expect(compiled.querySelector('#aoi-row-seagrass-unit')?.textContent.trim()).toBe('--');
-    expect(compiled.querySelector('#aoi-row-coral-value')?.textContent).not.toContain('18');
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('12');
-    expect(compiled.querySelector('#aoi-row-seagrass-value')?.textContent).not.toContain('9');
+    expect(compiled.querySelector('#aoi-row-mangrove-unit')).toBeNull();
   });
 
   it('renders separate ecosystems, strategic ecosystems, and ecosystem services sections', async () => {
