@@ -25,10 +25,26 @@
       </a>
     </div>
 
-    @for (section of partnerSections; track section.id; let first = $first) {
+    <section id="about-page-contact" class="mt-12 max-w-3xl">
+      <h2 id="about-page-contact-title" class="text-xl font-semibold text-slate-950">
+        {{ 'about.contactTitle' | translate }}
+      </h2>
+      <p id="about-page-contact-description" class="mt-2 text-sm leading-6 text-slate-600">
+        {{ 'about.contactDescription' | translate }}
+      </p>
+      <a
+        id="about-page-contact-email-link"
+        [href]="'mailto:' + contactEmail"
+        class="mt-3 inline-flex min-h-10 items-center break-all text-sm font-semibold text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 sm:break-normal"
+      >
+        {{ contactEmail }}
+      </a>
+    </section>
+
+    @for (section of partnerSections; track section.id) {
       <section
         id="about-page-{{ section.id }}-section"
-        [class]="first ? 'mt-12' : 'mt-14 border-t border-slate-200 pt-10'"
+        class="mt-14 border-t border-slate-200 pt-10"
       >
         <div id="about-page-{{ section.id }}-heading" class="max-w-3xl">
           <h2 id="about-page-{{ section.id }}-title" class="text-xl font-semibold text-slate-950">

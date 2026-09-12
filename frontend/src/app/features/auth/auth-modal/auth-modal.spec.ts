@@ -24,9 +24,9 @@ describe('AuthModalComponent launch authentication', () => {
   const enrollment = {
     qrCodeDataUrl: 'data:image/png;base64,qr',
     secretKey: 'MFASECRETKEY',
-    qrCodeUrl: 'otpauth://totp/Decision%20Making%20Tool',
+    qrCodeUrl: 'otpauth://totp/Eco%20Plan%20Tool',
     accountName: 'google@example.com',
-    issuer: 'Decision Making Tool',
+    issuer: 'Eco Plan Tool',
     enrollmentCompletionDeadline: '',
     codeLength: 6,
     codeIntervalSeconds: 30,
@@ -225,7 +225,13 @@ describe('AuthModalComponent launch authentication', () => {
       'MFASECRETKEY',
     );
     expect(element().querySelector('#auth-modal-mfa-enroll-apps')?.textContent).toContain(
-      'Google Authenticator',
+      'Duo Mobile',
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-duo-hint')?.textContent).toContain(
+      'Third Party',
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-issuer')?.textContent).toContain(
+      'Eco Plan Tool',
     );
     expect(totpMfa.beginEnrollment).toHaveBeenCalledWith(firebaseUser, 'google@example.com');
     expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
@@ -333,8 +339,16 @@ describe('AuthModalComponent launch authentication', () => {
 
     expect(element().querySelector('#auth-modal-mfa-challenge')).not.toBeNull();
     expect(element().querySelector('#auth-modal-mfa-challenge-apps')?.textContent).toContain(
-      'not a text message',
+      'Third Party',
     );
+    expect(element().querySelector('#auth-modal-mfa-challenge-issuer')?.textContent).toContain(
+      'Eco Plan Tool',
+    );
+    expect(element().querySelector('#auth-modal-mfa-challenge-lost')?.textContent).toContain(
+      'Contact your administrator',
+    );
+    expect(element().querySelector('#auth-modal-mfa-challenge-it-email')).toBeNull();
+    expect(element().querySelector('#auth-modal-mfa-challenge-replace-btn')).toBeNull();
     expect(element().querySelector('#auth-modal-mfa-enroll')).toBeNull();
     expect(
       element().querySelector<HTMLButtonElement>('#auth-modal-mfa-challenge-submit-btn')?.disabled,

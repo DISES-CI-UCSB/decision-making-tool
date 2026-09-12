@@ -9,11 +9,13 @@ import {
   TOTP_ENROLLMENT_EXPIRED_CODE,
   TOTP_FORMAT_MESSAGE,
   TOTP_INVALID_FORMAT_CODE,
+  TOTP_ISSUER,
   TOTP_NO_HINT_MESSAGE,
   TOTP_RESTART_MESSAGE,
   TOTP_RETRY_MESSAGE,
   TotpMfaError,
   TotpMfaService,
+  totpAccountLabel,
   classifyTotpErrorCode,
   createTotpChallengeSession,
   hasEnrolledTotpAfterReload,
@@ -170,6 +172,16 @@ describe('TOTP MFA guards', () => {
 });
 
 describe('TotpMfaService', () => {
+  it('labels authenticator entries as Eco Plan Tool', () => {
+    expect(TOTP_ISSUER).toBe('Eco Plan Tool');
+    expect(totpAccountLabel('google@example.com')).toBe('Eco Plan Tool (google@example.com)');
+    expect(totpAccountLabel('  Eco Plan Tool  ')).toBe('Eco Plan Tool');
+    expect(totpAccountLabel('Eco Plan Tool (google@example.com)')).toBe(
+      'Eco Plan Tool (google@example.com)',
+    );
+    expect(totpAccountLabel('')).toBe('Eco Plan Tool');
+  });
+
   it('is provided and uses QrCodeService when constructed', () => {
     TestBed.configureTestingModule({
       providers: [{ provide: QrCodeService, useValue: { toDataUrl: vi.fn() } }],
