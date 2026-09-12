@@ -298,6 +298,11 @@ export class FinderModalComponent implements OnDestroy, OnInit {
     return this.sirapTargetTuples().some((tuple) => tuple.strategic === target);
   }
 
+  protected sirapStrategicTargetOptions(): SirapStrategicTarget[] {
+    const available = new Set(this.sirapTargetTuples().map((tuple) => tuple.strategic));
+    return ([17, 30, 50, 100] as const).filter((target) => available.has(target));
+  }
+
   protected selectSirapDryForestMode(mode: SirapDryForestMode): void {
     if (
       this.selectedSirapRegion !== 'eje-cafetero' ||

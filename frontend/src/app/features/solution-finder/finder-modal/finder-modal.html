@@ -1559,7 +1559,7 @@
                           | translate
                       "
                     >
-                      @for (target of [17, 30, 50, 100]; track target) {
+                      @for (target of sirapStrategicTargetOptions(); track target) {
                         <button
                           [id]="'solution-finder-modal-sirap-strategic-' + target"
                           type="button"

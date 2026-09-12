@@ -1626,19 +1626,18 @@ describe('FinderModalComponent', () => {
       ).toBe(true);
     }
     expect(
-      (
-        fixture.nativeElement.querySelector(
-          '#solution-finder-modal-sirap-strategic-50',
-        ) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-strategic-50'),
+    ).toBeNull();
     expect(
-      (
-        fixture.nativeElement.querySelector(
-          '#solution-finder-modal-sirap-strategic-100',
-        ) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-strategic-100'),
+    ).toBeNull();
+    for (const target of [17, 30]) {
+      const button = fixture.nativeElement.querySelector(
+        `#solution-finder-modal-sirap-strategic-${target}`,
+      ) as HTMLButtonElement;
+      expect(button).not.toBeNull();
+      expect(button.disabled).toBe(false);
+    }
 
     (
       fixture.nativeElement.querySelector(
