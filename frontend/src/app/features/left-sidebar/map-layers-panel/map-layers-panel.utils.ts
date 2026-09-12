@@ -208,6 +208,19 @@ export function taxonMatchesSearch(taxon: SearchableTaxonDto, normalizedQuery: s
   );
 }
 
+const LAYER_ID_SYNONYM_GROUPS = [
+  ['wetlands', 'humedales', 'eco_wetlands'],
+  ['bosque_seco', 'dry_forest', 'eco_dry_forest'],
+  ['paramos', 'eco_paramos'],
+  ['mangroves', 'eco_mangroves'],
+] as const;
+
+const LAYER_ID_SYNONYMS: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
+  LAYER_ID_SYNONYM_GROUPS.flatMap((group) =>
+    group.map((id) => [id, group.filter((alias) => alias !== id)]),
+  ),
+);
+
 export function normalizeLayerIdAliases(id: string | null | undefined): string[] {
   if (!id) {
     return [];
@@ -224,9 +237,9 @@ export function normalizeLayerIdAliases(id: string | null | undefined): string[]
   const singular = normalized === 'omecs' ? 'omec' : normalized;
   const plural = normalized === 'omec' ? 'omecs' : normalized;
   const costAliases = normalized === 'hf_2030' ? ['human_footprint_2030'] : [];
-  return Array.from(
-    new Set([normalized, singular, plural, trimmed, ...costAliases].filter(Boolean)),
-  );
+  const aliases = [normalized, singular, plural, trimmed, ...costAliases].filter(Boolean);
+  const synonyms = aliases.flatMap((alias) => LAYER_ID_SYNONYMS[alias] ?? []);
+  return Array.from(new Set([...aliases, ...synonyms]));
 }
 
 export function buildConsideredLayerIdSet(ids: (string | null | undefined)[]): Set<string> {
@@ -236,9 +249,13 @@ export function buildConsideredLayerIdSet(ids: (string | null | undefined)[]): S
 const SCENARIO_CONSIDERABLE_LAYER_IDS = buildConsideredLayerIdSet([
   'ecosistemas',
   'layer-ecosistemas',
+  'layer-strategic-ecosystems',
+  'strategic_ecosystems',
   'paramos',
   'wetlands',
+  'humedales',
   'bosque_seco',
+  'dry_forest',
   'mangroves',
   'layer-paramos',
   'layer-wetlands',
@@ -269,6 +286,25 @@ const SCENARIO_CONSIDERABLE_LAYER_IDS = buildConsideredLayerIdSet([
   'soc-human-footprint',
   'layer-species',
   'species',
+]);
+
+const STRATEGIC_ECOSYSTEM_FAMILY_IDS = buildConsideredLayerIdSet([
+  'layer-strategic-ecosystems',
+  'strategic_ecosystems',
+  'paramos',
+  'wetlands',
+  'humedales',
+  'bosque_seco',
+  'dry_forest',
+  'mangroves',
+  'layer-paramos',
+  'layer-wetlands',
+  'layer-bosque_seco',
+  'layer-mangroves',
+  'layer-eco-paramos',
+  'layer-eco-wetlands',
+  'layer-eco-dry-forest',
+  'layer-eco-mangroves',
 ]);
 
 const AGGREGATE_SCENARIO_TARGET_IDS = new Set([
@@ -378,6 +414,11 @@ export function scenarioLayerStatus(
   ];
   const isNationalNaturalParksRow = aliases.includes('runap_national_parks');
   if (isNationalNaturalParksRow && consideredIds.has('runap')) {
+    return 'considered';
+  }
+
+  const isStrategicEcosystemRow = aliases.some((id) => STRATEGIC_ECOSYSTEM_FAMILY_IDS.has(id));
+  if (isStrategicEcosystemRow && consideredIds.has('strategic_ecosystems')) {
     return 'considered';
   }
 
