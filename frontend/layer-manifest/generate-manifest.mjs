@@ -226,6 +226,17 @@ const englishLabelOverrideByLayerId = {
   marine_ecosystems: 'Marine Ecosystems',
   admin_departments: 'Departments',
   admin_municipalities: 'Municipalities',
+  orinoquia_savannas: 'Orinoquía Savannas',
+  orinoquia_congriales: 'Congriales',
+  eje_cafetero_wetlands: 'Eje Cafetero Wetlands',
+  eje_cafetero_ecc: 'Complementary Conservation Strategies (ECC)',
+};
+
+const sirapIdByLayerId = {
+  orinoquia_savannas: 'orinoquia',
+  orinoquia_congriales: 'orinoquia',
+  eje_cafetero_wetlands: 'eje-cafetero',
+  eje_cafetero_ecc: 'eje-cafetero',
 };
 
 /**
@@ -457,6 +468,10 @@ const proposedLayerCategoryOverrides = {
   human_footprint_2030: 'socioeconomic',
   net_benefit: 'socioeconomic',
   coberturas: 'socioeconomic',
+  orinoquia_savannas: 'ecosystems',
+  orinoquia_congriales: 'ecosystems',
+  eje_cafetero_wetlands: 'ecosystems',
+  eje_cafetero_ecc: 'ecosystems',
   conflict: 'conflict_and_security',
   climate_refugia: 'prospective_models',
 };
@@ -1297,6 +1312,7 @@ export async function createLayerEntry(row, blobByPath, existingManifestIndex) {
     precomputedMetricUrls: {},
     rendering,
     ...(styleOverride !== null ? { styleOverride } : {}),
+    ...(sirapIdByLayerId[id] ? { sirapId: sirapIdByLayerId[id] } : {}),
   });
 
   return {

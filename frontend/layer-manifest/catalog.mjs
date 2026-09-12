@@ -50,6 +50,8 @@ export function parseCatalogArgs(rawArgs) {
     sourceOrg: null,
     sourceUrl: null,
     assetVersion: 'v0.1.0',
+    sirapId: null,
+    selectedColor: null,
   };
   for (let index = 0; index < values.length; index += 1) {
     const value = values[index];
@@ -79,6 +81,10 @@ export function parseCatalogArgs(rawArgs) {
       args.sourceUrl = requiredValue(values, ++index, '--source-url');
     } else if (value === '--asset-version') {
       args.assetVersion = requiredValue(values, ++index, '--asset-version');
+    } else if (value === '--sirap-id') {
+      args.sirapId = requiredValue(values, ++index, '--sirap-id');
+    } else if (value === '--selected-color') {
+      args.selectedColor = requiredValue(values, ++index, '--selected-color');
     } else {
       throw new Error(`unknown option "${value}"`);
     }
@@ -256,6 +262,8 @@ async function prepareRegistration(args) {
     sourceUrl: values.sourceUrl,
     assetVersion: values.assetVersion,
     publicBlobHost: PUBLIC_BLOB_HOST,
+    sirapId: values.sirapId,
+    ...(values.selectedColor ? { selectedColor: values.selectedColor } : {}),
   });
 }
 
@@ -406,7 +414,7 @@ function printUsage() {
   );
   console.log('yarn catalog publish-patch --remove-layer-id <id> [--dry-run|--yes] [--json]');
   console.log(
-    'yarn catalog add-view-layer --file <layer.geojson> [--layer-id <id>] --name-es <name> --name-en <name> --description <text> --category <id> --source-org <org> --source-url <url> [--dry-run|--yes]',
+    'yarn catalog add-view-layer --file <layer.geojson> [--layer-id <id>] --name-es <name> --name-en <name> --description <text> --category <id> --source-org <org> --source-url <url> [--sirap-id <id>] [--selected-color <#hex>] [--dry-run|--yes]',
   );
   console.log('yarn catalog normalize-version [--dry-run|--yes]');
 }

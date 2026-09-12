@@ -219,6 +219,7 @@ const MEC_GEOGRAPHY_LEVELS = [
   'omecs',
 ];
 const SIRAP_SPECIES_GEOGRAPHY_LEVELS = ['siraps', 'departments', 'municipalities'];
+const SIRAP_ACCESS_REGION_IDS = ['orinoquia', 'eje-cafetero'];
 const CATEGORY_ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 const CATEGORY_PATH_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)?$/;
 const COLOR_DEFAULT_FIELDS = ['selectedColor', 'startColor', 'endColor'];
@@ -425,6 +426,15 @@ export async function validateManifest(manifest, manifestPath, options = {}) {
     }
     if ('speciesManifestUrl' in layer) {
       assertUrlOrNull(layer.speciesManifestUrl, `layers[${index}].speciesManifestUrl`);
+    }
+    if ('sirapId' in layer) {
+      assertNullableString(layer.sirapId, `layers[${index}].sirapId`);
+      if (layer.sirapId !== null) {
+        assert(
+          SIRAP_ACCESS_REGION_IDS.includes(layer.sirapId),
+          `layers[${index}].sirapId must be a published SIRAP access region`,
+        );
+      }
     }
     assertUrlOrNull(layer.metadataUrl, `layers[${index}].metadataUrl`);
     assertUrlOrNull(

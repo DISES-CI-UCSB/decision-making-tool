@@ -83,6 +83,8 @@ describe('catalog-only patch tooling', () => {
         sourceOrg: null,
         sourceUrl: null,
         assetVersion: 'v0.1.0',
+        sirapId: null,
+        selectedColor: null,
       },
     );
   });

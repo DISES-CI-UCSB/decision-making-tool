@@ -24,6 +24,8 @@ import { ColorPickerComponent, ColorPickerDirective } from 'ngx-color-picker';
 import {
   buildSolutionIdentitySummary,
   buildManifestSidebarLayerGroups,
+  readActiveSirapIdFromSolutionMetadata,
+  resolveSolutionDisplayLabel,
   type AoiType,
   type ManifestSidebarLayerGroup,
   type ManifestSidebarLayerRow,
@@ -33,7 +35,6 @@ import {
   type RuntimeSpeciesManifestLayer,
   type Solution,
   type SolutionIdentitySummary,
-  resolveSolutionDisplayLabel,
 } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
@@ -63,6 +64,7 @@ import {
   buildLegendLayerEntry,
   shouldIncludeInMasterLegend,
   computeSelectedLayerOrder,
+  filterManifestSidebarGroupsForSirapAccess,
   isLayerAvailableForScope,
   nameMatchesSearch,
   normalizeSelectedLayerOrder,
@@ -661,10 +663,19 @@ export class MapLayersPanelComponent implements OnDestroy {
       const rawManifest = this.rawManifest();
       const previewManifest = this.layerManifestService.stylePreviewManifest$();
       const locale = this.appLocaleService.locale();
+      const accessibleSirapIds = this.appState.accessibleSirapIds();
+      const activeSirapId = readActiveSirapIdFromSolutionMetadata(
+        this.appState.activeSolution$()?.metadata,
+      );
       const sourceGroups = rawManifest ? buildManifestSidebarLayerGroups(rawManifest, locale) : [];
-      const manifestGroups = previewManifest
+      const previewGroups = previewManifest
         ? buildManifestSidebarLayerGroups(previewManifest, locale)
         : sourceGroups;
+      const manifestGroups = filterManifestSidebarGroupsForSirapAccess(
+        previewGroups,
+        accessibleSirapIds,
+        activeSirapId,
+      );
       untracked(() => {
         this.syncLocaleSensitiveSidebarLabels();
         this.applyManifestSidebarGroups(manifestGroups);
@@ -983,6 +994,7 @@ export class MapLayersPanelComponent implements OnDestroy {
       return;
     }
 
+    this.unsyncRemovedManifestRows(groups);
     this.manifestSidebarLayerGroups.set(groups);
     this.syncSpeciesManifestPrefetch(groups);
     const speciesManifestUrl = this.speciesCollectionManifestUrl();
@@ -4435,10 +4447,45 @@ export class MapLayersPanelComponent implements OnDestroy {
     };
   }
 
+  private unsyncRemovedManifestRows(nextGroups: ManifestSidebarLayerGroup[]): void {
+    const previousManifestIds = new Set(
+      this.manifestSidebarLayerGroups().flatMap((group) =>
+        group.rows.map((row) => `layer-${row.id}`),
+      ),
+    );
+    const nextManifestIds = new Set(
+      nextGroups.flatMap((group) => group.rows.map((row) => `layer-${row.id}`)),
+    );
+    const outgoingSelectedRows = this.groups()
+      .flatMap((group) => group.rows)
+      .filter(
+        (row) =>
+          row.selected &&
+          row.mapSync &&
+          previousManifestIds.has(row.id) &&
+          !nextManifestIds.has(row.id),
+      );
+    if (outgoingSelectedRows.length === 0) {
+      return;
+    }
+    const outgoingIds = new Set(outgoingSelectedRows.map((row) => row.id));
+    this.mapSync.syncRows(
+      outgoingSelectedRows.map((row) => ({
+        ...row,
+        selected: false,
+        visible: false,
+      })),
+    );
+    this.selectedLayerOrder.update((order) =>
+      this.normalizeSelectedLayerOrder(order.filter((id) => !outgoingIds.has(id))),
+    );
+  }
+
   private activeSirapBoundaryRow(): LayerControlRow | null {
-    const activeSolution = this.appState.activeSolution$();
-    const sirapId = activeSolution?.metadata?.['sirapId'];
-    if (activeSolution?.metadata?.['scope'] !== 'sirap' || typeof sirapId !== 'string') {
+    const sirapId = readActiveSirapIdFromSolutionMetadata(
+      this.appState.activeSolution$()?.metadata,
+    );
+    if (!sirapId) {
       return null;
     }
 

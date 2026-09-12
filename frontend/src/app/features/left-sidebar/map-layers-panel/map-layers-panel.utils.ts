@@ -1,4 +1,4 @@
-import type { RuntimeLayerManifestRenderingConfig } from '@core/models';
+import { canShowSirapScopedLayer, type RuntimeLayerManifestRenderingConfig } from '@core/models';
 import type { MapSyncDescriptor } from './map-layers-panel-map-sync';
 import {
   CONTEXTUAL_PRIORITY_LAYER_IDS,
@@ -464,6 +464,22 @@ export function isLayerAvailableForScope(
   }
   const layerDomain = layerPlanningDomain(rowId, groupId);
   return layerDomain === 'context' || layerDomain === 'shared' || layerDomain === scope;
+}
+
+export function filterManifestSidebarGroupsForSirapAccess<
+  TRow extends { sirapId?: string | null },
+  TGroup extends { rows: readonly TRow[] },
+>(
+  groups: readonly TGroup[],
+  accessibleSirapIds: readonly string[],
+  activeSirapId: string | null | undefined,
+): TGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    rows: group.rows.filter((row) =>
+      canShowSirapScopedLayer(row.sirapId, accessibleSirapIds, activeSirapId),
+    ),
+  }));
 }
 
 export function shouldIncludeInMasterLegend(mapSync: MapSyncDescriptor | undefined): boolean {

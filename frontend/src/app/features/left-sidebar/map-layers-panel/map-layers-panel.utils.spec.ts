@@ -5,6 +5,7 @@ import {
   shouldIncludeInMasterLegend,
   computeSelectedLayerOrder,
   groupParentChildRows,
+  filterManifestSidebarGroupsForSirapAccess,
   isLayerAvailableForScope,
   layerPlanningDomain,
   nameMatchesSearch,
@@ -393,6 +394,59 @@ describe('planning-domain layer filtering', () => {
       isLayerAvailableForScope('layer-marine_ecosystems', 'group-marine-ecosystems', 'both'),
     ).toBe(true);
     expect(isLayerAvailableForScope('layer-mangroves', 'group-ecosystems', 'both')).toBe(true);
+  });
+
+  it('keeps national sidebar rows and shows SIRAP-scoped rows only on the granted active SIRAP', () => {
+    const groups = [
+      {
+        sidebarCategoryId: 'ecosystems',
+        title: 'Ecosystems',
+        spanishLabel: 'Ecosistemas',
+        englishLabel: 'Ecosystems',
+        rows: [
+          { id: 'wetlands', sirapId: null },
+          { id: 'orinoquia_savannas', sirapId: 'orinoquia' },
+          { id: 'eje_cafetero_ecc', sirapId: 'eje-cafetero' },
+        ],
+      },
+    ];
+    const bothGrants = ['orinoquia', 'eje-cafetero'] as const;
+
+    expect(
+      filterManifestSidebarGroupsForSirapAccess(groups, [], null).map((group) =>
+        group.rows.map((row) => row.id),
+      ),
+    ).toEqual([['wetlands']]);
+    expect(
+      filterManifestSidebarGroupsForSirapAccess(groups, ['orinoquia'], null).map((group) =>
+        group.rows.map((row) => row.id),
+      ),
+    ).toEqual([['wetlands']]);
+    expect(
+      filterManifestSidebarGroupsForSirapAccess(groups, ['orinoquia'], 'orinoquia').map((group) =>
+        group.rows.map((row) => row.id),
+      ),
+    ).toEqual([['wetlands', 'orinoquia_savannas']]);
+    expect(
+      filterManifestSidebarGroupsForSirapAccess(groups, bothGrants, null).map((group) =>
+        group.rows.map((row) => row.id),
+      ),
+    ).toEqual([['wetlands']]);
+    expect(
+      filterManifestSidebarGroupsForSirapAccess(groups, bothGrants, 'orinoquia').map((group) =>
+        group.rows.map((row) => row.id),
+      ),
+    ).toEqual([['wetlands', 'orinoquia_savannas']]);
+    expect(
+      filterManifestSidebarGroupsForSirapAccess(groups, bothGrants, 'eje-cafetero').map((group) =>
+        group.rows.map((row) => row.id),
+      ),
+    ).toEqual([['wetlands', 'eje_cafetero_ecc']]);
+    expect(
+      filterManifestSidebarGroupsForSirapAccess(groups, ['orinoquia'], 'eje-cafetero').map(
+        (group) => group.rows.map((row) => row.id),
+      ),
+    ).toEqual([['wetlands']]);
   });
 });
 
