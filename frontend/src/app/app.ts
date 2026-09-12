@@ -1,10 +1,10 @@
-import { Component, OnInit, ViewContainerRef, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, ViewContainerRef, inject } from '@angular/core';
 import type { LayerLocale, Solution, CatalogSolution } from '@core/models';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { TranslateService } from '@ngx-translate/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { AppShellComponent } from '@core/layout/app-shell/app-shell';
 import { HeaderComponent } from '@core/layout/header/header';
 import { ModalShellComponent } from '@core/shared/modal-shell/modal-shell';
@@ -23,6 +23,7 @@ import { TranslatePipe } from '@ngx-translate/core';
     MapViewComponent,
     ModalShellComponent,
     PanelSwitcherComponent,
+    RouterLink,
     RouterOutlet,
     SidebarContainerComponent,
     FinderModalComponent,
@@ -50,6 +51,9 @@ export class App implements OnInit {
   protected coordinateToolEnabled = false;
   protected readonly solutionFinderModalOpen = this.appState.solutionFinderModalOpen$;
   protected readonly solutionFinderContext = this.appState.solutionFinderContext$;
+  protected readonly isSignedIn = this.appState.userIsSignedIn$;
+  @ViewChild(HeaderComponent)
+  private readonly header?: HeaderComponent;
 
   protected get isAboutPage(): boolean {
     return this.router.url.startsWith('/about');
@@ -82,6 +86,15 @@ export class App implements OnInit {
   protected startFromLandingWelcome(): void {
     this.closeLandingWelcomeModal();
     this.openSolutionFinderModal();
+  }
+
+  protected openAboutFromLandingWelcome(): void {
+    this.closeLandingWelcomeModal();
+  }
+
+  protected openLoginFromLandingWelcome(): void {
+    this.closeLandingWelcomeModal();
+    this.header?.openAuthModal();
   }
 
   protected setLanguage(language: LayerLocale): void {

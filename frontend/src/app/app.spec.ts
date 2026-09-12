@@ -1,5 +1,6 @@
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import {
   provideTranslateLoader,
@@ -12,6 +13,7 @@ import { SolutionCatalogService } from '@core/services/solution-catalog.service'
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
+import { AuthModalComponent } from '@features/auth/auth-modal/auth-modal';
 import { App } from './app';
 
 describe('App', () => {
@@ -52,6 +54,52 @@ describe('App', () => {
       'landingWelcome.title',
     );
     expect(compiled.querySelector('#landing-welcome-modal-select-solution-button')).not.toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-about-link')?.getAttribute('href')).toBe(
+      '/about',
+    );
+    expect(compiled.querySelector('#landing-welcome-modal-login-button')).not.toBeNull();
+  });
+
+  it('closes the landing welcome modal when About is chosen', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    compiled.querySelector<HTMLAnchorElement>('#landing-welcome-modal-about-link')?.click();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.componentInstance as unknown as { landingWelcomeModalOpen: boolean })
+        .landingWelcomeModalOpen,
+    ).toBe(false);
+  });
+
+  it('opens login from the landing welcome modal', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    compiled.querySelector<HTMLButtonElement>('#landing-welcome-modal-login-button')?.click();
+    fixture.detectChanges();
+
+    expect(
+      (fixture.componentInstance as unknown as { landingWelcomeModalOpen: boolean })
+        .landingWelcomeModalOpen,
+    ).toBe(false);
+    expect(fixture.debugElement.query(By.directive(AuthModalComponent))).not.toBeNull();
+  });
+
+  it('hides the landing welcome login button after sign-in', () => {
+    const fixture = TestBed.createComponent(App);
+    const appState = TestBed.inject(AppStateService);
+    fixture.detectChanges();
+
+    appState.userIsSignedIn$.set(true);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#landing-welcome-modal-login-button')).toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-about-link')).not.toBeNull();
   });
 
   it('opens the solution finder from the landing welcome modal', () => {
