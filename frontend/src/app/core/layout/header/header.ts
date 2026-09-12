@@ -125,7 +125,7 @@ export class HeaderComponent implements AfterViewInit {
     this.appLocaleService.setLocale(currentLang === 'es' ? 'es' : 'en');
   }
 
-  protected openAuthModal(): void {
+  openAuthModal(): void {
     this.authModalOpen.set(true);
   }
 

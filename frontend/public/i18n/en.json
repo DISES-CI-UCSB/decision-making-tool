@@ -1276,6 +1276,7 @@
           "ejeWetlandsQuestion": "What proportion of Eje Cafetero wetlands would you like to conserve?",
           "congrialesLabel": "Congriales",
           "congrialesHelp": "Congriales is a supplied model feature. Its certified target is paired with the same strategic-ecosystems target.",
+          "congrialesQuestion": "What proportion of Congriales would you like to conserve?",
           "paired": "Paired",
           "savannasLabel": "Savannas",
           "savannasHelp": "The tool will identify candidate areas that ensure that the selected proportion of each of the Orinoquía savannas is contained within existing and candidate conservation areas.",

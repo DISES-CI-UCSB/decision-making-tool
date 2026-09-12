@@ -1276,6 +1276,7 @@
           "ejeWetlandsQuestion": "¿Qué proporción de los humedales del Eje Cafetero le gustaría conservar?",
           "congrialesLabel": "Congriales",
           "congrialesHelp": "Congriales es un elemento del modelo suministrado. Su meta certificada está emparejada con la misma meta de ecosistemas estratégicos.",
+          "congrialesQuestion": "¿Qué proporción de Congriales le gustaría conservar?",
           "paired": "Emparejado",
           "savannasLabel": "Sabanas",
           "savannasHelp": "La herramienta identifica áreas candidatas que garantizan que la proporción seleccionada de cada una de las sabanas de la Orinoquía quede dentro de las áreas de conservación existentes y candidatas.",

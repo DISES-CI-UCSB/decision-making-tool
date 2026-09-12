@@ -57,6 +57,8 @@ import { useOverlayScrollbar } from '@core/shared/overlay-scrollbar/use-overlay-
 import { catchError, map, of, switchMap } from 'rxjs';
 import {
   buildConsideredLayerIdSet,
+  implicitConsideredIncludeIds,
+  isSirapCatalogPacket,
   buildLegendCategories,
   buildLegendLayerEntry,
   shouldIncludeInMasterLegend,
@@ -398,6 +400,7 @@ export class MapLayersPanelComponent implements OnDestroy {
     }
 
     return this.buildConsideredLayerIdSet([
+      ...implicitConsideredIncludeIds(catalogSolution),
       ...catalogSolution.inputLayerIds.features,
       ...catalogSolution.inputLayerIds.includes,
       ...catalogSolution.inputLayerIds.excludes,
@@ -836,7 +839,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         {
           targetFeatureIds: catalogSolution.finderInputs.targetFeatureIds,
           structuredTargets: catalogSolution.finderInputs.structuredTargets,
-          isSirapPacket: catalogSolution.scope === 'sirap' || catalogSolution.sirapId != null,
+          isSirapPacket: isSirapCatalogPacket(catalogSolution),
         },
         this.hasScenarioLayerStatus(),
       );
