@@ -376,18 +376,6 @@ export const OVERVIEW_SECTION_LOOKUP: Record<string, { id: string; labelKey: str
 export const OVERVIEW_SECTION_ORDER = ['ecology', 'climate', 'finance'];
 export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
   {
-    id: 'metric-61-coral-reef-coverage',
-    section: 'gains',
-    labelKey: 'analysis.overview.metrics.coralReefCoverage',
-    descriptionKey: 'analysis.overview.metrics.coralReefCoverageDesc',
-    iconClass: 'fas fa-fish',
-    realMetricId: 'coral_reef_coverage',
-    dummyValue: '18 km²',
-    dummyAreaKm2: 18,
-    dummyUnitKey: 'analysis.overview.metricUnits.selected',
-    planningDomains: ['marine'],
-  },
-  {
     id: 'metric-62-marine-mangrove-coverage',
     section: 'gains',
     labelKey: 'analysis.overview.metrics.marineMangroveCoverage',
@@ -400,18 +388,6 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     planningDomains: ['marine'],
   },
   {
-    id: 'metric-63-seagrass-coverage',
-    section: 'gains',
-    labelKey: 'analysis.overview.metrics.seagrassCoverage',
-    descriptionKey: 'analysis.overview.metrics.seagrassCoverageDesc',
-    iconClass: 'fas fa-wheat-awn',
-    realMetricId: 'seagrass_coverage',
-    dummyValue: '9 km²',
-    dummyAreaKm2: 9,
-    dummyUnitKey: 'analysis.overview.metricUnits.selected',
-    planningDomains: ['marine'],
-  },
-  {
     id: 'metric-01-conservation-goals-met',
     section: 'gains',
     labelKey: 'analysis.overview.metrics.conservationGoalsMet',
@@ -420,6 +396,7 @@ export const OVERVIEW_METRIC_BLUEPRINTS: OverviewMetricBlueprint[] = [
     realMetricId: 'conservation_goals_met',
     dummyValue: '92%',
     dummyUnitKey: 'analysis.overview.metricUnits.ofFeatures',
+    planningDomains: ['land'],
   },
   {
     id: 'metric-02-species-groups-protected',

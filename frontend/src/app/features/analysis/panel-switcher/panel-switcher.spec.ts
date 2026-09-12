@@ -457,16 +457,11 @@ describe('PanelSwitcherComponent', () => {
     ).toBeNull();
   });
 
-  it('surfaces marine coverage cards first and hides land-only overview cards', async () => {
-    const solution = buildTestSolution();
-    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
-      id: solution.id,
-      domain: 'marine',
-    } as CatalogSolution);
-    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
-      of({
-        solutionId: solution.id,
-        generatedAt: '2026-08-26T00:00:00.000Z',
+  it.each([
+    {
+      label: 'national marine',
+      catalog: { domain: 'marine' },
+      metricsDocument: {
         geographies: {
           national: {
             colombia: {
@@ -475,6 +470,7 @@ describe('PanelSwitcherComponent', () => {
                 buildMetric('coral_reef_coverage', 5, 'km²', 'number'),
                 buildMetric('marine_mangrove_coverage', 2, 'km²', 'number'),
                 buildMetric('seagrass_coverage', 1.5, 'km²', 'number'),
+                buildMetric('conservation_goals_met', 92, '%', 'percent'),
                 buildMetric('priority_area_in_region', 20, 'km²', 'number'),
                 buildMetric('species_groups_protected', 12, 'count', 'number'),
                 buildMetric('carbon_storage_biomass', 40, 'Mg', 'number'),
@@ -484,6 +480,43 @@ describe('PanelSwitcherComponent', () => {
             },
           },
         },
+      },
+    },
+    {
+      label: 'SIRAP marine',
+      catalog: { domain: 'marine', scope: 'sirap', sirapId: 'eje-cafetero' },
+      metricsDocument: {
+        primaryGeography: { level: 'sirap' as const, scopeId: 'eje-cafetero' },
+        geographies: {
+          national: { colombia: { name: 'Colombia', metrics: [] } },
+          sirap: {
+            'eje-cafetero': {
+              name: 'Eje Cafetero',
+              metrics: [
+                buildMetric('coral_reef_coverage', 5, 'km²', 'number'),
+                buildMetric('marine_mangrove_coverage', 2, 'km²', 'number'),
+                buildMetric('seagrass_coverage', 1.5, 'km²', 'number'),
+                buildMetric('conservation_goals_met', 92, '%', 'percent'),
+                buildMetric('priority_area_in_region', 20, 'km²', 'number'),
+              ],
+            },
+          },
+        },
+      },
+    },
+  ])(
+    'keeps $label overview to mangroves and candidate area',
+    async ({ catalog, metricsDocument }) => {
+    const solution = buildTestSolution();
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      ...catalog,
+    } as CatalogSolution);
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of({
+        solutionId: solution.id,
+        generatedAt: '2026-08-26T00:00:00.000Z',
+        ...metricsDocument,
       }),
     );
     appState.activeSolution$.set(solution);
@@ -497,15 +530,24 @@ describe('PanelSwitcherComponent', () => {
       ...compiled.querySelectorAll('#right-sidebar-v3-overview-gains-table .v3-metric-row'),
     ].map((row) => row.id);
 
-    expect(gainRowIds.slice(0, 3)).toEqual([
-      'right-sidebar-v3-overview-gain-row-metric-61-coral-reef-coverage',
+    expect(gainRowIds).toEqual([
       'right-sidebar-v3-overview-gain-row-metric-62-marine-mangrove-coverage',
-      'right-sidebar-v3-overview-gain-row-metric-63-seagrass-coverage',
+      'right-sidebar-v3-overview-gain-row-metric-18-priority-area-total',
     ]);
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-gain-value-metric-61-coral-reef-coverage')
+      compiled.querySelector('#right-sidebar-v3-overview-gain-value-metric-62-marine-mangrove-coverage')
         ?.textContent,
-    ).toContain('5 km²');
+    ).toContain('2 km²');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-61-coral-reef-coverage'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-63-seagrass-coverage'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-01-conservation-goals-met'),
+    ).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-widget')).not.toBeNull();
     expect(
       compiled.querySelector(
         '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
@@ -515,18 +557,54 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#right-sidebar-v3-overview-ecosystem-services-section'),
     ).toBeNull();
     expect(compiled.querySelector('#right-sidebar-v3-overview-costs-section')).toBeNull();
-    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+    },
+  );
+
+  it('reports marine ecosystem target progress and opens the breakdown modal', async () => {
+    const solution = buildTestSolution();
+    const document = buildGoalsDocument();
+    document.source.solutionDomain = 'marine';
+    document.targetContext.targetFeatureSet = 'marine_ecosystems+mangroves';
+    document.targetContext.targetFeatureIds = ['marine_ecosystems', 'mangroves'];
+    goalsDocument = document;
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'marine',
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-widget')).not.toBeNull();
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-species'),
-    ).toBeNull();
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-count-ecosystems')
+        ?.textContent,
+    ).toContain('1 / 2');
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-goals-domain-strategic-ecosystems'),
     ).toBeNull();
-    expect(
-      compiled.querySelector(
-        '#right-sidebar-v3-overview-goals-additional-domain-strategic-ecosystems',
-      ),
-    ).toBeNull();
+
+    const viewBreakdown = compiled.querySelector(
+      '#right-sidebar-v3-overview-goals-domain-view-ecosystems',
+    ) as HTMLButtonElement;
+    expect(viewBreakdown).not.toBeNull();
+    viewBreakdown.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#conservation-goals-modal-shell')).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-title')?.textContent).toContain(
+      'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle',
+    );
   });
 
   it('disables AOI and comparison tabs until a scenario is active', () => {
