@@ -102,3 +102,15 @@ reference",nacional,a todos,Ministerio de Ambiente y Desarrollo Sostenible,TRUE,
 kba_aica,"KBA y AICAS
 KBA / AICA",Biodiversidad,"102 KBA confirmadas en Colombia, activadas exclusivamente por aves, a marzo de 2026.","referencia
 reference",nacional,a todos,BirdLife International,FALSE,https://datazone.birdlife.org/about-our-science/ibas,unknown,2026-03,Redistribution requires written permission from BirdLife International,unknown,unknown,not uploaded,unknown,Shapefile,Blocked from public display and upload; preserve provenance only until written redistribution permission is documented.,blocked,2026-08-04,DISES Team
+orinoquia_savannas,"Sabanas de la Orinoquía
+Orinoquía Savannas",Ecosistemas estratégicos,Visualization-only Orinoquía savanna extent; not used in the model or metrics.,"referencia
+reference",nacional,a todos,SIRAP Orinoquía,TRUE,https://www.parquesnacionales.gov.co/,unknown,unknown,unknown,unknown,orinoquia_savannas.geojson,Vercel Blob,inputs/reference/orinoquia_savannas/v0.1.0/orinoquia_savannas.geojson,GeoJSON,Display-only immutable SIRAP reference layer for orinoquia; excluded from solution finding and metrics.,complete,2026-09-12,DISES Team
+orinoquia_congriales,"Congriales
+Congriales",Ecosistemas estratégicos,Visualization-only Orinoquía congriales extent; not used in the model or metrics.,"referencia
+reference",nacional,a todos,SIRAP Orinoquía,TRUE,https://www.parquesnacionales.gov.co/,unknown,unknown,unknown,unknown,orinoquia_congriales.geojson,Vercel Blob,inputs/reference/orinoquia_congriales/v0.1.0/orinoquia_congriales.geojson,GeoJSON,Display-only immutable SIRAP reference layer for orinoquia; excluded from solution finding and metrics.,complete,2026-09-12,DISES Team
+eje_cafetero_wetlands,"Humedales del Eje Cafetero
+Eje Cafetero Wetlands",Ecosistemas estratégicos,"Visualization-only Eje Cafetero wetlands extent, distinct from the national wetlands layer; not used in the model or metrics.","referencia
+reference",nacional,a todos,SIRAP Eje Cafetero,TRUE,https://www.parquesnacionales.gov.co/,unknown,unknown,unknown,unknown,eje_cafetero_wetlands.geojson,Vercel Blob,inputs/reference/eje_cafetero_wetlands/v0.1.0/eje_cafetero_wetlands.geojson,GeoJSON,Display-only immutable SIRAP reference layer for eje-cafetero; excluded from solution finding and metrics.,complete,2026-09-12,DISES Team
+eje_cafetero_ecc,"Estrategias Complementarias de Conservación (ECC)
+Complementary Conservation Strategies (ECC)",Ecosistemas estratégicos,Visualization-only Complementary Conservation Strategies (ECC) boundaries; not used in the model.,"referencia
+reference",nacional,a todos,SIRAP Eje Cafetero,TRUE,https://www.parquesnacionales.gov.co/,unknown,unknown,unknown,unknown,eje_cafetero_ecc.geojson,Vercel Blob,inputs/reference/eje_cafetero_ecc/v0.1.0/eje_cafetero_ecc.geojson,GeoJSON,Display-only immutable SIRAP reference layer for eje-cafetero; excluded from solution finding and metrics.,complete,2026-09-12,DISES Team

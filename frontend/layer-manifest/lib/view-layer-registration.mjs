@@ -5,6 +5,8 @@ import { parseCsv } from './csv.mjs';
 
 const LAYER_ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 const VERSION_PATTERN = /^v\d+\.\d+\.\d+$/;
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const SIRAP_ACCESS_REGION_IDS = new Set(['orinoquia', 'eje-cafetero']);
 
 export async function prepareViewLayerRegistration({
   filePath,
@@ -17,6 +19,8 @@ export async function prepareViewLayerRegistration({
   sourceUrl,
   assetVersion = 'v0.1.0',
   publicBlobHost,
+  sirapId = null,
+  selectedColor = '#166534',
 }) {
   assert(filePath, '--file is required');
   assert(LAYER_ID_PATTERN.test(layerId ?? ''), 'layer ID must use lowercase snake_case');
@@ -35,6 +39,15 @@ export async function prepareViewLayerRegistration({
     path.extname(filePath).toLowerCase() === '.geojson',
     'add-view-layer currently accepts finalized .geojson files',
   );
+  if (sirapId !== null && sirapId !== undefined && sirapId !== '') {
+    assert(
+      SIRAP_ACCESS_REGION_IDS.has(sirapId),
+      'sirapId must be a published SIRAP access region (orinoquia or eje-cafetero)',
+    );
+  } else {
+    sirapId = null;
+  }
+  assert(HEX_COLOR_PATTERN.test(selectedColor), 'selectedColor must be a 6-digit hex color');
 
   const contents = await fs.readFile(filePath);
   const document = JSON.parse(contents.toString('utf8'));
@@ -59,13 +72,14 @@ export async function prepareViewLayerRegistration({
       url: sourceUrl,
       localFilename: path.basename(filePath),
     },
-    display: {
-      role: 'view-only',
-      roleInMetricCalculation: 'none',
-      featureCount: document.features.length,
-      crs: 'EPSG:4326',
-    },
-  };
+      display: {
+        role: 'view-only',
+        roleInMetricCalculation: 'none',
+        featureCount: document.features.length,
+        crs: 'EPSG:4326',
+        ...(sirapId ? { sirapId } : {}),
+      },
+    };
   return {
     contents,
     metadataContents: Buffer.from(`${JSON.stringify(metadata, null, 2)}\n`),
@@ -89,11 +103,12 @@ export async function prepareViewLayerRegistration({
         renderMode: 'mask',
         noDataValue: 255,
         selectedValue: 1,
-        selectedColor: '#166534',
+        selectedColor,
       },
       requiredForSolution: false,
       selectableInFinder: false,
       visibleInMapLayers: true,
+      ...(sirapId ? { sirapId } : {}),
     },
     csvRecord: [
       layerId,
@@ -114,7 +129,9 @@ export async function prepareViewLayerRegistration({
       'Vercel Blob',
       geojsonPathname,
       'GeoJSON',
-      'Display-only immutable reference layer; excluded from solution finding and metrics.',
+      sirapId
+        ? `Display-only immutable SIRAP reference layer for ${sirapId}; excluded from solution finding and metrics.`
+        : 'Display-only immutable reference layer; excluded from solution finding and metrics.',
       'complete',
       now.slice(0, 10),
       'DISES Team',

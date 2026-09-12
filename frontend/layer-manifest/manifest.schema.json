@@ -327,6 +327,9 @@
         "visibleInMapLayers": {
           "type": "boolean"
         },
+        "sirapId": {
+          "$ref": "#/$defs/nullableString"
+        },
         "displayUrl": {
           "$ref": "#/$defs/nullableString"
         },

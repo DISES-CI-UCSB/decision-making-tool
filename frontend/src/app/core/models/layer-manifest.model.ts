@@ -189,6 +189,8 @@ export interface RuntimeLayerManifestLayer {
   requiredForSolution?: boolean;
   selectableInFinder?: boolean;
   visibleInMapLayers?: boolean;
+  /** When set, the layer is shown only to users with access to that SIRAP. */
+  sirapId?: string | null;
   displayUrl?: string | null;
   /** Display-only COG. `displayUrl` remains the source/metrics URL. */
   displayCogUrl?: string | null;
@@ -350,6 +352,7 @@ export interface ManifestSidebarLayerRow {
   rendering: RuntimeLayerManifestRenderingConfig;
   hasDisplayAsset: boolean;
   isSpeciesCollection: boolean;
+  sirapId?: string | null;
 }
 
 export interface RuntimeSpeciesManifestLayer {
@@ -429,6 +432,7 @@ export function mapManifestLayerToSidebarRow(
     rendering: layer.rendering,
     hasDisplayAsset: Boolean(layer.displayCogUrl ?? layer.displayUrl ?? layer.displayCollectionUrl),
     isSpeciesCollection: layer.dataRole === 'manifest_for_species_layers',
+    sirapId: layer.sirapId ?? null,
   };
 }
 

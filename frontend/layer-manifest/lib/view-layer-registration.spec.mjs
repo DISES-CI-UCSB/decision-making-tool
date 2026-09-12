@@ -55,8 +55,59 @@ describe('view-only layer registration', () => {
       assert.equal(result.layer.dataRole, 'reference_layer');
       assert.equal(result.layer.roleInMetricCalculation, 'none');
       assert.equal(result.layer.visibleInMapLayers, true);
+      assert.equal(result.layer.sirapId, undefined);
       assert.equal(result.csvRecord.length, 22);
       assert.equal(result.csvRecord[4], 'referencia\nreference');
+    } finally {
+      await fs.rm(temporaryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('scopes a view-only layer to one SIRAP and keeps it out of metrics', async () => {
+    const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'view-layer-sirap-'));
+    const filePath = path.join(temporaryRoot, 'savannas.geojson');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Polygon',
+              coordinates: [
+                [
+                  [-72, 4],
+                  [-72, 5],
+                  [-71, 5],
+                  [-72, 4],
+                ],
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    try {
+      const result = await prepareViewLayerRegistration({
+        filePath,
+        layerId: 'orinoquia_savannas',
+        spanishLabel: 'Sabanas de la Orinoquía',
+        englishLabel: 'Orinoquía Savannas',
+        description: 'SIRAP-scoped savanna extent.',
+        category: 'ecosystems',
+        sourceOrg: 'SIRAP Orinoquía',
+        sourceUrl: 'https://www.parquesnacionales.gov.co/',
+        publicBlobHost: 'https://example.com',
+        sirapId: 'orinoquia',
+        selectedColor: '#ca8a04',
+      });
+
+      assert.equal(result.layer.sirapId, 'orinoquia');
+      assert.equal(result.layer.selectableInFinder, false);
+      assert.equal(result.layer.rendering.selectedColor, '#ca8a04');
+      assert.match(String(result.csvRecord[18]), /SIRAP reference layer for orinoquia/);
     } finally {
       await fs.rm(temporaryRoot, { recursive: true, force: true });
     }

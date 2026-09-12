@@ -63,3 +63,41 @@ export function readSirapAccessRegionIds(value: unknown): SirapRegionId[] {
 export function sirapRegionLabel(id: SirapRegionId): string {
   return SIRAP_REGIONS.find((region) => region.id === id)?.label ?? id;
 }
+
+/** National/public resources have no SIRAP id and stay visible to everyone. */
+export function canAccessSirapScopedResource(
+  sirapId: string | null | undefined,
+  accessibleSirapIds: readonly string[],
+): boolean {
+  if (!sirapId) {
+    return true;
+  }
+  return isSirapAccessRegionId(sirapId) && accessibleSirapIds.includes(sirapId);
+}
+
+/**
+ * Sidebar/map visibility for a SIRAP-tagged layer.
+ * National layers stay visible. SIRAP layers need both a matching grant and
+ * the loaded scenario to be on that same SIRAP.
+ */
+export function canShowSirapScopedLayer(
+  sirapId: string | null | undefined,
+  accessibleSirapIds: readonly string[],
+  activeSirapId: string | null | undefined,
+): boolean {
+  if (!sirapId) {
+    return true;
+  }
+  return canAccessSirapScopedResource(sirapId, accessibleSirapIds) && sirapId === activeSirapId;
+}
+
+/** Active SIRAP from a loaded scenario: metadata.scope === 'sirap' plus metadata.sirapId. */
+export function readActiveSirapIdFromSolutionMetadata(
+  metadata: Record<string, unknown> | null | undefined,
+): string | null {
+  if (metadata?.['scope'] !== 'sirap') {
+    return null;
+  }
+  const sirapId = metadata['sirapId'];
+  return typeof sirapId === 'string' && sirapId.length > 0 ? sirapId : null;
+}
