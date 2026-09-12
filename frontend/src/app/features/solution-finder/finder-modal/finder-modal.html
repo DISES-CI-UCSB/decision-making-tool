@@ -1465,8 +1465,7 @@
                             type="button"
                             class="finder-inline-help-trigger"
                             [attr.aria-label]="
-                              'solutionControls.finder.sirapWorkflow.targets.strategicTargetRationaleToggle'
-                                | translate
+                              'solutionControls.finder.step1.targetLevelRationaleToggle' | translate
                             "
                             [attr.aria-describedby]="
                               'solution-finder-modal-sirap-strategic-target-level-rationale-tooltip'
@@ -1497,9 +1496,55 @@
                               class="block"
                             >
                               {{
-                                'solutionControls.finder.sirapWorkflow.targets.strategicTargetRationale'
-                                  | translate
+                                'solutionControls.finder.step1.targetLevelRationale' | translate
                               }}
+                            </span>
+                            <span
+                              id="solution-finder-modal-sirap-strategic-target-level-rationale-sources"
+                              class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1"
+                            >
+                              <a
+                                id="solution-finder-modal-sirap-strategic-target-level-rationale-aichi-source"
+                                class="font-semibold text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                [href]="
+                                  'solutionControls.finder.step1.targetLevelAichiSourceUrl'
+                                    | translate
+                                "
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                (click)="$event.stopPropagation()"
+                                (keydown.enter)="$event.stopPropagation()"
+                                (keydown.space)="$event.stopPropagation()"
+                              >
+                                {{
+                                  'solutionControls.finder.step1.targetLevelAichiSourceLabel'
+                                    | translate
+                                }}
+                              </a>
+                              <span
+                                id="solution-finder-modal-sirap-strategic-target-level-rationale-source-separator"
+                                aria-hidden="true"
+                              >
+                                ·
+                              </span>
+                              <a
+                                id="solution-finder-modal-sirap-strategic-target-level-rationale-kunming-source"
+                                class="font-semibold text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                [href]="
+                                  'solutionControls.finder.step1.targetLevelKunmingSourceUrl'
+                                    | translate
+                                "
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                (click)="$event.stopPropagation()"
+                                (keydown.enter)="$event.stopPropagation()"
+                                (keydown.space)="$event.stopPropagation()"
+                              >
+                                {{
+                                  'solutionControls.finder.step1.targetLevelKunmingSourceLabel'
+                                    | translate
+                                }}
+                              </a>
                             </span>
                           </span>
                         </span>
@@ -1913,7 +1958,7 @@
                       >
                         <span
                           id="solution-finder-modal-sirap-savannas-target-level-label-row"
-                          class="inline-flex items-center gap-1"
+                          class="finder-target-coverage-question-label leading-snug"
                         >
                           <span
                             id="solution-finder-modal-sirap-savannas-target-level-question"
@@ -1923,6 +1968,121 @@
                               'solutionControls.finder.sirapWorkflow.targets.savannasQuestion'
                                 | translate
                             }}
+                          </span>
+                          <span
+                            id="solution-finder-modal-sirap-savannas-target-level-rationale"
+                            class="finder-inline-help normal-case tracking-normal"
+                            (mouseenter)="
+                              showFinderTooltip(
+                                $event,
+                                'solution-finder-modal-sirap-savannas-target-level-rationale-tooltip'
+                              )
+                            "
+                            (mouseleave)="
+                              scheduleHideFinderTooltip(
+                                'solution-finder-modal-sirap-savannas-target-level-rationale-tooltip'
+                              )
+                            "
+                            (focusin)="
+                              showFinderTooltip(
+                                $event,
+                                'solution-finder-modal-sirap-savannas-target-level-rationale-tooltip'
+                              )
+                            "
+                            (focusout)="
+                              scheduleHideFinderTooltip(
+                                'solution-finder-modal-sirap-savannas-target-level-rationale-tooltip'
+                              )
+                            "
+                          >
+                            <button
+                              id="solution-finder-modal-sirap-savannas-target-level-rationale-toggle"
+                              type="button"
+                              class="finder-inline-help-trigger"
+                              [attr.aria-label]="
+                                'solutionControls.finder.step1.targetLevelRationaleToggle'
+                                  | translate
+                              "
+                              [attr.aria-describedby]="
+                                'solution-finder-modal-sirap-savannas-target-level-rationale-tooltip'
+                              "
+                              (click)="$event.stopPropagation()"
+                            >
+                              <app-info-icon
+                                [rootId]="
+                                  'solution-finder-modal-sirap-savannas-target-level-rationale-icon'
+                                "
+                                colorClass="text-slate-400"
+                              />
+                            </button>
+                            <span
+                              id="solution-finder-modal-sirap-savannas-target-level-rationale-tooltip"
+                              role="tooltip"
+                              popover="manual"
+                              class="finder-tooltip-overlay"
+                              (mouseenter)="cancelHideFinderTooltip()"
+                              (mouseleave)="
+                                scheduleHideFinderTooltip(
+                                  'solution-finder-modal-sirap-savannas-target-level-rationale-tooltip'
+                                )
+                              "
+                            >
+                              <span
+                                id="solution-finder-modal-sirap-savannas-target-level-rationale-text"
+                                class="block"
+                              >
+                                {{
+                                  'solutionControls.finder.step1.targetLevelRationale' | translate
+                                }}
+                              </span>
+                              <span
+                                id="solution-finder-modal-sirap-savannas-target-level-rationale-sources"
+                                class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1"
+                              >
+                                <a
+                                  id="solution-finder-modal-sirap-savannas-target-level-rationale-aichi-source"
+                                  class="font-semibold text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                  [href]="
+                                    'solutionControls.finder.step1.targetLevelAichiSourceUrl'
+                                      | translate
+                                  "
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  (click)="$event.stopPropagation()"
+                                  (keydown.enter)="$event.stopPropagation()"
+                                  (keydown.space)="$event.stopPropagation()"
+                                >
+                                  {{
+                                    'solutionControls.finder.step1.targetLevelAichiSourceLabel'
+                                      | translate
+                                  }}
+                                </a>
+                                <span
+                                  id="solution-finder-modal-sirap-savannas-target-level-rationale-source-separator"
+                                  aria-hidden="true"
+                                >
+                                  ·
+                                </span>
+                                <a
+                                  id="solution-finder-modal-sirap-savannas-target-level-rationale-kunming-source"
+                                  class="font-semibold text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                  [href]="
+                                    'solutionControls.finder.step1.targetLevelKunmingSourceUrl'
+                                      | translate
+                                  "
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  (click)="$event.stopPropagation()"
+                                  (keydown.enter)="$event.stopPropagation()"
+                                  (keydown.space)="$event.stopPropagation()"
+                                >
+                                  {{
+                                    'solutionControls.finder.step1.targetLevelKunmingSourceLabel'
+                                      | translate
+                                  }}
+                                </a>
+                              </span>
+                            </span>
                           </span>
                         </span>
                       </div>

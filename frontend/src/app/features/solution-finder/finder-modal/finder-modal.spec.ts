@@ -1418,7 +1418,23 @@ describe('FinderModalComponent', () => {
     expect(strategicTooltip?.getAttribute('popover')).toBe('manual');
     expect(strategicTooltip?.classList.contains('finder-tooltip-overlay')).toBe(true);
     expect(strategicToggle).not.toBeNull();
+    expect(strategicToggle?.getAttribute('aria-label')).toContain(
+      'solutionControls.finder.step1.targetLevelRationaleToggle',
+    );
     expect(strategicToggle?.querySelector('app-info-icon')).not.toBeNull();
+    expect(strategicTooltip?.textContent).toContain(
+      'solutionControls.finder.step1.targetLevelRationale',
+    );
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-strategic-target-level-rationale-aichi-source',
+      )?.textContent,
+    ).toContain('solutionControls.finder.step1.targetLevelAichiSourceLabel');
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-strategic-target-level-rationale-kunming-source',
+      )?.textContent,
+    ).toContain('solutionControls.finder.step1.targetLevelKunmingSourceLabel');
     for (const target of [17, 30, 50, 100]) {
       const button = fixture.nativeElement.querySelector(
         `#solution-finder-modal-sirap-strategic-${target}`,
@@ -1539,6 +1555,24 @@ describe('FinderModalComponent', () => {
         .querySelector('#solution-finder-modal-sirap-strategic-target-level-rationale-tooltip')
         ?.classList.contains('finder-tooltip-overlay'),
     ).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-strategic-target-level-rationale-tooltip',
+      )?.textContent,
+    ).toContain('solutionControls.finder.step1.targetLevelRationale');
+    const savannasTooltip = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-sirap-savannas-target-level-rationale-tooltip',
+    );
+    expect(savannasTooltip?.getAttribute('popover')).toBe('manual');
+    expect(savannasTooltip?.classList.contains('finder-tooltip-overlay')).toBe(true);
+    expect(savannasTooltip?.textContent).toContain(
+      'solutionControls.finder.step1.targetLevelRationale',
+    );
+    expect(
+      fixture.nativeElement.querySelector(
+        '#solution-finder-modal-sirap-savannas-target-level-rationale-aichi-source',
+      )?.textContent,
+    ).toContain('solutionControls.finder.step1.targetLevelAichiSourceLabel');
     expect(
       fixture.nativeElement.querySelector('#solution-finder-modal-sirap-strategic-help')
         ?.textContent,
