@@ -1329,6 +1329,19 @@ describe('FinderModalComponent', () => {
         ?.classList.contains('finder-target-level-panel'),
     ).toBe(true);
     expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-strategic-help')
+        ?.textContent,
+    ).toContain(
+      'solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsHelpEjeCafetero',
+    );
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-strategic-source'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-dry-forest-inherit')
+        ?.textContent,
+    ).toContain('solutionControls.finder.sirapWorkflow.targets.inheritStrategic');
+    expect(
       fixture.nativeElement.querySelector(
         '#solution-finder-modal-sirap-strategic-target-level-question',
       )?.textContent,
@@ -1369,11 +1382,17 @@ describe('FinderModalComponent', () => {
         '#solution-finder-modal-sirap-dry-forest-target-level-question',
       )?.textContent,
     ).toContain('solutionControls.finder.sirapWorkflow.targets.dryForestQuestion');
-    expect(
-      fixture.nativeElement
-        .querySelector('#solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip')
-        ?.getAttribute('role'),
-    ).toBe('tooltip');
+    const dryForestTooltip = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-sirap-dry-forest-target-level-rationale-tooltip',
+    );
+    const dryForestToggle = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-sirap-dry-forest-target-level-rationale-toggle',
+    );
+    expect(dryForestTooltip?.getAttribute('role')).toBe('tooltip');
+    expect(dryForestTooltip?.getAttribute('popover')).toBe('manual');
+    expect(dryForestTooltip?.classList.contains('finder-tooltip-overlay')).toBe(true);
+    expect(dryForestToggle).not.toBeNull();
+    expect(dryForestToggle?.querySelector('app-info-icon')).not.toBeNull();
     expect(
       fixture.nativeElement.querySelector(
         '#solution-finder-modal-sirap-wetlands-target-level-question',
@@ -1389,11 +1408,17 @@ describe('FinderModalComponent', () => {
       expect(card.classList.contains('bg-sky-100')).toBe(true);
       expect(card.classList.contains('opacity-60')).toBe(false);
     }
-    expect(
-      fixture.nativeElement
-        .querySelector('#solution-finder-modal-sirap-strategic-target-level-rationale-tooltip')
-        ?.getAttribute('role'),
-    ).toBe('tooltip');
+    const strategicTooltip = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-sirap-strategic-target-level-rationale-tooltip',
+    );
+    const strategicToggle = fixture.nativeElement.querySelector(
+      '#solution-finder-modal-sirap-strategic-target-level-rationale-toggle',
+    );
+    expect(strategicTooltip?.getAttribute('role')).toBe('tooltip');
+    expect(strategicTooltip?.getAttribute('popover')).toBe('manual');
+    expect(strategicTooltip?.classList.contains('finder-tooltip-overlay')).toBe(true);
+    expect(strategicToggle).not.toBeNull();
+    expect(strategicToggle?.querySelector('app-info-icon')).not.toBeNull();
     for (const target of [17, 30, 50, 100]) {
       const button = fixture.nativeElement.querySelector(
         `#solution-finder-modal-sirap-strategic-${target}`,
@@ -1503,6 +1528,24 @@ describe('FinderModalComponent', () => {
 
     selectSirapWorkflow(fixture, 'orinoquia');
     expect(component.sirapTargetTuples()).toHaveLength(4);
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-step2-help')?.textContent,
+    ).toContain('solutionControls.finder.stepIntros.step2b');
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-step3-help')?.textContent,
+    ).toContain('solutionControls.finder.stepIntros.step2a');
+    expect(
+      fixture.nativeElement
+        .querySelector('#solution-finder-modal-sirap-strategic-target-level-rationale-tooltip')
+        ?.classList.contains('finder-tooltip-overlay'),
+    ).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-strategic-help')
+        ?.textContent,
+    ).toContain('solutionControls.finder.sirapWorkflow.targets.strategicEcosystemsHelp');
+    expect(
+      fixture.nativeElement.querySelector('#solution-finder-modal-sirap-strategic-source'),
+    ).not.toBeNull();
     expect(
       fixture.nativeElement.querySelector('#solution-finder-modal-sirap-congriales-card'),
     ).not.toBeNull();
@@ -1650,6 +1693,12 @@ describe('FinderModalComponent', () => {
     expect(
       compiled.querySelector('#solution-finder-modal-sirap-iheh-label')?.textContent,
     ).toContain('solutionControls.finder.step2b.humanFootprintLabel');
+    expect(compiled.querySelector('#solution-finder-modal-sirap-step2-help')?.textContent).toContain(
+      'solutionControls.finder.stepIntros.step2b',
+    );
+    expect(compiled.querySelector('#solution-finder-modal-sirap-step3-help')?.textContent).toContain(
+      'solutionControls.finder.stepIntros.step2a',
+    );
     expect(compiled.querySelector('#solution-finder-modal-sirap-iheh-help')?.textContent).toContain(
       'solutionControls.finder.step2b.humanFootprintHelp',
     );
