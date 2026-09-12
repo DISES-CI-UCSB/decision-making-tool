@@ -1726,26 +1726,69 @@
                     {{ 'solutionControls.finder.sirapWorkflow.targets.congrialesHelp' | translate }}
                   </p>
                   <div
-                    id="solution-finder-modal-sirap-congriales-values"
-                    class="mt-2 flex gap-1"
-                    aria-live="polite"
+                    id="solution-finder-modal-sirap-congriales-target-level-panel"
+                    class="finder-target-level-panel finder-target-level-panel-visible rounded-md bg-white"
                   >
-                    <span
-                      id="solution-finder-modal-sirap-congriales-paired-value"
-                      class="rounded-md border border-sky-300 bg-white px-2 py-1.5 text-xs font-semibold text-sky-900"
+                    <div
+                      id="solution-finder-modal-sirap-congriales-target-level-row"
+                      class="flex flex-wrap items-center justify-between gap-2"
                     >
-                      {{
-                        sirapStrategicTarget === null
-                          ? ('solutionControls.finder.sirapWorkflow.notSelected' | translate)
-                          : sirapStrategicTarget + '%'
-                      }}
-                    </span>
-                    <span
-                      id="solution-finder-modal-sirap-congriales-paired-badge"
-                      class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600"
-                    >
-                      {{ 'solutionControls.finder.sirapWorkflow.targets.paired' | translate }}
-                    </span>
+                      <div
+                        id="solution-finder-modal-sirap-congriales-target-level-title"
+                        class="finder-subtext-dark relative text-[11px] font-semibold uppercase tracking-wide"
+                      >
+                        <span
+                          id="solution-finder-modal-sirap-congriales-target-level-label-row"
+                          class="inline-flex items-center gap-1"
+                        >
+                          <span
+                            id="solution-finder-modal-sirap-congriales-target-level-question"
+                            class="finder-target-coverage-question-label"
+                          >
+                            {{
+                              'solutionControls.finder.sirapWorkflow.targets.congrialesQuestion'
+                                | translate
+                            }}
+                          </span>
+                        </span>
+                      </div>
+                      <div
+                        id="solution-finder-modal-sirap-congriales-values"
+                        class="flex items-center gap-1"
+                        aria-live="polite"
+                      >
+                        <span
+                          id="solution-finder-modal-sirap-congriales-paired-value"
+                          role="status"
+                          class="finder-control-button-padding finder-target-level-choice-button cursor-default rounded-md border text-xs font-semibold"
+                          [class.border-sky-600]="sirapStrategicTarget !== null"
+                          [class.bg-sky-600]="sirapStrategicTarget !== null"
+                          [class.text-white]="sirapStrategicTarget !== null"
+                          [class.border-slate-200]="sirapStrategicTarget === null"
+                          [class.bg-white]="sirapStrategicTarget === null"
+                          [class.text-slate-700]="sirapStrategicTarget === null"
+                        >
+                          <span
+                            id="solution-finder-modal-sirap-congriales-paired-value-label"
+                            class="finder-target-level-choice-label-optical"
+                          >
+                            {{
+                              sirapStrategicTarget === null
+                                ? ('solutionControls.finder.sirapWorkflow.notSelected' | translate)
+                                : sirapStrategicTarget + '%'
+                            }}
+                          </span>
+                        </span>
+                        <span
+                          id="solution-finder-modal-sirap-congriales-paired-badge"
+                          class="px-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                        >
+                          {{
+                            'solutionControls.finder.sirapWorkflow.targets.paired' | translate
+                          }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
