@@ -3307,6 +3307,30 @@ describe('PanelSwitcherComponent', () => {
     expect(regionalContribution?.delta).toBe(0.6);
   });
 
+  it('omits the biodiversity section from the comparison tab', async () => {
+    const baseline = buildTestSolution();
+    const candidate = { ...buildTestSolution(), id: 'candidate-solution', name: 'Candidate' };
+    appState.activeSolution$.set(baseline);
+    appState.setComparisonSolution(candidate, 'Candidate');
+    appState.setRightSidebarMode('comparison');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#right-sidebar-comparison-section-general')).not.toBeNull();
+    expect(compiled.querySelector('#right-sidebar-comparison-section-ecosystems')).not.toBeNull();
+    expect(compiled.querySelector('#right-sidebar-comparison-section-protection')).not.toBeNull();
+    expect(compiled.querySelector('#right-sidebar-comparison-section-biodiversity')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-comparison-table-row-comp-threatened-species'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-comparison-table-row-comp-endemic-species'),
+    ).toBeNull();
+  });
+
   it('hides excluded SIRAP carbon AOI cards for regional and custom selections', async () => {
     const solution = buildTestSolution();
     mockSirapCatalogSolution(solution);

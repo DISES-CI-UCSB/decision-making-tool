@@ -2,7 +2,7 @@ import type { CustomPolygonMetricId, MetricValue } from '@core/models';
 
 export type OverviewMetricSection = 'gains' | 'ecosystemServices' | 'costs';
 export type OverviewMetricPlanningDomain = 'land' | 'marine';
-export type ComparisonSectionId = 'general' | 'biodiversity' | 'ecosystems' | 'protection';
+export type ComparisonSectionId = 'general' | 'ecosystems' | 'protection';
 export type ComparisonDeltaTone = 'positive' | 'negative' | 'neutral';
 
 export interface OverviewMetricBlueprint {
@@ -525,10 +525,6 @@ export const COMPARISON_SECTION_META: Record<ComparisonSectionId, ComparisonSect
     titleKey: 'analysis.comparison.sections.general',
     toneClass: 'general',
   },
-  biodiversity: {
-    titleKey: 'analysis.comparison.sections.biodiversity',
-    toneClass: 'bio',
-  },
   ecosystems: {
     titleKey: 'analysis.comparison.sections.ecosystems',
     toneClass: 'eco',
@@ -540,7 +536,6 @@ export const COMPARISON_SECTION_META: Record<ComparisonSectionId, ComparisonSect
 };
 export const COMPARISON_SECTION_ORDER: ComparisonSectionId[] = [
   'general',
-  'biodiversity',
   'ecosystems',
   'protection',
 ];
@@ -596,27 +591,6 @@ export const COMPARISON_METRIC_BLUEPRINTS: ComparisonMetricBlueprint[] = [
     dummyBaseline: '1.3%',
     dummyCandidate: '1.9%',
     dummyDelta: '+0.6%',
-    deltaTone: 'positive',
-  },
-  {
-    id: 'comp-threatened-species',
-    section: 'biodiversity',
-    labelKey: 'analysis.comparison.metrics.threatenedSpecies',
-    descriptionKey: 'analysis.comparison.metrics.threatenedSpeciesDesc',
-    metricId: 'threatened_species_secured',
-    dummyBaseline: '4 species',
-    dummyCandidate: '5 species',
-    dummyDelta: '+1',
-    deltaTone: 'positive',
-  },
-  {
-    id: 'comp-endemic-species',
-    section: 'biodiversity',
-    labelKey: 'analysis.comparison.metrics.endemicSpecies',
-    descriptionKey: 'analysis.comparison.metrics.endemicSpeciesDesc',
-    dummyBaseline: '10 species',
-    dummyCandidate: '12 species',
-    dummyDelta: '+2',
     deltaTone: 'positive',
   },
   {

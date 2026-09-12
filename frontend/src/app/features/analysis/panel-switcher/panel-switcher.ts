@@ -1585,7 +1585,6 @@ export class PanelSwitcherComponent {
 
   protected readonly comparisonSectionExpanded = signal<Record<ComparisonSectionId, boolean>>({
     general: true,
-    biodiversity: true,
     ecosystems: true,
     protection: false,
   });

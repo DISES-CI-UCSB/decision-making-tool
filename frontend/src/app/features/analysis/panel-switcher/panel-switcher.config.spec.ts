@@ -33,8 +33,6 @@ describe('panel switcher metric configuration', () => {
       'comp-pre-existing-area',
       'comp-new-selected-area',
       'comp-national-target',
-      'comp-threatened-species',
-      'comp-endemic-species',
       'comp-carbon',
       'comp-water-regulation',
       'comp-protected-overlap',
@@ -48,12 +46,7 @@ describe('panel switcher metric configuration', () => {
       new Set(['gains', 'ecosystemServices', 'costs']),
     );
 
-    expect(COMPARISON_SECTION_ORDER).toEqual([
-      'general',
-      'biodiversity',
-      'ecosystems',
-      'protection',
-    ]);
+    expect(COMPARISON_SECTION_ORDER).toEqual(['general', 'ecosystems', 'protection']);
     expect(Object.keys(COMPARISON_SECTION_META)).toEqual(COMPARISON_SECTION_ORDER);
     expect(new Set(COMPARISON_METRIC_BLUEPRINTS.map(({ section }) => section))).toEqual(
       new Set(COMPARISON_SECTION_ORDER),
