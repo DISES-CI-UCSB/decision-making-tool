@@ -564,7 +564,7 @@
         "indigenousReservationsAreaDesc": "Resguardos within existing and candidate conservation areas",
         "communityCouncilsArea": "Community Councils Area",
         "communityCouncilsAreaDesc": "Community councils for Black communities within existing and candidate conservation areas",
-        "carbonStorageCapacity": "Carbon Storage Capacity",
+        "carbonStorageCapacity": "Total Carbon",
         "carbonStorageCapacityDesc": "Above- and belowground biomass within existing and candidate conservation areas",
         "carbonStorageCapacityMethodology": "Uses an above- and belowground biomass layer. Formula: sum biomass value × pixel area across the selected scenario.",
         "carbonStorageCapacitySourceLabel": "Source: Spawn et al. 2020",
@@ -669,7 +669,7 @@
         "threatenedSpeciesDesc": "CR/EN/VU species with habitat represented in candidate conservation areas.",
         "endemicSpecies": "Endemic Species Coverage",
         "endemicSpeciesDesc": "Colombia endemic species represented in selected areas.",
-        "carbonStorage": "Carbon Storage",
+        "carbonStorage": "Total Carbon",
         "carbonStorageDesc": "Estimated carbon storage retained in selected areas.",
         "waterRegulation": "Water Regulation Capacity",
         "waterRegulationDesc": "Hydrological service support for downstream communities.",
@@ -888,7 +888,7 @@
         "customDescription": "Share of this custom AOI overlapping each strategic ecosystem layer. Custom-AOI values describe polygon composition, not scenario candidate coverage."
       },
       "carbon": {
-        "source": "Biomass and soil carbon layers"
+        "source": "Above- and belowground biomass"
       },
       "mec": {
         "source": "MEC 2024 · IDEAM + Humboldt/IAvH classifications",
@@ -1047,7 +1047,7 @@
         "colombiaEndemics": "Colombia endemics",
         "nationalSpeciesTotal": "% of National Species Total",
         "nationalSpeciesTotalDesc": "Share of Colombia's total species found in this AOI",
-        "totalCarbonBiomass": "Total Carbon Biomass Conserved",
+        "totalCarbonBiomass": "Total Carbon",
         "nationalCarbon": "% of National Carbon",
         "nationalCarbonDesc": "Of Colombian stocks",
         "aboveGroundCarbon": "Above + Belowground Biomass Carbon",

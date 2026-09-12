@@ -643,7 +643,10 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-stat-endemic')).toBeNull();
     expect(compiled.querySelector('#aoi-stat-national-species')).toBeNull();
     expect(compiled.querySelector('#aoi-body-bio')?.textContent).not.toContain('--');
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-stat-total-carbon')?.textContent).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-stat-national-carbon')?.textContent).toContain('3,5%');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')).toBeNull();
+    expect(compiled.querySelector('#aoi-stat-soil-carbon')).toBeNull();
 
     const hectaresToggle = compiled.querySelector(
       '#aoi-dashboard-area-unit-toggle-hectares',
@@ -654,7 +657,9 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('250 ha');
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('25%');
     expect(compiled.querySelector('#aoi-hero-national')).toBeNull();
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-stat-total-carbon')?.textContent).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')).toBeNull();
+    expect(compiled.querySelector('#aoi-stat-soil-carbon')).toBeNull();
 
     speciesMetrics$.complete();
   });
@@ -834,6 +839,8 @@ describe('PanelSwitcherComponent', () => {
         priority_area_in_region: 2.5,
         national_contribution: 1.25,
         carbon_storage_biomass: 40,
+        carbon_biomass_total: 40,
+        carbon_pct_of_national: 3.5,
       }),
     );
     fastMetrics$.complete();
@@ -857,7 +864,10 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-biodiversity-species-loading-spinner')).toBeNull();
     expect(compiled.querySelector('#aoi-biodiversity-species-progressbar')).toBeNull();
     expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('2,5 km²');
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-stat-total-carbon')?.textContent).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-stat-national-carbon')?.textContent).toContain('3,5%');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')).toBeNull();
+    expect(compiled.querySelector('#aoi-stat-soil-carbon')).toBeNull();
     expect(compiled.querySelector('#aoi-species-value-mammals')).toBeNull();
     expect(compiled.querySelector('#aoi-stat-endemic')).toBeNull();
     expect(compiled.querySelector('#aoi-body-bio')?.textContent).not.toContain('--');
@@ -1088,6 +1098,9 @@ describe('PanelSwitcherComponent', () => {
           buildMetric('ecosystem_coverage_paramo', 2, 'km²', 'number'),
           buildMetric('ecosystem_coverage_wetlands', 15, 'km²', 'number'),
           buildMetric('carbon_storage_biomass', 40, 'Mg', 'number'),
+          buildMetric('carbon_biomass_total', 40, 'Mg', 'number'),
+          buildMetric('carbon_pct_of_national', 3.5, '%', 'percent'),
+          buildMetric('soil_organic_carbon', 33, 'Mg', 'number'),
           buildMetric('water_regulation_area', 78, 'km²', 'number'),
           buildMetric('threatened_species_secured', 90, 'count', 'number'),
           buildMetric('agricultural_area', 125, 'km²', 'number'),
@@ -1117,7 +1130,10 @@ describe('PanelSwitcherComponent', () => {
     );
     expect(compiled.querySelector('#aoi-strategic-value-paramos')?.textContent).toContain('20%');
     expect(compiled.querySelector('#aoi-strategic-value-wetlands')?.textContent).toContain('100%');
-    expect(compiled.querySelector('#aoi-stat-above-carbon')?.textContent).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-stat-total-carbon')?.textContent).toContain('40 Mg');
+    expect(compiled.querySelector('#aoi-stat-national-carbon')?.textContent).toContain('3,5%');
+    expect(compiled.querySelector('#aoi-stat-above-carbon')).toBeNull();
+    expect(compiled.querySelector('#aoi-stat-soil-carbon')).toBeNull();
     expect(compiled.querySelector('#aoi-stat-water-regulation')?.textContent).toContain('78 km²');
     expect(compiled.querySelector('#aoi-stat-threatened-secured')?.textContent).toContain('90');
     expect(
@@ -3328,9 +3344,7 @@ describe('PanelSwitcherComponent', () => {
       shouldShowAoiCarbonMetric(metricId: string): boolean;
       toggleAoiSection(sectionId: string): void;
     };
-    expect(component.shouldShowAoiCarbonMetric('carbon_storage_biomass')).toBe(false);
     expect(component.shouldShowAoiCarbonMetric('carbon_pct_of_national')).toBe(false);
-    expect(component.shouldShowAoiCarbonMetric('soil_organic_carbon')).toBe(false);
 
     component.toggleAoiSection('carbon');
     fixture.detectChanges();

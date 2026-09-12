@@ -564,7 +564,7 @@
         "indigenousReservationsAreaDesc": "Resguardos dentro de áreas de conservación existentes y candidatas",
         "communityCouncilsArea": "Área de consejos comunitarios",
         "communityCouncilsAreaDesc": "Consejos comunitarios de comunidades negras dentro de áreas de conservación existentes y candidatas",
-        "carbonStorageCapacity": "Capacidad de almacenamiento de carbono",
+        "carbonStorageCapacity": "Carbono total",
         "carbonStorageCapacityDesc": "Biomasa aérea y subterránea dentro de áreas de conservación existentes y candidatas",
         "carbonStorageCapacityMethodology": "Usa una capa de biomasa aérea y subterránea. Fórmula: suma del valor de biomasa × área del píxel en el escenario seleccionado.",
         "carbonStorageCapacitySourceLabel": "Fuente: Spawn et al. 2020",
@@ -805,7 +805,7 @@
         "customDescription": "Proporción de este AOI personalizado que se superpone con cada capa de ecosistema estratégico. Los valores del AOI personalizado describen la composición del polígono, no la cobertura candidata del escenario."
       },
       "carbon": {
-        "source": "Capas de biomasa y carbono del suelo"
+        "source": "Biomasa aérea y subterránea"
       },
       "mec": {
         "source": "MEC 2024 · clasificaciones IDEAM + Humboldt/IAvH",
@@ -964,7 +964,7 @@
         "colombiaEndemics": "Endémicas de Colombia",
         "nationalSpeciesTotal": "% del total nacional de especies",
         "nationalSpeciesTotalDesc": "Proporción de las especies totales de Colombia encontradas en este AOI",
-        "totalCarbonBiomass": "Biomasa total de carbono conservada",
+        "totalCarbonBiomass": "Carbono total",
         "nationalCarbon": "% del carbono nacional",
         "nationalCarbonDesc": "De las reservas colombianas",
         "aboveGroundCarbon": "Carbono de biomasa aérea y subterránea",
@@ -1094,7 +1094,7 @@
         "threatenedSpeciesDesc": "Especies CR/EN/VU con hábitat representado en zonas prioritarias.",
         "endemicSpecies": "Cobertura de especies endémicas",
         "endemicSpeciesDesc": "Especies endémicas de Colombia representadas en áreas seleccionadas.",
-        "carbonStorage": "Almacenamiento de carbono",
+        "carbonStorage": "Carbono total",
         "carbonStorageDesc": "Almacenamiento de carbono estimado retenido en áreas seleccionadas.",
         "waterRegulation": "Capacidad de regulación hídrica",
         "waterRegulationDesc": "Apoyo de servicios hidrológicos para comunidades aguas abajo.",
