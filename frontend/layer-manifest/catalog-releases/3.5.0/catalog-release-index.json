@@ -2,12 +2,12 @@
   "format": "runtime-catalog-release-v1",
   "catalogVersion": "3.5.0",
   "releaseId": "catalog-v3-5-0",
-  "generatedAt": "2026-09-13T01:31:16Z",
+  "generatedAt": "2026-09-13T02:10:26.691Z",
   "expectedSolutionCount": 228,
   "batches": [
     {
       "id": "national",
-      "manifestUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-4-0/manifest.json",
+      "manifestUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-5-0/manifest.json",
       "expectedSolutionCount": 172
     },
     {
