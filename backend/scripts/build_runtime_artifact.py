@@ -1032,6 +1032,8 @@ def build_species_matrix_specs(
 def metric_ids_for_species_group(group: str) -> tuple[str, ...]:
     if group == "threatened":
         return ("threatened_species_count",)
+    if group == "endemic":
+        return ("endemic_species_count",)
     return tuple(
         metric.metric_id
         for metric in METRIC_CATALOG
@@ -1684,7 +1686,7 @@ def metric_coverage(layer_specs: list[LayerSpec], species_specs: list[SpeciesMat
         "blocked_missing_data_or_definition": sorted(metadata + blocked),
         "unsuitable_live_custom_polygon_without_new_design": sorted(deferred + species_not_custom_aoi),
         "notes": {
-            "implemented_now": "Area, binary overlap, percent overlap, land-cover, protected-area, water, carbon, species richness, threatened species count, and national species percent metrics.",
+            "implemented_now": "Area, binary overlap, percent overlap, land-cover, protected-area, water, carbon, species richness, threatened species count, endemic species count, and national species percent metrics.",
             "feasible_next": "No cataloged species overlap metrics remain feasible with the current custom AOI request contract.",
             "metadata": "Manifest summary metrics are solution metadata and do not apply directly to arbitrary custom polygons.",
             "deferred": "Pairwise comparison metrics require two solutions. Threatened species secured requires a solution target percent that custom AOI requests do not currently provide.",

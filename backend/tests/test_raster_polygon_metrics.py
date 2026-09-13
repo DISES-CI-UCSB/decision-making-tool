@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -23,8 +24,13 @@ from app.artifacts import (
 from app.config import Settings
 from app.main import app
 from app.polygon_metrics import calculate_custom_polygon_metrics
-from app.species_index import SpeciesIndexLoadError, load_runtime_species_index
+from app.species_index import (
+    SpeciesIndexLoadError,
+    load_runtime_species_bitset_index,
+    load_runtime_species_index,
+)
 from sparse.format import SparseMetadata, SpeciesMatrixEntry, encode_species_matrix
+from sparse.species_bitset import build_species_bitset
 
 
 FIXTURE_GRID_CRS = "EPSG:3857"
@@ -220,6 +226,17 @@ def _raster_artifact_with_species(tmp_path: Path, *, warm_index: bool) -> Runtim
                 ],
             ),
             metric_ids=("threatened_species_count",),
+        ),
+        "endemic": RuntimeSpeciesMatrix(
+            group="endemic",
+            path=write_species_matrix(
+                tmp_path / "species_endemic.smtx.gz",
+                [
+                    ("Endemic present", "LC", "Mammalia", [2]),
+                    ("Endemic absent", "LC", "Aves", [1]),
+                ],
+            ),
+            metric_ids=("endemic_species_count",),
         ),
     }
     return RuntimeArtifact(
@@ -643,6 +660,7 @@ def test_raster_custom_polygon_uses_species_matrix_bundles(tmp_path: Path) -> No
             "species_richness_reptiles",
             "species_richness_plants",
             "threatened_species_count",
+            "endemic_species_count",
             "species_pct_of_national",
         ],
     )
@@ -653,15 +671,108 @@ def test_raster_custom_polygon_uses_species_matrix_bundles(tmp_path: Path) -> No
     assert metrics["species_richness_reptiles"] == 1
     assert metrics["species_richness_plants"] == 0
     assert metrics["threatened_species_count"] == 1
+    assert metrics["endemic_species_count"] == 1
     assert metrics["species_pct_of_national"] == pytest.approx(50.0)
     assert metadata["metric_coverage"]["species_matrix_groups_used"] == [
         "amphibians",
         "birds",
+        "endemic",
         "mammals",
         "plants",
         "reptiles",
         "threatened",
     ]
+
+
+def test_raster_custom_polygon_reports_endemic_unavailable_without_group(tmp_path: Path) -> None:
+    artifact = raster_artifact_with_species(tmp_path)
+    matrices = {
+        group: matrix
+        for group, matrix in artifact.species_matrices.items()
+        if group != "endemic"
+    }
+    index = load_runtime_species_index(matrices)
+    stripped = replace(artifact, species_matrices=matrices, species_index=index)
+
+    metrics, metadata = calculate_custom_polygon_metrics(
+        stripped,
+        POLYGON_LEFT_COLUMN,
+        ["endemic_species_count"],
+    )
+
+    assert metrics == {"endemic_species_count": None}
+    assert metadata["metric_coverage"]["unavailable"] == [
+        {
+            "metric_id": "endemic_species_count",
+            "reason": "species_matrix_group_missing:endemic",
+        }
+    ]
+    stripped.close()
+
+
+def test_raster_custom_polygon_counts_endemic_from_bitset_flags(tmp_path: Path) -> None:
+    artifact = raster_artifact_with_species(tmp_path)
+    matrix_paths = {
+        group: matrix.path
+        for group, matrix in artifact.species_matrices.items()
+        if group not in {"threatened", "endemic"}
+    }
+    data_path = tmp_path / "species.cells.bits"
+    metadata_path = tmp_path / "species.cells.json"
+    build_species_bitset(matrix_paths, data_path, metadata_path)
+    endemic_csv = tmp_path / "endemic.csv"
+    endemic_csv.write_text(
+        "scientific_name,endemic,conservation_type\n"
+        "Present mammal,1,RUNAP\n"
+        "Present bird,0,RUNAP\n"
+        "Present reptile,1,OMEC\n",
+        encoding="utf-8",
+    )
+    bitset = load_runtime_species_bitset_index(
+        data_path,
+        metadata_path,
+        endemic_csv_path=endemic_csv,
+    )
+    bitset_artifact = replace(
+        artifact,
+        species_matrices={
+            group: matrix
+            for group, matrix in artifact.species_matrices.items()
+            if group not in {"threatened", "endemic"}
+        },
+        species_index=bitset,
+    )
+
+    metrics, metadata = calculate_custom_polygon_metrics(
+        bitset_artifact,
+        POLYGON_LEFT_COLUMN,
+        ["endemic_species_count"],
+    )
+
+    assert metrics["endemic_species_count"] == 2
+    assert metadata["metric_coverage"]["species_matrix_groups_used"] == ["endemic"]
+    bitset_artifact.close()
+
+
+def test_bitset_omits_endemic_group_when_csv_missing(tmp_path: Path) -> None:
+    artifact = raster_artifact_with_species(tmp_path)
+    matrix_paths = {
+        group: matrix.path
+        for group, matrix in artifact.species_matrices.items()
+        if group not in {"threatened", "endemic"}
+    }
+    data_path = tmp_path / "species.cells.bits"
+    metadata_path = tmp_path / "species.cells.json"
+    build_species_bitset(matrix_paths, data_path, metadata_path)
+    index = load_runtime_species_bitset_index(
+        data_path,
+        metadata_path,
+        endemic_csv_path=tmp_path / "missing-endemic.csv",
+    )
+
+    assert "endemic" not in index.groups
+    index.close()
+    artifact.close()
 
 
 def test_warmed_species_index_matches_streaming_species_values(tmp_path: Path) -> None:
@@ -672,6 +783,7 @@ def test_warmed_species_index_matches_streaming_species_values(tmp_path: Path) -
         "species_richness_reptiles",
         "species_richness_plants",
         "threatened_species_count",
+        "endemic_species_count",
         "species_pct_of_national",
     ]
     streaming_metrics, _ = calculate_custom_polygon_metrics(

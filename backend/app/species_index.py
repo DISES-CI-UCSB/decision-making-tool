@@ -46,6 +46,7 @@ from sparse.species_bitset import (  # noqa: E402
     SpeciesBitsetMetadata,
     load_species_bitset_metadata,
 )
+from species_data import DEFAULT_ENDEMIC_CSV, load_endemic_flags  # noqa: E402
 
 
 class SpeciesIndexLoadError(ValueError):
@@ -556,6 +557,8 @@ def load_runtime_species_index(matrices: dict[str, Any]) -> RuntimeSpeciesIndex:
 def load_runtime_species_bitset_index(
     data_path: Path,
     metadata_path: Path,
+    *,
+    endemic_csv_path: Path | None = None,
 ) -> RuntimeSpeciesBitsetIndex:
     try:
         metadata = load_species_bitset_metadata(metadata_path)
@@ -569,11 +572,16 @@ def load_runtime_species_bitset_index(
             mode="r",
             shape=(metadata.cell_count, metadata.bytes_per_cell),
         )
+        endemic_names = _endemic_scientific_names(endemic_csv_path)
         groups: dict[str, list[int]] = {"threatened": []}
+        if endemic_names is not None:
+            groups["endemic"] = []
         for index, entry in enumerate(metadata.species):
             groups.setdefault(entry.group, []).append(index)
             if entry.iucn_status.upper() in {"CR", "EN", "VU"}:
                 groups.setdefault("threatened", []).append(index)
+            if endemic_names is not None and entry.scientific_name in endemic_names:
+                groups["endemic"].append(index)
         return RuntimeSpeciesBitsetIndex(
             metadata_document=metadata,
             bits=bits,
@@ -588,6 +596,18 @@ def load_runtime_species_bitset_index(
         if isinstance(exc, SpeciesIndexLoadError):
             raise
         raise SpeciesIndexLoadError(f"species_bitset_load_failed:{exc}") from exc
+
+
+def _endemic_scientific_names(endemic_csv_path: Path | None) -> frozenset[str] | None:
+    """Return endemic scientific names, or None when the join CSV is missing."""
+    csv_path = endemic_csv_path if endemic_csv_path is not None else DEFAULT_ENDEMIC_CSV
+    if not csv_path.is_file():
+        return None
+    try:
+        flags = load_endemic_flags(csv_path)
+    except (OSError, FileNotFoundError):
+        return None
+    return frozenset(name for name, endemic in flags.items() if endemic)
 
 
 def normalize_species_name(name: str) -> str:

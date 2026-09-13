@@ -103,6 +103,7 @@ export const CUSTOM_AOI_SPECIES_METRIC_IDS: CustomPolygonMetricId[] = [
   'species_richness_reptiles',
   'species_richness_plants',
   'threatened_species_count',
+  'endemic_species_count',
   'threatened_species_secured',
   'species_pct_of_national',
 ];
@@ -222,6 +223,12 @@ export const CUSTOM_AOI_METRIC_DEFINITIONS: Partial<
     metricId: 'threatened_species_count',
     unit: 'count',
     labelKey: 'metrics.tier1.threatened_species_count',
+    formatHint: 'number',
+  },
+  endemic_species_count: {
+    metricId: 'endemic_species_count',
+    unit: 'count',
+    labelKey: 'metrics.tier1.endemic_species_count',
     formatHint: 'number',
   },
   species_pct_of_national: {

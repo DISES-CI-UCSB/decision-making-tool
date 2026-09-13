@@ -168,7 +168,7 @@ def test_cell_major_species_inventory_matches_species_major_index(tmp_path: Path
     matrix_paths = {
         group: matrix.path
         for group, matrix in species_major.species_matrices.items()
-        if group != "threatened"
+        if group not in {"threatened", "endemic"}
     }
     data_path = tmp_path / "species.cells.bits"
     metadata_path = tmp_path / "species.cells.json"
@@ -197,7 +197,7 @@ def test_cell_major_species_coverage_uses_aoi_and_solution_categories(
     matrix_paths = {
         group: matrix.path
         for group, matrix in artifact.species_matrices.items()
-        if group != "threatened"
+        if group not in {"threatened", "endemic"}
     }
     data_path = tmp_path / "species.cells.bits"
     metadata_path = tmp_path / "species.cells.json"
@@ -468,7 +468,7 @@ def test_detailed_species_coverage_without_overlay_leaves_coverage_null(
     matrix_paths = {
         group: matrix.path
         for group, matrix in artifact.species_matrices.items()
-        if group != "threatened"
+        if group not in {"threatened", "endemic"}
     }
     data_path = tmp_path / "species.cells.bits"
     metadata_path = tmp_path / "species.cells.json"
@@ -509,7 +509,7 @@ def test_detailed_species_coverage_cancels_during_row_construction(
     matrix_paths = {
         group: matrix.path
         for group, matrix in artifact.species_matrices.items()
-        if group != "threatened"
+        if group not in {"threatened", "endemic"}
     }
     data_path = tmp_path / "species.cells.bits"
     metadata_path = tmp_path / "species.cells.json"

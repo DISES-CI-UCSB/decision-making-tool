@@ -46,6 +46,8 @@ from species_goals import (
 ENDEMIC_METRIC_ID = "endemic_species_count"
 DEFAULT_OUTPUT_DIR = Path("data/metrics/generated/endemic-species-count-backfill")
 ENDEMIC_SOURCE = "csv:biomod_spp_responsibilidad_national+species-goals"
+# Compact metrics documents use singular ``sirap``; species-goals partitions use ``siraps``.
+SPECIES_GOALS_LEVEL_ALIASES = {"sirap": "siraps"}
 READY_NOTES = (
     "Count of Colombia-endemic non-fish species with solution-covered range "
     "area > 0 in this scope. Endemic flag from biomod_spp_responsibilidad_national.csv "
@@ -198,20 +200,29 @@ def resolve_catalog_path(species_goals_root: Path) -> Path | None:
     return None
 
 
+def species_goals_level(level: str) -> str:
+    """Map compact-document geography keys onto species-goals partition names."""
+
+    return SPECIES_GOALS_LEVEL_ALIASES.get(level, level)
+
+
 def resolve_partition_path(
     species_goals_root: Path,
     solution_id: str,
     level: str,
 ) -> Path | None:
+    lookup_level = species_goals_level(level)
     candidates: list[Path] = []
-    if level in GEOGRAPHY_LEVELS:
-        candidates.append(compact_partition_path(species_goals_root, solution_id, level))
+    if lookup_level in GEOGRAPHY_LEVELS:
+        candidates.append(
+            compact_partition_path(species_goals_root, solution_id, lookup_level)
+        )
     candidates.append(
         species_goals_root
         / "compact"
         / "v1"
         / solution_id
-        / f"{level}.species-goals.compact.json"
+        / f"{lookup_level}.species-goals.compact.json"
     )
     for path in candidates:
         if path.is_file():

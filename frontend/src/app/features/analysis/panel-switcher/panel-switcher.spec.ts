@@ -864,6 +864,7 @@ describe('PanelSwitcherComponent', () => {
       'species_richness_reptiles',
       'species_richness_plants',
       'threatened_species_count',
+      'endemic_species_count',
       'threatened_species_secured',
       'species_pct_of_national',
     ]);
@@ -895,6 +896,74 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-species-value-plants')?.textContent).toContain('7');
     expect(compiled.querySelector('#aoi-stat-threatened')?.textContent).toContain('3');
     expect(compiled.querySelector('#aoi-stat-national-species')?.textContent).toContain('1,4%');
+    expect(compiled.querySelector('#aoi-stat-endemic')).toBeNull();
+  });
+
+  it('retries custom AOI species metrics without endemic after a 422', async () => {
+    const solution = buildTestSolution();
+    const geometry = buildTestGeometry();
+    const fastMetrics$ = new Subject<CustomPolygonMetricsResponse>();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockImplementation((request) => {
+      if (request.metrics?.includes('species_richness_mammals')) {
+        if (request.metrics.includes('endemic_species_count')) {
+          return throwError(() => ({ status: 422, message: 'Unsupported metric ids' }));
+        }
+        return of(
+          buildCustomPolygonResponse({
+            species_richness_mammals: 4,
+            species_richness_birds: 9,
+            species_richness_amphibians: 1,
+            species_richness_reptiles: 2,
+            species_richness_plants: 7,
+            threatened_species_count: 3,
+            species_pct_of_national: 1.4,
+          }),
+        );
+      }
+      return fastMetrics$.asObservable();
+    });
+
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('aoi');
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 10 });
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    fastMetrics$.next(
+      buildCustomPolygonResponse({
+        priority_area_in_region: 2.5,
+        national_contribution: 1.25,
+        carbon_storage_biomass: 40,
+      }),
+    );
+    fastMetrics$.complete();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
+      geometry,
+      metrics: expect.arrayContaining(['endemic_species_count']),
+      solution_id: solution.id,
+    });
+    expect(apiServiceSpy.getCustomPolygonMetrics).toHaveBeenCalledWith({
+      geometry,
+      metrics: [
+        'species_richness_mammals',
+        'species_richness_birds',
+        'species_richness_amphibians',
+        'species_richness_reptiles',
+        'species_richness_plants',
+        'threatened_species_count',
+        'threatened_species_secured',
+        'species_pct_of_national',
+      ],
+      solution_id: solution.id,
+    });
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-biodiversity-species-failure')).toBeNull();
+    expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('4');
+    expect(compiled.querySelector('#aoi-stat-threatened')?.textContent).toContain('3');
     expect(compiled.querySelector('#aoi-stat-endemic')).toBeNull();
   });
 
@@ -1234,6 +1303,49 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-stat-endemic-label')?.textContent).toContain(
       'analysis.aoi.stats.endemicSpecies',
     );
+  });
+
+  it('shows endemic species count for a custom AOI when the live metric is displayable', async () => {
+    const solution = buildTestSolution();
+    const geometry = buildTestGeometry();
+    const fastMetrics$ = new Subject<CustomPolygonMetricsResponse>();
+    const speciesMetrics$ = new Subject<CustomPolygonMetricsResponse>();
+    vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockImplementation((request) =>
+      request.metrics?.includes('species_richness_mammals')
+        ? speciesMetrics$.asObservable()
+        : fastMetrics$.asObservable(),
+    );
+
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('aoi');
+    appState.selectCustomAOI(geometry, { name: 'Drawn AOI', areaKm2: 10 });
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    fastMetrics$.next(
+      buildCustomPolygonResponse({
+        priority_area_in_region: 2.5,
+        national_contribution: 1.25,
+      }),
+    );
+    fastMetrics$.complete();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    speciesMetrics$.next(
+      buildCustomPolygonResponse({
+        species_richness_mammals: 4,
+        threatened_species_count: 3,
+        endemic_species_count: 12,
+      }),
+    );
+    speciesMetrics$.complete();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-stat-endemic')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-stat-endemic-value')?.textContent).toContain('12');
   });
 
   it('renders live municipality land-use percents on the scenario chart without dummy 15/25/60', async () => {

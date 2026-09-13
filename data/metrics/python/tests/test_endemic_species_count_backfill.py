@@ -12,6 +12,7 @@ from backfill_endemic_species_count import (
     count_endemic_species_present,
     endemic_row_for_scope,
     run_backfill,
+    species_goals_level,
     upsert_metric_in_catalog_order,
 )
 from backfill_land_use_of_aoi import load_metric_document
@@ -115,11 +116,44 @@ def _document(
     }
 
 
+def _sirap_document(
+    *,
+    solution_id: str = "eje-cafetero-001",
+    empty_sirap: bool = False,
+) -> dict:
+    document = _document(solution_id=solution_id)
+    document["geographies"] = {
+        "sirap": {
+            "eje-cafetero": {
+                "name": "Eje Cafetero",
+                "scopeState": {
+                    "classification": "empty" if empty_sirap else "supported",
+                    "solutionValidCellCount": 0 if empty_sirap else 4,
+                },
+                "metrics": [
+                    {
+                        "metricId": "threatened_species_count",
+                        "value": 3,
+                        "unit": "count",
+                        "status": "ready",
+                        "source": "test",
+                        "notes": "threatened",
+                        "labelKey": "metrics.tier1.threatened_species_count",
+                        "formatHint": "number",
+                    }
+                ],
+            }
+        }
+    }
+    return document
+
+
 def _write_species_goals(
     root: Path,
     *,
     solution_id: str = "demo",
     include_departments: bool = True,
+    include_siraps: bool = False,
 ) -> Path:
     catalog_dir = root / "species-goals" / "catalog" / "v1"
     catalog_dir.mkdir(parents=True)
@@ -168,6 +202,21 @@ def _write_species_goals(
         }
         (compact_root / "departments.species-goals.compact.json").write_text(
             json.dumps(departments),
+            encoding="utf-8",
+        )
+    if include_siraps:
+        siraps = {
+            "format": "species-goals-compact-v1",
+            "solutionId": solution_id,
+            "geographyLevel": "siraps",
+            "rowLayout": list(COMPACT_ROW_LAYOUT),
+            "scopeCatalog": [["eje-cafetero", "Eje Cafetero"]],
+            "rows": [
+                [0, 0, 10.0, 2.5, 0.0, 2.5, 17.0, 0],
+            ],
+        }
+        (compact_root / "siraps.species-goals.compact.json").write_text(
+            json.dumps(siraps),
             encoding="utf-8",
         )
     return root
@@ -301,6 +350,36 @@ def test_empty_land_scope_uses_empty_boundary(tmp_path: Path):
     )
     assert row["status"] == "empty"
     assert row["value"] is None
+
+
+def test_species_goals_level_maps_sirap_compact_key():
+    assert species_goals_level("sirap") == "siraps"
+    assert species_goals_level("siraps") == "siraps"
+    assert species_goals_level("departments") == "departments"
+
+
+def test_sirap_compact_geography_joins_siraps_species_goals(tmp_path: Path):
+    endemic = {"Alpha beta": True, "Gamma delta": False}
+    goals = SpeciesGoalsIndex(
+        _write_species_goals(
+            tmp_path,
+            solution_id="eje-cafetero-001",
+            include_departments=False,
+            include_siraps=True,
+        )
+    )
+    updated = backfill_verbose_document(
+        _sirap_document(),
+        endemic_by_name=endemic,
+        goals=goals,
+    )
+    sirap_row = next(
+        row
+        for row in updated["geographies"]["sirap"]["eje-cafetero"]["metrics"]
+        if row["metricId"] == ENDEMIC_METRIC_ID
+    )
+    assert sirap_row["status"] == "ready"
+    assert sirap_row["value"] == 1
 
 
 def test_backfill_counts_national_and_blocks_missing_department(tmp_path: Path):

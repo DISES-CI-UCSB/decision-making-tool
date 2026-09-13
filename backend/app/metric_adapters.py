@@ -131,6 +131,7 @@ _SPECIES_RICHNESS_FIELDS = {
 _SPECIES_GROUP_METRIC_IDS = {
     **{metric_id: group for group, metric_id in _SPECIES_RICHNESS_FIELDS.items()},
     "threatened_species_count": "threatened",
+    "endemic_species_count": "endemic",
 }
 
 _SPECIES_PCT_METRIC_ID = "species_pct_of_national"
@@ -583,6 +584,9 @@ def _calculate_species_metric(
 
     if definition.kind == "species_threatened_count":
         return _species_group_count("threatened", raster, matrices, species_index, counts_cache), {"threatened"}
+
+    if definition.kind == "species_endemic_count":
+        return _species_group_count("endemic", raster, matrices, species_index, counts_cache), {"endemic"}
 
     if definition.kind == "species_pct_of_national":
         missing = [group for group in CLASS_BUCKETS if group not in matrices]

@@ -95,6 +95,7 @@ import {
   switchMap,
   takeWhile,
   tap,
+  throwError,
   timer,
 } from 'rxjs';
 import type { Observable } from 'rxjs';
@@ -4934,34 +4935,63 @@ export class PanelSwitcherComponent {
     const startedAt = Date.now();
     this.logCustomAoiRequestStart(requestId, mode, metrics);
 
-    return this.api
-      .getCustomPolygonMetrics({
-        geometry,
-        metrics,
-        ...(this.activeSolutionId() ? { solution_id: this.activeSolutionId()! } : {}),
-      })
-      .pipe(
-        map((response) => {
-          const responseMetricKeys = Object.keys(response.metrics ?? {});
-          this.logCustomAoiRequestSuccess(requestId, mode, startedAt, response, responseMetricKeys);
+    const requestPayload = {
+      geometry,
+      metrics,
+      ...(this.activeSolutionId() ? { solution_id: this.activeSolutionId()! } : {}),
+    };
 
-          if (response.status !== 'ok') {
-            throw new Error(
-              response.message ||
-                this.translate.instant('analysis.aoi.customMetrics.statusReturned', {
-                  status: response.status,
-                }),
-            );
-          }
+    return this.api.getCustomPolygonMetrics(requestPayload).pipe(
+      catchError((error: unknown) => {
+        const fallbackMetrics = this.customAoiMetricsWithoutUnsupportedEndemic(
+          mode,
+          metrics,
+          error,
+        );
+        if (!fallbackMetrics) {
+          return throwError(() => error);
+        }
+        this.logCustomAoiRequestError(requestId, mode, startedAt, error);
+        this.logCustomAoiRequestStart(requestId, mode, fallbackMetrics);
+        return this.api.getCustomPolygonMetrics({
+          ...requestPayload,
+          metrics: fallbackMetrics,
+        });
+      }),
+      map((response) => {
+        const responseMetricKeys = Object.keys(response.metrics ?? {});
+        this.logCustomAoiRequestSuccess(requestId, mode, startedAt, response, responseMetricKeys);
 
-          return this.mapCustomPolygonMetrics(response, mode);
-        }),
-        tap({
-          error: (error: unknown) =>
-            this.logCustomAoiRequestError(requestId, mode, startedAt, error),
-        }),
-        finalize(() => this.logCustomAoiRequestFinalize(requestId, mode, startedAt)),
-      );
+        if (response.status !== 'ok') {
+          throw new Error(
+            response.message ||
+              this.translate.instant('analysis.aoi.customMetrics.statusReturned', {
+                status: response.status,
+              }),
+          );
+        }
+
+        return this.mapCustomPolygonMetrics(response, mode);
+      }),
+      tap({
+        error: (error: unknown) => this.logCustomAoiRequestError(requestId, mode, startedAt, error),
+      }),
+      finalize(() => this.logCustomAoiRequestFinalize(requestId, mode, startedAt)),
+    );
+  }
+
+  private customAoiMetricsWithoutUnsupportedEndemic(
+    mode: CustomAoiMetricRequestMode,
+    metrics: CustomPolygonMetricId[],
+    error: unknown,
+  ): CustomPolygonMetricId[] | null {
+    if (mode !== 'species' || this.getHttpErrorStatus(error) !== 422) {
+      return null;
+    }
+    if (!metrics.includes('endemic_species_count')) {
+      return null;
+    }
+    return metrics.filter((metricId) => metricId !== 'endemic_species_count');
   }
 
   private mapCustomPolygonMetrics(
