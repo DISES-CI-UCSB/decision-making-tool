@@ -1,6 +1,6 @@
 """Species CSV loading and species range raster I/O.
 
-The Tier 1 species metrics (#3, #21–#26, #28) are powered by two artifacts in
+The Tier 1 species metrics (#3, #21–#27, #28) are powered by two artifacts in
 Vercel Blob:
 
 1.  ``inputs/features/species/biomod_spp_ranges_updatedIUCN.csv``
@@ -56,6 +56,10 @@ PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 SPECIES_BLOB_PREFIX = f"{PUBLIC_BLOB_HOST}/inputs/features/species"
 SPECIES_CSV_URL = f"{SPECIES_BLOB_PREFIX}/biomod_spp_ranges_updatedIUCN.csv"
 SPECIES_TIF_SUFFIX = "_10_MAXENT.tif"
+ENDEMIC_CSV_NAME = "biomod_spp_responsibilidad_national.csv"
+DEFAULT_ENDEMIC_CSV = (
+    Path(__file__).resolve().parent / "artifacts" / "species" / ENDEMIC_CSV_NAME
+)
 
 # Solution-name regex parts for parsing solution target percent.
 # The Solution Finder writes IDs like "Ecos17+ESTR30+RUNAP_HF",
@@ -84,6 +88,7 @@ class SpeciesRecord:
     range_km2: float | None
     bucket: str | None       # one of CLASS_BUCKETS, or None if class is unmapped
     threatened: bool         # iucn_status in {CR, EN, VU} (and not excluded class)
+    endemic: bool = False    # Colombia-endemic flag; False when the join CSV is absent
 
     @property
     def filename_stem(self) -> str:
@@ -171,7 +176,46 @@ def species_blob_url(scientific_name: str) -> str:
     return f"{SPECIES_BLOB_PREFIX}/{stem}{SPECIES_TIF_SUFFIX}"
 
 
-def load_species_records(csv_path: Path) -> list[SpeciesRecord]:
+def load_endemic_flags(csv_path: Path) -> dict[str, bool]:
+    """Read ``scientific_name → endemic`` from the responsibility CSV.
+
+    The file has one RUNAP row and one OMEC row per species. Flags are
+    deduplicated on ``scientific_name``. Conflicting 0/1 values for the same
+    name resolve to endemic (any ``1`` wins). Missing or unparsable flags
+    are treated as non-endemic.
+    """
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Endemic CSV not found at {csv_path}")
+
+    flags: dict[str, bool] = {}
+    with csv_path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            name = (row.get("scientific_name") or "").strip()
+            if not name:
+                continue
+            endemic = (row.get("endemic") or "").strip() == "1"
+            flags[name] = flags.get(name, False) or endemic
+    return flags
+
+
+def resolve_endemic_csv_path(
+    species_csv_path: Path,
+    endemic_csv_path: Path | None = None,
+) -> Path | None:
+    """Return an endemic CSV that exists, or ``None`` so callers default False."""
+    if endemic_csv_path is not None:
+        return endemic_csv_path if endemic_csv_path.is_file() else None
+    sibling = species_csv_path.with_name(ENDEMIC_CSV_NAME)
+    if sibling.is_file():
+        return sibling
+    return None
+
+
+def load_species_records(
+    csv_path: Path,
+    endemic_csv_path: Path | None = None,
+) -> list[SpeciesRecord]:
     """Read the species CSV and return non-fish records.
 
     Filters out ``EXCLUDED_CLASSES`` rows (currently just ``Actinopteri``).
@@ -179,12 +223,19 @@ def load_species_records(csv_path: Path) -> list[SpeciesRecord]:
     class bucket — the calling code uses ``record.bucket`` to decide which
     richness metrics they contribute to.
 
+    The Colombia-endemic flag is joined from ``biomod_spp_responsibilidad_national.csv``
+    when that file is passed in or sits next to ``csv_path``. Missing names and
+    a missing endemic CSV both default to ``endemic=False``.
+
     The CSV is expected to have these columns (per the T10 inspection):
     ``scientific_name, class, iucn_status, range_km2, range_pct_country,
     range_runap_km2, range_pct_runap, range_omec_km2, range_pct_omec``.
     """
     if not csv_path.exists():
         raise FileNotFoundError(f"Species CSV not found at {csv_path}")
+
+    endemic_path = resolve_endemic_csv_path(csv_path, endemic_csv_path)
+    endemic_by_name = load_endemic_flags(endemic_path) if endemic_path is not None else {}
 
     records: list[SpeciesRecord] = []
     with csv_path.open(newline="", encoding="utf-8") as handle:
@@ -209,6 +260,7 @@ def load_species_records(csv_path: Path) -> list[SpeciesRecord]:
                     range_km2=range_km2,
                     bucket=class_bucket(cls),
                     threatened=iucn in THREATENED_IUCN_STATUSES,
+                    endemic=endemic_by_name.get(name, False),
                 )
             )
     return records
@@ -326,7 +378,7 @@ class SpeciesPoolSizes:
 
     These come from a single pass over the loaded ``SpeciesRecord`` list and
     are used as the denominator for metric #28 (species count / total) and as
-    upper-bound metadata in source notes for #21–#26.
+    upper-bound metadata in source notes for #21–#27.
     """
     total_non_fish: int                    # denominator for #28
     threatened_total: int                  # CR/EN/VU non-fish (#26 pool, #3 pool)

@@ -240,6 +240,7 @@ from sparse.layer_source import (
     validated_sparse_url,
 )
 from species_data import (
+    DEFAULT_ENDEMIC_CSV,
     SPECIES_CSV_URL,
     SpeciesPoolSizes,
     SpeciesRecord,
@@ -1064,7 +1065,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--skip-species",
         action="store_true",
-        help="Skip the species pass (#3, #21–#26, #28). Useful for fast smoke tests.",
+        help="Skip the species pass (#3, #21–#27, #28). Useful for fast smoke tests.",
     )
     parser.add_argument(
         "--skip-species-boundary-level",
@@ -2967,6 +2968,20 @@ def _compute_species_metric(
             source="csv:biomod_spp_ranges_updatedIUCN+raster:species_ranges",
         )
 
+    if definition.kind == "species_endemic_count":
+        return _metric_value(
+            definition,
+            value=int(species_metrics.endemic_present),
+            status="ready",
+            notes=(
+                "Colombia-endemic non-fish species with positive exact "
+                "range-intersection area in the priority area. Endemic flag from "
+                "biomod_spp_responsibilidad_national.csv (0/1); missing names "
+                "treated as non-endemic."
+            ),
+            source="csv:biomod_spp_responsibilidad_national+raster:species_ranges",
+        )
+
     if definition.kind == "species_threatened_secured":
         if target_policy.kind == "scalar" and target_policy.scalar_target_pct is None:
             return _metric_value(
@@ -3019,7 +3034,7 @@ def _compute_species_metric(
 
 
 # ---------------------------------------------------------------------------
-# Species accumulator pass (computes #3, #21–#26, #28 across all scopes)
+# Species accumulator pass (computes #3, #21–#27, #28 across all scopes)
 # ---------------------------------------------------------------------------
 
 
@@ -5428,7 +5443,12 @@ def main(argv: list[str] | None = None) -> int:
                     args.cache_dir,
                     force=args.no_cache,
                 )
-            catalog_species_records = load_species_records(species_csv_download.path)
+            catalog_species_records = load_species_records(
+                species_csv_download.path,
+                endemic_csv_path=(
+                    DEFAULT_ENDEMIC_CSV if DEFAULT_ENDEMIC_CSV.is_file() else None
+                ),
+            )
             species_pool_sizes = compute_pool_sizes(catalog_species_records)
             species_records = (
                 species_exception.filter_available(catalog_species_records)

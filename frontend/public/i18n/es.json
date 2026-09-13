@@ -83,6 +83,7 @@
     "priority_area_total": "Área prioritaria",
     "national_contribution": "Porcentaje de Colombia seleccionado",
     "tier1": {
+      "endemic_species_count": "Especies endémicas",
       "land_use_artificial_surfaces_pct_of_aoi": "Territorios Artificializados (% del AOI)",
       "land_use_agricultural_areas_pct_of_aoi": "Territorios Agrícolas (% del AOI)",
       "land_use_forests_and_semi_natural_areas_pct_of_aoi": "Bosques y Áreas Seminaturales (% del AOI)",

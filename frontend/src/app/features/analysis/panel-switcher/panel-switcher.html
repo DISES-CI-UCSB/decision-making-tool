@@ -2270,13 +2270,25 @@
                               </p>
                             </div>
                           }
-                          @if (!isCustomAoiSelected()) {
+                          @if (
+                            !isCustomAoiSelected() &&
+                            hasDisplayableAoiMetric('endemic_species_count')
+                          ) {
                             <div id="aoi-stat-endemic" class="aoi-stat-card">
                               <p id="aoi-stat-endemic-label" class="aoi-stat-label">
                                 {{ 'analysis.aoi.stats.endemicSpecies' | translate }}
                               </p>
-                              <p id="aoi-stat-endemic-value" class="aoi-stat-value">
-                                {{ aoiVal('12') }}
+                              <p
+                                id="aoi-stat-endemic-value"
+                                class="aoi-stat-value"
+                                [attr.data-full-value]="
+                                  getAoiMetricFullValue('endemic_species_count')
+                                "
+                                [attr.tabindex]="
+                                  getAoiMetricFullValue('endemic_species_count') ? 0 : null
+                                "
+                              >
+                                {{ getAoiMetricValue('endemic_species_count', '12') }}
                               </p>
                               <p id="aoi-stat-endemic-unit" class="aoi-stat-unit">
                                 {{ 'analysis.aoi.stats.colombiaEndemics' | translate }}
@@ -2888,169 +2900,175 @@
 
               <!-- ─── SECTION D: Land Use & Socio-Economic ─── -->
               @if (!isMarineSolution()) {
-              <section id="aoi-section-land">
-                <button
-                  id="aoi-head-land"
-                  type="button"
-                  class="aoi-section-head"
-                  [attr.aria-expanded]="isAoiSectionExpanded('land')"
-                  (click)="toggleAoiSection('land')"
-                >
-                  <span class="aoi-section-dot"></span>
-                  <span class="aoi-section-label rs-header-optical-nudge">{{
-                    'analysis.aoi.sections.land' | translate
-                  }}</span>
-                  <span
-                    id="aoi-chevron-land"
-                    class="aoi-section-chevron"
-                    [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('land')"
-                    aria-hidden="true"
+                <section id="aoi-section-land">
+                  <button
+                    id="aoi-head-land"
+                    type="button"
+                    class="aoi-section-head"
+                    [attr.aria-expanded]="isAoiSectionExpanded('land')"
+                    (click)="toggleAoiSection('land')"
                   >
-                    <svg
-                      class="aoi-section-chevron-icon"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
+                    <span class="aoi-section-dot"></span>
+                    <span class="aoi-section-label rs-header-optical-nudge">{{
+                      'analysis.aoi.sections.land' | translate
+                    }}</span>
+                    <span
+                      id="aoi-chevron-land"
+                      class="aoi-section-chevron"
+                      [class.aoi-section-chevron-collapsed]="!isAoiSectionExpanded('land')"
                       aria-hidden="true"
                     >
-                      <path d="M3 4.5L6 7.5L9 4.5" />
-                    </svg>
-                  </span>
-                </button>
-                <div
-                  id="aoi-body-land"
-                  class="collapse-motion-shell"
-                  [class.is-collapsed]="!isAoiSectionExpanded('land')"
-                  [attr.aria-hidden]="!isAoiSectionExpanded('land')"
-                >
-                  <div id="aoi-body-land-inner" class="collapse-motion-inner aoi-section-body">
-                    <div id="aoi-landuse-agricultural-area-stats" class="aoi-stat-grid">
-                      <div
-                        id="aoi-stat-agricultural-conservation-area"
-                        class="aoi-stat-card col-span-2"
+                      <svg
+                        class="aoi-section-chevron-icon"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
                       >
-                        <p
-                          id="aoi-stat-agricultural-conservation-area-label"
-                          class="aoi-stat-label"
-                        >
-                          {{ 'analysis.aoi.stats.agriculturalConservationArea' | translate }}
-                        </p>
-                        <p
-                          id="aoi-stat-agricultural-conservation-area-value"
-                          class="aoi-stat-value"
-                          [attr.data-full-value]="getAoiMetricFullValue('agricultural_area')"
-                          [attr.tabindex]="getAoiMetricFullValue('agricultural_area') ? 0 : null"
-                        >
-                          {{
-                            getAoiMetricValue('agricultural_area', getAoiUnitFallback(125, 'km²'))
-                          }}
-                        </p>
-                        <p id="aoi-stat-agricultural-conservation-area-unit" class="aoi-stat-unit">
-                          {{ 'analysis.aoi.stats.agriculturalConservationAreaDesc' | translate }}
-                        </p>
-                      </div>
-                    </div>
-                    <section
-                      id="aoi-landuse-scenario-chart-section"
-                      class="aoi-landuse-chart-section"
-                    >
-                      <h3 id="aoi-landuse-scenario-chart-title" class="aoi-landuse-chart-title">
-                        {{ 'analysis.aoi.landUseLabels.scenarioAreaWithinAoi' | translate }}
-                      </h3>
-                      @if (aoiLandUseScenarioBars().length > 0) {
-                        <div id="aoi-landuse-scenario-chart" class="aoi-bar-chart">
-                          @for (bar of aoiLandUseScenarioBars(); track bar.id) {
-                            <div [id]="'aoi-landuse-scenario-bar-' + bar.id" class="aoi-bar-row">
-                              <span
-                                [id]="'aoi-landuse-scenario-bar-label-' + bar.id"
-                                class="aoi-bar-label"
-                              >
-                                {{ bar.label }}
-                              </span>
-                              <div
-                                [id]="'aoi-landuse-scenario-bar-fill-shell-' + bar.id"
-                                class="aoi-bar-fill-shell"
-                              >
-                                <span
-                                  [id]="'aoi-landuse-scenario-bar-fill-' + bar.id"
-                                  class="aoi-bar-fill"
-                                  [style.width.%]="bar.percent"
-                                  [style.background-color]="bar.color"
-                                ></span>
-                              </div>
-                              <span
-                                [id]="'aoi-landuse-scenario-bar-val-' + bar.id"
-                                class="aoi-bar-val"
-                              >
-                                {{ bar.displayValue }}
-                              </span>
-                            </div>
-                          }
-                        </div>
-                      } @else if (!isCustomAoiSelected() || !isCustomAoiMetricsLoading()) {
+                        <path d="M3 4.5L6 7.5L9 4.5" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    id="aoi-body-land"
+                    class="collapse-motion-shell"
+                    [class.is-collapsed]="!isAoiSectionExpanded('land')"
+                    [attr.aria-hidden]="!isAoiSectionExpanded('land')"
+                  >
+                    <div id="aoi-body-land-inner" class="collapse-motion-inner aoi-section-body">
+                      <div id="aoi-landuse-agricultural-area-stats" class="aoi-stat-grid">
                         <div
-                          id="aoi-landuse-scenario-chart"
-                          class="aoi-bar-chart aoi-landuse-chart-empty"
-                          role="status"
+                          id="aoi-stat-agricultural-conservation-area"
+                          class="aoi-stat-card col-span-2"
                         >
-                          <p id="aoi-landuse-scenario-chart-empty-copy" class="m-0">
+                          <p
+                            id="aoi-stat-agricultural-conservation-area-label"
+                            class="aoi-stat-label"
+                          >
+                            {{ 'analysis.aoi.stats.agriculturalConservationArea' | translate }}
+                          </p>
+                          <p
+                            id="aoi-stat-agricultural-conservation-area-value"
+                            class="aoi-stat-value"
+                            [attr.data-full-value]="getAoiMetricFullValue('agricultural_area')"
+                            [attr.tabindex]="getAoiMetricFullValue('agricultural_area') ? 0 : null"
+                          >
                             {{
-                              'analysis.aoi.landUseLabels.scenarioAreaWithinAoiUnavailable'
-                                | translate
+                              getAoiMetricValue('agricultural_area', getAoiUnitFallback(125, 'km²'))
                             }}
                           </p>
-                        </div>
-                      }
-                    </section>
-
-                    <section id="aoi-landuse-aoi-chart-section" class="aoi-landuse-chart-section">
-                      <h3 id="aoi-landuse-aoi-chart-title" class="aoi-landuse-chart-title">
-                        {{ 'analysis.aoi.landUseLabels.withinAoi' | translate }}
-                      </h3>
-                      @if (aoiLandUseAoiBars().length > 0) {
-                        <div id="aoi-landuse-aoi-chart" class="aoi-bar-chart">
-                          @for (bar of aoiLandUseAoiBars(); track bar.id) {
-                            <div [id]="'aoi-landuse-aoi-bar-' + bar.id" class="aoi-bar-row">
-                              <span
-                                [id]="'aoi-landuse-aoi-bar-label-' + bar.id"
-                                class="aoi-bar-label"
-                              >
-                                {{ bar.label }}
-                              </span>
-                              <div
-                                [id]="'aoi-landuse-aoi-bar-fill-shell-' + bar.id"
-                                class="aoi-bar-fill-shell"
-                              >
-                                <span
-                                  [id]="'aoi-landuse-aoi-bar-fill-' + bar.id"
-                                  class="aoi-bar-fill"
-                                  [style.width.%]="bar.percent"
-                                  [style.background-color]="bar.color"
-                                ></span>
-                              </div>
-                              <span [id]="'aoi-landuse-aoi-bar-val-' + bar.id" class="aoi-bar-val">
-                                {{ bar.displayValue }}
-                              </span>
-                            </div>
-                          }
-                        </div>
-                      } @else if (!(isCustomAoiSelected() && isCustomAoiMetricsLoading())) {
-                        <div
-                          id="aoi-landuse-aoi-chart"
-                          class="aoi-bar-chart aoi-landuse-chart-empty"
-                          role="status"
-                        >
-                          <p id="aoi-landuse-aoi-chart-empty-copy" class="m-0">
-                            {{ 'analysis.aoi.landUseLabels.withinAoiUnavailable' | translate }}
+                          <p
+                            id="aoi-stat-agricultural-conservation-area-unit"
+                            class="aoi-stat-unit"
+                          >
+                            {{ 'analysis.aoi.stats.agriculturalConservationAreaDesc' | translate }}
                           </p>
                         </div>
-                      }
-                    </section>
+                      </div>
+                      <section
+                        id="aoi-landuse-scenario-chart-section"
+                        class="aoi-landuse-chart-section"
+                      >
+                        <h3 id="aoi-landuse-scenario-chart-title" class="aoi-landuse-chart-title">
+                          {{ 'analysis.aoi.landUseLabels.scenarioAreaWithinAoi' | translate }}
+                        </h3>
+                        @if (aoiLandUseScenarioBars().length > 0) {
+                          <div id="aoi-landuse-scenario-chart" class="aoi-bar-chart">
+                            @for (bar of aoiLandUseScenarioBars(); track bar.id) {
+                              <div [id]="'aoi-landuse-scenario-bar-' + bar.id" class="aoi-bar-row">
+                                <span
+                                  [id]="'aoi-landuse-scenario-bar-label-' + bar.id"
+                                  class="aoi-bar-label"
+                                >
+                                  {{ bar.label }}
+                                </span>
+                                <div
+                                  [id]="'aoi-landuse-scenario-bar-fill-shell-' + bar.id"
+                                  class="aoi-bar-fill-shell"
+                                >
+                                  <span
+                                    [id]="'aoi-landuse-scenario-bar-fill-' + bar.id"
+                                    class="aoi-bar-fill"
+                                    [style.width.%]="bar.percent"
+                                    [style.background-color]="bar.color"
+                                  ></span>
+                                </div>
+                                <span
+                                  [id]="'aoi-landuse-scenario-bar-val-' + bar.id"
+                                  class="aoi-bar-val"
+                                >
+                                  {{ bar.displayValue }}
+                                </span>
+                              </div>
+                            }
+                          </div>
+                        } @else if (!isCustomAoiSelected() || !isCustomAoiMetricsLoading()) {
+                          <div
+                            id="aoi-landuse-scenario-chart"
+                            class="aoi-bar-chart aoi-landuse-chart-empty"
+                            role="status"
+                          >
+                            <p id="aoi-landuse-scenario-chart-empty-copy" class="m-0">
+                              {{
+                                'analysis.aoi.landUseLabels.scenarioAreaWithinAoiUnavailable'
+                                  | translate
+                              }}
+                            </p>
+                          </div>
+                        }
+                      </section>
+
+                      <section id="aoi-landuse-aoi-chart-section" class="aoi-landuse-chart-section">
+                        <h3 id="aoi-landuse-aoi-chart-title" class="aoi-landuse-chart-title">
+                          {{ 'analysis.aoi.landUseLabels.withinAoi' | translate }}
+                        </h3>
+                        @if (aoiLandUseAoiBars().length > 0) {
+                          <div id="aoi-landuse-aoi-chart" class="aoi-bar-chart">
+                            @for (bar of aoiLandUseAoiBars(); track bar.id) {
+                              <div [id]="'aoi-landuse-aoi-bar-' + bar.id" class="aoi-bar-row">
+                                <span
+                                  [id]="'aoi-landuse-aoi-bar-label-' + bar.id"
+                                  class="aoi-bar-label"
+                                >
+                                  {{ bar.label }}
+                                </span>
+                                <div
+                                  [id]="'aoi-landuse-aoi-bar-fill-shell-' + bar.id"
+                                  class="aoi-bar-fill-shell"
+                                >
+                                  <span
+                                    [id]="'aoi-landuse-aoi-bar-fill-' + bar.id"
+                                    class="aoi-bar-fill"
+                                    [style.width.%]="bar.percent"
+                                    [style.background-color]="bar.color"
+                                  ></span>
+                                </div>
+                                <span
+                                  [id]="'aoi-landuse-aoi-bar-val-' + bar.id"
+                                  class="aoi-bar-val"
+                                >
+                                  {{ bar.displayValue }}
+                                </span>
+                              </div>
+                            }
+                          </div>
+                        } @else if (!(isCustomAoiSelected() && isCustomAoiMetricsLoading())) {
+                          <div
+                            id="aoi-landuse-aoi-chart"
+                            class="aoi-bar-chart aoi-landuse-chart-empty"
+                            role="status"
+                          >
+                            <p id="aoi-landuse-aoi-chart-empty-copy" class="m-0">
+                              {{ 'analysis.aoi.landUseLabels.withinAoiUnavailable' | translate }}
+                            </p>
+                          </div>
+                        }
+                      </section>
+                    </div>
                   </div>
-                </div>
-              </section>
+                </section>
               }
 
               <!-- ─── SECTION E: Cultural & Indigenous Territories ─── -->

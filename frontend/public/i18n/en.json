@@ -83,6 +83,7 @@
     "priority_area_total": "Candidate conservation area",
     "national_contribution": "Share of Colombia selected",
     "tier1": {
+      "endemic_species_count": "Endemic Species",
       "land_use_artificial_surfaces_pct_of_aoi": "Artificial Surfaces (percent of AOI)",
       "land_use_agricultural_areas_pct_of_aoi": "Agricultural Areas (percent of AOI)",
       "land_use_forests_and_semi_natural_areas_pct_of_aoi": "Forests and Semi-natural Areas (percent of AOI)",

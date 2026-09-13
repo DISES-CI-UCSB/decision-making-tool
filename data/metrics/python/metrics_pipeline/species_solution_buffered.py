@@ -306,6 +306,7 @@ def _flush_solution(
         [_normalized_status(species.iucn_status) for species in records], dtype=object
     )
     threatened = np.asarray([species.threatened for species in records], dtype=bool)
+    endemic = np.asarray([species.endemic for species in records], dtype=bool)
     dual_reference = bool(
         accumulator.target_policy is not None
         and accumulator.target_policy.kind == "dual_reference"
@@ -318,6 +319,7 @@ def _flush_solution(
         buckets=buckets,
         statuses=statuses,
         threatened=threatened,
+        endemic=endemic,
         dual_reference=dual_reference,
         national=True,
     )
@@ -330,6 +332,7 @@ def _flush_solution(
             buckets=buckets,
             statuses=statuses,
             threatened=threatened,
+            endemic=endemic,
             dual_reference=dual_reference,
             national=False,
         )
@@ -344,6 +347,7 @@ def _update_scope_batch(
     buckets: np.ndarray,
     statuses: np.ndarray,
     threatened: np.ndarray,
+    endemic: np.ndarray,
     dual_reference: bool,
     national: bool,
 ) -> None:
@@ -364,6 +368,11 @@ def _update_scope_batch(
         scopes,
         "threatened_present",
         (present & threatened[:, None]).sum(axis=0),
+    )
+    _add_scope_values(
+        scopes,
+        "endemic_present",
+        (present & endemic[:, None]).sum(axis=0),
     )
     _add_scope_values(
         scopes,

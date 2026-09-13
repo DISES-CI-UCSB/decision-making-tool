@@ -18,9 +18,10 @@ T6 metrics added (17 additional):
   Land cover:         9, 51, 52, 54, 55, 56  (coberturas.tif — class IDs 1=forest/semi-natural, 2=agri, 3=wetland, 4=water, 5=artificial)
   Comparison:         70, 71, 72  (deferred pairwise)
 
-T10 metrics added (8 additional, species):
+T10 metrics added (9 additional, species):
   Richness:           21, 22, 23, 24, 25  (per-class species counts)
   Threatened:         26, 3                (CR/EN/VU non-fish; secured @ solution target %)
+  Endemic:            27                   (Colombia-endemic non-fish with solution coverage)
   Country share:      28                   (selected species count / non-fish pool × 100)
 
 Edit METRIC_CATALOG below if the Tier 1 scope changes.
@@ -59,6 +60,7 @@ MetricKind = Literal[
     "species_group_coverage",             # #2: species meeting target by taxonomic group/IUCN
     "species_richness",                  # #21–#25: count of species in a class bucket
     "species_threatened_count",          # #26: count of CR/EN/VU non-fish present
+    "species_endemic_count",             # #27: count of Colombia-endemic non-fish present
     "species_threatened_secured",        # #3:  threatened species with coverage >= solution target %
     "species_pct_of_national",           # #28: present species / non-fish pool × 100
     # Metric defined but required data layer not yet available.
@@ -495,6 +497,22 @@ METRIC_CATALOG: tuple[MetricDefinition, ...] = (
         ),
         kind="species_threatened_count",
     ),
+    # --- T10: endemic species count (#27) ---
+    MetricDefinition(
+        metric_id="endemic_species_count",
+        metric_number=27,
+        label_key="metrics.tier1.endemic_species_count",
+        english_label="Endemic Species",
+        spanish_label="Especies endémicas",
+        unit="count",
+        format_hint="number",
+        source_note=(
+            "Count of Colombia-endemic non-fish species with solution-covered range "
+            "area > 0 in scope. Endemic flag from biomod_spp_responsibilidad_national.csv "
+            "(0/1); missing names treated as non-endemic."
+        ),
+        kind="species_endemic_count",
+    ),
     # --- T10: % of national species total (#28) ---
     MetricDefinition(
         metric_id="species_pct_of_national",
@@ -875,6 +893,7 @@ _SPECIES_KINDS = frozenset({
     "species_group_coverage",
     "species_richness",
     "species_threatened_count",
+    "species_endemic_count",
     "species_threatened_secured",
     "species_pct_of_national",
 })

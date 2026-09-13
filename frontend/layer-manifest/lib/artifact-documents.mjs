@@ -113,6 +113,7 @@ const REGULAR_METRIC_IDS = [
   'species_richness_reptiles',
   'species_richness_plants',
   'threatened_species_count',
+  'endemic_species_count',
   'species_pct_of_national',
   'carbon_biomass_total',
   'soil_organic_carbon',
@@ -143,6 +144,7 @@ const SPECIES_METRIC_IDS = new Set([
   'species_richness_reptiles',
   'species_richness_plants',
   'threatened_species_count',
+  'endemic_species_count',
   'species_pct_of_national',
 ]);
 const TARGET_DEPENDENT_SPECIES_METRIC_IDS = new Set([

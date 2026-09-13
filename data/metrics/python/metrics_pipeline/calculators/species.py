@@ -14,6 +14,7 @@ Metrics implemented here
   #24 — Species Richness — Reptiles (Squamata + Crocodylia)
   #25 — Species Richness — Plants (Magnoliopsida)
   #26 — Threatened Species Count
+  #27 — Endemic Species Count
   #28 — % of National Species Total
 
 Algorithm
@@ -103,9 +104,10 @@ class SpeciesScopeCounts:
             for threshold in REFERENCE_THRESHOLDS
         }
     )
-    # Threatened metrics (#26 / #3).
+    # Threatened metrics (#26 / #3) and endemic count (#27).
     threatened_present: int = 0           # CR/EN/VU non-fish whose range overlaps selection
     threatened_secured: int = 0           # subset whose coverage ratio >= solution_target_pct
+    endemic_present: int = 0              # Colombia-endemic non-fish whose range overlaps selection
     reference_threatened_secured: dict[float, int] = field(
         default_factory=lambda: {threshold: 0 for threshold in REFERENCE_THRESHOLDS}
     )
@@ -235,6 +237,8 @@ class SpeciesAccumulator:
                 for threshold in REFERENCE_THRESHOLDS:
                     if ratio_pct >= threshold:
                         self.national.reference_threatened_secured[threshold] += 1
+        if sp.endemic:
+            self.national.endemic_present += 1
 
     def record_species_sub_level(
         self,
@@ -262,6 +266,7 @@ class SpeciesAccumulator:
             )
         scope_counts = self.sub[level]
         is_threatened = sp.threatened
+        is_endemic = sp.endemic
         target = self._target_for(sp)
         bucket = sp.bucket
 
@@ -307,6 +312,8 @@ class SpeciesAccumulator:
             counts.all_present += 1
             if bucket is not None:
                 counts.by_bucket[bucket] += 1
+            if is_endemic:
+                counts.endemic_present += 1
             if is_threatened:
                 counts.threatened_present += 1
                 denom = float(total_per_boundary[bidx])
@@ -338,7 +345,7 @@ class SpeciesScopeMetrics:
     """Bundle of derived species metric values for one scope.
 
     Built from a ``SpeciesScopeCounts`` plus the relevant pool sizes; this is
-    what main._build_metrics uses to fill in #3, #21–#26, #28.
+    what main._build_metrics uses to fill in #3, #21–#27, #28.
     """
     mammals_present: int
     birds_present: int
@@ -346,6 +353,7 @@ class SpeciesScopeMetrics:
     reptiles_present: int
     plants_present: int
     threatened_present: int               # #26
+    endemic_present: int                  # #27
     threatened_secured: int               # #3
     pct_of_national: float                # #28: all_present / pool * 100
     species_group_coverage: dict[str, object]  # #2 details payload
@@ -367,6 +375,7 @@ class SpeciesScopeMetrics:
             reptiles_present=counts.by_bucket["reptiles"],
             plants_present=counts.by_bucket["plants"],
             threatened_present=counts.threatened_present,
+            endemic_present=counts.endemic_present,
             threatened_secured=counts.threatened_secured,
             pct_of_national=pct,
             species_group_coverage=_species_group_coverage_details(counts),

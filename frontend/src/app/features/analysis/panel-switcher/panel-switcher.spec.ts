@@ -507,56 +507,59 @@ describe('PanelSwitcherComponent', () => {
   ])(
     'keeps $label overview to mangroves and candidate area',
     async ({ catalog, metricsDocument }) => {
-    const solution = buildTestSolution();
-    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
-      id: solution.id,
-      ...catalog,
-    } as CatalogSolution);
-    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
-      of({
-        solutionId: solution.id,
-        generatedAt: '2026-08-26T00:00:00.000Z',
-        ...metricsDocument,
-      }),
-    );
-    appState.activeSolution$.set(solution);
-    appState.setRightSidebarMode('overview');
+      const solution = buildTestSolution();
+      vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+        id: solution.id,
+        ...catalog,
+      } as CatalogSolution);
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of({
+          solutionId: solution.id,
+          generatedAt: '2026-08-26T00:00:00.000Z',
+          ...metricsDocument,
+        }),
+      );
+      appState.activeSolution$.set(solution);
+      appState.setRightSidebarMode('overview');
 
-    const fixture = TestBed.createComponent(PanelSwitcherComponent);
-    await fixture.whenStable();
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    const gainRowIds = [
-      ...compiled.querySelectorAll('#right-sidebar-v3-overview-gains-table .v3-metric-row'),
-    ].map((row) => row.id);
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const compiled = fixture.nativeElement as HTMLElement;
+      const gainRowIds = [
+        ...compiled.querySelectorAll('#right-sidebar-v3-overview-gains-table .v3-metric-row'),
+      ].map((row) => row.id);
 
-    expect(gainRowIds).toEqual([
-      'right-sidebar-v3-overview-gain-row-metric-62-marine-mangrove-coverage',
-      'right-sidebar-v3-overview-gain-row-metric-18-priority-area-total',
-    ]);
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-gain-value-metric-62-marine-mangrove-coverage')
-        ?.textContent,
-    ).toContain('2 km²');
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-61-coral-reef-coverage'),
-    ).toBeNull();
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-63-seagrass-coverage'),
-    ).toBeNull();
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-01-conservation-goals-met'),
-    ).toBeNull();
-    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-widget')).not.toBeNull();
-    expect(
-      compiled.querySelector(
-        '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
-      ),
-    ).toBeNull();
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-ecosystem-services-section'),
-    ).toBeNull();
-    expect(compiled.querySelector('#right-sidebar-v3-overview-costs-section')).toBeNull();
+      expect(gainRowIds).toEqual([
+        'right-sidebar-v3-overview-gain-row-metric-62-marine-mangrove-coverage',
+        'right-sidebar-v3-overview-gain-row-metric-18-priority-area-total',
+      ]);
+      expect(
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-gain-value-metric-62-marine-mangrove-coverage',
+        )?.textContent,
+      ).toContain('2 km²');
+      expect(
+        compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-61-coral-reef-coverage'),
+      ).toBeNull();
+      expect(
+        compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-63-seagrass-coverage'),
+      ).toBeNull();
+      expect(
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-gain-row-metric-01-conservation-goals-met',
+        ),
+      ).toBeNull();
+      expect(compiled.querySelector('#right-sidebar-v3-overview-goals-widget')).not.toBeNull();
+      expect(
+        compiled.querySelector(
+          '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
+        ),
+      ).toBeNull();
+      expect(
+        compiled.querySelector('#right-sidebar-v3-overview-ecosystem-services-section'),
+      ).toBeNull();
+      expect(compiled.querySelector('#right-sidebar-v3-overview-costs-section')).toBeNull();
     },
   );
 
@@ -1003,10 +1006,11 @@ describe('PanelSwitcherComponent', () => {
 
   it.each([
     { label: 'national marine', catalog: { domain: 'marine' } },
-    { label: 'SIRAP marine', catalog: { domain: 'marine', scope: 'sirap', sirapId: 'eje-cafetero' } },
-  ])(
-    'keeps $label AOI to candidate area and mangroves',
-    async ({ catalog }) => {
+    {
+      label: 'SIRAP marine',
+      catalog: { domain: 'marine', scope: 'sirap', sirapId: 'eje-cafetero' },
+    },
+  ])('keeps $label AOI to candidate area and mangroves', async ({ catalog }) => {
     const solution = buildTestSolution();
     const solutionCatalog = TestBed.inject(SolutionCatalogService);
     vi.spyOn(solutionCatalog, 'getById').mockReturnValue({
@@ -1076,8 +1080,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('9 km²');
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('%');
     expect(compiled.querySelector('#aoi-row-mangrove-unit')).toBeNull();
-    },
-  );
+  });
 
   it('omits marine Section F for land solutions', async () => {
     const solution = buildTestSolution();
@@ -1200,6 +1203,37 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#aoi-stat-agricultural-conservation-area')?.textContent,
     ).toContain('125 km²');
+  });
+
+  it('shows endemic species count for a known AOI when the metric is ready', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedAoiMetricsDocument(solution.id, [
+          buildMetric('endemic_species_count', 12, 'count', 'number'),
+        ]),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'municipality:11001',
+      name: 'Bogota',
+      type: 'municipality',
+      geometryUrl: '/boundaries/municipalities.geojson',
+      areaKm2: 20,
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('#aoi-stat-endemic')).not.toBeNull();
+    expect(compiled.querySelector('#aoi-stat-endemic-value')?.textContent).toContain('12');
+    expect(compiled.querySelector('#aoi-stat-endemic-label')?.textContent).toContain(
+      'analysis.aoi.stats.endemicSpecies',
+    );
   });
 
   it('renders live municipality land-use percents on the scenario chart without dummy 15/25/60', async () => {
