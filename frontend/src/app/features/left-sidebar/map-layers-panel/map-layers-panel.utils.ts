@@ -1,4 +1,5 @@
 import { canShowSirapScopedLayer, type RuntimeLayerManifestRenderingConfig } from '@core/models';
+import { solutionIndicatesOmec } from '@core/models/solution-included-areas.utils';
 import type { MapSyncDescriptor } from './map-layers-panel-map-sync';
 import {
   CONTEXTUAL_PRIORITY_LAYER_IDS,
@@ -257,8 +258,16 @@ export function isSirapCatalogPacket(solution: {
 export function implicitConsideredIncludeIds(solution: {
   scope?: string | null;
   sirapId?: string | null;
+  id?: string | null;
+  name?: string | null;
+  filename?: string | null;
+  rasterFile?: string | null;
 }): string[] {
-  return isSirapCatalogPacket(solution) ? ['runap'] : [];
+  if (!isSirapCatalogPacket(solution)) {
+    return [];
+  }
+
+  return solutionIndicatesOmec(solution) ? ['runap', 'omec', 'omecs'] : ['runap'];
 }
 
 const SCENARIO_CONSIDERABLE_LAYER_IDS = buildConsideredLayerIdSet([

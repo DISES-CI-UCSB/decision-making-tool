@@ -1,5 +1,6 @@
 import type { Solution } from './solution.model';
 import type { CatalogSolution } from './solution-catalog.model';
+import { solutionIndicatesOmec } from './solution-included-areas.utils';
 import { getSolutionIncludeIds, normalizeSolutionToken } from './solution-matching.utils';
 
 export interface SolutionIdentitySummary {
@@ -93,7 +94,11 @@ function buildCostItems(solution: CatalogSolution): string[] {
 }
 
 function buildIncludeItems(solution: CatalogSolution): string[] {
-  const includeIds = unique(['runap', ...getSolutionIncludeIds(solution)]);
+  const includeIds = unique([
+    'runap',
+    ...getSolutionIncludeIds(solution),
+    ...(solutionIndicatesOmec(solution) ? ['omec'] : []),
+  ]);
 
   return unique(includeIds.map(labelInclude).filter(Boolean));
 }

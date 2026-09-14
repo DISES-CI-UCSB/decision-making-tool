@@ -23,24 +23,44 @@ const LEGEND_PREFIX: Record<LayerLocale, string> = {
   es: 'Áreas de conservación existentes',
 };
 
-export function getSolutionIncludedAreaKeys(solution: CatalogSolution): SolutionIncludedAreaKey[] {
-  const normalizedSource = [
+export interface SolutionOmecHintSource {
+  id?: string | null;
+  name?: string | null;
+  filename?: string | null;
+  rasterFile?: string | null;
+  constraints?: readonly string[];
+  finderInputs?: { includeLayerIds?: readonly string[] };
+  inputLayerIds?: { includes?: readonly string[] };
+}
+
+function solutionIdentitySource(solution: SolutionOmecHintSource): string {
+  return [
     solution.id,
     solution.name,
     solution.filename,
-    ...solution.constraints,
-    ...solution.finderInputs.includeLayerIds,
-    ...solution.inputLayerIds.includes,
+    solution.rasterFile,
+    ...(solution.constraints ?? []),
+    ...(solution.finderInputs?.includeLayerIds ?? []),
+    ...(solution.inputLayerIds?.includes ?? []),
   ]
     .join(' ')
     .toLowerCase();
+}
+
+/** True when id/name/filename/include lists mention OMEC (finder `+OMEC_` / slug `-omec-`). */
+export function solutionIndicatesOmec(solution: SolutionOmecHintSource): boolean {
+  return solutionIdentitySource(solution).includes('omec');
+}
+
+export function getSolutionIncludedAreaKeys(solution: CatalogSolution): SolutionIncludedAreaKey[] {
+  const normalizedSource = solutionIdentitySource(solution);
 
   const keys: SolutionIncludedAreaKey[] = [];
 
   if (normalizedSource.includes('runap')) {
     keys.push('runap');
   }
-  if (normalizedSource.includes('omec')) {
+  if (solutionIndicatesOmec(solution)) {
     keys.push('omecs');
   }
   if (

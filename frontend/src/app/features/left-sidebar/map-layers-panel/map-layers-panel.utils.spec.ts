@@ -202,6 +202,53 @@ describe('scenario status aliases', () => {
     expect(implicitConsideredIncludeIds({ scope: 'national', sirapId: null })).toEqual([]);
   });
 
+  it('considers OMEC on SIRAP packets when the solution id or name includes it', () => {
+    const rasterName = 'ESTR17+CONG17+SAB17+RUNAP+OMEC_IHEH2022';
+    const consideredIds = buildConsideredLayerIdSet(
+      implicitConsideredIncludeIds({
+        scope: 'sirap',
+        sirapId: 'orinoquia',
+        id: 'sirap-orinoquia-estr17-cong17-sab17-runap-omec-iheh2030',
+        name: rasterName,
+        filename: `${rasterName}.tif`,
+      }),
+    );
+
+    expect(scenarioLayerStatus('overlay-omecs', 'omecs', consideredIds, true)).toBe('considered');
+    expect(scenarioLayerStatus('overlay-runap', 'runap', consideredIds, true)).toBe('considered');
+  });
+
+  it('keeps OMEC as reference on SIRAP packets that do not include it', () => {
+    const consideredIds = buildConsideredLayerIdSet(
+      implicitConsideredIncludeIds({
+        scope: 'sirap',
+        sirapId: 'orinoquia',
+        id: 'sirap-orinoquia-estr17-cong17-sab17-runap-iheh2022',
+        name: 'ESTR17+CONG17+SAB17+RUNAP_IHEH2022',
+        filename: 'ESTR17+CONG17+SAB17+RUNAP_IHEH2022.tif',
+      }),
+    );
+
+    expect(scenarioLayerStatus('overlay-omecs', 'omecs', consideredIds, true)).toBe('reference');
+    expect(scenarioLayerStatus('overlay-runap', 'runap', consideredIds, true)).toBe('considered');
+  });
+
+  it('does not implicitly add OMEC on national solutions with empty include lists', () => {
+    const consideredIds = buildConsideredLayerIdSet(
+      implicitConsideredIncludeIds({
+        scope: 'national',
+        sirapId: null,
+        id: 'nacional-ecos30-runap-omec-hf',
+        name: 'Ecos30+RUNAP+OMEC_HF',
+        filename: 'Ecos30+RUNAP+OMEC_HF.tif',
+      }),
+    );
+
+    expect(consideredIds.has('omec')).toBe(false);
+    expect(consideredIds.has('omecs')).toBe(false);
+    expect(scenarioLayerStatus('overlay-omecs', 'omecs', consideredIds, true)).toBe('reference');
+  });
+
   it('returns reference or no status when aliases do not match or status is unavailable', () => {
     const consideredIds = buildConsideredLayerIdSet(['runap']);
 

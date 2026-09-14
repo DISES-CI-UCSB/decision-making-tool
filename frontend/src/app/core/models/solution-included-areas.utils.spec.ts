@@ -1,5 +1,8 @@
 import type { CatalogSolution } from './solution-catalog.model';
-import { getSolutionIncludedAreasLegendLabel } from './solution-included-areas.utils';
+import {
+  getSolutionIncludedAreasLegendLabel,
+  solutionIndicatesOmec,
+} from './solution-included-areas.utils';
 
 describe('solution included areas utils', () => {
   it('formats RUNAP-only solution labels', () => {
@@ -16,6 +19,26 @@ describe('solution included areas utils', () => {
     expect(getSolutionIncludedAreasLegendLabel(solution)).toBe(
       'Existing conservation areas (RUNAP + OMECs)',
     );
+  });
+
+  it('detects OMEC from finder basenames and SIRAP slugs', () => {
+    expect(
+      solutionIndicatesOmec({
+        name: 'ESTR17+CONG17+SAB17+RUNAP+OMEC_IHEH2022',
+        filename: 'ESTR17+CONG17+SAB17+RUNAP+OMEC_IHEH2022.tif',
+      }),
+    ).toBe(true);
+    expect(
+      solutionIndicatesOmec({
+        id: 'sirap-orinoquia-estr17-cong17-sab17-runap-omec-iheh2030',
+      }),
+    ).toBe(true);
+    expect(
+      solutionIndicatesOmec({
+        name: 'ESTR17+CONG17+SAB17+RUNAP_IHEH2022',
+        filename: 'ESTR17+CONG17+SAB17+RUNAP_IHEH2022.tif',
+      }),
+    ).toBe(false);
   });
 });
 
