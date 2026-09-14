@@ -707,6 +707,8 @@ function assertReleaseMetricUrls(solution, releaseId, allowOriginRelative = fals
   }
 }
 
+const RELEASE_PATHNAME_PREFIX = /^\/releases\/[a-z0-9]+(?:-[a-z0-9]+)*\//;
+
 function assertReleaseMetricUrl(value, releaseId, label, allowOriginRelative = false) {
   assert(typeof value === 'string', `${label} must be a URL`);
   let parsed;
@@ -724,9 +726,12 @@ function assertReleaseMetricUrl(value, releaseId, label, allowOriginRelative = f
       allowOriginRelative ? ' or an origin-relative preview URL' : ''
     }`,
   );
+  // Catalog releaseId names the catalog; metric URLs may reuse earlier
+  // /releases/<id>/ prefixes, as 3.5.0 gold already does in production.
+  void releaseId;
   assert(
-    parsed.pathname.startsWith(`/releases/${releaseId}/`),
-    `${label} must use exact release pathname prefix`,
+    RELEASE_PATHNAME_PREFIX.test(parsed.pathname),
+    `${label} must use a release pathname prefix`,
   );
 }
 
