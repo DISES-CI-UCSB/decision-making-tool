@@ -5281,11 +5281,7 @@ export class PanelSwitcherComponent {
   private buildOverviewMetricDisplayEntries(
     section: OverviewMetricSection,
   ): OverviewMetricDisplayEntry[] {
-    const metricsById = new Map(
-      this.overviewSections()
-        .flatMap((metricSection) => metricSection.metrics)
-        .map((metric) => [metric.metricId, metric] as const),
-    );
+    const metricsById = this.overviewMetricsById();
     const shouldFillDummy = this.fillDummyOverviewMetrics();
     const planningDomain = this.isMarineSolution() ? 'marine' : 'land';
 
@@ -5394,13 +5390,19 @@ export class PanelSwitcherComponent {
   }
 
   private findOverviewMetric(metricId: string): MetricValue | null {
-    const metricsById = new Map(
-      this.overviewSections()
-        .flatMap((metricSection) => metricSection.metrics)
-        .map((metric) => [metric.metricId, metric] as const),
-    );
     const planningDomain = this.isMarineSolution() ? 'marine' : 'land';
-    return this.resolveOverviewMetricForPanel(metricsById, metricId, planningDomain) ?? null;
+    return (
+      this.resolveOverviewMetricForPanel(this.overviewMetricsById(), metricId, planningDomain) ??
+      null
+    );
+  }
+
+  private overviewMetricsById(): Map<string, MetricValue> {
+    return new Map(
+      this.overviewMetrics(this.cachedMetricsDocument()).map(
+        (metric) => [metric.metricId, metric] as const,
+      ),
+    );
   }
 
   private resolveOverviewMetricForPanel(

@@ -375,8 +375,9 @@ export const OVERVIEW_SECTION_LOOKUP: Record<string, { id: string; labelKey: str
   community_councils_area: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
   // T10 additions
   threatened_species_secured: { id: 'ecology', labelKey: 'analysis.sections.ecology' },
-  // T6 additions
+  // T6 additions. SIRAP emits carbon_biomass_total instead of carbon_storage_biomass.
   carbon_storage_biomass: { id: 'climate', labelKey: 'analysis.sections.climate' },
+  carbon_biomass_total: { id: 'climate', labelKey: 'analysis.sections.climate' },
   water_regulation_area: { id: 'climate', labelKey: 'analysis.sections.climate' },
   agricultural_area: { id: 'finance', labelKey: 'analysis.sections.finance' },
 };

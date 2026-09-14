@@ -3083,6 +3083,49 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-species-reptiles')).toBeNull();
   });
 
+  it('shows SIRAP Total Carbon from carbon_biomass_total on the summary tab', async () => {
+    const solution = buildTestSolution();
+    const document = buildRegionalSirapMetricsDocument(solution.id, 'orinoquia');
+    const metrics = document.geographies.sirap?.['orinoquia'].metrics ?? [];
+    metrics.push(
+      {
+        ...buildMetric('carbon_storage_biomass', 0, 'Mg·km²', 'number'),
+        value: null,
+        status: 'not_applicable',
+      },
+      buildMetric('carbon_biomass_total', 3_372_526.808, 'Mg·km²', 'number'),
+      buildMetric('water_regulation_area', 17_002.75, 'km²', 'number'),
+    );
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(of(document));
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'land',
+      scope: 'sirap',
+      sirapId: 'orinoquia',
+    } as CatalogSolution);
+    appLocale.setLocale('en');
+    appState.activeSolution$.set(solution);
+    appState.clearAOI();
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const carbonValue = compiled.querySelector(
+      '#right-sidebar-v3-overview-ecosystem-services-value-metric-05-carbon-storage-capacity',
+    );
+    const waterValue = compiled.querySelector(
+      '#right-sidebar-v3-overview-ecosystem-services-value-metric-06-water-regulation-services',
+    );
+
+    expect(carbonValue?.textContent).toContain('3.4M');
+    expect(carbonValue?.textContent).not.toContain('--');
+    expect(waterValue?.textContent).toContain('17K');
+  });
+
   it('never falls back to Colombia metrics while a SIRAP primary scope is missing', async () => {
     const solution = buildTestSolution();
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
