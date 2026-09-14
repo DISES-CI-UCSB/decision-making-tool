@@ -202,6 +202,40 @@ describe('scenario status aliases', () => {
     expect(implicitConsideredIncludeIds({ scope: 'national', sirapId: null })).toEqual([]);
   });
 
+  it('considers Eje Cafetero wetlands on every EC SIRAP packet', () => {
+    const implicitIds = implicitConsideredIncludeIds({
+      scope: 'sirap',
+      sirapId: 'eje-cafetero',
+    });
+    const consideredIds = buildConsideredLayerIdSet(implicitIds);
+
+    expect(implicitIds).toContain('eje-wetlands');
+    expect(
+      scenarioLayerStatus('layer-eje_cafetero_wetlands', undefined, consideredIds, true),
+    ).toBe('considered');
+    expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, true)).toBe(
+      'reference',
+    );
+    expect(
+      implicitConsideredIncludeIds({ scope: 'sirap', sirapId: 'orinoquia' }),
+    ).not.toContain('eje-wetlands');
+  });
+
+  it('matches the Eje Cafetero wetlands row through HuEC catalog aliases', () => {
+    const ejeWetlandsIds = buildConsideredLayerIdSet(['eje-wetlands']);
+    const ecWetlandsIds = buildConsideredLayerIdSet(['ec-wetlands']);
+
+    expect(
+      scenarioLayerStatus('layer-eje_cafetero_wetlands', undefined, ejeWetlandsIds, true),
+    ).toBe('considered');
+    expect(
+      scenarioLayerStatus('layer-eje_cafetero_wetlands', undefined, ecWetlandsIds, true),
+    ).toBe('considered');
+    expect(scenarioLayerStatus('layer-wetlands', undefined, ejeWetlandsIds, true)).toBe(
+      'reference',
+    );
+  });
+
   it('considers OMEC on SIRAP packets when the solution id or name includes it', () => {
     const rasterName = 'ESTR17+CONG17+SAB17+RUNAP+OMEC_IHEH2022';
     const consideredIds = buildConsideredLayerIdSet(

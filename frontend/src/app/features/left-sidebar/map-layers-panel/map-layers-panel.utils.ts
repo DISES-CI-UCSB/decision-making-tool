@@ -211,6 +211,7 @@ export function taxonMatchesSearch(taxon: SearchableTaxonDto, normalizedQuery: s
 
 const LAYER_ID_SYNONYM_GROUPS = [
   ['wetlands', 'humedales', 'eco_wetlands'],
+  ['eje_cafetero_wetlands', 'eje_wetlands', 'ec_wetlands'],
   ['bosque_seco', 'dry_forest', 'eco_dry_forest'],
   ['paramos', 'eco_paramos'],
   ['mangroves', 'eco_mangroves'],
@@ -267,7 +268,12 @@ export function implicitConsideredIncludeIds(solution: {
     return [];
   }
 
-  return solutionIndicatesOmec(solution) ? ['runap', 'omec', 'omecs'] : ['runap'];
+  const ids = solutionIndicatesOmec(solution) ? ['runap', 'omec', 'omecs'] : ['runap'];
+  // EC packets always target HuEC; catalog IDs do not match the sidebar row without this.
+  if (solution.sirapId === 'eje-cafetero') {
+    ids.push('eje-wetlands');
+  }
+  return ids;
 }
 
 const SCENARIO_CONSIDERABLE_LAYER_IDS = buildConsideredLayerIdSet([
@@ -278,11 +284,15 @@ const SCENARIO_CONSIDERABLE_LAYER_IDS = buildConsideredLayerIdSet([
   'paramos',
   'wetlands',
   'humedales',
+  'eje_cafetero_wetlands',
+  'eje-wetlands',
+  'ec-wetlands',
   'bosque_seco',
   'dry_forest',
   'mangroves',
   'layer-paramos',
   'layer-wetlands',
+  'layer-eje_cafetero_wetlands',
   'layer-bosque_seco',
   'layer-mangroves',
   'layer-eco-paramos',
@@ -340,6 +350,8 @@ const AGGREGATE_SCENARIO_TARGET_IDS = new Set([
   'bosque_seco',
   'dry_forest',
   'eje_wetlands',
+  'eje_cafetero_wetlands',
+  'ec_wetlands',
   'congriales',
   'savannas',
   'mangroves',
