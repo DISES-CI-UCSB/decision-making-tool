@@ -433,6 +433,37 @@ describe('scenario status aliases', () => {
     );
   });
 
+  it('considers the national Ecosystems row from the catalog family token', () => {
+    const consideredIds = buildConsideredLayerIdSet([
+      'ecosystems',
+      'strategic_ecosystems',
+      'species',
+    ]);
+
+    expect(scenarioLayerStatus('layer-ecosistemas', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('ecosistemas', undefined, consideredIds, true)).toBe('considered');
+    expect(scenarioLayerStatus('layer-eco-types', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+  });
+
+  it('keeps the Ecosystems row as reference when a SIRAP packet targets strategic ecosystems only', () => {
+    const consideredIds = buildConsideredLayerIdSet([
+      'strategic-ecosystems',
+      'dry-forest',
+      'eje-wetlands',
+    ]);
+
+    expect(scenarioLayerStatus('layer-ecosistemas', undefined, consideredIds, true)).toBe(
+      'reference',
+    );
+    expect(scenarioLayerStatus('layer-eco-types', undefined, consideredIds, true)).toBe(
+      'reference',
+    );
+  });
+
   it('considers the strategic ecosystem family when a SIRAP packet targets the aggregate', () => {
     const consideredIds = buildConsideredLayerIdSet([
       'strategic-ecosystems',

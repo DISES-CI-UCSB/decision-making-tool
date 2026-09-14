@@ -210,6 +210,7 @@ export function taxonMatchesSearch(taxon: SearchableTaxonDto, normalizedQuery: s
 }
 
 const LAYER_ID_SYNONYM_GROUPS = [
+  ['ecosistemas', 'ecosystems', 'eco_types'],
   ['wetlands', 'humedales', 'eco_wetlands'],
   ['eje_cafetero_wetlands', 'eje_wetlands', 'ec_wetlands'],
   ['savannas', 'orinoquia_savannas'],
