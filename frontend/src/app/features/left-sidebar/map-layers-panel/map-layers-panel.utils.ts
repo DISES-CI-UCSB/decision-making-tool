@@ -212,6 +212,8 @@ export function taxonMatchesSearch(taxon: SearchableTaxonDto, normalizedQuery: s
 const LAYER_ID_SYNONYM_GROUPS = [
   ['wetlands', 'humedales', 'eco_wetlands'],
   ['eje_cafetero_wetlands', 'eje_wetlands', 'ec_wetlands'],
+  ['savannas', 'orinoquia_savannas'],
+  ['congriales', 'orinoquia_congriales'],
   ['bosque_seco', 'dry_forest', 'eco_dry_forest'],
   ['paramos', 'eco_paramos'],
   ['mangroves', 'eco_mangroves'],
@@ -273,6 +275,10 @@ export function implicitConsideredIncludeIds(solution: {
   if (solution.sirapId === 'eje-cafetero') {
     ids.push('eje-wetlands');
   }
+  // Orinoquía packets always target Congriales (paired) and Savannas.
+  if (solution.sirapId === 'orinoquia') {
+    ids.push('congriales', 'savannas');
+  }
   return ids;
 }
 
@@ -287,12 +293,18 @@ const SCENARIO_CONSIDERABLE_LAYER_IDS = buildConsideredLayerIdSet([
   'eje_cafetero_wetlands',
   'eje-wetlands',
   'ec-wetlands',
+  'savannas',
+  'orinoquia_savannas',
+  'congriales',
+  'orinoquia_congriales',
   'bosque_seco',
   'dry_forest',
   'mangroves',
   'layer-paramos',
   'layer-wetlands',
   'layer-eje_cafetero_wetlands',
+  'layer-orinoquia_savannas',
+  'layer-orinoquia_congriales',
   'layer-bosque_seco',
   'layer-mangroves',
   'layer-eco-paramos',
@@ -353,7 +365,9 @@ const AGGREGATE_SCENARIO_TARGET_IDS = new Set([
   'eje_cafetero_wetlands',
   'ec_wetlands',
   'congriales',
+  'orinoquia_congriales',
   'savannas',
+  'orinoquia_savannas',
   'mangroves',
   'species_richness',
   'marine_ecosystems',

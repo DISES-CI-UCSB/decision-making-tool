@@ -236,6 +236,58 @@ describe('scenario status aliases', () => {
     );
   });
 
+  it('considers Savannas and Congriales on every Orinoquía SIRAP packet', () => {
+    const implicitIds = implicitConsideredIncludeIds({
+      scope: 'sirap',
+      sirapId: 'orinoquia',
+    });
+    const consideredIds = buildConsideredLayerIdSet(implicitIds);
+
+    expect(implicitIds).toEqual(expect.arrayContaining(['congriales', 'savannas']));
+    expect(scenarioLayerStatus('layer-orinoquia_savannas', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('orinoquia_savannas', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-orinoquia_congriales', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('orinoquia_congriales', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(implicitConsideredIncludeIds({ scope: 'sirap', sirapId: 'eje-cafetero' })).not.toContain(
+      'congriales',
+    );
+    expect(implicitConsideredIncludeIds({ scope: 'sirap', sirapId: 'eje-cafetero' })).not.toContain(
+      'savannas',
+    );
+  });
+
+  it('matches Orinoquía Savannas and Congriales rows through catalog target aliases', () => {
+    const savannasIds = buildConsideredLayerIdSet(['savannas']);
+    const congrialesIds = buildConsideredLayerIdSet(['congriales']);
+
+    expect(scenarioLayerStatus('layer-orinoquia_savannas', undefined, savannasIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('orinoquia_savannas', undefined, savannasIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-orinoquia_congriales', undefined, congrialesIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('orinoquia_congriales', undefined, congrialesIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-orinoquia_savannas', undefined, congrialesIds, true)).toBe(
+      'reference',
+    );
+    expect(scenarioLayerStatus('layer-orinoquia_congriales', undefined, savannasIds, true)).toBe(
+      'reference',
+    );
+  });
+
   it('considers OMEC on SIRAP packets when the solution id or name includes it', () => {
     const rasterName = 'ESTR17+CONG17+SAB17+RUNAP+OMEC_IHEH2022';
     const consideredIds = buildConsideredLayerIdSet(
