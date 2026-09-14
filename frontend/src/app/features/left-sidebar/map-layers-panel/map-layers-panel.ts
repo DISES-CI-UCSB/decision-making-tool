@@ -59,6 +59,7 @@ import { catchError, map, of, switchMap } from 'rxjs';
 import {
   buildConsideredLayerIdSet,
   implicitConsideredIncludeIds,
+  scenarioCostLayerIds,
   isSirapCatalogPacket,
   buildLegendCategories,
   buildLegendLayerEntry,
@@ -406,12 +407,11 @@ export class MapLayersPanelComponent implements OnDestroy {
       ...catalogSolution.inputLayerIds.features,
       ...catalogSolution.inputLayerIds.includes,
       ...catalogSolution.inputLayerIds.excludes,
-      catalogSolution.inputLayerIds.cost,
       ...catalogSolution.finderInputs.targetFeatureIds,
       ...catalogSolution.finderInputs.includeLayerIds,
       ...catalogSolution.finderInputs.excludeLayerIds,
       catalogSolution.finderInputs.targetFeatureSet,
-      catalogSolution.finderInputs.costLayerId,
+      ...scenarioCostLayerIds(catalogSolution),
       ...(catalogSolution.finderInputs.structuredTargets?.strategicEcosystems.map(
         (target) => target.featureId,
       ) ?? []),

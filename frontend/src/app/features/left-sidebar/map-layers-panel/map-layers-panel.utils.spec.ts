@@ -1,6 +1,8 @@
 import {
   buildConsideredLayerIdSet,
   implicitConsideredIncludeIds,
+  inferHumanFootprintCostYear,
+  scenarioCostLayerIds,
   buildLegendLayerEntry,
   shouldIncludeInMasterLegend,
   computeSelectedLayerOrder,
@@ -169,6 +171,92 @@ describe('scenario status aliases', () => {
     expect(scenarioLayerStatus('layer-human_footprint_2030', undefined, consideredIds, true)).toBe(
       'considered',
     );
+  });
+
+  it('considers only the IHEH cost year used in the scenario', () => {
+    const considered2022 = buildConsideredLayerIdSet(['iheh_2022']);
+    expect(
+      scenarioLayerStatus('layer-human_footprint_2022', undefined, considered2022, true),
+    ).toBe('considered');
+    expect(
+      scenarioLayerStatus('layer-human_footprint_2030', undefined, considered2022, true),
+    ).toBe('reference');
+
+    const considered2030 = buildConsideredLayerIdSet(['iheh_2030']);
+    expect(
+      scenarioLayerStatus('layer-human_footprint_2030', undefined, considered2030, true),
+    ).toBe('considered');
+    expect(
+      scenarioLayerStatus('layer-human_footprint_2022', undefined, considered2030, true),
+    ).toBe('reference');
+  });
+
+  it('infers IHEH year from national, SIRAP, and compact name tokens', () => {
+    expect(inferHumanFootprintCostYear('iheh_2022')).toBe('2022');
+    expect(inferHumanFootprintCostYear('Estr17+HuEC70+RUNAP_IHEH2022')).toBe('2022');
+    expect(
+      inferHumanFootprintCostYear('sirap-orinoquia-estr17-cong17-sab17-runap-omec-iheh2030'),
+    ).toBe('2030');
+    expect(inferHumanFootprintCostYear('marine_ecos30_mang30_runap_hhm')).toBeNull();
+    expect(inferHumanFootprintCostYear('iheh_2022', 'IHEH2030')).toBeNull();
+  });
+
+  it('considers SIRAP IHEH year from the solution name when costLayerId is empty', () => {
+    const consideredIds = buildConsideredLayerIdSet(
+      scenarioCostLayerIds({
+        id: 'eje-cafetero-0-2022-no-omec',
+        name: 'Estr17+HuEC70+RUNAP_IHEH2022',
+        filename: 'Estr17+HuEC70+RUNAP_IHEH2022.tif',
+        finderInputs: { costLayerId: '' },
+        inputLayerIds: { cost: '' },
+      }),
+    );
+
+    expect(
+      scenarioLayerStatus('layer-human_footprint_2022', undefined, consideredIds, true),
+    ).toBe('considered');
+    expect(
+      scenarioLayerStatus('layer-human_footprint_2030', undefined, consideredIds, true),
+    ).toBe('reference');
+    expect(scenarioLayerStatus('layer-hhm', undefined, consideredIds, true)).toBe('reference');
+  });
+
+  it('considers marine HHM without marking either IHEH year', () => {
+    const consideredIds = buildConsideredLayerIdSet(
+      scenarioCostLayerIds({
+        id: 'marine_ecos30_mang30_runap_hhm',
+        name: 'MarineEcos30+Mang30+RUNAP_HHM',
+        finderInputs: { costLayerId: 'hhm' },
+        inputLayerIds: { cost: 'hhm' },
+      }),
+    );
+
+    expect(scenarioLayerStatus('layer-hhm', undefined, consideredIds, true)).toBe('considered');
+    expect(
+      scenarioLayerStatus('layer-human_footprint_2022', undefined, consideredIds, true),
+    ).toBe('reference');
+    expect(
+      scenarioLayerStatus('layer-human_footprint_2030', undefined, consideredIds, true),
+    ).toBe('reference');
+  });
+
+  it('matches compact IHEH tokens and legacy COST_HF year ids to the same year', () => {
+    expect(
+      scenarioLayerStatus(
+        'layer-human_footprint_2022',
+        undefined,
+        buildConsideredLayerIdSet(['iheh2022', 'COST_HF_2022']),
+        true,
+      ),
+    ).toBe('considered');
+    expect(
+      scenarioLayerStatus(
+        'layer-human_footprint_2030',
+        undefined,
+        buildConsideredLayerIdSet(['iheh2022', 'COST_HF_2022']),
+        true,
+      ),
+    ).toBe('reference');
   });
 
   it('considers National Natural Parks when its parent RUNAP layer is included', () => {

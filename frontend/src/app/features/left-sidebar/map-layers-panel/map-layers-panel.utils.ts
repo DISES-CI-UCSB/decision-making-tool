@@ -225,6 +225,52 @@ const LAYER_ID_SYNONYMS: Readonly<Record<string, readonly string[]>> = Object.fr
   ),
 );
 
+const HUMAN_FOOTPRINT_YEAR_ALIASES = {
+  '2022': ['human_footprint_2022', 'iheh_2022', 'iheh2022', 'hf_2022'],
+  '2030': ['human_footprint_2030', 'iheh_2030', 'iheh2030', 'hf_2030'],
+} as const;
+
+function humanFootprintYearAliases(normalized: string): readonly string[] {
+  const year = normalized.match(/^(?:human_footprint_|iheh_?|hf_)(2022|2030)$/)?.[1];
+  return year === '2022' || year === '2030' ? HUMAN_FOOTPRINT_YEAR_ALIASES[year] : [];
+}
+
+export function inferHumanFootprintCostYear(
+  ...tokens: (string | null | undefined)[]
+): '2022' | '2030' | null {
+  const years = new Set<'2022' | '2030'>();
+  for (const token of tokens) {
+    if (!token) {
+      continue;
+    }
+    const normalized = token.trim().toLowerCase().replace(/[+\s-]+/g, '_');
+    const year = normalized.match(/(?:human_footprint_|hf_|iheh_?)(2022|2030)/)?.[1];
+    if (year === '2022' || year === '2030') {
+      years.add(year);
+    }
+  }
+  return years.size === 1 ? [...years][0] : null;
+}
+
+export function scenarioCostLayerIds(solution: {
+  id?: string | null;
+  name?: string | null;
+  filename?: string | null;
+  inputLayerIds?: { cost?: string | null };
+  finderInputs?: { costLayerId?: string | null };
+}): string[] {
+  const explicit = [solution.inputLayerIds?.cost, solution.finderInputs?.costLayerId].filter(
+    (id): id is string => Boolean(id),
+  );
+  const year = inferHumanFootprintCostYear(
+    ...explicit,
+    solution.id,
+    solution.name,
+    solution.filename,
+  );
+  return year ? [...explicit, `iheh_${year}`] : explicit;
+}
+
 export function normalizeLayerIdAliases(id: string | null | undefined): string[] {
   if (!id) {
     return [];
@@ -240,8 +286,13 @@ export function normalizeLayerIdAliases(id: string | null | undefined): string[]
 
   const singular = normalized === 'omecs' ? 'omec' : normalized;
   const plural = normalized === 'omec' ? 'omecs' : normalized;
-  const costAliases = normalized === 'hf_2030' ? ['human_footprint_2030'] : [];
-  const aliases = [normalized, singular, plural, trimmed, ...costAliases].filter(Boolean);
+  const aliases = [
+    normalized,
+    singular,
+    plural,
+    trimmed,
+    ...humanFootprintYearAliases(normalized),
+  ].filter(Boolean);
   const synonyms = aliases.flatMap((alias) => LAYER_ID_SYNONYMS[alias] ?? []);
   return Array.from(new Set([...aliases, ...synonyms]));
 }
