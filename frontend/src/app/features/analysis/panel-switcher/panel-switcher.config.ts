@@ -568,17 +568,6 @@ export const COMPARISON_METRIC_BLUEPRINTS: ComparisonMetricBlueprint[] = [
     deltaTone: 'positive',
   },
   {
-    id: 'comp-national-target',
-    section: 'general',
-    labelKey: 'analysis.comparison.metrics.nationalTarget',
-    descriptionKey: 'analysis.comparison.metrics.nationalTargetDesc',
-    metricId: 'national_contribution',
-    dummyBaseline: '1.3%',
-    dummyCandidate: '1.9%',
-    dummyDelta: '+0.6%',
-    deltaTone: 'positive',
-  },
-  {
     id: 'comp-carbon',
     section: 'ecosystems',
     labelKey: 'analysis.comparison.metrics.carbonStorage',
