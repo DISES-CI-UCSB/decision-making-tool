@@ -320,10 +320,7 @@
           "ecosystemCoverageTitle": "Cobertura de ecosistemas",
           "speciesTitle": "Especies representadas",
           "ecosystems": {
-            "iavh": "Total IAvH",
-            "paramo": "Páramo",
-            "dryForest": "Bosque seco tropical",
-            "wetlands": "Humedales"
+            "iavh": "Área del mapa nacional de ecosistemas (MEC)"
           },
           "species": {
             "mammals": "Mamíferos",

@@ -2226,6 +2226,12 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-mec-classifications-modal-title')?.textContent).toContain(
       'analysis.aoi.mec.modal.customTitle',
     );
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-overview'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map'),
+    ).not.toBeNull();
     const table = compiled.querySelector('#aoi-mec-modal-table');
     expect(table).not.toBeNull();
     expect(compiled.querySelectorAll('#aoi-mec-modal-table')).toHaveLength(1);
@@ -2687,8 +2693,28 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-iavh-total')?.textContent,
     ).toContain('1.250 km²');
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-dry-forest')?.textContent,
-    ).toContain('24 km²');
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-label-iavh-total')
+        ?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.ecosystems.iavh');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-paramo'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-dry-forest'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-wetlands'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-text')
+        ?.textContent,
+    ).toContain('mapLayersPanel.ecosystemInfoModal.intro');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-mec-source-overview'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-mec-source-map'),
+    ).not.toBeNull();
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-sirap-species-mammals')?.textContent,
     ).toContain('64');
@@ -2724,6 +2750,7 @@ describe('PanelSwitcherComponent', () => {
     ecosystemCoverageButton.click();
     fixture.detectChanges();
     await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 20));
     fixture.detectChanges();
     expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'siraps');
     expect(
@@ -2746,6 +2773,10 @@ describe('PanelSwitcherComponent', () => {
         }
       ).getGoalsModalTitleParams(),
     ).toEqual({ sirapName: 'SIRAP Eje Cafetero' });
+    expect(
+      compiled.querySelector('#conservation-goals-modal-mec-source-overview'),
+    ).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-mec-source-map')).not.toBeNull();
   });
 
   it('keeps SIRAP overview coverage independent of custom AOI geometry', async () => {
@@ -3457,6 +3488,12 @@ describe('PanelSwitcherComponent', () => {
     expect(dialog.classList.contains('w-screen')).toBe(true);
     expect(dialog.classList.contains('max-md:p-0')).toBe(true);
     expect(compiled.querySelector('#aoi-mec-classifications-modal-panel')).not.toBeNull();
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-overview'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map'),
+    ).not.toBeNull();
 
     (
       compiled.querySelector('#aoi-mec-classifications-modal-close-button') as HTMLButtonElement
@@ -5165,6 +5202,10 @@ describe('PanelSwitcherComponent', () => {
       'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle',
     );
     expect(
+      compiled.querySelector('#conservation-goals-modal-mec-source-overview'),
+    ).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-mec-source-map')).not.toBeNull();
+    expect(
       compiled.querySelectorAll('button[id^="conservation-goals-modal-ecosystem-level-"]'),
     ).toHaveLength(5);
     expect(
@@ -6588,7 +6629,7 @@ function buildRegionalSirapMetricsDocument(
           metrics: [
             buildMetric('priority_area_in_region', 40, 'km²', 'number'),
             buildMetric('conservation_goals_met', 73, '%', 'percent'),
-            buildMetric('ecosystem_coverage', 1_250, 'km²', 'number'),
+            buildMetric('ecosystem_coverage', 1_250, 'km2', 'number'),
             buildMetric('ecosystem_coverage_paramo', 10, 'km²', 'number'),
             buildMetric('ecosystem_coverage_dry_forest', 24, 'km²', 'number'),
             buildMetric('ecosystem_coverage_wetlands', 18, 'km²', 'number'),
