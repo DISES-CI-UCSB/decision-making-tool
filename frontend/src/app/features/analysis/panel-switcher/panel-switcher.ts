@@ -1049,6 +1049,7 @@ export class PanelSwitcherComponent {
         this.goalsModalEcosystemBreakdown().view,
       );
       if (
+        domain.targeted &&
         this.goalsModalEcosystemBreakdownId() === 'iavh' &&
         document.features.ecosystems.length > 0
       ) {
@@ -1077,6 +1078,9 @@ export class PanelSwitcherComponent {
     const domain = this.goalsModalDomain();
     if (!domain) {
       return null;
+    }
+    if (domain.featureType === 'ecosystems' && !domain.targeted) {
+      return this.summarizeGoalsModalCoverage(this.goalsModalSourceRows(), false);
     }
     if (
       domain.featureType === 'species' &&
@@ -3182,6 +3186,20 @@ export class PanelSwitcherComponent {
 
   protected getGoalsModalSummary(domain: OverviewGoalsDomainEntry): GoalsModalSummary {
     return this.goalsModalSummary() ?? domain;
+  }
+
+  private summarizeGoalsModalCoverage(
+    rows: readonly GoalsModalRow[],
+    targeted: boolean,
+  ): GoalsModalSummary {
+    const metCount = rows.filter((row) => row.met === true).length;
+    return {
+      metCount,
+      totalCount: rows.length,
+      pctMet: targeted && rows.length > 0 ? (metCount / rows.length) * 100 : null,
+      reached17Count: rows.filter((row) => row.reached17).length,
+      reached30Count: rows.filter((row) => row.reached30).length,
+    };
   }
 
   protected getGoalsModalEcosystemCategoryCount(config: MecBreakdownConfig): number {

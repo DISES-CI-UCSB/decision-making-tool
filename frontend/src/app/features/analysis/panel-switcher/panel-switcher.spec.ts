@@ -2963,6 +2963,108 @@ describe('PanelSwitcherComponent', () => {
     );
   });
 
+  it('counts additional ecosystem checkpoints from the visible MEC classification rows', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildOrinoquiaGoalsDocument(solution.id);
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(buildRegionalSirapMetricsDocument(solution.id, 'orinoquia')),
+    );
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      scope: 'sirap',
+      sirapId: 'orinoquia',
+      precomputedMetricUrls: {
+        goals: '/releases/sirap-test/goals/cache/orinoquia.goals.json',
+        speciesGoalsCatalog: '/releases/sirap-test/species-goals/catalog/v1/catalog.json',
+        speciesGoalsByGeography: {
+          siraps: '/releases/sirap-test/species-goals/test-solution/siraps.json',
+        },
+        mecV2ByGeography: {
+          siraps: '/releases/sirap-test/mec/test-solution/siraps.json',
+        },
+      },
+    } as CatalogSolution);
+    const mecDocument = buildFiveViewV2MecDocument(solution.id);
+    mecDocument.geographyLevel = 'siraps';
+    mecDocument.scopeCatalog = [['territorial_territorial_orinoquia_7', 'Orinoquía']];
+    mecDocument.classCatalog.push(
+      [4, 'biomeRegion:wet', 'Wet class'],
+      [4, 'biomeRegion:dry', 'Dry class'],
+    );
+    mecDocument.rows.push(
+      [0, mecDocument.classCatalog.length - 2, 10, 10, 0],
+      [0, mecDocument.classCatalog.length - 1, 10, 0, 1],
+    );
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: mecDocument,
+        format: 'mec-compact-v2',
+      }),
+    );
+    appState.activeSolution$.set(solution);
+    appState.clearAOI();
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      goalsModalRows(): { reached17: boolean; reached30: boolean }[];
+      goalsModalSummary(): {
+        reached17Count: number;
+        reached30Count: number;
+        totalCount: number;
+      } | null;
+    };
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-ecosystem-view-additional-coverage',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(component.goalsModalRows()).toHaveLength(3);
+    expect(component.goalsModalSummary()).toMatchObject({
+      reached17Count: 2,
+      reached30Count: 2,
+      totalCount: 3,
+    });
+    expect(
+      compiled.querySelector('#conservation-goals-modal-checkpoint-17-value')?.textContent,
+    ).toContain('2 / 3');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-checkpoint-30-value')?.textContent,
+    ).toContain('2 / 3');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-measured-value')?.textContent,
+    ).toContain('3');
+
+    (
+      compiled.querySelector('#conservation-goals-modal-ecosystem-level-broad') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(component.goalsModalRows()).toHaveLength(1);
+    expect(component.goalsModalSummary()).toMatchObject({
+      reached17Count: 1,
+      reached30Count: 1,
+      totalCount: 1,
+    });
+    expect(
+      compiled.querySelector('#conservation-goals-modal-checkpoint-17-value')?.textContent,
+    ).toContain('1 / 1');
+    expect(
+      compiled.querySelector('#conservation-goals-modal-measured-value')?.textContent,
+    ).toContain('1');
+  });
+
   it('computes SIRAP overview species coverage live over the full grid', async () => {
     const solution = buildTestSolution();
     goalsDocument = buildOrinoquiaGoalsDocument(solution.id);
