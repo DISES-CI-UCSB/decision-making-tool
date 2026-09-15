@@ -5471,16 +5471,7 @@ export class PanelSwitcherComponent {
       return [];
     }
 
-    const metrics = document?.geographies.sirap?.[primaryGeography.scopeId]?.metrics ?? [];
-    return this.aliasSirapComparisonMetrics(metrics);
-  }
-
-  private aliasSirapComparisonMetrics(metrics: MetricValue[]): MetricValue[] {
-    return metrics.map((metric) =>
-      metric.metricId === 'priority_area_pct_of_region'
-        ? { ...metric, metricId: 'national_contribution' }
-        : metric,
-    );
+    return document?.geographies.sirap?.[primaryGeography.scopeId]?.metrics ?? [];
   }
 
   private overviewMetrics(document: CachedSolutionMetricsDocument | null): MetricValue[] {
@@ -5790,16 +5781,6 @@ export class PanelSwitcherComponent {
         liveMetrics.candidateNewAreaKm2,
         (value) => this.formatLiveAreaMetric(value),
         (value) => this.formatLiveAreaMetric(value, 'full'),
-      );
-    }
-
-    if (blueprint.metricId === 'national_contribution') {
-      return this.buildLiveRasterDisplayEntry(
-        blueprint,
-        liveMetrics.baselineNationalContributionPct,
-        liveMetrics.candidateNationalContributionPct,
-        (value) => `${this.formatNumber(value, this.metricNumberFormatMode(), 0, 1)}%`,
-        (value) => `${this.formatNumber(value, 'full', 0, 2)}%`,
       );
     }
 

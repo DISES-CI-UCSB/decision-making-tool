@@ -3510,7 +3510,7 @@ describe('PanelSwitcherComponent', () => {
     );
   });
 
-  it('resolves SIRAP comparison metrics from regional geography and aliases contribution percent', async () => {
+  it('resolves SIRAP comparison metrics from regional geography', async () => {
     const baseline = buildTestSolution();
     const candidate = { ...buildTestSolution(), id: 'candidate-solution', name: 'Candidate' };
     vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockImplementation(
@@ -3525,7 +3525,12 @@ describe('PanelSwitcherComponent', () => {
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockImplementation((solutionId) =>
       of(
         buildSirapComparisonMetricsDocument(solutionId, [
-          buildMetric('priority_area_in_region', 40, 'km²', 'number'),
+          buildMetric(
+            'priority_area_in_region',
+            solutionId === baseline.id ? 40 : 48,
+            'km²',
+            'number',
+          ),
           buildMetric(
             'priority_area_pct_of_region',
             solutionId === baseline.id ? 2.5 : 3.1,
@@ -3547,14 +3552,35 @@ describe('PanelSwitcherComponent', () => {
     const component = fixture.componentInstance as unknown as {
       comparisonMetrics(): MetricComparisonValue[];
     };
-    const regionalContribution = component
-      .comparisonMetrics()
-      .find((metric) => metric.metricId === 'national_contribution');
+    const metrics = component.comparisonMetrics();
+    const priorityArea = metrics.find((metric) => metric.metricId === 'priority_area_in_region');
 
-    expect(regionalContribution).toBeDefined();
-    expect(regionalContribution?.baseline.value).toBe(2.5);
-    expect(regionalContribution?.candidate.value).toBe(3.1);
-    expect(regionalContribution?.delta).toBe(0.6);
+    expect(priorityArea).toBeDefined();
+    expect(priorityArea?.baseline.value).toBe(40);
+    expect(priorityArea?.candidate.value).toBe(48);
+    expect(priorityArea?.delta).toBe(8);
+    expect(metrics.some((metric) => metric.metricId === 'national_contribution')).toBe(false);
+  });
+
+  it('omits share of national planning area from the comparison tab', async () => {
+    const baseline = buildTestSolution();
+    const candidate = { ...buildTestSolution(), id: 'candidate-solution', name: 'Candidate' };
+    appState.activeSolution$.set(baseline);
+    appState.setComparisonSolution(candidate, 'Candidate');
+    appState.setRightSidebarMode('comparison');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#right-sidebar-comparison-section-general')).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-comparison-table-row-comp-priority-area'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-comparison-table-row-comp-national-target'),
+    ).toBeNull();
   });
 
   it('omits the biodiversity section from the comparison tab', async () => {

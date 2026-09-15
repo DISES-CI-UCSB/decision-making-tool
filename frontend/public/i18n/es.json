@@ -1085,8 +1085,6 @@
         "preExistingAreaDesc": "Área ya incluida antes de sumar las nuevas prioridades seleccionadas.",
         "newSelectedArea": "Área nueva seleccionada",
         "newSelectedAreaDesc": "Área nueva seleccionada por el escenario, excluyendo el área preexistente.",
-        "nationalTarget": "Porcentaje del área nacional de planificación",
-        "nationalTargetDesc": "Área total seleccionada dividida por el área nacional válida de planificación de cada escenario.",
         "biodiversity": "Biodiversidad",
         "biodiversityDesc": "Puntaje compuesto de desempeño en biodiversidad.",
         "ecosystemCoverage": "Cobertura de ecosistemas",
