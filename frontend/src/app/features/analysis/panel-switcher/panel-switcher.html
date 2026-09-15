@@ -315,15 +315,28 @@
                                     "
                                     class="font-extrabold tabular-nums text-slate-900"
                                   >
-                                    {{
-                                      'analysis.overview.goalsWidget.sirap.achievedLabel'
-                                        | translate
-                                          : {
-                                              percent: getGoalsPercentLabel(
-                                                feature.achievedPercent
-                                              ),
-                                            }
-                                    }}
+                                    @if (formatSirapAchievedArea(feature); as achievedArea) {
+                                      {{
+                                        'analysis.overview.goalsWidget.sirap.achievedLabelWithArea'
+                                          | translate
+                                            : {
+                                                percent: getGoalsPercentLabel(
+                                                  feature.achievedPercent
+                                                ),
+                                                area: achievedArea,
+                                              }
+                                      }}
+                                    } @else {
+                                      {{
+                                        'analysis.overview.goalsWidget.sirap.achievedLabel'
+                                          | translate
+                                            : {
+                                                percent: getGoalsPercentLabel(
+                                                  feature.achievedPercent
+                                                ),
+                                              }
+                                      }}
+                                    }
                                   </strong>
                                 </div>
                                 <span
