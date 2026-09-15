@@ -662,6 +662,101 @@ describe('SolutionLayerService', () => {
     expect(overlapLayer.visible).toBe(false);
   });
 
+  it('ignores a stale single-solution load after comparison layers are shown', async () => {
+    const singleLoaded = createLoadedSolution('baseline');
+    const candidateLoaded = createLoadedSolution('candidate');
+    const loadResolvers: Array<(value: LoadedSolution) => void> = [];
+    loaderMock.loadSolution.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          loadResolvers.push(resolve);
+        }),
+    );
+    const singleLayer = { id: 'single-layer', destroy: vi.fn(), opacity: 0.7 };
+    const baselineLayer = { id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7 };
+    const candidateLayer = { id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7 };
+    const createLayerSpy = vi.spyOn(
+      service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
+      'createLayerFromLoaded',
+    );
+    createLayerSpy
+      .mockReturnValueOnce(baselineLayer as never)
+      .mockReturnValueOnce(candidateLayer as never)
+      .mockReturnValueOnce(singleLayer as never);
+
+    const showSolutionPromise = service.showSolution('baseline');
+    await Promise.resolve();
+    const showComparisonPromise = service.showComparison('baseline', 'candidate');
+    await Promise.resolve();
+
+    expect(loadResolvers.length).toBeGreaterThanOrEqual(3);
+    loadResolvers[1]?.(singleLoaded);
+    loadResolvers[2]?.(candidateLoaded);
+    await showComparisonPromise;
+
+    expect(service.getComparisonLayers()).toEqual({
+      baselineLayer,
+      candidateLayer,
+    });
+
+    loadResolvers[0]?.(singleLoaded);
+    await showSolutionPromise;
+
+    expect(service.isComparisonModeActive()).toBe(true);
+    expect(service.getComparisonLayers()).toEqual({
+      baselineLayer,
+      candidateLayer,
+    });
+    expect(service.hasExclusiveComparisonLayers('baseline', 'candidate')).toBe(true);
+    expect(createLayerSpy).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'solution-raster-layer',
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it('strips leftover single-solution and overlap layers before swipe', async () => {
+    const baselineLoaded = createLoadedSolution('baseline');
+    const candidateLoaded = createLoadedSolution('candidate');
+    loaderMock.loadSolution.mockImplementation(async (solutionId: string) =>
+      solutionId === 'baseline' ? baselineLoaded : candidateLoaded,
+    );
+    const leftoverSingleLayer = { id: 'single-layer', destroy: vi.fn(), visible: true };
+    const baselineLayer = { id: 'baseline-layer', destroy: vi.fn(), opacity: 0.7, visible: true };
+    const candidateLayer = { id: 'candidate-layer', destroy: vi.fn(), opacity: 0.7, visible: true };
+    const createLayerSpy = vi.spyOn(
+      service as unknown as { createLayerFromLoaded: (...args: unknown[]) => unknown },
+      'createLayerFromLoaded',
+    );
+    createLayerSpy
+      .mockReturnValueOnce(baselineLayer as never)
+      .mockReturnValueOnce(candidateLayer as never);
+
+    await service.showComparison('baseline', 'candidate');
+    const serviceInternals = service as unknown as {
+      currentLayer: { id: string; destroy: () => void; visible: boolean } | null;
+    };
+    serviceInternals.currentLayer = leftoverSingleLayer;
+    service.applyComparisonVisualizationMode('swipe');
+
+    expect(service.hasExclusiveComparisonLayers('baseline', 'candidate')).toBe(false);
+
+    const exclusiveLayers = service.prepareExclusiveSwipeLayers();
+
+    expect(exclusiveLayers).toEqual({
+      baselineLayer,
+      candidateLayer,
+    });
+    expect(mapMock.remove).toHaveBeenCalledWith(leftoverSingleLayer);
+    expect(leftoverSingleLayer.destroy).toHaveBeenCalledOnce();
+    expect(service.hasExclusiveComparisonLayers('baseline', 'candidate')).toBe(true);
+    const overlapLayer = mapMock.add.mock.calls.find(
+      (call) => (call[0] as { id?: string } | undefined)?.id === 'solution-raster-layer-overlap',
+    )?.[0] as { visible?: boolean } | undefined;
+    expect(overlapLayer?.visible).toBe(false);
+  });
+
   it('restores overlap visibility after switching from swipe back to overlay mode', () => {
     const overlapLayer = { visible: true };
     const serviceInternals = service as unknown as {

@@ -323,6 +323,24 @@ describe('AppStateService', () => {
     expect(service.canAccessTier2()).toBe(true);
   });
 
+  it('clears a selected AOI when entering comparison so the map swipe stays exclusive', () => {
+    const aoi: AOI = {
+      id: 'aoi-1',
+      name: 'Bogota',
+      type: 'municipality',
+      geometryUrl: '/geometry/aoi-1.json',
+    };
+
+    service.selectAOI(aoi);
+    service.setRightSidebarMode('aoi');
+    expect(service.selectedAOI$()).toEqual(aoi);
+
+    service.setRightSidebarMode('comparison');
+
+    expect(service.selectedAOI$()).toBe(null);
+    expect(service.rightSidebarMode$()).toBe('comparison');
+  });
+
   it('allows switching sidebar tabs while comparison data is present', () => {
     const comparisonSolution: Solution = {
       id: 'solution-2',

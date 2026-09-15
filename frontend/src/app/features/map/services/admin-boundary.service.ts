@@ -1236,6 +1236,19 @@ export class AdminBoundaryService {
     this.setSelectionHighlight(geometry);
   }
 
+  setAoiHighlightVisible(visible: boolean): void {
+    if (this.aoiHoverLayer) {
+      this.aoiHoverLayer.visible = visible;
+    }
+    if (this.aoiHighlightLayer) {
+      this.aoiHighlightLayer.visible = visible;
+    }
+    if (!visible) {
+      this.clearSelectionHighlight();
+      this.clearHoverState();
+    }
+  }
+
   private registerHoverHighlightOptions(view: InstanceType<typeof ArcGISMapView>): void {
     const highlights = view.highlights;
     if (!highlights || highlights.some((options) => options.name === AOI_HOVER_HIGHLIGHT_NAME)) {

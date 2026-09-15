@@ -204,8 +204,14 @@ const COLOMBIA_EXTENT = new Extent({
   ymax: 13.7,
   spatialReference: { wkid: 4326 },
 });
+type SwipeLayerCollection = {
+  removeAll: () => void;
+  add: (layer: unknown) => void;
+};
 type SwipeInstance = {
   destroy: () => void;
+  leadingLayers?: SwipeLayerCollection;
+  trailingLayers?: SwipeLayerCollection;
 } & Widget;
 type SwipeConstructor = new (properties: Record<string, unknown>) => SwipeInstance;
 interface SketchCreateEvent {
@@ -1543,6 +1549,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
 
     if (!shouldShowComparison) {
       this.teardownComparisonSwipeWidget();
+      this.adminBoundaries.setAoiHighlightVisible(true);
       if (activeSolutionId && this.solutionLayer.isComparisonModeActive()) {
         await this.solutionLayer.showSolution(activeSolutionId, { syncAppState: false });
         if (requestId !== this.comparisonSyncRequestId) {
@@ -1559,15 +1566,19 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
         ? (this.comparisonSwipeWidget as unknown as { position: number }).position
         : 50;
     const comparisonKey = `${activeSolutionId}::${comparisonSolutionId}::${visualizationMode}`;
+    const swipeNeedsRebuild =
+      visualizationMode === 'swipe' && this.comparisonSwipeWidget === null;
     if (
       comparisonKey === this.lastComparisonKey &&
-      this.solutionLayer.hasComparisonSolutions(activeSolutionId, comparisonSolutionId)
+      this.solutionLayer.hasExclusiveComparisonLayers(activeSolutionId, comparisonSolutionId) &&
+      !swipeNeedsRebuild
     ) {
       return;
     }
 
     this.teardownComparisonSwipeWidget();
-    if (!this.solutionLayer.hasComparisonSolutions(activeSolutionId, comparisonSolutionId)) {
+    this.hideComparisonAoiOverlays();
+    if (!this.solutionLayer.hasExclusiveComparisonLayers(activeSolutionId, comparisonSolutionId)) {
       await this.solutionLayer.showComparison(activeSolutionId, comparisonSolutionId);
       if (requestId !== this.comparisonSyncRequestId) {
         return;
@@ -1586,18 +1597,35 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    this.lastComparisonKey = comparisonKey;
-
     if (visualizationMode === 'swipe') {
+      const exclusiveLayers = this.solutionLayer.prepareExclusiveSwipeLayers();
+      if (!exclusiveLayers) {
+        this.lastComparisonKey = '';
+        return;
+      }
       try {
-        await this.setupComparisonSwipeWidget(requestId, previousPosition);
+        await this.setupComparisonSwipeWidget(requestId, previousPosition, exclusiveLayers);
+        if (this.comparisonSwipeWidget && this.isCurrentComparisonSync(requestId)) {
+          this.lastComparisonKey = comparisonKey;
+        }
       } catch (error) {
+        this.lastComparisonKey = '';
         console.error(`[MapView][${this.debugMarker}] failed to attach Swipe widget:`, error);
       }
+      return;
     }
+
+    this.lastComparisonKey = comparisonKey;
   }
 
-  private async setupComparisonSwipeWidget(requestId: number, position = 50): Promise<void> {
+  private async setupComparisonSwipeWidget(
+    requestId: number,
+    position = 50,
+    comparisonLayers: {
+      baselineLayer: unknown;
+      candidateLayer: unknown;
+    },
+  ): Promise<void> {
     if (!this.isCurrentComparisonSync(requestId)) {
       return;
     }
@@ -1608,8 +1636,7 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
     }
 
     const parentEl = this.comparisonSwipeContainerRef?.nativeElement;
-    const comparisonLayers = this.solutionLayer.getComparisonLayers();
-    if (!this.view || !parentEl || !comparisonLayers) {
+    if (!this.view || !parentEl) {
       return;
     }
 
@@ -1628,7 +1655,19 @@ export class MapViewComponent implements AfterViewInit, OnDestroy {
       direction: 'horizontal',
       position,
     });
+    this.comparisonSwipeWidget.leadingLayers?.removeAll();
+    this.comparisonSwipeWidget.leadingLayers?.add(comparisonLayers.baselineLayer);
+    this.comparisonSwipeWidget.trailingLayers?.removeAll();
+    this.comparisonSwipeWidget.trailingLayers?.add(comparisonLayers.candidateLayer);
     console.info(`[MapView][${this.debugMarker}] Swipe widget created (position=${position})`);
+  }
+
+  private hideComparisonAoiOverlays(): void {
+    this.adminBoundaries.setAoiHighlightVisible(false);
+    if (this.customAoiGraphicsLayer) {
+      this.customAoiGraphicsLayer.removeAll();
+      this.hasCustomAoiDrawing.set(false);
+    }
   }
 
   private isCurrentComparisonSync(requestId: number): boolean {

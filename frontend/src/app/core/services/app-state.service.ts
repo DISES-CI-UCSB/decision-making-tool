@@ -314,6 +314,11 @@ export class AppStateService {
   }
 
   setRightSidebarMode(mode: RightSidebarMode): void {
+    if (mode === 'comparison' && this.rightSidebarMode$() !== 'comparison') {
+      // Comparison swipe clips only Scenario A/B. A leftover known AOI highlight
+      // (or its selection state) renders on both sides and makes the slider look broken.
+      this.clearAOI();
+    }
     this.rightSidebarMode$.set(mode);
   }
 

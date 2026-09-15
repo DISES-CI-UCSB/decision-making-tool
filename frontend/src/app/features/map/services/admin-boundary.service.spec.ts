@@ -461,6 +461,26 @@ describe('AdminBoundaryService', () => {
     ]);
   });
 
+  it('hides AOI highlight layers used during comparison swipe', () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    const hoverLayer = { visible: true, removeAll: vi.fn(), add: vi.fn() };
+    const selectionLayer = { visible: true, removeAll: vi.fn(), add: vi.fn() };
+    Object.assign(service as unknown as Record<string, unknown>, {
+      aoiHoverLayer: hoverLayer,
+      aoiHighlightLayer: selectionLayer,
+    });
+
+    service.setAoiHighlightVisible(false);
+
+    expect(hoverLayer.visible).toBe(false);
+    expect(selectionLayer.visible).toBe(false);
+
+    service.setAoiHighlightVisible(true);
+
+    expect(hoverLayer.visible).toBe(true);
+    expect(selectionLayer.visible).toBe(true);
+  });
+
   it('highlights a hovered boundary through its layer view only once per feature', () => {
     const service = TestBed.inject(AdminBoundaryService);
     const removeHighlight = vi.fn();

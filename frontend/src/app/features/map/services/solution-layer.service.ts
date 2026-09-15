@@ -67,6 +67,7 @@ export class SolutionLayerService {
   private candidateComparisonVisible = true;
   private overlapComparisonVisible = true;
   private comparisonVisualizationMode: ComparisonVisualizationMode = 'threeColorOverlay';
+  private displayGeneration = 0;
 
   /**
    * Per-solution color memory so that returning to a previously-viewed solution during the
@@ -112,13 +113,17 @@ export class SolutionLayerService {
     }
 
     const { syncAppState = true } = options;
+    const generation = ++this.displayGeneration;
     this.isLoading$.set(true);
     this.loadError$.set(null);
 
     try {
-      this.removeAllLayers();
-
       const loaded = await this.loader.loadSolution(solutionId);
+      if (generation !== this.displayGeneration) {
+        return;
+      }
+
+      this.removeAllLayers();
       // Restore the user-picked color for this solution (if any), otherwise use the default.
       // This lets returning to a previously-viewed solution preserve the chosen color.
       const restoredColor =
@@ -157,7 +162,9 @@ export class SolutionLayerService {
       this.loadError$.set(msg);
       console.error('[SolutionLayerService] load failed:', err);
     } finally {
-      this.isLoading$.set(false);
+      if (generation === this.displayGeneration) {
+        this.isLoading$.set(false);
+      }
     }
   }
 
@@ -167,6 +174,7 @@ export class SolutionLayerService {
       return;
     }
 
+    const generation = ++this.displayGeneration;
     this.isLoading$.set(true);
     this.loadError$.set(null);
 
@@ -189,6 +197,10 @@ export class SolutionLayerService {
           reuseIfLoaded(baselineSolutionId) ?? this.loader.loadSolution(baselineSolutionId),
           reuseIfLoaded(candidateSolutionId) ?? this.loader.loadSolution(candidateSolutionId),
         ]);
+      }
+
+      if (generation !== this.displayGeneration) {
+        return;
       }
 
       // Only clear existing map layers once both solutions have loaded successfully.
@@ -241,7 +253,9 @@ export class SolutionLayerService {
       this.loadError$.set(msg);
       console.error('[SolutionLayerService] comparison load failed:', err);
     } finally {
-      this.isLoading$.set(false);
+      if (generation === this.displayGeneration) {
+        this.isLoading$.set(false);
+      }
     }
   }
 
@@ -282,6 +296,33 @@ export class SolutionLayerService {
       baselineLayer: this.baselineComparisonLayer,
       candidateLayer: this.candidateComparisonLayer,
     };
+  }
+
+  hasExclusiveComparisonLayers(baselineSolutionId: string, candidateSolutionId: string): boolean {
+    return (
+      this.comparisonMode &&
+      this.currentLayer === null &&
+      this.hasComparisonSolutions(baselineSolutionId, candidateSolutionId)
+    );
+  }
+
+  /**
+   * Swipe clips only the layers assigned to leading/trailing. A leftover single-solution
+   * or overlap raster stays visible on both sides, so strip those before attaching Swipe.
+   */
+  prepareExclusiveSwipeLayers(): {
+    baselineLayer: SolutionDisplayLayer;
+    candidateLayer: SolutionDisplayLayer;
+  } | null {
+    if (!this.comparisonMode) {
+      return null;
+    }
+
+    this.removeSingleLayer();
+    this.hideOverlapLayerForComparisonMode();
+    this.setBaselineVisibility(true);
+    this.setCandidateVisibility(true);
+    return this.getComparisonLayers();
   }
 
   /** @deprecated Prefer subscribing to `baselineColor$` for reactivity. */
@@ -371,7 +412,7 @@ export class SolutionLayerService {
   setBaselineOpacity(opacity: number): void {
     const clampedOpacity = Math.max(0, Math.min(1, opacity));
     this.baselineComparisonOpacity = clampedOpacity;
-    if (this.currentLayer) {
+    if (this.currentLayer && !this.comparisonMode) {
       this.currentLayer.opacity = clampedOpacity;
     }
     if (this.baselineComparisonLayer) {
@@ -586,7 +627,7 @@ export class SolutionLayerService {
 
   setBaselineVisibility(visible: boolean): void {
     this.baselineComparisonVisible = visible;
-    if (this.currentLayer) {
+    if (this.currentLayer && !this.comparisonMode) {
       this.currentLayer.visible = visible;
     }
     if (this.baselineComparisonLayer) {
