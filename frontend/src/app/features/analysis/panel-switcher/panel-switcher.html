@@ -389,9 +389,102 @@
                                 [id]="
                                   'right-sidebar-v3-overview-sirap-ecosystem-label-' + metric.id
                                 "
-                                class="text-slate-700"
+                                class="min-w-0 text-slate-700"
                               >
                                 {{ metric.labelKey | translate }}
+                                @if (metric.id === 'iavh-total') {
+                                  <span
+                                    id="right-sidebar-v3-overview-sirap-ecosystem-mec-help"
+                                    class="v3-methodology-help"
+                                    (mouseenter)="
+                                      showMethodologyTooltip(
+                                        $event,
+                                        'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
+                                      )
+                                    "
+                                    (mouseleave)="
+                                      hideMethodologyTooltip(
+                                        'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
+                                      )
+                                    "
+                                    (focusin)="
+                                      showMethodologyTooltip(
+                                        $event,
+                                        'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
+                                      )
+                                    "
+                                    (focusout)="
+                                      hideMethodologyTooltip(
+                                        'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
+                                      )
+                                    "
+                                  >
+                                    <button
+                                      id="right-sidebar-v3-overview-sirap-ecosystem-mec-help-trigger"
+                                      type="button"
+                                      class="v3-methodology-trigger"
+                                      [attr.aria-label]="
+                                        'analysis.overview.methodologyInfoLabel' | translate
+                                      "
+                                      aria-describedby="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip"
+                                    >
+                                      <app-info-icon
+                                        rootId="right-sidebar-v3-overview-sirap-ecosystem-mec-help-indicator"
+                                        colorClass="text-slate-400"
+                                      />
+                                    </button>
+                                    <span
+                                      id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip"
+                                      role="tooltip"
+                                      popover="manual"
+                                      class="v3-methodology-tooltip v3-methodology-tooltip-overlay pointer-events-auto"
+                                    >
+                                      <span
+                                        id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-text"
+                                        class="v3-methodology-tooltip-text"
+                                      >
+                                        {{
+                                          'mapLayersPanel.ecosystemInfoModal.intro' | translate
+                                        }}
+                                      </span>
+                                      <span
+                                        id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-links"
+                                        class="flex flex-col"
+                                      >
+                                        <a
+                                          id="right-sidebar-v3-overview-sirap-ecosystem-mec-source-overview"
+                                          class="v3-methodology-source-link"
+                                          [href]="
+                                            'solutionControls.finder.step1.ecosystemsOverviewSourceUrl'
+                                              | translate
+                                          "
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          {{
+                                            'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel'
+                                              | translate
+                                          }}
+                                        </a>
+                                        <a
+                                          id="right-sidebar-v3-overview-sirap-ecosystem-mec-source-map"
+                                          class="v3-methodology-source-link"
+                                          [href]="
+                                            'solutionControls.finder.step1.ecosystemsDataSourceUrl'
+                                              | translate
+                                          "
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          {{
+                                            'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel'
+                                              | translate
+                                          }}
+                                        </a>
+                                      </span>
+                                    </span>
+                                  </span>
+                                }
                               </span>
                               <strong
                                 [id]="
@@ -4023,6 +4116,43 @@
         >
           {{ getGoalsModalDescriptionKey(domain) | translate }}
         </p>
+        @if (domain.featureType === 'ecosystems') {
+          <div
+            id="conservation-goals-modal-mec-source-links"
+            class="flex flex-wrap gap-x-3 gap-y-1"
+          >
+            <a
+              id="conservation-goals-modal-mec-source-overview"
+              class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              [href]="
+                'solutionControls.finder.step1.ecosystemsOverviewSourceUrl'
+                  | translate
+              "
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{
+                'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel'
+                  | translate
+              }}
+            </a>
+            <a
+              id="conservation-goals-modal-mec-source-map"
+              class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              [href]="
+                'solutionControls.finder.step1.ecosystemsDataSourceUrl'
+                  | translate
+              "
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{
+                'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel'
+                  | translate
+              }}
+            </a>
+          </div>
+        }
       </section>
 
       @if (domain.featureType === 'ecosystems') {
@@ -6237,6 +6367,42 @@
         ) | translate
       }}
     </p>
+
+    <div
+      id="aoi-mec-classifications-modal-mec-source-links"
+      class="flex flex-wrap gap-x-3 gap-y-1"
+    >
+      <a
+        id="aoi-mec-classifications-modal-mec-source-overview"
+        class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        [href]="
+          'solutionControls.finder.step1.ecosystemsOverviewSourceUrl'
+            | translate
+        "
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{
+          'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel'
+            | translate
+        }}
+      </a>
+      <a
+        id="aoi-mec-classifications-modal-mec-source-map"
+        class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        [href]="
+          'solutionControls.finder.step1.ecosystemsDataSourceUrl'
+            | translate
+        "
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{
+          'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel'
+            | translate
+        }}
+      </a>
+    </div>
 
     @if (isCustomMecState() && !hasCustomMecCoverage()) {
       <p

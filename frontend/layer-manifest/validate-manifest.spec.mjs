@@ -159,13 +159,31 @@ describe('catalog-driven release validation', () => {
     );
   });
 
-  it('rejects release-looking substrings outside the exact pathname prefix', async () => {
+  it('rejects release-looking substrings outside a release pathname prefix', async () => {
     const manifest = createReleaseManifest();
     manifest.solutions[0].precomputedMetricUrls.goals = `${BLOB_HOST}/metrics/releases/${manifest.releaseId}/goals/demo_solution.goals.json`;
 
     await assert.rejects(
       validateManifest(manifest, 'manifest.json', { catalog: createReleaseCatalog() }),
-      /must use exact release pathname prefix/,
+      /must use a release pathname prefix/,
+    );
+  });
+
+  it('accepts mixed release prefixes the way 3.5.0 gold already ships', async () => {
+    const manifest = createReleaseManifest();
+    const urls = manifest.solutions[0].precomputedMetricUrls;
+    urls.goals = `${BLOB_HOST}/releases/solutions-v3-0-0/goals/v4/demo_solution.goals.json`;
+    urls.cache = `${BLOB_HOST}/releases/solutions-v3-0-0/regular/verbose/demo_solution.metrics.json`;
+    urls.compactCache = `${BLOB_HOST}/releases/${manifest.releaseId}/regular/compact/demo_solution.metrics.compact.json`;
+    urls.mecV2ByGeography = Object.fromEntries(
+      ['national', 'departments', 'municipalities', 'siraps', 'runaps', 'omecs'].map((level) => [
+        level,
+        `${BLOB_HOST}/releases/solutions-v3-0-0/mec/v2/demo_solution/${level}.mec.compact.json`,
+      ]),
+    );
+
+    await assert.doesNotReject(
+      validateManifest(manifest, 'manifest.json', { catalog: createReleaseCatalog() }),
     );
   });
 

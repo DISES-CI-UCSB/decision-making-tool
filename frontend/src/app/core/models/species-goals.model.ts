@@ -380,8 +380,11 @@ export function hydrateSpeciesGoals(
     throw new Error('Species target overlay references an invalid catalog species.');
   }
   const overlayTargets = targetOverlay === undefined ? null : new Map(targetOverlay?.rows ?? []);
-  return catalog.rows.map((catalogRow, speciesIndex) => {
+  return catalog.rows.flatMap((catalogRow, speciesIndex) => {
     const [id, scientificName, group, iucnStatus, nationalRangeKm2, availability] = catalogRow;
+    if (nationalRangeKm2 === null || nationalRangeKm2 < 1) {
+      return [];
+    }
     const row = rowsBySpecies.get(speciesIndex);
     const flags =
       row?.[7] ??
@@ -406,27 +409,29 @@ export function hydrateSpeciesGoals(
         : configuredTarget === null
           ? null
           : range > 0 && percent(selected, range) + 1e-9 >= configuredTarget;
-    return {
-      id,
-      scientific_name: scientificName,
-      group: group ?? 'other',
-      iucn_status: iucnStatus,
-      range_area_km2: nationalRangeKm2 ?? 0,
-      range_in_aoi_area_km2: range,
-      range_in_aoi_pct: percent(range, nationalRangeKm2 ?? 0),
-      solution_covered_in_aoi_area_km2: selected,
-      solution_covered_in_aoi_pct: percent(selected, range),
-      pre_existing_covered_in_aoi_area_km2: preExisting,
-      pre_existing_covered_in_aoi_pct: percent(preExisting, range),
-      new_covered_in_aoi_area_km2: newPrioritizr,
-      new_covered_in_aoi_pct: percent(newPrioritizr, range),
-      availability,
-      no_range_in_scope: Boolean(flags & SPECIES_GOALS_FLAGS.noRange),
-      configured_target_percent: configuredTarget,
-      met_17_percent: Boolean(flags & SPECIES_GOALS_FLAGS.met17),
-      met_30_percent: Boolean(flags & SPECIES_GOALS_FLAGS.met30),
-      configured_target_met: configuredTargetMet,
-    };
+    return [
+      {
+        id,
+        scientific_name: scientificName,
+        group: group ?? 'other',
+        iucn_status: iucnStatus,
+        range_area_km2: nationalRangeKm2,
+        range_in_aoi_area_km2: range,
+        range_in_aoi_pct: percent(range, nationalRangeKm2),
+        solution_covered_in_aoi_area_km2: selected,
+        solution_covered_in_aoi_pct: percent(selected, range),
+        pre_existing_covered_in_aoi_area_km2: preExisting,
+        pre_existing_covered_in_aoi_pct: percent(preExisting, range),
+        new_covered_in_aoi_area_km2: newPrioritizr,
+        new_covered_in_aoi_pct: percent(newPrioritizr, range),
+        availability,
+        no_range_in_scope: Boolean(flags & SPECIES_GOALS_FLAGS.noRange),
+        configured_target_percent: configuredTarget,
+        met_17_percent: Boolean(flags & SPECIES_GOALS_FLAGS.met17),
+        met_30_percent: Boolean(flags & SPECIES_GOALS_FLAGS.met30),
+        configured_target_met: configuredTargetMet,
+      },
+    ];
   });
 }
 

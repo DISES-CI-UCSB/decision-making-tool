@@ -107,6 +107,7 @@ describe('species goals contracts', () => {
   it('hydrates sparse omissions as explicit no-range and unavailable rows', () => {
     const rows = hydrateSpeciesGoals(catalog, compact(), '05');
 
+    expect(rows.map((row) => row.id)).toEqual(['present', 'absent']);
     expect(rows[0]).toMatchObject({
       range_in_aoi_pct: 20,
       solution_covered_in_aoi_pct: 40,
@@ -121,10 +122,6 @@ describe('species goals contracts', () => {
       availability: 'available',
       no_range_in_scope: true,
       range_in_aoi_area_km2: 0,
-    });
-    expect(rows[2]).toMatchObject({
-      availability: 'unavailable',
-      no_range_in_scope: false,
     });
   });
 
@@ -151,11 +148,7 @@ describe('species goals contracts', () => {
     });
     expect(rows[1].configured_target_percent).toBeNull();
     expect(rows[1].configured_target_met).toBeNull();
-    expect(rows[2]).toMatchObject({
-      availability: 'unavailable',
-      configured_target_percent: null,
-      configured_target_met: null,
-    });
+    expect(rows.map((row) => row.id)).toEqual(['present', 'absent']);
   });
 
   it('selects distinct OMEC target maps and null for untargeted solutions', () => {
@@ -185,6 +178,28 @@ describe('species goals contracts', () => {
     const stale = compact();
     stale.provenance.catalogSha256 = 'b'.repeat(64);
     expect(() => hydrateSpeciesGoals(catalog, stale, '05')).toThrow(/stale/);
+  });
+
+  it('omits species with null or sub-1 km² national range from hydrated rows', () => {
+    const rangeCatalog: SpeciesGoalsCatalog = {
+      ...catalog,
+      provenance: {
+        ...catalog.provenance,
+        inventory: { catalogTotal: 5, unavailable: 1, zeroRange: 1 },
+      },
+      rows: [
+        ['zero-range', 'Zero range frog', 'amphibians', 'EN', 0, 'available'],
+        ['sub-km', 'Sub-kilometer frog', 'amphibians', 'VU', 0.85, 'available'],
+        ['one-km', 'One kilometer bird', 'birds', 'LC', 1, 'available'],
+        ['large-range', 'Large range mammal', 'mammals', 'NT', 2500, 'available'],
+        ['null-range', 'Null range plant', 'plants', null, null, 'unavailable'],
+      ],
+    };
+
+    const rows = hydrateSpeciesGoals(rangeCatalog, compact(), '05');
+
+    expect(rows.map((row) => row.id)).toEqual(['one-km', 'large-range']);
+    expect(rows.map((row) => row.range_area_km2)).toEqual([1, 2500]);
   });
 
   it('hydrates when catalog and compact provenance releaseIds differ', () => {

@@ -867,21 +867,6 @@ export class PanelSwitcherComponent {
   protected readonly sirapOverviewEcosystemMetrics = computed<SirapOverviewMetricEntry[]>(() =>
     this.buildSirapOverviewMetricEntries([
       ['iavh-total', 'ecosystem_coverage', 'analysis.overview.goalsWidget.sirap.ecosystems.iavh'],
-      [
-        'paramo',
-        'ecosystem_coverage_paramo',
-        'analysis.overview.goalsWidget.sirap.ecosystems.paramo',
-      ],
-      [
-        'dry-forest',
-        'ecosystem_coverage_dry_forest',
-        'analysis.overview.goalsWidget.sirap.ecosystems.dryForest',
-      ],
-      [
-        'wetlands',
-        'ecosystem_coverage_wetlands',
-        'analysis.overview.goalsWidget.sirap.ecosystems.wetlands',
-      ],
     ]),
   );
   protected readonly sirapOverviewSpeciesMetrics = computed<SirapOverviewMetricEntry[]>(() =>
@@ -1982,11 +1967,24 @@ export class PanelSwitcherComponent {
     domainId: string,
     context: 'target' | 'additional' = 'target',
   ): void {
-    const trigger = event.currentTarget as HTMLElement;
-    const tooltipId =
+    this.showMethodologyTooltip(
+      event,
       context === 'additional'
         ? `right-sidebar-v3-overview-goals-additional-domain-method-tooltip-${domainId}`
-        : `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`;
+        : `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`,
+    );
+  }
+
+  protected hideGoalsTooltip(domainId: string, context: 'target' | 'additional' = 'target'): void {
+    this.hideMethodologyTooltip(
+      context === 'additional'
+        ? `right-sidebar-v3-overview-goals-additional-domain-method-tooltip-${domainId}`
+        : `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`,
+    );
+  }
+
+  protected showMethodologyTooltip(event: Event, tooltipId: string): void {
+    const trigger = event.currentTarget as HTMLElement;
     const tooltip = document.getElementById(tooltipId);
 
     if (!tooltip || typeof tooltip.showPopover !== 'function') {
@@ -2016,11 +2014,7 @@ export class PanelSwitcherComponent {
     tooltip.classList.toggle('v3-methodology-tooltip-above', opensAbove);
   }
 
-  protected hideGoalsTooltip(domainId: string, context: 'target' | 'additional' = 'target'): void {
-    const tooltipId =
-      context === 'additional'
-        ? `right-sidebar-v3-overview-goals-additional-domain-method-tooltip-${domainId}`
-        : `right-sidebar-v3-overview-goals-domain-help-tooltip-${domainId}`;
+  protected hideMethodologyTooltip(tooltipId: string): void {
     const tooltip = document.getElementById(tooltipId);
 
     if (tooltip?.matches(':popover-open')) {
@@ -5281,11 +5275,7 @@ export class PanelSwitcherComponent {
   private buildOverviewMetricDisplayEntries(
     section: OverviewMetricSection,
   ): OverviewMetricDisplayEntry[] {
-    const metricsById = new Map(
-      this.overviewSections()
-        .flatMap((metricSection) => metricSection.metrics)
-        .map((metric) => [metric.metricId, metric] as const),
-    );
+    const metricsById = this.overviewMetricsById();
     const shouldFillDummy = this.fillDummyOverviewMetrics();
     const planningDomain = this.isMarineSolution() ? 'marine' : 'land';
 
@@ -5394,13 +5384,19 @@ export class PanelSwitcherComponent {
   }
 
   private findOverviewMetric(metricId: string): MetricValue | null {
-    const metricsById = new Map(
-      this.overviewSections()
-        .flatMap((metricSection) => metricSection.metrics)
-        .map((metric) => [metric.metricId, metric] as const),
-    );
     const planningDomain = this.isMarineSolution() ? 'marine' : 'land';
-    return this.resolveOverviewMetricForPanel(metricsById, metricId, planningDomain) ?? null;
+    return (
+      this.resolveOverviewMetricForPanel(this.overviewMetricsById(), metricId, planningDomain) ??
+      null
+    );
+  }
+
+  private overviewMetricsById(): Map<string, MetricValue> {
+    return new Map(
+      this.overviewMetrics(this.cachedMetricsDocument()).map(
+        (metric) => [metric.metricId, metric] as const,
+      ),
+    );
   }
 
   private resolveOverviewMetricForPanel(
@@ -5469,16 +5465,7 @@ export class PanelSwitcherComponent {
       return [];
     }
 
-    const metrics = document?.geographies.sirap?.[primaryGeography.scopeId]?.metrics ?? [];
-    return this.aliasSirapComparisonMetrics(metrics);
-  }
-
-  private aliasSirapComparisonMetrics(metrics: MetricValue[]): MetricValue[] {
-    return metrics.map((metric) =>
-      metric.metricId === 'priority_area_pct_of_region'
-        ? { ...metric, metricId: 'national_contribution' }
-        : metric,
-    );
+    return document?.geographies.sirap?.[primaryGeography.scopeId]?.metrics ?? [];
   }
 
   private overviewMetrics(document: CachedSolutionMetricsDocument | null): MetricValue[] {
@@ -5515,12 +5502,22 @@ export class PanelSwitcherComponent {
           id,
           metricId,
           labelKey,
-          value:
-            metric.unit === 'km²'
-              ? this.appendUnit(this.formatNumber(metric.value, 'full', 0, 1), 'km²')
-              : this.formatNumber(metric.value, 'full', 0, 0),
+          value: this.formatSirapOverviewMetricValue(metric),
         },
       ];
+    });
+  }
+
+  private formatSirapOverviewMetricValue(metric: MetricValue): string {
+    const unit = metric.unit?.replace('²', '2').toLowerCase();
+    if (unit === 'km2' || metric.metricId === 'ecosystem_coverage') {
+      return this.appendUnit(this.formatNumber(metric.value ?? 0, 'full', 0, 0), 'km²');
+    }
+
+    return formatPanelMetric(metric, {
+      areaUnit: 'km2',
+      locale: this.appLocale.locale(),
+      mode: 'full',
     });
   }
 
@@ -5788,16 +5785,6 @@ export class PanelSwitcherComponent {
         liveMetrics.candidateNewAreaKm2,
         (value) => this.formatLiveAreaMetric(value),
         (value) => this.formatLiveAreaMetric(value, 'full'),
-      );
-    }
-
-    if (blueprint.metricId === 'national_contribution') {
-      return this.buildLiveRasterDisplayEntry(
-        blueprint,
-        liveMetrics.baselineNationalContributionPct,
-        liveMetrics.candidateNationalContributionPct,
-        (value) => `${this.formatNumber(value, this.metricNumberFormatMode(), 0, 1)}%`,
-        (value) => `${this.formatNumber(value, 'full', 0, 2)}%`,
       );
     }
 

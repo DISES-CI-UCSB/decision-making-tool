@@ -320,10 +320,7 @@
           "ecosystemCoverageTitle": "Ecosystem coverage",
           "speciesTitle": "Species represented",
           "ecosystems": {
-            "iavh": "IAvH total",
-            "paramo": "Páramo",
-            "dryForest": "Tropical dry forest",
-            "wetlands": "Wetlands"
+            "iavh": "National ecosystem map (MEC) area"
           },
           "species": {
             "mammals": "Mammals",
@@ -660,8 +657,6 @@
         "preExistingAreaDesc": "Area already included before candidate conservation areas are added.",
         "newSelectedArea": "New selected area",
         "newSelectedAreaDesc": "Candidate conservation area in the scenario, excluding existing conservation areas.",
-        "nationalTarget": "Share of national planning area",
-        "nationalTargetDesc": "Total selected area divided by the valid national planning area for each scenario.",
         "biodiversity": "Biodiversity",
         "biodiversityDesc": "Composite biodiversity performance score.",
         "ecosystemCoverage": "Ecosystem Coverage",

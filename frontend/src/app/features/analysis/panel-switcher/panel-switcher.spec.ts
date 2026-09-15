@@ -2226,6 +2226,12 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#aoi-mec-classifications-modal-title')?.textContent).toContain(
       'analysis.aoi.mec.modal.customTitle',
     );
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-overview'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map'),
+    ).not.toBeNull();
     const table = compiled.querySelector('#aoi-mec-modal-table');
     expect(table).not.toBeNull();
     expect(compiled.querySelectorAll('#aoi-mec-modal-table')).toHaveLength(1);
@@ -2687,8 +2693,28 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-iavh-total')?.textContent,
     ).toContain('1.250 km²');
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-dry-forest')?.textContent,
-    ).toContain('24 km²');
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-label-iavh-total')
+        ?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.ecosystems.iavh');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-paramo'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-dry-forest'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-wetlands'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-text')
+        ?.textContent,
+    ).toContain('mapLayersPanel.ecosystemInfoModal.intro');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-mec-source-overview'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-mec-source-map'),
+    ).not.toBeNull();
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-sirap-species-mammals')?.textContent,
     ).toContain('64');
@@ -2724,6 +2750,7 @@ describe('PanelSwitcherComponent', () => {
     ecosystemCoverageButton.click();
     fixture.detectChanges();
     await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 20));
     fixture.detectChanges();
     expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'siraps');
     expect(
@@ -2746,6 +2773,10 @@ describe('PanelSwitcherComponent', () => {
         }
       ).getGoalsModalTitleParams(),
     ).toEqual({ sirapName: 'SIRAP Eje Cafetero' });
+    expect(
+      compiled.querySelector('#conservation-goals-modal-mec-source-overview'),
+    ).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-mec-source-map')).not.toBeNull();
   });
 
   it('keeps SIRAP overview coverage independent of custom AOI geometry', async () => {
@@ -3083,6 +3114,49 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-species-reptiles')).toBeNull();
   });
 
+  it('shows SIRAP Total Carbon from carbon_biomass_total on the summary tab', async () => {
+    const solution = buildTestSolution();
+    const document = buildRegionalSirapMetricsDocument(solution.id, 'orinoquia');
+    const metrics = document.geographies.sirap?.['orinoquia'].metrics ?? [];
+    metrics.push(
+      {
+        ...buildMetric('carbon_storage_biomass', 0, 'Mg·km²', 'number'),
+        value: null,
+        status: 'not_applicable',
+      },
+      buildMetric('carbon_biomass_total', 3_372_526.808, 'Mg·km²', 'number'),
+      buildMetric('water_regulation_area', 17_002.75, 'km²', 'number'),
+    );
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(of(document));
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'land',
+      scope: 'sirap',
+      sirapId: 'orinoquia',
+    } as CatalogSolution);
+    appLocale.setLocale('en');
+    appState.activeSolution$.set(solution);
+    appState.clearAOI();
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const carbonValue = compiled.querySelector(
+      '#right-sidebar-v3-overview-ecosystem-services-value-metric-05-carbon-storage-capacity',
+    );
+    const waterValue = compiled.querySelector(
+      '#right-sidebar-v3-overview-ecosystem-services-value-metric-06-water-regulation-services',
+    );
+
+    expect(carbonValue?.textContent).toContain('3.4M');
+    expect(carbonValue?.textContent).not.toContain('--');
+    expect(waterValue?.textContent).toContain('17K');
+  });
+
   it('never falls back to Colombia metrics while a SIRAP primary scope is missing', async () => {
     const solution = buildTestSolution();
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
@@ -3414,6 +3488,12 @@ describe('PanelSwitcherComponent', () => {
     expect(dialog.classList.contains('w-screen')).toBe(true);
     expect(dialog.classList.contains('max-md:p-0')).toBe(true);
     expect(compiled.querySelector('#aoi-mec-classifications-modal-panel')).not.toBeNull();
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-overview'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map'),
+    ).not.toBeNull();
 
     (
       compiled.querySelector('#aoi-mec-classifications-modal-close-button') as HTMLButtonElement
@@ -3467,7 +3547,7 @@ describe('PanelSwitcherComponent', () => {
     );
   });
 
-  it('resolves SIRAP comparison metrics from regional geography and aliases contribution percent', async () => {
+  it('resolves SIRAP comparison metrics from regional geography', async () => {
     const baseline = buildTestSolution();
     const candidate = { ...buildTestSolution(), id: 'candidate-solution', name: 'Candidate' };
     vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockImplementation(
@@ -3482,7 +3562,12 @@ describe('PanelSwitcherComponent', () => {
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockImplementation((solutionId) =>
       of(
         buildSirapComparisonMetricsDocument(solutionId, [
-          buildMetric('priority_area_in_region', 40, 'km²', 'number'),
+          buildMetric(
+            'priority_area_in_region',
+            solutionId === baseline.id ? 40 : 48,
+            'km²',
+            'number',
+          ),
           buildMetric(
             'priority_area_pct_of_region',
             solutionId === baseline.id ? 2.5 : 3.1,
@@ -3504,14 +3589,35 @@ describe('PanelSwitcherComponent', () => {
     const component = fixture.componentInstance as unknown as {
       comparisonMetrics(): MetricComparisonValue[];
     };
-    const regionalContribution = component
-      .comparisonMetrics()
-      .find((metric) => metric.metricId === 'national_contribution');
+    const metrics = component.comparisonMetrics();
+    const priorityArea = metrics.find((metric) => metric.metricId === 'priority_area_in_region');
 
-    expect(regionalContribution).toBeDefined();
-    expect(regionalContribution?.baseline.value).toBe(2.5);
-    expect(regionalContribution?.candidate.value).toBe(3.1);
-    expect(regionalContribution?.delta).toBe(0.6);
+    expect(priorityArea).toBeDefined();
+    expect(priorityArea?.baseline.value).toBe(40);
+    expect(priorityArea?.candidate.value).toBe(48);
+    expect(priorityArea?.delta).toBe(8);
+    expect(metrics.some((metric) => metric.metricId === 'national_contribution')).toBe(false);
+  });
+
+  it('omits share of national planning area from the comparison tab', async () => {
+    const baseline = buildTestSolution();
+    const candidate = { ...buildTestSolution(), id: 'candidate-solution', name: 'Candidate' };
+    appState.activeSolution$.set(baseline);
+    appState.setComparisonSolution(candidate, 'Candidate');
+    appState.setRightSidebarMode('comparison');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#right-sidebar-comparison-section-general')).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-comparison-table-row-comp-priority-area'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-comparison-table-row-comp-national-target'),
+    ).toBeNull();
   });
 
   it('omits the biodiversity section from the comparison tab', async () => {
@@ -5096,6 +5202,10 @@ describe('PanelSwitcherComponent', () => {
       'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle',
     );
     expect(
+      compiled.querySelector('#conservation-goals-modal-mec-source-overview'),
+    ).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-mec-source-map')).not.toBeNull();
+    expect(
       compiled.querySelectorAll('button[id^="conservation-goals-modal-ecosystem-level-"]'),
     ).toHaveLength(5);
     expect(
@@ -6519,7 +6629,7 @@ function buildRegionalSirapMetricsDocument(
           metrics: [
             buildMetric('priority_area_in_region', 40, 'km²', 'number'),
             buildMetric('conservation_goals_met', 73, '%', 'percent'),
-            buildMetric('ecosystem_coverage', 1_250, 'km²', 'number'),
+            buildMetric('ecosystem_coverage', 1_250, 'km2', 'number'),
             buildMetric('ecosystem_coverage_paramo', 10, 'km²', 'number'),
             buildMetric('ecosystem_coverage_dry_forest', 24, 'km²', 'number'),
             buildMetric('ecosystem_coverage_wetlands', 18, 'km²', 'number'),

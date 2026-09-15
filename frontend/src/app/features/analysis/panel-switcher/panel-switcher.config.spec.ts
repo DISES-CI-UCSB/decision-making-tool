@@ -30,7 +30,6 @@ describe('panel switcher metric configuration', () => {
       'comp-priority-area',
       'comp-pre-existing-area',
       'comp-new-selected-area',
-      'comp-national-target',
       'comp-carbon',
       'comp-water-regulation',
       'comp-protected-overlap',

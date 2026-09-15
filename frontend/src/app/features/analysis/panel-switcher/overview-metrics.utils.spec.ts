@@ -1,4 +1,12 @@
-import type { GoalFeatureRow, HydratedSpeciesGoalsRecord, MetricValue } from '@core/models';
+import {
+  hydrateSpeciesGoals,
+  SPECIES_GOALS_FLAGS,
+  type GoalFeatureRow,
+  type HydratedSpeciesGoalsRecord,
+  type MetricValue,
+  type SpeciesGoalsCatalog,
+  type SpeciesGoalsCompactDocument,
+} from '@core/models';
 import { describe, expect, it } from 'vitest';
 import type { MetricFormatOptions } from '../utils/metric-presentation.utils';
 import {
@@ -180,6 +188,30 @@ describe('species-goals taxa rollup', () => {
     ]);
   });
 
+  it('excludes leftover zero-range frogs from hydrate-then-rollup totals', () => {
+    const records = hydrateSpeciesGoals(rollupRangeCatalog(), rollupRangeCompact(), '05');
+
+    expect(records.map((row) => row.id)).toEqual(['frog-met', 'bear']);
+    expect(rollupSpeciesGoalsTaxa(records)).toEqual([
+      {
+        id: 'mammals',
+        metCount: 0,
+        totalCount: 1,
+        pctMet: 0,
+        reached17Count: 1,
+        reached30Count: 1,
+      },
+      {
+        id: 'amphibians',
+        metCount: 1,
+        totalCount: 1,
+        pctMet: 100,
+        reached17Count: 1,
+        reached30Count: 0,
+      },
+    ]);
+  });
+
   it('uses 17/30 checkpoints when a taxon has no configured targets', () => {
     const records = [
       buildSpeciesGoalsRecord('frog-a', 'amphibians', null, true, false),
@@ -245,6 +277,108 @@ function buildSpeciesGoalsRecord(
     met_17_percent: met17,
     met_30_percent: met30,
     configured_target_met: configuredTargetMet,
+  };
+}
+
+const ROLLUP_RANGE_SHA = 'a'.repeat(64);
+
+function rollupRangeCatalog(): SpeciesGoalsCatalog {
+  return {
+    format: 'species-goals-catalog-v1',
+    generatedAt: '2026-08-08T00:00:00Z',
+    catalogSha256: ROLLUP_RANGE_SHA,
+    provenance: {
+      releaseId: 'fixture-release',
+      speciesCsvSha256: ROLLUP_RANGE_SHA,
+      exceptionSourceSha256: ROLLUP_RANGE_SHA,
+      exceptionPolicySha256: ROLLUP_RANGE_SHA,
+      exceptionBindingSha256: ROLLUP_RANGE_SHA,
+      inventory: { catalogTotal: 5, unavailable: 0, zeroRange: 3 },
+    },
+    rowLayout: [
+      'speciesId',
+      'scientificName',
+      'group',
+      'iucnStatus',
+      'nationalRangeKm2',
+      'availability',
+    ],
+    rows: [
+      ['frog-met', 'Frog met', 'Amphibians', 'EN', 100, 'available'],
+      ['frog-extra-0', 'Frog extra 0', 'Amphibia', 'LC', 0, 'available'],
+      ['frog-extra-1', 'Frog extra 1', 'Amphibia', 'LC', 0, 'available'],
+      ['frog-extra-2', 'Frog extra 2', 'Amphibia', 'LC', 0, 'available'],
+      ['bear', 'Bear', 'Mammals', 'LC', 80, 'available'],
+    ],
+  };
+}
+
+function rollupRangeCompact(): SpeciesGoalsCompactDocument {
+  return {
+    format: 'species-goals-compact-v1',
+    generatedAt: '2026-08-08T00:00:00Z',
+    solutionId: 'fixture',
+    catalogSha256: ROLLUP_RANGE_SHA,
+    geographyLevel: 'departments',
+    encoding: 'sparse-no-range-omitted',
+    provenance: {
+      releaseId: 'fixture-release',
+      speciesCsvSha256: ROLLUP_RANGE_SHA,
+      exceptionSourceSha256: ROLLUP_RANGE_SHA,
+      exceptionPolicySha256: ROLLUP_RANGE_SHA,
+      exceptionBindingSha256: ROLLUP_RANGE_SHA,
+      exactOverlapAlgorithmVersion: 'fixture-exact-v1',
+      exactOverlapPolicySha256: ROLLUP_RANGE_SHA,
+      targetGridSha256: ROLLUP_RANGE_SHA,
+      speciesAlignmentInventorySha256: ROLLUP_RANGE_SHA,
+      solutionRasterSha256: ROLLUP_RANGE_SHA,
+      targetPolicySha256: ROLLUP_RANGE_SHA,
+      boundaryProvenanceSha256: ROLLUP_RANGE_SHA,
+      catalogSha256: ROLLUP_RANGE_SHA,
+    },
+    scopeCatalog: [['05', 'Antioquia']],
+    rowLayout: [
+      'scopeIndex',
+      'speciesIndex',
+      'rangeAreaKm2',
+      'solutionCoveredAreaKm2',
+      'preExistingCoveredAreaKm2',
+      'newPrioritizrCoveredAreaKm2',
+      'configuredTargetPercent',
+      'flags',
+    ],
+    rows: [
+      [
+        0,
+        0,
+        10,
+        2,
+        1,
+        1,
+        17,
+        SPECIES_GOALS_FLAGS.targetConfigured |
+          SPECIES_GOALS_FLAGS.met17 |
+          SPECIES_GOALS_FLAGS.configuredTargetMet,
+      ],
+      [
+        0,
+        4,
+        10,
+        4,
+        2,
+        2,
+        90,
+        SPECIES_GOALS_FLAGS.targetConfigured |
+          SPECIES_GOALS_FLAGS.met17 |
+          SPECIES_GOALS_FLAGS.met30,
+      ],
+    ],
+    completion: {
+      format: 'species-goals-completion-v1',
+      status: 'complete',
+      rowCount: 2,
+      payloadSha256: ROLLUP_RANGE_SHA,
+    },
   };
 }
 
