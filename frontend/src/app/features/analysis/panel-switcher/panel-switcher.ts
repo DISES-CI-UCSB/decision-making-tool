@@ -390,6 +390,7 @@ interface SirapOverviewTargetFeature {
   id: string;
   label: string;
   achievedPercent: number;
+  achievedAreaKm2: number | null;
   targetPercent: number;
   shortfallPercent: number;
   met: boolean;
@@ -845,6 +846,7 @@ export class PanelSwitcherComponent {
             id: feature.featureId,
             label: this.sirapTargetFeatureLabel(feature.featureId, feature.featureName),
             achievedPercent: relativeHeld * 100,
+            achievedAreaKm2: this.sirapAchievedAreaKm2(feature.absoluteHeldKm2),
             targetPercent: relativeTarget * 100,
             shortfallPercent: relativeShortfall * 100,
             met: feature.met,
@@ -2194,6 +2196,16 @@ export class PanelSwitcherComponent {
     return this.translate.instant('analysis.overview.goalsWidget.sirap.status.shortfall', {
       percent: this.getGoalsPercentLabel(feature.shortfallPercent),
     });
+  }
+
+  protected formatSirapAchievedArea(feature: SirapOverviewTargetFeature): string | null {
+    return feature.achievedAreaKm2 === null
+      ? null
+      : this.formatAreaValue(feature.achievedAreaKm2, 'full');
+  }
+
+  private sirapAchievedAreaKm2(value: number | null | undefined): number | null {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
   }
 
   private sirapTargetFeatureLabel(featureId: string, fallback: string): string {

@@ -2662,25 +2662,45 @@ describe('PanelSwitcherComponent', () => {
       fixture.componentInstance as unknown as {
         sirapOverviewTargetGroups(): {
           id: string;
-          features: { id: string; achievedPercent: number; targetPercent: number }[];
+          features: {
+            id: string;
+            achievedPercent: number;
+            achievedAreaKm2: number | null;
+            targetPercent: number;
+          }[];
         }[];
       }
     ).sirapOverviewTargetGroups();
     expect(targetGroups[0].features[0]).toMatchObject({
       id: 'paramos',
       achievedPercent: 51.6,
+      achievedAreaKm2: 1737,
       targetPercent: 17,
+    });
+    expect(targetGroups[2].features[0]).toMatchObject({
+      id: 'ec-wetlands',
+      achievedAreaKm2: null,
     });
     expect(
       compiled.querySelector(
-        '#right-sidebar-v3-overview-sirap-target-feature-strategic-ecosystems-paramos',
+        '#right-sidebar-v3-overview-sirap-target-feature-achieved-strategic-ecosystems-paramos',
+      )?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.achievedLabelWithArea');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-achieved-dry-forest-bosque-seco',
+      )?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.achievedLabelWithArea');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-achieved-eje-wetlands-ec-wetlands',
       )?.textContent,
     ).toContain('analysis.overview.goalsWidget.sirap.achievedLabel');
     expect(
       compiled.querySelector(
-        '#right-sidebar-v3-overview-sirap-target-feature-dry-forest-bosque-seco',
+        '#right-sidebar-v3-overview-sirap-target-feature-achieved-eje-wetlands-ec-wetlands',
       )?.textContent,
-    ).toContain('analysis.overview.goalsWidget.sirap.achievedLabel');
+    ).not.toContain('analysis.overview.goalsWidget.sirap.achievedLabelWithArea');
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-mode-dry-forest')
         ?.textContent,
@@ -5884,6 +5904,7 @@ function buildSirapGoalsDocument(solutionId: string): SolutionGoalsDocument {
     absoluteTarget: 17,
     absoluteShortfall: 0,
     relativeShortfall: 0,
+    absoluteHeldKm2: 1737,
     evaluationSource: 'prioritizr_model',
   };
   const wetlands = {
@@ -5892,6 +5913,7 @@ function buildSirapGoalsDocument(solutionId: string): SolutionGoalsDocument {
     absoluteTarget: 17,
     absoluteShortfall: 0,
     relativeShortfall: 0,
+    absoluteHeldKm2: 20456,
     evaluationSource: 'prioritizr_model',
   };
   const dryForest = {
@@ -5900,6 +5922,7 @@ function buildSirapGoalsDocument(solutionId: string): SolutionGoalsDocument {
     absoluteTarget: 17,
     absoluteShortfall: 0,
     relativeShortfall: 0,
+    absoluteHeldKm2: 5155,
     evaluationSource: 'prioritizr_model',
   };
   const ejeWetlands = {
