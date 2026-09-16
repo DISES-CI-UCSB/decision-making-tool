@@ -5,6 +5,11 @@ sidecar is written per solution and geography level. National rows are dense;
 sub-national rows are sparse and omit the unambiguous ``no range in scope``
 state. Writes are atomic and completed sidecars are safe to resume only when
 their full provenance still matches.
+
+Coverage percents and configured-target ``met`` flags use Mesa / Prioritizr
+planning-unit cell counts (calculator A): held/total inside the valid template
+mask. Compact km² columns are the catalog range scaled by that same cell
+fraction. Exactextract source-cell-union area is not used for coverage or met.
 """
 
 from __future__ import annotations
@@ -21,12 +26,31 @@ from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
+from mesa_coverage import mesa_coverage_row
 from species_data import SpeciesRecord
 from species_target_policy import SpeciesTargetPolicy
 
 CATALOG_FORMAT = "species-goals-catalog-v1"
 COMPACT_FORMAT = "species-goals-compact-v1"
 COMPLETION_FORMAT = "species-goals-completion-v1"
+SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION = "mesa-smsp-cell-count-v1"
+# Scope is the Mesa terrestrial template valid mask (planning-unit cells),
+# never solution_data_valid_mask. September GeoTIFFs store unselected PUs as
+# nodata, so that mask equals selected_mask and collapses every ratio to 1.0.
+# scopeMask is hashed into exactOverlapPolicySha256 so tautological sidecars
+# stamped mesa-smsp-cell-count-v1 cannot resume.
+SPECIES_GOALS_SCOPE_MASK = "terrestrial-template-valid"
+SPECIES_GOALS_COVERAGE_POLICY = {
+    "kernel": "mesa_coverage_row",
+    "cellSource": "smsp-v1",
+    "denominator": "valid-template-mask-cell-count",
+    "scopeMask": SPECIES_GOALS_SCOPE_MASK,
+    "areaScale": "catalog-range-km2-times-held-over-total",
+}
+DEFAULT_TERRESTRIAL_TEMPLATE_PATH = (
+    Path(__file__).resolve().parents[4]
+    / "data/metrics/cache/mesa-v3/parity-inputs/template_terrestre.tif"
+)
 CATALOG_DIRECTORY = Path("species-goals/catalog/v1")
 COMPACT_DIRECTORY = Path("species-goals/compact/v1")
 CATALOG_ROW_LAYOUT = (
@@ -54,6 +78,13 @@ FLAG_TARGET_CONFIGURED = 4
 FLAG_MET_17 = 8
 FLAG_MET_30 = 16
 FLAG_CONFIGURED_TARGET_MET = 32
+# Same fail-closed rule as SIRAP packets: clipping range to selected-only
+# solution rasters (unselected PUs stored as nodata) makes every species 100%.
+_SPECIES_GOALS_TAUTOLOGY_MIN_RANGED = 50
+# Compact km² columns independently round(catalog_range * held/total, 6).
+# Configured ``met`` follows Mesa cell counts, so selected can sit one
+# millionth of a km² off the km²-implied target line after both roundings.
+_KM2_ROUNDING_ABS = 1e-6
 
 GeographyLevel = Literal[
     "national", "departments", "municipalities", "siraps", "runaps", "omecs"
@@ -283,7 +314,7 @@ def write_catalog(path: Path, document: dict[str, Any]) -> tuple[dict[str, Any],
 
 
 class SpeciesGoalsPipeline:
-    """Collect exact overlap observations inline and write resumable sidecars."""
+    """Collect Mesa/SMSP cell-count observations and write resumable sidecars."""
 
     def __init__(
         self,
@@ -346,6 +377,11 @@ class SpeciesGoalsPipeline:
         pre_existing_area_m2: float = 0.0,
         new_prioritizr_area_m2: float | None = None,
     ) -> None:
+        """Record national planning-unit cell counts for one species.
+
+        Parameter names keep the historical ``*_m2`` suffix so callers and the
+        SQLite spool stay compatible. Values are cell counts, not square metres.
+        """
         if self.primary_geography_level not in self.active_levels:
             return
         index = self._species_index(species)
@@ -736,23 +772,43 @@ class SpeciesGoalsPipeline:
         species_index: int,
         observation: list[float | None] | tuple[float | None, ...],
     ) -> list[Any]:
-        total_m2, _selected_m2, pre_existing_m2, new_prioritizr_m2, target = observation
-        pre_existing = round(pre_existing_m2 / 1_000_000, 6)
-        new_prioritizr = round(new_prioritizr_m2 / 1_000_000, 6)
-        selected = round(pre_existing + new_prioritizr, 6)
-        total = max(round(total_m2 / 1_000_000, 6), selected)
+        total_cells, selected_cells, pre_existing_cells, new_prioritizr_cells, target = (
+            observation
+        )
+        catalog_range = self.catalog["rows"][species_index][4]
+        range_km2 = 0.0 if catalog_range is None else float(catalog_range)
+        national_total = self._national_total_cells(species_index)
+        scale_total = national_total if national_total and national_total > 0 else total_cells
+        if scale_total <= 0 or range_km2 <= 0:
+            total = 0.0
+            selected = 0.0
+            pre_existing = 0.0
+            new_prioritizr = 0.0
+        else:
+            total = round(range_km2 * (total_cells / scale_total), 6)
+            selected = round(range_km2 * (selected_cells / scale_total), 6)
+            pre_existing = round(range_km2 * (pre_existing_cells / scale_total), 6)
+            new_prioritizr = round(selected - pre_existing, 6)
+        mesa = mesa_coverage_row(
+            feature=str(self.catalog["rows"][species_index][1]),
+            total_amount=total_cells,
+            absolute_held=selected_cells,
+            relative_target=None if target is None else target / 100.0,
+        )
         flags = 0
         if total <= 0:
             flags |= FLAG_NO_RANGE
         if target is not None:
             flags |= FLAG_TARGET_CONFIGURED
         if total > 0:
-            coverage_pct = selected / total * 100.0
-            if coverage_pct >= 17:
+            # Use the same predicate as validate_compact. selected/total*100
+            # can cross 17/30 after 6-decimal km² rounding while
+            # selected >= total * threshold/100 disagrees by more than 1e-6.
+            if selected >= total * 0.17:
                 flags |= FLAG_MET_17
-            if coverage_pct >= 30:
+            if selected >= total * 0.30:
                 flags |= FLAG_MET_30
-            if target is not None and coverage_pct >= target:
+            if target is not None and mesa.met:
                 flags |= FLAG_CONFIGURED_TARGET_MET
         return [
             scope_index,
@@ -764,6 +820,17 @@ class SpeciesGoalsPipeline:
             target,
             flags,
         ]
+
+    def _national_total_cells(self, species_index: int) -> float | None:
+        observation = self._connection.execute(
+            """
+            SELECT range_area_m2
+            FROM observations
+            WHERE geography_level = ? AND scope_index = 0 AND species_index = ?
+            """,
+            (self.primary_geography_level, species_index),
+        ).fetchone()
+        return None if observation is None else float(observation[0])
 
     def _species_index(self, species: SpeciesRecord) -> int:
         try:
@@ -785,14 +852,18 @@ class SpeciesGoalsPipeline:
             math.isfinite(value) and value >= 0
             for value in (selected, total, pre_existing, new_prioritizr)
         ):
-            raise SpeciesGoalsContractError("overlap areas must be finite and nonnegative")
+            raise SpeciesGoalsContractError(
+                "cell counts must be finite and nonnegative"
+            )
         if selected > total + max(1e-6, total * 1e-9):
-            raise SpeciesGoalsContractError("selected species area exceeds range area")
+            raise SpeciesGoalsContractError(
+                "selected species cells exceed range cells"
+            )
         if abs(pre_existing + new_prioritizr - selected) > max(
             1e-6, selected * 1e-9
         ):
             raise SpeciesGoalsContractError(
-                "coverage components do not reconcile to selected area"
+                "coverage components do not reconcile to selected cells"
             )
         return (
             total,
@@ -955,13 +1026,26 @@ def validate_compact(
                 raise SpeciesGoalsContractError("configured target flag/value mismatch")
             if no_range != (total == 0):
                 raise SpeciesGoalsContractError("no-range flag/measure mismatch")
-            coverage_pct = selected / total * 100 if total > 0 else 0
-            if bool(flags & FLAG_MET_17) != (total > 0 and coverage_pct >= 17):
+            if not _threshold_flag_matches(
+                bool(flags & FLAG_MET_17),
+                selected=selected,
+                total=total,
+                threshold=17.0,
+            ):
                 raise SpeciesGoalsContractError("17 percent flag is invalid")
-            if bool(flags & FLAG_MET_30) != (total > 0 and coverage_pct >= 30):
+            if not _threshold_flag_matches(
+                bool(flags & FLAG_MET_30),
+                selected=selected,
+                total=total,
+                threshold=30.0,
+            ):
                 raise SpeciesGoalsContractError("30 percent flag is invalid")
-            if bool(flags & FLAG_CONFIGURED_TARGET_MET) != (
-                total > 0 and target is not None and coverage_pct >= target
+            if not _threshold_flag_matches(
+                bool(flags & FLAG_CONFIGURED_TARGET_MET),
+                selected=selected,
+                total=total,
+                threshold=None if target is None else float(target),
+                require_threshold=target is not None,
             ):
                 raise SpeciesGoalsContractError("configured target result flag is invalid")
             if catalog is not None and catalog["rows"][species_index][5] == "unavailable":
@@ -969,6 +1053,25 @@ def validate_compact(
         if level != "national" and (flags & (FLAG_UNAVAILABLE | FLAG_NO_RANGE)):
             raise SpeciesGoalsContractError("sparse partitions must omit unavailable/no-range rows")
         previous_key = key
+    ranged_species = 0
+    fully_covered_species = 0
+    for row in rows:
+        total = 0.0 if row[2] is None else float(row[2])
+        selected = 0.0 if row[3] is None else float(row[3])
+        if total <= 0:
+            continue
+        ranged_species += 1
+        if selected + 1e-9 >= total:
+            fully_covered_species += 1
+    if (
+        ranged_species >= _SPECIES_GOALS_TAUTOLOGY_MIN_RANGED
+        and fully_covered_species == ranged_species
+    ):
+        raise SpeciesGoalsContractError(
+            "species-goals coverage is tautological: every in-range species has "
+            "selected area equal to range area. Scope must be the planning grid, "
+            "not the solution-data valid mask."
+        )
     if level == "national" and catalog_size is not None and len(rows) != catalog_size:
         raise SpeciesGoalsContractError("national partition must contain every catalog species")
     if level == "national" and any(
@@ -1192,6 +1295,34 @@ def _valid_percent(value: Any) -> bool:
     return _valid_measure(value) and value <= 100
 
 
+def _threshold_flag_matches(
+    flag_set: bool,
+    *,
+    selected: float,
+    total: float,
+    threshold: float | None,
+    require_threshold: bool = True,
+) -> bool:
+    """Accept Mesa cell-fraction flags when catalog-km² rounding crosses a threshold.
+
+    Compare in km², not percentage points. ``selected / total * 100 >=
+    threshold`` adds float error that can exceed a 5e-7-as-pp envelope even
+    when the area shortfall is exactly one 6-decimal rounding step. EspRep30
+    solutions sit on 30% cell coverage, so that noise rejected honest CSV
+    ``met`` rows.
+    """
+
+    if threshold is None:
+        return not flag_set if require_threshold else True
+    if total <= 0:
+        return not flag_set
+    target_area = total * (threshold / 100.0)
+    expected = selected >= target_area
+    if flag_set == expected:
+        return True
+    return 0.0 < abs(selected - target_area) <= _KM2_ROUNDING_ABS
+
+
 def _require_sha256(value: str, label: str) -> str:
     if not _is_sha256(value):
         raise SpeciesGoalsContractError(f"{label} must be a lowercase SHA-256")
@@ -1255,3 +1386,166 @@ def _resume_content(document: dict[str, Any]) -> dict[str, Any]:
         for key, value in document.items()
         if key not in {"generatedAt", "completion"}
     }
+
+
+def record_species_goals_from_smsp(
+    pipeline: SpeciesGoalsPipeline,
+    *,
+    records: Sequence[SpeciesRecord],
+    species_matrix_paths: Sequence[Path],
+    selected_mask: np.ndarray,
+    scope_mask: np.ndarray,
+    pre_existing_mask: np.ndarray,
+    new_prioritizr_mask: np.ndarray,
+    boundary_indexes: Mapping[str, Any] | None = None,
+) -> None:
+    """Fill a species-goals spool from SMSP planning-unit cell lists.
+
+    ``selected`` / ``total`` are Mesa cell counts inside ``scope_mask`` (the
+    valid template). Compact km² values are applied later from the catalog
+    range and ``held/total``.
+    """
+
+    from boundaries.boundary_id_grid import BoundaryIdGrid
+    from boundaries.boundary_topology import (
+        aggregate_prepared_sparse_boundary_weighted_sums,
+        prepare_sparse_boundary_weighted_channels,
+    )
+    from sparse.format import iter_species_matrix_chunks
+
+    records_by_name = _species_records_by_name(records)
+    selected = np.asarray(selected_mask, dtype=bool).ravel()
+    scope = np.asarray(scope_mask, dtype=bool).ravel()
+    pre_existing = np.asarray(pre_existing_mask, dtype=bool).ravel()
+    new_prioritizr = np.asarray(new_prioritizr_mask, dtype=bool).ravel()
+    if not (selected.size == scope.size == pre_existing.size == new_prioritizr.size):
+        raise SpeciesGoalsContractError("species-goals masks must share one planning grid")
+    if np.array_equal(scope, selected):
+        raise SpeciesGoalsContractError(
+            "species-goals scope_mask equals selected_mask. Unselected planning "
+            "units stored as nodata would clip range to selected cells and report "
+            "100% coverage. Use the terrestrial template valid mask."
+        )
+
+    indexes = boundary_indexes or {}
+    for matrix_path in species_matrix_paths:
+        current_name: str | None = None
+        current_record: SpeciesRecord | None = None
+        totals = np.zeros(4, dtype=np.int64)
+        per_level = {
+            level: [
+                np.zeros(index.num_boundaries, dtype=np.float64)
+                for _ in range(4)
+            ]
+            for level, index in indexes.items()
+        }
+
+        def flush() -> None:
+            nonlocal current_name, current_record, totals
+            if current_record is None:
+                return
+            pipeline.record_national(
+                current_record,
+                float(totals[1]),
+                float(totals[0]),
+                pre_existing_area_m2=float(totals[2]),
+                new_prioritizr_area_m2=float(totals[3]),
+            )
+            for level, channels in per_level.items():
+                pipeline.record_sub_level(
+                    current_record,
+                    level,
+                    channels[1],
+                    channels[0],
+                    pre_existing_per_boundary=channels[2],
+                    new_prioritizr_per_boundary=channels[3],
+                )
+            totals[:] = 0
+            for channels in per_level.values():
+                for channel in channels:
+                    channel[:] = 0
+            current_name = None
+            current_record = None
+
+        for chunk, grid, _grid_raw in iter_species_matrix_chunks(matrix_path):
+            if grid is not None and int(grid.width) * int(grid.height) != selected.size:
+                raise SpeciesGoalsContractError(
+                    f"SMSP grid does not match the planning raster: {matrix_path}"
+                )
+            if chunk.first:
+                flush()
+                current_name = chunk.name
+                current_record = records_by_name.get(chunk.name)
+            if current_record is None:
+                continue
+            cells = np.asarray(chunk.cell_ids, dtype=np.intp)
+            if cells.size and (int(cells.min()) < 0 or int(cells.max()) >= selected.size):
+                raise SpeciesGoalsContractError(
+                    f"SMSP cell is outside the planning grid for {chunk.name!r}"
+                )
+            in_scope = cells[scope[cells]] if cells.size else cells
+            if in_scope.size == 0:
+                continue
+            selected_at = selected[in_scope]
+            pre_at = pre_existing[in_scope]
+            new_at = new_prioritizr[in_scope]
+            totals += (
+                in_scope.size,
+                int(np.count_nonzero(selected_at)),
+                int(np.count_nonzero(pre_at)),
+                int(np.count_nonzero(new_at)),
+            )
+            if not indexes:
+                continue
+            weights = np.ones(in_scope.size, dtype=np.float64)
+            prepared = prepare_sparse_boundary_weighted_channels(
+                in_scope,
+                weights,
+                selected=selected_at,
+                pre_existing=pre_at,
+                new_prioritizr=new_at,
+                num_pixels=selected.size,
+            )
+            for level, index in indexes.items():
+                if isinstance(index, BoundaryIdGrid):
+                    bids = index.flat[in_scope]
+                    n_levels = index.num_boundaries
+                    in_boundary = bids >= 0
+                    if not np.any(in_boundary):
+                        continue
+                    scoped_bids = bids[in_boundary]
+                    per_level[level][0] += np.bincount(
+                        scoped_bids, minlength=n_levels
+                    )
+                    per_level[level][1] += np.bincount(
+                        bids[in_boundary & selected_at], minlength=n_levels
+                    )
+                    per_level[level][2] += np.bincount(
+                        bids[in_boundary & pre_at], minlength=n_levels
+                    )
+                    per_level[level][3] += np.bincount(
+                        bids[in_boundary & new_at], minlength=n_levels
+                    )
+                    continue
+                grouped = aggregate_prepared_sparse_boundary_weighted_sums(
+                    index, prepared
+                )
+                per_level[level][0] += grouped.total
+                per_level[level][1] += grouped.selected
+                per_level[level][2] += grouped.pre_existing
+                per_level[level][3] += grouped.new_prioritizr
+        flush()
+
+
+def _species_records_by_name(
+    records: Sequence[SpeciesRecord],
+) -> dict[str, SpeciesRecord]:
+    mapping: dict[str, SpeciesRecord] = {}
+    for record in records:
+        for key in (
+            record.scientific_name,
+            record.scientific_name.replace(" ", "_"),
+            record.filename_stem,
+        ):
+            mapping[key] = record
+    return mapping

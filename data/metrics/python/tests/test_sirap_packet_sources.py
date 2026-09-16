@@ -407,8 +407,8 @@ def test_packet_smsp_fans_out_scope_presence_and_coverage(tmp_path, monkeypatch)
         ("national", "Test species"),
         ("departments", "Test species"),
     ]
-    assert recorded[0][2:] == (1_000_000.0, 2_000_000.0)
-    assert recorded[1][2:] == ([1_000_000.0, 0.0], [1_000_000.0, 1_000_000.0])
+    assert recorded[0][2:] == (1.0, 2.0)
+    assert recorded[1][2:] == ([1.0, 0.0], [1.0, 1.0])
 
 
 def test_packet_smsp_counts_selected_only_nodata_cells_as_uncovered_range(
@@ -489,7 +489,7 @@ def test_packet_smsp_counts_selected_only_nodata_cells_as_uncovered_range(
         detail_sink=DetailSink(),
     )
 
-    assert recorded == [(1_000_000.0, 2_000_000.0)]
+    assert recorded == [(1.0, 2.0)]
 
 
 def test_reject_selected_equals_total_tautology_skips_small_inventories():

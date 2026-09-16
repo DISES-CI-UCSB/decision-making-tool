@@ -49,7 +49,7 @@ import sys
 import time
 import traceback
 from collections import OrderedDict
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -205,6 +205,7 @@ from raster_metrics import (
     read_layer_mask,
     read_layer_values,
     read_solution_raster,
+    terrestrial_template_scope_mask,
 )
 from release_config import load_release_config
 from solution_catalog import (
@@ -258,6 +259,12 @@ from species_goals import (
 )
 from species_goals import (
     SpeciesGoalsPipeline,
+)
+from species_goals import (
+    DEFAULT_TERRESTRIAL_TEMPLATE_PATH,
+    SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION,
+    SPECIES_GOALS_COVERAGE_POLICY,
+    record_species_goals_from_smsp,
 )
 from species_goals import (
     build_catalog as build_species_goals_catalog,
@@ -439,7 +446,7 @@ def _initialize_species_microbatch_members(
                 pool_sizes=pool_sizes,
                 target_policy=target_policy,
                 species_expected=species_expected,
-                detail_sink=sink,
+                detail_sink=None,
             )
             accumulator.init_sub(sub_sizes)
             accumulators[solution_index] = accumulator
@@ -1098,6 +1105,28 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             "Write resumable species-goals-catalog-v1 and per-geography "
             "species-goals-compact-v1 artifacts locally."
+        ),
+    )
+    parser.add_argument(
+        "--species-goals-species-matrix",
+        type=Path,
+        action="append",
+        default=[],
+        help=(
+            "SMSP matrix used for species-goals coverage/met (calculator A). "
+            "Repeat per taxonomic bundle. Local mesa cache example: "
+            "data/metrics/cache/mesa-v3/species/*.smtx.gz"
+        ),
+    )
+    parser.add_argument(
+        "--species-goals-template",
+        type=Path,
+        default=None,
+        help=(
+            "Mesa terrestrial planning-unit template whose valid mask is the "
+            "species-goals range denominator. Defaults to "
+            "data/metrics/cache/mesa-v3/parity-inputs/template_terrestre.tif "
+            "or --coverage-parity-template when that is set."
         ),
     )
     parser.add_argument(
@@ -3038,6 +3067,42 @@ def _compute_species_metric(
 # ---------------------------------------------------------------------------
 
 
+def _species_goals_matrix_paths(args: argparse.Namespace) -> list[Path]:
+    """Prefer explicit species-goals SMSP paths, then coverage-parity matrices."""
+
+    paths = list(getattr(args, "species_goals_species_matrix", None) or [])
+    if paths:
+        return paths
+    return list(getattr(args, "coverage_parity_species_matrix", None) or [])
+
+
+def _species_goals_template_path(args: argparse.Namespace) -> Path | None:
+    """Resolve the Mesa terrestrial template used as the species-range scope."""
+
+    explicit = getattr(args, "species_goals_template", None)
+    if explicit is not None:
+        return Path(explicit)
+    coverage_template = getattr(args, "coverage_parity_template", None)
+    if coverage_template is not None:
+        return Path(coverage_template)
+    if DEFAULT_TERRESTRIAL_TEMPLATE_PATH.is_file():
+        return DEFAULT_TERRESTRIAL_TEMPLATE_PATH
+    return None
+
+
+def _species_goals_scope_mask(
+    raster: SolutionRaster,
+    template_path: Path | None,
+) -> np.ndarray:
+    if template_path is None:
+        raise ValueError(
+            "species-goals coverage requires the Mesa terrestrial template "
+            "(--species-goals-template or --coverage-parity-template). "
+            "Local path: data/metrics/cache/mesa-v3/parity-inputs/template_terrestre.tif"
+        )
+    return terrestrial_template_scope_mask(raster, template_path)
+
+
 def _species_goals_provenance(
     *,
     release_id: str,
@@ -3064,8 +3129,10 @@ def _species_goals_provenance(
             if species_exception_binding is not None
             else None
         ),
-        "exactOverlapAlgorithmVersion": SPECIES_OVERLAP_ALGORITHM_VERSION,
-        "exactOverlapPolicySha256": species_goals_sha256(SPECIES_POLICY.__dict__),
+        "exactOverlapAlgorithmVersion": SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION,
+        "exactOverlapPolicySha256": species_goals_sha256(
+            SPECIES_GOALS_COVERAGE_POLICY
+        ),
         "targetGridSha256": alignment_provenance["targetGridSha256"],
         "speciesAlignmentInventorySha256": alignment_provenance["sha256"],
         "solutionRasterSha256": solution_raster_sha256,
@@ -3111,12 +3178,12 @@ def _sirap_species_goals_provenance(
         "exceptionSourceSha256": None,
         "exceptionPolicySha256": None,
         "exceptionBindingSha256": None,
-        "exactOverlapAlgorithmVersion": "smsp-v1-cell-overlap",
+        "exactOverlapAlgorithmVersion": SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION,
         "exactOverlapPolicySha256": species_goals_sha256(
             {
+                **SPECIES_GOALS_COVERAGE_POLICY,
                 "format": "smsp-v1",
                 "joinPolicy": species["joinPolicy"],
-                "areaBasis": "regional-grid-cell-area",
             }
         ),
         "targetGridSha256": packet["grid"]["sha256"],
@@ -3155,6 +3222,8 @@ def _process_species_for_solution(
     target_policy: SpeciesTargetPolicy,
     detail_sink: SpeciesDetailSink | None = None,
     runtime_stats: dict[str, Any] | None = None,
+    species_matrix_paths: Sequence[Path] | None = None,
+    species_goals_scope_mask: np.ndarray | None = None,
 ) -> SpeciesAccumulator:
     """Read every species range raster once and accumulate counts across scopes.
 
@@ -3174,12 +3243,21 @@ def _process_species_for_solution(
     are reported as 'derivation_needed'.
     """
     sub_sizes = {level: g.num_boundaries for level, g in boundary_grids.items()}
+    goals_pipeline = (
+        detail_sink if isinstance(detail_sink, SpeciesGoalsPipeline) else None
+    )
+    if goals_pipeline is not None and not species_matrix_paths:
+        raise ValueError(
+            "species-goals compact coverage requires SMSP matrices "
+            f"({SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION}). Local cache path: "
+            "data/metrics/cache/mesa-v3/species/*.smtx.gz"
+        )
     accumulator = SpeciesAccumulator(
         target_pct=target_policy.scalar_target_pct,
         pool_sizes=pool_sizes,
         target_policy=target_policy,
         species_expected=len(species_records),
-        detail_sink=detail_sink,
+        detail_sink=None if goals_pipeline is not None else detail_sink,
     )
     accumulator.init_sub(sub_sizes)
 
@@ -3390,6 +3468,24 @@ def _process_species_for_solution(
             - evaluation_started
             - (accumulator_seconds - accumulator_before)
         )
+
+    if goals_pipeline is not None:
+        if species_goals_scope_mask is None:
+            raise ValueError(
+                "species-goals SMSP recording requires the terrestrial template "
+                "valid mask as scope_mask"
+            )
+        record_species_goals_from_smsp(
+            goals_pipeline,
+            records=species_records,
+            species_matrix_paths=list(species_matrix_paths or ()),
+            selected_mask=raster.selected_mask,
+            scope_mask=species_goals_scope_mask,
+            pre_existing_mask=raster.pre_existing_mask,
+            new_prioritizr_mask=raster.new_prioritizr_mask,
+            boundary_indexes=boundary_grids,
+        )
+        accumulator.detail_sink = goals_pipeline
 
     elapsed = time.time() - started
     print(
@@ -4292,6 +4388,8 @@ def _process_solution(
     species_goals_catalog: dict[str, Any] | None = None,
     species_goals_output_dir: Path | None = None,
     species_goals_release_id: str | None = None,
+    species_goals_matrix_paths: Sequence[Path] | None = None,
+    species_goals_template_path: Path | None = None,
     boundary_topology_cache: BoundaryTopologyCache | None = None,
     boundary_fanout_mode: str | None = None,
     weighted_boundary_fanout_mode: str | None = None,
@@ -4341,6 +4439,15 @@ def _process_solution(
         raise RasterError(
             f"Solution {solution_id!r} has zero valid cells at national scope."
         )
+    species_goals_scope = (
+        _species_goals_scope_mask(raster, species_goals_template_path)
+        if packet_identity is None
+        and (
+            (species_goals_catalog is not None and species_goals_output_dir is not None)
+            or isinstance(species_detail_sink, SpeciesGoalsPipeline)
+        )
+        else None
+    )
     target_grid_sha256 = grid_sha256(raster.fingerprint)
     if packet_identity is not None and packet_identity["gridSha256"] != target_grid_sha256:
         raise AlignmentError(
@@ -4616,6 +4723,8 @@ def _process_solution(
             target_policy=species_target_policy,
             detail_sink=species_detail_sink,
             runtime_stats=effective_species_runtime,
+            species_matrix_paths=species_goals_matrix_paths,
+            species_goals_scope_mask=species_goals_scope,
         )
         phase_seconds["species"] = time.time() - species_started
         usage_after = resource.getrusage(resource.RUSAGE_SELF)
@@ -4908,6 +5017,39 @@ def _process_solution(
         phase_seconds["boundaryOutput"] = time.time() - boundary_output_started
 
     generated_at = _utc_now_iso()
+    if (
+        isinstance(species_detail_sink, SpeciesGoalsPipeline)
+        and packet_identity is None
+        and precomputed_species_accumulator is not None
+    ):
+        if not species_goals_matrix_paths:
+            raise ValueError(
+                "species-goals compact coverage requires SMSP matrices "
+                f"({SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION}). Local cache path: "
+                "data/metrics/cache/mesa-v3/species/*.smtx.gz"
+            )
+        skipped_goal_levels = skip_species_boundary_levels or set()
+        goal_indexes = {
+            level: grid
+            for level, grid in (
+                boundary_indexes if fanout_mode == "grouped" else boundary_grids
+            ).items()
+            if level not in skipped_goal_levels
+        }
+        record_species_goals_from_smsp(
+            species_detail_sink,
+            records=species_records or [],
+            species_matrix_paths=list(species_goals_matrix_paths),
+            selected_mask=raster.selected_mask,
+            scope_mask=(
+                species_goals_scope
+                if species_goals_scope is not None
+                else _species_goals_scope_mask(raster, species_goals_template_path)
+            ),
+            pre_existing_mask=raster.pre_existing_mask,
+            new_prioritizr_mask=raster.new_prioritizr_mask,
+            boundary_indexes=goal_indexes if not national_only else {},
+        )
     if isinstance(species_detail_sink, SpeciesGoalsPipeline):
         primary_species_level = "siraps" if packet_identity is not None else "national"
         primary_scope_catalog = (
@@ -5528,6 +5670,28 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, ValueError) as exc:
             print(
                 f"[tier1-metrics] ERROR: species goals catalog failed: {exc}",
+                file=sys.stderr,
+            )
+            return 2
+        if any(
+            not is_sirap_solution(solution) for solution in land_solutions
+        ) and not _species_goals_matrix_paths(args):
+            print(
+                "[tier1-metrics] ERROR: land species-goals coverage requires SMSP "
+                f"matrices ({SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION}). Pass "
+                "--species-goals-species-matrix or --coverage-parity-species-matrix. "
+                "Local cache path: data/metrics/cache/mesa-v3/species/*.smtx.gz",
+                file=sys.stderr,
+            )
+            return 2
+        if any(
+            not is_sirap_solution(solution) for solution in land_solutions
+        ) and _species_goals_template_path(args) is None:
+            print(
+                "[tier1-metrics] ERROR: land species-goals coverage requires the "
+                "Mesa terrestrial template valid mask. Pass --species-goals-template "
+                "or --coverage-parity-template. Local path: "
+                "data/metrics/cache/mesa-v3/parity-inputs/template_terrestre.tif",
                 file=sys.stderr,
             )
             return 2
@@ -6410,6 +6574,8 @@ def main(argv: list[str] | None = None) -> int:
                     species_goals_catalog=species_goals_catalog,
                     species_goals_output_dir=args.species_goals_output_dir,
                     species_goals_release_id=species_goals_release_id,
+                    species_goals_matrix_paths=_species_goals_matrix_paths(args),
+                    species_goals_template_path=_species_goals_template_path(args),
                     species_detail_sink=(
                         precomputed_species.detail_sink
                         if precomputed_species is not None
