@@ -80,7 +80,7 @@ export const funderLogos: readonly PartnerLogo[] = [
   {
     id: 'nsf',
     name: 'National Science Foundation',
-    src: `${institutionLogoPath}nsf.svg`,
+    src: `${institutionLogoPath}nsf.png`,
   },
   {
     id: 'ecoplan',
@@ -129,11 +129,6 @@ export const allyLogos: readonly PartnerLogo[] = [
     id: 'fundacion-natura',
     name: 'Fundación Natura Colombia',
     src: `${logoPath}05-fundacion-natura.png`,
-  },
-  {
-    id: 'sib-colombia',
-    name: 'SiB Colombia',
-    src: `${logoPath}28-sib-colombia.png`,
   },
   {
     id: 'ucsb',
@@ -264,21 +259,8 @@ const partnerLogoCatalog = new Map<string, PartnerLogo>(
   [...nationalInstitutionLogos, ...allyLogos, ...funderLogos].map((logo) => [logo.id, logo]),
 );
 
-/** Header carousel logos — NM 9/11 order from `0_Tool_header`. */
-const primaryPartnerLogoIds = [
-  'minambiente',
-  'pnnc',
-  'iavh',
-  'invemar',
-  'sinchi',
-  'ideam',
-  'iiap',
-  'procat',
-  'wwf',
-  'tnc',
-  'wcs',
-  'hac',
-] as const;
+/** Header logos — MinAmbiente and PNNC only. */
+const primaryPartnerLogoIds = ['minambiente', 'pnnc'] as const;
 
 export const primaryPartnerLogos: readonly PartnerLogo[] = primaryPartnerLogoIds.map(
   (id) => partnerLogoCatalog.get(id)!,

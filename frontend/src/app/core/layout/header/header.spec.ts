@@ -86,6 +86,18 @@ describe('HeaderComponent auth state', () => {
     expect(header.querySelector('#foundation-header-logout-button')).toBeNull();
   });
 
+  it('renders only MinAmbiente and PNNC partner logos in the header', () => {
+    const fixture = TestBed.createComponent(HeaderComponent);
+    fixture.detectChanges();
+
+    const header = fixture.nativeElement as HTMLElement;
+    const staticLogoIds = Array.from(
+      header.querySelectorAll('[id^="foundation-header-primary-partner-logo-"]'),
+    ).map((element) => element.id.replace('foundation-header-primary-partner-logo-', ''));
+
+    expect(staticLogoIds).toEqual(['minambiente', 'pnnc']);
+  });
+
   it('scrolls partner logos with the compact-header carousel controls', () => {
     const fixture = TestBed.createComponent(HeaderComponent);
     fixture.detectChanges();
