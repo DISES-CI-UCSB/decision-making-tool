@@ -1161,13 +1161,13 @@
       "perspectiveDescription": "Este modal usa el modo estándar del shell y comparte el mismo comportamiento de cierre y funciones de accesibilidad."
     },
     "finder": {
-      "kicker": "Búsqueda de escenarios de conservación",
+      "kicker": "Explore áreas candidatas para la acción de conservación",
       "title": "Encontrar un escenario de conservación",
-      "description": "Elija qué proteger, áreas incluidas opcionales y la base del compromiso (costo). El escenario coincidente se actualiza automáticamente al cambiar filtros.",
+      "description": "Cree un mapa tomando decisiones en los Pasos 1-3 a continuación. Según sus decisiones, la herramienta identificará áreas candidatas que, si se conservan, alcanzarán las metas de conservación que estableció en el Paso 1 y minimizarán los costos que estableció en el Paso 2.",
       "comparison": {
         "kicker": "Búsqueda de escenario de comparación",
         "title": "Encontrar un escenario de comparación",
-        "description": "Use el mismo flujo para elegir el escenario de comparación para revisar lado a lado."
+        "description": "Use el mismo flujo guiado para elegir un escenario de comparación y revisarlo lado a lado."
       },
       "memory": {
         "duplicateSolutionWarning": "Esta coincidencia ya está cargada como Escenario A. Cambie una opción antes de usarla como Escenario B."
@@ -1191,7 +1191,7 @@
         "targetIntro": "Elija la meta de cobertura compartida para las variables marinas disponibles.",
         "targetBundleLabel": "Ecosistemas marinos + manglares",
         "targetBundleHelp": "Usa las capas disponibles de ecosistemas marinos y manglares como un solo grupo objetivo. Un nivel de cobertura de 30% o 50% significa que el escenario intenta representar esa proporción de cada capa.",
-        "costHeading": "Base del compromiso",
+        "costHeading": "Base de costo",
         "costIntro": "Los escenarios marinos disponibles usan una superficie de costo fija.",
         "hhmLabel": "Modificación humana (HHM)",
         "hhmHelp": "Usa la capa de modificación humana marina como superficie de costo fija para todos los escenarios marinos disponibles.",
@@ -1201,7 +1201,7 @@
         "omecLabel": "Incluir OMEC marinas"
       },
       "selectionSummary": "Selecciones actuales",
-      "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de compromiso",
+      "selectionSummaryPattern": "{{targets}} selecciones de meta, {{variables}} inclusiones/exclusiones variables, {{tradeoff}} base de costo",
       "scopeBar": {
         "label": "Alcance de escenarios",
         "nacional": "Nacional",
@@ -1288,15 +1288,15 @@
         "step3": "Paso 3"
       },
       "stepLabels": {
-        "step1": "Qué proteger",
-        "step2a": "Áreas incluidas (opcional)",
+        "step1": "Qué conservar",
+        "step2a": "Áreas de conservación existentes",
         "step2b": "Áreas que se intentan evitar (costos)",
         "step3": "Escenario seleccionado"
       },
       "stepIntros": {
-        "step1": "Los ecosistemas son obligatorios. Agregue los demás grupos objetivo en orden y configure cada grupo seleccionado.",
-        "step2a": "Elija qué áreas debe tratar el escenario como cobertura ya incluida. Los escenarios coincidentes se enfocan en áreas prioritarias adicionales fuera de esa cobertura.",
-        "step2b": "Elija qué áreas debe intentar evitar el escenario. El Buscador de escenarios aún debe cumplir las metas de conservación, por lo que puede incluir áreas de alto costo cuando sea necesario.",
+        "step1": "Elija uno o más de los siguientes objetivos para conservar. Debe seleccionar ecosistemas. Luego, establezca una meta para la proporción de cada objetivo seleccionado que le gustaría conservar.",
+        "step2a": "Elija qué áreas debe tratar la herramienta como áreas de conservación existentes.",
+        "step2b": "Elija qué áreas debe intentar evitar la herramienta al clasificar áreas candidatas para la conservación. Las áreas de alto costo podrían incluirse en las áreas candidatas para la conservación si conservarlas realmente ayudara a alcanzar las metas de conservación.",
         "step3": "El escenario seleccionado se actualiza automáticamente al cambiar filtros."
       },
       "stepState": {
@@ -1307,12 +1307,12 @@
         "ready": "Listo"
       },
       "helpers": {
-        "constraints": "Elija capas opcionales después de completar el Paso 1.",
-        "results": "Los resultados se actualizan automáticamente cuando la meta y la base del compromiso están elegidas."
+        "constraints": "Elija las áreas incluidas opcionales después de completar el Paso 1.",
+        "results": "Los resultados se actualizan automáticamente cuando se eligen las metas y una base de costo."
       },
       "locked": {
-        "constraints": "Complete el Paso 1 para desbloquear inclusiones, exclusiones y la base del compromiso.",
-        "results": "Elija la meta y la base del compromiso para ver resultados coincidentes automáticamente."
+        "constraints": "Complete el Paso 1 para desbloquear inclusiones, exclusiones y opciones de costo.",
+        "results": "Elija las metas y una base de costo para ver automáticamente los resultados coincidentes."
       },
       "toggle": {
         "on": "Activado",
@@ -1321,7 +1321,7 @@
       "step1": {
         "targetTypeTitle": "Tipo de meta",
         "modelBackedBadge": "Respaldado por modelo",
-        "targetTypeIntro": "Seleccione uno o más grupos objetivo para definir qué proteger. Para cada tipo de meta seleccionado, elija un nivel de cobertura (17% o 30%).",
+        "targetTypeIntro": "Elija uno o más de los siguientes objetivos para conservar. Luego, establezca una meta para la proporción de cada objetivo seleccionado que le gustaría conservar.",
         "ecosystemsLabel": "Ecosistemas",
         "ecosystemsHelp": "La herramienta identifica áreas candidatas que garantizan que la proporción seleccionada de cada tipo de ecosistema quede dentro de las áreas de conservación existentes y candidatas.",
         "ecosystemsTechnicalHelp": "Usa clases detalladas de bioma-región del mapa oficial de ecosistemas MEC 2024 de Colombia. Un nivel de cobertura de 17% o 30% significa que el escenario intenta representar esa proporción de cada una de las 429 clases detalladas de Humboldt/IAvH, como “Hidrobioma Alto Caquetá”; la barra lateral agrupa esas clases en 8 grandes familias de biomas para que el mapa sea legible.",
@@ -1332,7 +1332,7 @@
         "ecosystemsOverviewSourceUrl": "https://www.ideam.gov.co/ecosistemas",
         "ecosystemsDataSourceLabel": "Vista del mapa MEC",
         "ecosystemsDataSourceUrl": "https://www.arcgis.com/apps/mapviewer/index.html?url=https://visualizador.ideam.gov.co/gisserver/rest/services/Estado_Ecosistemas/FeatureServer/1&source=sd",
-        "speciesRichnessLabel": "Modelos de especies",
+        "speciesRichnessLabel": "Rango de especies",
         "speciesRichnessHelp": "La herramienta identifica áreas candidatas que representan la proporción seleccionada del rango de cada especie incluida dentro de las áreas de conservación existentes y candidatas. La “responsabilidad nacional” asigna metas diferentes por especie y prioriza una mayor representación para las especies raras, endémicas o amenazadas.",
         "speciesRichnessTechnicalHelp": "Los rangos de especies incluyen capas individuales de Humboldt BioModelos para mamíferos, aves, anfibios, reptiles y plantas, y cubren muchas de las 8.751 especies representadas en BioModelos. Los peces de agua dulce se excluyen intencionalmente porque los datos de distribución disponibles son demasiado generales para la priorización.",
         "speciesRichnessTechnicalHelpToggle": "Detalles técnicos sobre las fuentes de datos de rangos de especies",
@@ -1341,10 +1341,10 @@
         "requiredBadge": "Obligatorio",
         "speciesPrerequisite": "Requiere Ecosistemas estratégicos.",
         "servicesPrerequisite": "Requiere Ecosistemas estratégicos y Especies.",
-        "speciesRepresentation17": "Representación de especies 17%",
-        "speciesRepresentation30": "Representación de especies 30%",
+        "speciesRepresentation17": "17%",
+        "speciesRepresentation30": "30%",
         "speciesNationalResponsibility": "Responsabilidad Nacional",
-        "speciesNationalResponsibilityHelp": "Cada especie usa su propia meta configurada.",
+        "speciesNationalResponsibilityHelp": "Las especies raras, endémicas o amenazadas tienen una mayor proporción de su rango conservada.",
         "strategicEcosystemsLabel": "Ecosistemas estratégicos",
         "strategicEcosystemsHelp": "La herramienta identifica áreas candidatas que garantizan que la proporción seleccionada de cada uno de los ecosistemas estratégicos de Colombia quede dentro de las áreas de conservación existentes y candidatas.",
         "strategicEcosystemsTechnicalHelp": "Usa cuatro capas de ecosistemas estratégicos: páramos, humedales y bosque seco tropical de Minambiente/SIAC, además de manglares de INVEMAR.",
@@ -1353,8 +1353,8 @@
         "strategicEcosystemsSiacSourceUrl": "https://siac-datosabiertos-mads.hub.arcgis.com/maps/a85c9d818c9640649318a33b9fa115fd/about",
         "strategicEcosystemsInvemarSourceLabel": "Manglares INVEMAR",
         "strategicEcosystemsInvemarSourceUrl": "https://acceso-datos-ambientales-invemar.hub.arcgis.com/datasets/INVEMAR::manglares-colombia/about",
-        "ecosystemServicesLabel": "Ambientales / servicios ecosistémicos",
-        "ecosystemServicesHelp": "Prioriza las dos características de servicios ecosistémicos representadas en esta entrega: regulación de agua dulce y almacenamiento de carbono.",
+        "ecosystemServicesLabel": "Servicios ecosistémicos",
+        "ecosystemServicesHelp": "La herramienta identificará áreas candidatas que proporcionan dos tipos de servicios ecosistémicos (beneficios para las personas y el ambiente): almacenamiento de carbono y recarga de agua subterránea. La herramienta identificará áreas candidatas que garanticen que la proporción seleccionada de cada tipo de servicio ecosistémico quede dentro de las áreas de conservación existentes y candidatas.",
         "ecosystemServicesCarbonSourceLabel": "Datos de biomasa SPAWN",
         "ecosystemServicesCarbonSourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
         "ecosystemServicesWaterSourceLabel": "Datos de recarga de agua subterránea IDEAM",
@@ -1386,7 +1386,7 @@
       },
       "step2a": {
         "includeOmecsLabel": "Incluir OMEC",
-        "includeOmecsHelp": "Las OMEC son áreas fuera de las áreas protegidas formales que se reconocen por aportar resultados de conservación. Actívelas si el escenario debe tratarlas como cobertura ya incluida.",
+        "includeOmecsHelp": "Las OMEC son áreas fuera de las áreas protegidas formales que se reconocen por aportar resultados de conservación. Actívelas si desea tratarlas como áreas de conservación existentes.",
         "includeOmecsSourceLabel": "Fuente: datos OMEC de Protected Planet",
         "includeOmecsSourceUrl": "https://www.protectedplanet.net/en/thematic-areas/oecms?tab=OECMs",
         "includeComunidadesLabel": "Incluir Consejos Comunitarios de Comunidades Negras",
@@ -1399,16 +1399,16 @@
         "includeResguardosSourceUrl": "https://data-agenciadetierras.opendata.arcgis.com/datasets/agenciadetierras::resguardo-indigena-formalizado/about",
         "alwaysAppliedHeading": "Siempre aplicado",
         "alwaysRunapLabel": "Áreas protegidas RUNAP",
-        "alwaysRunapHelp": "RUNAP es el Registro Único Nacional de Áreas Protegidas de Colombia. Estas áreas siempre se tratan como cobertura ya incluida, por lo que los escenarios coincidentes se enfocan en áreas prioritarias adicionales fuera de ellas.",
+        "alwaysRunapHelp": "RUNAP es el Registro Único Nacional de Áreas Protegidas de Colombia. La herramienta trata automáticamente las áreas RUNAP como áreas de conservación existentes.",
         "alwaysRunapSourceLabel": "Fuente: datos RUNAP 2023 PNNC",
         "alwaysRunapSourceUrl": "https://www.datos.gov.co/dataset/runap-Registro-Unico-Nacional-AP/n9kx-xwgg/about_data",
         "alwaysOnChip": "Siempre activo"
       },
       "step2b": {
         "intro": "Elija una capa de costo para evaluar áreas de conservación potenciales.",
-        "humanFootprintLabel": "Índice de Huella Espacial Humana",
-        "humanFootprintHelp": "Muestra dónde las actividades humanas han tenido un impacto mayor o menor sobre los paisajes de Colombia.",
-        "humanFootprintYearLabel": "Año obligatorio de Huella Humana",
+        "humanFootprintLabel": "Huella humana",
+        "humanFootprintHelp": "La huella humana se refiere al grado en que actividades humanas como la agricultura o la vivienda han ocurrido en un área determinada. La herramienta intentará evitar elegir áreas con una huella humana alta como áreas candidatas. Puede elegir entre la huella humana actual (2022) o la huella humana futura prevista (2030).",
+        "humanFootprintYearLabel": "Año obligatorio de huella humana",
         "requiredBadge": "Obligatorio",
         "humanFootprintSourceLabel": "Fuente: metadatos de huella humana Humboldt",
         "humanFootprintSourceUrl": "https://geonetwork.humboldt.org.co/geonetwork/srv/spa/catalog.search#/metadata/7d8f0aeb-8136-45a7-a469-f0016f618250",
@@ -1425,13 +1425,13 @@
         "clearSelection": "Limpiar todo",
         "cancel": "Cancelar",
         "findMatches": "Actualizar escenarios",
-        "apply": "Explorar escenario seleccionado",
-        "loadAsCandidateSolution": "Explorar como escenario de comparación",
+        "apply": "Ver mapa",
+        "loadAsCandidateSolution": "Ver escenario de comparación",
         "useAsSolutionB": "Usar escenario seleccionado como Escenario B"
       },
       "empty": {
         "title": "Defina filtros para ver un escenario",
-        "description": "Elija uno o más tipos de meta, defina nivel de meta y seleccione base del compromiso. Los resultados se actualizan automáticamente."
+        "description": "Elija uno o más tipos de meta, defina el nivel de meta y elija una base de costo. Los resultados se actualizan automáticamente."
       },
       "noMatch": {
         "title": "Sin escenario coincidente",
