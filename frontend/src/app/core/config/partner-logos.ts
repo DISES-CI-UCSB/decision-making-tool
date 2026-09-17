@@ -15,6 +15,7 @@ export interface AboutPartnerSection {
 
 const logoPath = '/images/partners/';
 const headerLogoPath = `${logoPath}header/`;
+const sirapLogoPath = `${logoPath}sirap/`;
 const institutionLogoPath = '/images/institutions/';
 
 /** National institutions — NM 9/11 order from `1_instituciones_nacionales`. */
@@ -79,7 +80,7 @@ export const funderLogos: readonly PartnerLogo[] = [
   {
     id: 'nsf',
     name: 'National Science Foundation',
-    src: `${institutionLogoPath}nsf.svg`,
+    src: `${institutionLogoPath}nsf.png`,
   },
   {
     id: 'ecoplan',
@@ -139,15 +140,51 @@ export const allyLogos: readonly PartnerLogo[] = [
     name: 'Fundación Natura Colombia',
     src: `${logoPath}05-fundacion-natura.png`,
   },
-  {
-    id: 'sib-colombia',
-    name: 'SiB Colombia',
-    src: `${logoPath}28-sib-colombia.png`,
-  },
 ];
 
-/** Regional protected area systems — assets pending in `4_SIRAPs`. */
-export const sirapLogos: readonly PartnerLogo[] = [];
+/** Regional protected area systems — NM order from `4_SIRAPs` (51–58). */
+export const sirapLogos: readonly PartnerLogo[] = [
+  {
+    id: 'sirap-orinoquia',
+    name: 'SIRAP Orinoquía',
+    src: `${sirapLogoPath}51-sirap-orinoquia.jpg`,
+  },
+  {
+    id: 'sirap-eje-cafetero',
+    name: 'SIRAP Eje Cafetero',
+    src: `${sirapLogoPath}52-sirap-eje-cafetero.png`,
+  },
+  {
+    id: 'sirap-andes-nororientales',
+    name: 'SIRAP Andes Nororientales',
+    src: `${sirapLogoPath}53-sirap-andes-nororientales.png`,
+  },
+  {
+    id: 'sirap-macizo',
+    name: 'SIRAP Macizo',
+    src: `${sirapLogoPath}54-sirap-macizo.jpeg`,
+  },
+  {
+    id: 'sirap-caribe',
+    name: 'SIRAP Caribe',
+    src: `${sirapLogoPath}55-sirap-caribe.jpg`,
+  },
+  {
+    id: 'sirap-andes-occidentales',
+    name: 'SIRAP Andes Occidentales',
+    src: `${sirapLogoPath}56-sirap-andes-occidentales.png`,
+  },
+  {
+    id: 'sirap-amazonia',
+    name: 'SIRAP Amazonía',
+    src: `${sirapLogoPath}57-sirap-amazonia.png`,
+  },
+  {
+    id: 'sirap-pacifico',
+    name: 'SIRAP Pacífico',
+    src: `${sirapLogoPath}58-sirap-pacifico.png`,
+  },
+];
 
 export const regionalCorporationLogos: readonly PartnerLogo[] = [
   { id: 'cvc', name: 'CVC', src: `${logoPath}13-cvc.png` },
@@ -222,21 +259,8 @@ const partnerLogoCatalog = new Map<string, PartnerLogo>(
   [...nationalInstitutionLogos, ...allyLogos, ...funderLogos].map((logo) => [logo.id, logo]),
 );
 
-/** Header carousel logos — NM 9/11 order from `0_Tool_header`. */
-const primaryPartnerLogoIds = [
-  'minambiente',
-  'pnnc',
-  'iavh',
-  'invemar',
-  'sinchi',
-  'ideam',
-  'iiap',
-  'procat',
-  'wwf',
-  'tnc',
-  'wcs',
-  'hac',
-] as const;
+/** Header logos — MinAmbiente and PNNC only. */
+const primaryPartnerLogoIds = ['minambiente', 'pnnc'] as const;
 
 export const primaryPartnerLogos: readonly PartnerLogo[] = primaryPartnerLogoIds.map(
   (id) => partnerLogoCatalog.get(id)!,

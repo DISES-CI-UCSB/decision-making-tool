@@ -3,17 +3,11 @@
 }
 
 #foundation-header-primary-partners-carousel {
-  @media (min-width: 1024px) {
-    display: flex;
-  }
-
-  @media (min-width: 1430px) {
-    display: none;
-  }
+  display: none;
 }
 
 #foundation-header-primary-partners {
-  @media (min-width: 1430px) {
+  @media (min-width: 1024px) {
     display: flex;
   }
 }
