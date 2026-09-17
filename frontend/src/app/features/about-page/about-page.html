@@ -44,7 +44,9 @@
     @for (section of partnerSections; track section.id) {
       <section
         id="about-page-{{ section.id }}-section"
-        class="mt-14 border-t border-slate-200 pt-10"
+        class="border-t border-slate-200 pt-10"
+        [class.mt-6]="$first"
+        [class.mt-14]="!$first"
       >
         <div id="about-page-{{ section.id }}-heading" class="max-w-3xl">
           <h2 id="about-page-{{ section.id }}-title" class="text-xl font-semibold text-slate-950">

@@ -5,18 +5,18 @@
   "landingWelcome": {
     "kicker": "Bienvenida",
     "title": "Explora opciones de planificación para la conservación en Colombia.",
-    "description": "Esta herramienta de apoyo a la toma de decisiones ayuda a comparar escenarios de conservación precalculados en Colombia. Úsala para ver cómo diferentes metas de biodiversidad, áreas incluidas y supuestos de costo cambian los lugares resaltados para acción de conservación.",
-    "decisionSupportNote": "Los escenarios están pensados para informar conversaciones y planificación; no sustituyen la experiencia local, la revisión de políticas ni las decisiones finales de conservación.",
+    "description": "Esta herramienta de apoyo a la toma de decisiones cartografía áreas candidatas para acciones de conservación en Colombia.",
+    "decisionSupportNote": "Disclaimer: Esta herramienta tiene como finalidad fundamentar el debate y la planificación. No sustituye el conocimiento especializado a nivel local ni la normativa oficial. Las áreas candidatas han sido calculadas previamente. La información sobre las fuentes de datos está disponible a lo largo de la herramienta.",
     "quickStartTitle": "Cómo empezar",
     "steps": {
-      "selectSolution": "Haz clic en Seleccionar escenario para abrir el buscador guiado de escenarios.",
-      "exploreMap": "Elige prioridades de conservación y revisal escenario coincidente en el mapa.",
-      "reviewAnalysis": "Usa los paneles laterales para revisar capas, métricas y compensaciones.",
-      "downloadOutputs": "Descarga un PNG del mapa o un CSV de las métricas para informes y análisis posteriores."
+      "selectSolution": "Establecer objetivos: Establecer objetivos para la conservación de especies, ecosistemas y más.",
+      "exploreMap": "Ver áreas candidatas para la conservación futura: El mapa muestra áreas que, de conservarse, permitirían alcanzar los objetivos establecidos minimizando al mismo tiempo los obstáculos para la conservación, como la actividad humana en dichas zonas.",
+      "reviewAnalysis": "Explore el mapa: examine los beneficios y costos de conservar estas áreas candidatas y observe cómo cambian según los diferentes objetivos y supuestos.",
+      "downloadOutputs": "Análisis detallado: Descargue mapas y métricas para un análisis más profundo."
     },
     "actions": {
       "exploreFirst": "Explorar mapa primero",
-      "selectSolution": "Seleccionar escenario"
+      "selectSolution": "Empezar"
     }
   },
   "header": {
@@ -44,7 +44,7 @@
     "contactDescription": "Para preguntas sobre esta herramienta o las prioridades de conservación, escriba a:",
     "nationalInstitutionsTitle": "Instituciones nacionales",
     "nationalInstitutionsDescription": "Entidades nacionales colombianas que aportan datos, experiencia y respaldo institucional.",
-    "fundersTitle": "Financiadores",
+    "fundersTitle": "Financiadores / Desarrolladores",
     "fundersDescription": "Organizaciones que apoyan el desarrollo y financiamiento de esta herramienta.",
     "alliesTitle": "Aliados",
     "alliesDescription": "Organizaciones de conservación que colaboran en la planificación y la implementación.",

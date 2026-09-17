@@ -63,7 +63,7 @@ export const nationalInstitutionLogos: readonly PartnerLogo[] = [
   },
 ];
 
-/** Funders — NM 9/11 order from `2_financiadores`. */
+/** Funders / Developers — NM 9/11 order from `2_financiadores`, plus CI and UCSB (NM 9/16). */
 export const funderLogos: readonly PartnerLogo[] = [
   {
     id: 'hac',
@@ -85,6 +85,16 @@ export const funderLogos: readonly PartnerLogo[] = [
     id: 'ecoplan',
     name: 'ECO-PLAN',
     src: `${institutionLogoPath}ecoplan.png`,
+  },
+  {
+    id: 'conservation-international',
+    name: 'Conservation International',
+    src: `${logoPath}51-conservation-international.png`,
+  },
+  {
+    id: 'ucsb',
+    name: 'University of California, Santa Barbara',
+    src: `${logoPath}50-ucsb.jpg`,
   },
 ];
 
@@ -133,16 +143,6 @@ export const allyLogos: readonly PartnerLogo[] = [
     id: 'sib-colombia',
     name: 'SiB Colombia',
     src: `${logoPath}28-sib-colombia.png`,
-  },
-  {
-    id: 'ucsb',
-    name: 'University of California, Santa Barbara',
-    src: `${logoPath}50-ucsb.jpg`,
-  },
-  {
-    id: 'conservation-international',
-    name: 'Conservation International',
-    src: `${logoPath}51-conservation-international.png`,
   },
 ];
 
