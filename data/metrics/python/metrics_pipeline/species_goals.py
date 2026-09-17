@@ -8,8 +8,11 @@ their full provenance still matches.
 
 Coverage percents and configured-target ``met`` flags use Mesa / Prioritizr
 planning-unit cell counts (calculator A): held/total inside the valid template
-mask. Compact km² columns are the catalog range scaled by that same cell
-fraction. Exactextract source-cell-union area is not used for coverage or met.
+mask. National compact km² columns are the catalog range scaled by that same
+cell fraction. SIRAP compact km² columns use regional grid-cell area so
+``rangeAreaKm2`` stays the range inside the SIRAP; the catalog
+``nationalRangeKm2`` remains Colombia-wide. Exactextract source-cell-union
+area is not used for coverage or met.
 """
 
 from __future__ import annotations
@@ -46,6 +49,12 @@ SPECIES_GOALS_COVERAGE_POLICY = {
     "denominator": "valid-template-mask-cell-count",
     "scopeMask": SPECIES_GOALS_SCOPE_MASK,
     "areaScale": "catalog-range-km2-times-held-over-total",
+}
+SIRAP_SPECIES_GOALS_COVERAGE_POLICY = {
+    **SPECIES_GOALS_COVERAGE_POLICY,
+    "scopeMask": "regional-packet-grid",
+    "areaScale": "regional-grid-cell-area-km2",
+    "nationalRange": "catalog-nationalRangeKm2",
 }
 DEFAULT_TERRESTRIAL_TEMPLATE_PATH = (
     Path(__file__).resolve().parents[4]
@@ -361,6 +370,7 @@ class SpeciesGoalsPipeline:
                 pre_existing_area_m2 REAL NOT NULL,
                 new_prioritizr_area_m2 REAL NOT NULL,
                 configured_target_pct REAL,
+                display_range_km2 REAL,
                 PRIMARY KEY (geography_level, scope_index, species_index)
             ) WITHOUT ROWID
             """
@@ -376,11 +386,15 @@ class SpeciesGoalsPipeline:
         *,
         pre_existing_area_m2: float = 0.0,
         new_prioritizr_area_m2: float | None = None,
+        display_range_km2: float | None = None,
     ) -> None:
         """Record national planning-unit cell counts for one species.
 
         Parameter names keep the historical ``*_m2`` suffix so callers and the
         SQLite spool stay compatible. Values are cell counts, not square metres.
+        ``display_range_km2`` is the compact range column for SIRAP solutions
+        (regional cell-area km²). National builds leave it unset and scale
+        from the catalog range.
         """
         if self.primary_geography_level not in self.active_levels:
             return
@@ -393,6 +407,7 @@ class SpeciesGoalsPipeline:
             selected_area_m2
             if new_prioritizr_area_m2 is None
             else new_prioritizr_area_m2,
+            display_range_km2=display_range_km2,
         )
         self._insert(self.primary_geography_level, 0, index, observation)
 
@@ -405,6 +420,7 @@ class SpeciesGoalsPipeline:
         *,
         pre_existing_per_boundary: np.ndarray | None = None,
         new_prioritizr_per_boundary: np.ndarray | None = None,
+        display_range_km2_per_boundary: np.ndarray | None = None,
     ) -> None:
         if level not in self.active_levels:
             return
@@ -427,12 +443,18 @@ class SpeciesGoalsPipeline:
             raise SpeciesGoalsContractError("coverage component arrays differ")
         species_index = self._species_index(species)
         for scope_index in np.flatnonzero(total_per_boundary > 0).tolist():
+            display_range = (
+                None
+                if display_range_km2_per_boundary is None
+                else float(display_range_km2_per_boundary[scope_index])
+            )
             observation = self._observation(
                 species,
                 float(selected_per_boundary[scope_index]),
                 float(total_per_boundary[scope_index]),
                 float(pre_existing[scope_index]),
                 float(new_prioritizr[scope_index]),
+                display_range_km2=display_range,
             )
             self._insert(level, scope_index, species_index, observation)
 
@@ -513,14 +535,15 @@ class SpeciesGoalsPipeline:
         try:
             self._connection.executemany(
                 """
-                INSERT INTO observations VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO observations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(geography_level, scope_index, species_index)
                 DO UPDATE SET
                     range_area_m2 = excluded.range_area_m2,
                     selected_area_m2 = excluded.selected_area_m2,
                     pre_existing_area_m2 = excluded.pre_existing_area_m2,
                     new_prioritizr_area_m2 = excluded.new_prioritizr_area_m2,
-                    configured_target_pct = excluded.configured_target_pct
+                    configured_target_pct = excluded.configured_target_pct,
+                    display_range_km2 = excluded.display_range_km2
                 """,
                 rows,
             )
@@ -689,7 +712,7 @@ class SpeciesGoalsPipeline:
             """
             SELECT scope_index, species_index, range_area_m2, selected_area_m2,
                    pre_existing_area_m2, new_prioritizr_area_m2,
-                   configured_target_pct
+                   configured_target_pct, display_range_km2
             FROM observations
             WHERE geography_level = ?
             ORDER BY scope_index, species_index
@@ -744,7 +767,8 @@ class SpeciesGoalsPipeline:
         observation = self._connection.execute(
             """
             SELECT range_area_m2, selected_area_m2, pre_existing_area_m2,
-                   new_prioritizr_area_m2, configured_target_pct
+                   new_prioritizr_area_m2, configured_target_pct,
+                   display_range_km2
             FROM observations
             WHERE geography_level = 'national' AND scope_index = 0
               AND species_index = ?
@@ -772,14 +796,27 @@ class SpeciesGoalsPipeline:
         species_index: int,
         observation: list[float | None] | tuple[float | None, ...],
     ) -> list[Any]:
-        total_cells, selected_cells, pre_existing_cells, new_prioritizr_cells, target = (
-            observation
-        )
+        (
+            total_cells,
+            selected_cells,
+            pre_existing_cells,
+            new_prioritizr_cells,
+            target,
+            *display_range_values,
+        ) = observation
+        display_range = display_range_values[0] if display_range_values else None
         catalog_range = self.catalog["rows"][species_index][4]
         range_km2 = 0.0 if catalog_range is None else float(catalog_range)
         national_total = self._national_total_cells(species_index)
         scale_total = national_total if national_total and national_total > 0 else total_cells
-        if scale_total <= 0 or range_km2 <= 0:
+        if display_range is not None and float(display_range) > 0 and total_cells > 0:
+            total = round(float(display_range), 6)
+            selected = round(float(display_range) * (selected_cells / total_cells), 6)
+            pre_existing = round(
+                float(display_range) * (pre_existing_cells / total_cells), 6
+            )
+            new_prioritizr = round(selected - pre_existing, 6)
+        elif scale_total <= 0 or range_km2 <= 0:
             total = 0.0
             selected = 0.0
             pre_existing = 0.0
@@ -847,7 +884,8 @@ class SpeciesGoalsPipeline:
         total: float,
         pre_existing: float,
         new_prioritizr: float,
-    ) -> tuple[float, float, float, float, float | None]:
+        display_range_km2: float | None = None,
+    ) -> tuple[float, float, float, float, float | None, float | None]:
         if not all(
             math.isfinite(value) and value >= 0
             for value in (selected, total, pre_existing, new_prioritizr)
@@ -865,12 +903,19 @@ class SpeciesGoalsPipeline:
             raise SpeciesGoalsContractError(
                 "coverage components do not reconcile to selected cells"
             )
+        if display_range_km2 is not None and (
+            not math.isfinite(display_range_km2) or display_range_km2 < 0
+        ):
+            raise SpeciesGoalsContractError(
+                "display_range_km2 must be finite and nonnegative"
+            )
         return (
             total,
             selected,
             pre_existing,
             new_prioritizr,
             self.target_policy.target_for(species.scientific_name),
+            display_range_km2,
         )
 
     def _insert(
@@ -878,18 +923,19 @@ class SpeciesGoalsPipeline:
         level: str,
         scope_index: int,
         species_index: int,
-        observation: tuple[float, float, float, float, float | None],
+        observation: tuple[float, float, float, float, float | None, float | None],
     ) -> None:
         self._connection.execute(
             """
-            INSERT INTO observations VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO observations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(geography_level, scope_index, species_index)
             DO UPDATE SET
                 range_area_m2 = excluded.range_area_m2,
                 selected_area_m2 = excluded.selected_area_m2,
                 pre_existing_area_m2 = excluded.pre_existing_area_m2,
                 new_prioritizr_area_m2 = excluded.new_prioritizr_area_m2,
-                configured_target_pct = excluded.configured_target_pct
+                configured_target_pct = excluded.configured_target_pct,
+                display_range_km2 = excluded.display_range_km2
             """,
             (level, scope_index, species_index, *observation),
         )

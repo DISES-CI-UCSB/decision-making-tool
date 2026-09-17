@@ -10,6 +10,8 @@ import {
 import { describe, expect, it } from 'vitest';
 import type { MetricFormatOptions } from '../utils/metric-presentation.utils';
 import {
+  formatSpeciesReferenceSplit,
+  formatSpeciesReferenceUnit,
   formatSpeciesReferenceValue,
   formatSpeciesGroupsProtectedValue,
   normalizeSpeciesGoalsTaxonId,
@@ -95,7 +97,19 @@ describe('species reference outcomes', () => {
     metric.value = null;
     metric.status = 'partial';
 
-    expect(formatSpeciesReferenceValue(metric, compactOptions)).toBe('17%: 7.8K · 30%: 1.5K');
+    expect(formatSpeciesReferenceValue(metric, compactOptions)).toBeNull();
+    expect(
+      formatSpeciesReferenceSplit(metric, compactOptions, {
+        ...compactOptions,
+        mode: 'full',
+      }),
+    ).toEqual({
+      compact17: '7.8K',
+      full17: '7,793',
+      compact30: '1.5K',
+      full30: '1,529',
+    });
+    expect(formatSpeciesReferenceUnit(metric)).toBe('Assuming 17% / 30% range targets');
     expect(readSpeciesReferenceSummary(metric)).toEqual({
       reached17Count: 7793,
       reached30Count: 1529,
@@ -110,6 +124,35 @@ describe('species reference outcomes', () => {
         },
       ],
     });
+  });
+
+  it('collapses identical 17% and 30% checkpoints into one assumed-target line', () => {
+    const metric = buildMetric('species_groups_protected', 0, {
+      thresholdOutcomes: [
+        {
+          targetPercent: 17,
+          value: 6347,
+          details: { summary: { metSpeciesCount: 6347, totalSpeciesCount: 8129 } },
+        },
+        {
+          targetPercent: 30,
+          value: 6347,
+          details: { summary: { metSpeciesCount: 6347, totalSpeciesCount: 8129 } },
+        },
+      ],
+    });
+    metric.value = null;
+    metric.status = 'partial';
+
+    expect(formatSpeciesReferenceValue(metric, compactOptions)).toBe('6.3K');
+    expect(
+      formatSpeciesReferenceValue(metric, {
+        ...compactOptions,
+        mode: 'full',
+      }),
+    ).toBe('6,347');
+    expect(formatSpeciesReferenceSplit(metric, compactOptions)).toBeNull();
+    expect(formatSpeciesReferenceUnit(metric)).toBe('Assuming a 17% range target');
   });
 });
 

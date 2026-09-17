@@ -617,6 +617,31 @@
   border-bottom: 0;
 }
 
+.v3-metric-row-split {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 8px;
+}
+
+.v3-metric-row-split .v3-m-body {
+  flex: none;
+}
+
+.v3-overview-split-values {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-left: 8px;
+  border-left: 1px solid #e2e8f0;
+}
+
+.v3-overview-split-values .v3-m-unit {
+  white-space: normal;
+  max-width: 100%;
+}
+
 .v3-m-body {
   min-width: 0;
   flex: 1;

@@ -113,6 +113,21 @@ describe('metric presentation utilities', () => {
     expect(metricAvailabilityNote(complete)).toBeNull();
     expect(metricAvailabilityNote(marine)).toBeNull();
   });
+
+  it('does not treat threshold-only SIRAP reference cards as missing source inputs', () => {
+    const metric: MetricValue = {
+      ...buildMetric('species_groups_protected', null, 'count'),
+      status: 'partial',
+      details: {
+        thresholdOutcomes: [
+          { targetPercent: 17, value: 6347 },
+          { targetPercent: 30, value: 6347 },
+        ],
+      },
+    };
+
+    expect(metricAvailabilityNote(metric)).toBeNull();
+  });
 });
 
 describe('formatSpeciesCoveragePercent', () => {

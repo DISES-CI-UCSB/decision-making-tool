@@ -1501,6 +1501,65 @@ describe('PanelSwitcherComponent', () => {
     expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
   });
 
+  it('keeps scenario and within-AOI land-use charts on separate metric families for a SIRAP', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedSirapMetricsDocument(
+          solution.id,
+          [
+            ...buildLandUsePercentMetrics({
+              land_use_artificial_surfaces_pct: 89.1,
+              land_use_agricultural_areas_pct: 9.4,
+              land_use_forests_and_semi_natural_areas_pct: 0.7,
+              land_use_wetlands_pct: 0.8,
+              land_use_water_bodies_pct: 0,
+            }),
+            ...buildLandUseOfAoiPercentMetrics({
+              land_use_artificial_surfaces_pct_of_aoi: 0.2,
+              land_use_agricultural_areas_pct_of_aoi: 19.7,
+              land_use_forests_and_semi_natural_areas_pct_of_aoi: 78.1,
+              land_use_wetlands_pct_of_aoi: 0.8,
+              land_use_water_bodies_pct_of_aoi: 1.3,
+            }),
+          ],
+          'territorial_territorial_orinoquia_7',
+          'Territorial Orinoquia',
+        ),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'sirap:territorial_territorial_orinoquia_7',
+      name: 'Territorial Orinoquia',
+      type: 'sirap',
+      geometryUrl: '/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+      boundarySourceLayerKey: 'siraps',
+      boundarySourceId: 'aoi-siraps-combined-colombia',
+      boundaryGeometrySelection: 'whole-feature',
+      areaKm2: 250_000,
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelector('#aoi-landuse-scenario-bar-val-artificial-surfaces')?.textContent,
+    ).toMatch(/89[,.]1%/);
+    expect(
+      compiled.querySelector('#aoi-landuse-aoi-bar-val-forests-and-semi-natural-areas')
+        ?.textContent,
+    ).toMatch(/78[,.]1%/);
+    expect(compiled.querySelector('#aoi-landuse-aoi-chart')?.textContent).not.toMatch(/89[,.]1%/);
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toMatch(
+      /78[,.]1%/,
+    );
+    expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       label: 'municipality',
@@ -5412,16 +5471,55 @@ describe('PanelSwitcherComponent', () => {
         additionalOutcomeGoalsDomains: () => { id: string; totalCount: number }[];
       };
 
-      expect(
-        compiled.querySelector(
-          '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
-        )?.textContent,
-      ).toContain('17%: 7.8K · 30%: 1.5K');
-      expect(
-        compiled.querySelector(
-          '#right-sidebar-v3-overview-gain-row-metric-03-threatened-species-secured',
-        )?.textContent,
-      ).toContain('17%: 175 · 30%: 70');
+      const groupsRow = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
+      );
+      const threatenedRow = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-row-metric-03-threatened-species-secured',
+      );
+      const groupsValue17 = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-17-metric-02-species-groups-protected',
+      );
+      const groupsValue30 = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-30-metric-02-species-groups-protected',
+      );
+      const groupsDivider = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-divider-metric-02-species-groups-protected',
+      );
+      const groupsUnit = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-unit-metric-02-species-groups-protected',
+      );
+      const threatenedValue17 = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-17-metric-03-threatened-species-secured',
+      );
+      const threatenedValue30 = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-30-metric-03-threatened-species-secured',
+      );
+      const threatenedDivider = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-divider-metric-03-threatened-species-secured',
+      );
+      const threatenedUnit = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-unit-metric-03-threatened-species-secured',
+      );
+
+      expect(groupsRow?.classList.contains('v3-metric-row-split')).toBe(true);
+      expect(threatenedRow?.classList.contains('v3-metric-row-split')).toBe(true);
+      expect(groupsValue17?.textContent).toContain('7.8K');
+      expect(groupsValue17?.classList.contains('text-green-700')).toBe(true);
+      expect(groupsValue17?.getAttribute('data-full-value')).toBe('7,793');
+      expect(groupsValue30?.textContent).toContain('1.5K');
+      expect(groupsValue30?.classList.contains('text-green-900')).toBe(true);
+      expect(groupsValue30?.getAttribute('data-full-value')).toBe('1,529');
+      expect(groupsDivider).not.toBeNull();
+      expect(groupsUnit?.textContent).toContain('Assuming 17% / 30% range targets');
+      expect(threatenedValue17?.textContent).toContain('175');
+      expect(threatenedValue17?.classList.contains('text-green-700')).toBe(true);
+      expect(threatenedValue17?.getAttribute('data-full-value')).toBeNull();
+      expect(threatenedValue30?.textContent).toContain('70');
+      expect(threatenedValue30?.classList.contains('text-green-900')).toBe(true);
+      expect(threatenedValue30?.getAttribute('data-full-value')).toBeNull();
+      expect(threatenedDivider).not.toBeNull();
+      expect(threatenedUnit?.textContent).toContain('Assuming 17% / 30% range targets');
       expect(
         component.additionalOutcomeGoalsDomains().find((domain) => domain.id === 'species')
           ?.totalCount,
@@ -6466,6 +6564,8 @@ function buildCachedDepartmentMetricsDocument(
 function buildCachedSirapMetricsDocument(
   solutionId: string,
   metrics: MetricValue[],
+  scopeId = 'territorial_territorial_amazonia_3',
+  name = 'Territorial Amazonia',
 ): CachedSolutionMetricsDocument {
   return {
     solutionId,
@@ -6473,8 +6573,8 @@ function buildCachedSirapMetricsDocument(
     geographies: {
       national: { colombia: { metrics: [] } },
       siraps: {
-        territorial_territorial_amazonia_3: {
-          name: 'Territorial Amazonia',
+        [scopeId]: {
+          name,
           metrics,
         },
       },

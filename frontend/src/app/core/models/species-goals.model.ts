@@ -156,6 +156,7 @@ const COMPACT_LAYOUT = [
 ];
 const TARGET_OVERLAY_LAYOUT = ['speciesIndex', 'targetPercent'];
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+const COVERAGE_FLOAT_TOLERANCE = 1e-6;
 
 export function isSpeciesGoalsCatalog(value: unknown): value is SpeciesGoalsCatalog {
   if (!isRecord(value) || value['format'] !== 'species-goals-catalog-v1') return false;
@@ -408,7 +409,9 @@ export function hydrateSpeciesGoals(
           : null
         : configuredTarget === null
           ? null
-          : range > 0 && percent(selected, range) + 1e-9 >= configuredTarget;
+          : configuredTarget === 0 ||
+            (range > 0 &&
+              percent(selected, range) + COVERAGE_FLOAT_TOLERANCE >= configuredTarget);
     return [
       {
         id,
@@ -485,11 +488,15 @@ function isValidCompactRow(
     return false;
   }
   const coverage = range > 0 ? (selected / range) * 100 : 0;
+  const meetsConfiguredTarget =
+    range > 0 && target !== null && coverage >= target;
+  const almostMeetsConfiguredTarget =
+    range > 0 && target !== null && coverage + COVERAGE_FLOAT_TOLERANCE >= target;
+  const configuredTargetMet = Boolean(flags & SPECIES_GOALS_FLAGS.configuredTargetMet);
   return (
     Boolean(flags & SPECIES_GOALS_FLAGS.met17) === (range > 0 && coverage >= 17) &&
     Boolean(flags & SPECIES_GOALS_FLAGS.met30) === (range > 0 && coverage >= 30) &&
-    Boolean(flags & SPECIES_GOALS_FLAGS.configuredTargetMet) ===
-      (range > 0 && target !== null && coverage >= target)
+    (configuredTargetMet ? almostMeetsConfiguredTarget : !meetsConfiguredTarget)
   );
 }
 

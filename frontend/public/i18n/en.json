@@ -161,8 +161,8 @@
       "valueUnavailable": "Unavailable",
       "deltaUnavailable": "No delta",
       "partialSpeciesCoverage": "Based on {{available}} of {{total}} catalogued species",
-      "partialSpeciesSources": "Partial value: {{excluded}} approved species sources unavailable",
-      "partialSources": "Partial value: some approved source inputs are unavailable"
+      "partialSpeciesSources": "Excludes {{excluded}} species whose range maps were missing from the source inventory.",
+      "partialSources": "Excludes species whose range maps were missing from the source inventory."
     },
     "exports": {
       "downloadOverviewCsv": "DOWNLOAD OVERVIEW METRICS CSV",
@@ -539,6 +539,8 @@
         "conservationGoalsMetDesc": "Share of conservation features achieved",
         "speciesGroupsProtected": "Species Groups Protected",
         "speciesGroupsProtectedDesc": "Habitat protection",
+        "assumedRangeTargetSingle": "Assuming a {{percent}}% range target",
+        "assumedRangeTargetBoth": "Assuming 17% / 30% range targets",
         "threatenedSpeciesSecured": "Threatened Species Secured",
         "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
         "ecosystemCoverage": "Ecosystem Coverage",

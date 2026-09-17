@@ -65,6 +65,15 @@ export function metricAvailabilityNote(
   }
 
   const exception = asRecord(metric.details?.['speciesException']);
+  const thresholdOutcomes = metric.details?.['thresholdOutcomes'];
+  const isThresholdOnlyReference =
+    metric.value === null &&
+    Array.isArray(thresholdOutcomes) &&
+    thresholdOutcomes.length === 2 &&
+    exception === null;
+  if (isThresholdOnlyReference) {
+    return null;
+  }
   const available = readCount(exception?.['availableExpected']);
   const total = readCount(exception?.['catalogTotal']);
   if (available !== null && total !== null) {

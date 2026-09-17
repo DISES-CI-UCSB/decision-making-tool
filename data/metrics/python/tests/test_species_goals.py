@@ -159,6 +159,7 @@ def test_sirap_primary_scope_uses_regional_sparse_partition(tmp_path: Path):
         1_000_000,
         pre_existing_area_m2=100_000,
         new_prioritizr_area_m2=300_000,
+        display_range_km2=26.6,
     )
     pipeline.record_national(records[1], 0, 0)
 
@@ -170,8 +171,45 @@ def test_sirap_primary_scope_uses_regional_sparse_partition(tmp_path: Path):
     assert document["encoding"] == "sparse-no-range-omitted"
     assert document["scopeCatalog"] == [["eje-cafetero", "Eje Cafetero"]]
     assert len(document["rows"]) == 1
-    assert document["rows"][0][2:6] == [1.0, 0.4, 0.1, 0.3]
+    assert document["rows"][0][2:6] == [26.6, 10.64, 2.66, 7.98]
+    catalog_range = next(row[4] for row in catalog["rows"] if row[1] == "Regional species")
+    assert catalog_range == 1.0
     assert document["rows"][0][7] & FLAG_MET_30
+
+
+def test_sirap_compact_range_stays_regional_when_catalog_is_national(
+    tmp_path: Path,
+):
+    records = [_species("Dendropsophus marmoratus", 289434.616648)]
+    catalog = _catalog(records)
+    pipeline = _pipeline(
+        catalog,
+        tmp_path,
+        active_levels={"siraps"},
+        primary_geography_level="siraps",
+    )
+    pipeline.record_national(
+        records[0],
+        213,
+        1000,
+        pre_existing_area_m2=210,
+        new_prioritizr_area_m2=3,
+        display_range_km2=26600.0,
+    )
+
+    document = pipeline.build_partition(
+        geography_level="siraps",
+        scope_catalog=[["orinoquia", "Orinoquía"]],
+    )
+
+    range_km2, selected, pre_existing, new_prioritizr = document["rows"][0][2:6]
+    assert range_km2 == 26600.0
+    assert selected == pytest.approx(26600.0 * 0.213)
+    assert pre_existing == pytest.approx(26600.0 * 0.210)
+    assert new_prioritizr == pytest.approx(selected - pre_existing)
+    assert catalog["rows"][0][4] == pytest.approx(289434.616648)
+    assert document["rows"][0][7] & FLAG_MET_17
+    assert not document["rows"][0][7] & FLAG_MET_30
 
 
 def test_per_species_configured_target_and_subnational_sparse_encoding(tmp_path: Path):

@@ -22,7 +22,8 @@ export const environment = {
     accessRequestNotificationEmail: '',
   },
   googleClientId: '',
-  manifestBlobUrl: '/data/layer-manifest/manifest.json',
+  manifestBlobUrl:
+    'https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-6-0/manifest.json',
   catalogReleaseIndexBlobUrl:
     'https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.6.0/catalog-release-index.json',
   sirapManifestBlobUrl: '',

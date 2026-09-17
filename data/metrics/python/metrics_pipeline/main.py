@@ -264,6 +264,7 @@ from species_goals import (
     DEFAULT_TERRESTRIAL_TEMPLATE_PATH,
     SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION,
     SPECIES_GOALS_COVERAGE_POLICY,
+    SIRAP_SPECIES_GOALS_COVERAGE_POLICY,
     record_species_goals_from_smsp,
 )
 from species_goals import (
@@ -3181,7 +3182,7 @@ def _sirap_species_goals_provenance(
         "exactOverlapAlgorithmVersion": SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION,
         "exactOverlapPolicySha256": species_goals_sha256(
             {
-                **SPECIES_GOALS_COVERAGE_POLICY,
+                **SIRAP_SPECIES_GOALS_COVERAGE_POLICY,
                 "format": "smsp-v1",
                 "joinPolicy": species["joinPolicy"],
             }

@@ -202,16 +202,60 @@ export function readSpeciesReferenceSummary(metric: MetricValue): SpeciesReferen
   };
 }
 
+export interface SpeciesReferenceSplit {
+  compact17: string;
+  full17: string;
+  compact30: string;
+  full30: string;
+}
+
+/** Dual 17/30 counts when the checkpoints differ. Null when they match or data is missing. */
+export function formatSpeciesReferenceSplit(
+  metric: MetricValue,
+  compactOptions: MetricFormatOptions,
+  fullOptions: MetricFormatOptions = { ...compactOptions, mode: 'full' },
+): SpeciesReferenceSplit | null {
+  const summary = readSpeciesReferenceSummary(metric);
+  if (!summary || summary.reached17Count === summary.reached30Count) {
+    return null;
+  }
+
+  return {
+    compact17: formatCount(summary.reached17Count, compactOptions),
+    full17: formatCount(summary.reached17Count, fullOptions),
+    compact30: formatCount(summary.reached30Count, compactOptions),
+    full30: formatCount(summary.reached30Count, fullOptions),
+  };
+}
+
 export function formatSpeciesReferenceValue(
   metric: MetricValue,
   options: MetricFormatOptions,
 ): string | null {
   const summary = readSpeciesReferenceSummary(metric);
   if (!summary) return null;
-  return `17%: ${formatCount(summary.reached17Count, options)} · 30%: ${formatCount(
-    summary.reached30Count,
-    options,
-  )}`;
+  // Dual checkpoints render through formatSpeciesReferenceSplit, not a middot string.
+  if (summary.reached17Count !== summary.reached30Count) return null;
+  return formatCount(summary.reached17Count, options);
+}
+
+export function formatSpeciesReferenceUnit(
+  metric: MetricValue,
+  translate?: (key: string, params: Record<string, string | number>) => string,
+): string | null {
+  const summary = readSpeciesReferenceSummary(metric);
+  if (!summary) return null;
+  if (summary.reached17Count === summary.reached30Count) {
+    const params = { percent: 17 };
+    const translated = translate?.('analysis.overview.metrics.assumedRangeTargetSingle', params);
+    return translated && translated !== 'analysis.overview.metrics.assumedRangeTargetSingle'
+      ? translated
+      : `Assuming a ${params.percent}% range target`;
+  }
+  const translated = translate?.('analysis.overview.metrics.assumedRangeTargetBoth', {});
+  return translated && translated !== 'analysis.overview.metrics.assumedRangeTargetBoth'
+    ? translated
+    : 'Assuming 17% / 30% range targets';
 }
 
 function readSpeciesSummaryRatio(

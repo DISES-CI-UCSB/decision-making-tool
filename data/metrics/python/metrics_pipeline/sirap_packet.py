@@ -432,6 +432,7 @@ def _record_species_in_chunks(
             float(national_cells[0]),
             pre_existing_area_m2=float(national_cells[2]),
             new_prioritizr_area_m2=float(national_cells[3]),
+            display_range_km2=float(national[0]) / 1_000_000.0,
         )
         for level, (total, selected_cells, pre_cells, new_cells) in per_level_cells.items():
             sink.record_sub_level(
@@ -441,6 +442,7 @@ def _record_species_in_chunks(
                 total,
                 pre_existing_per_boundary=pre_cells,
                 new_prioritizr_per_boundary=new_cells,
+                display_range_km2_per_boundary=per_level[level][0] / 1_000_000.0,
             )
     return has_cells, bool(has_cells and national[0] > 0 and national[1] + 1e-9 >= national[0])
 
