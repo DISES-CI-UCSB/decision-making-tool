@@ -171,7 +171,6 @@ def cors_origins(extra: str | None = None) -> list[str]:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins(),
-    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],

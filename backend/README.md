@@ -140,7 +140,7 @@ Chat #4 VM fixture benchmark on 2026-06-04 after rebuilding commit `3101d003`:
 - `DMT_ARTIFACT_SCHEMA_VERSION`: Expected manifest schema version. Defaults to `metrics-artifact-manifest/v1`.
 - `DMT_METRICS_PIPELINE_PATH`: Path to the shared metrics pipeline. Docker sets this to `/metrics_pipeline`.
 - `DMT_RELEASE_SPECS_DIR`: Path to release-spec JSON contracts. Docker sets this to `/data/metrics/release-specs`.
-- `DMT_CORS_ORIGINS`: Extra comma-separated frontend origins allowed by CORS, in addition to localhost dev ports, `:8080`, and `*.vercel.app`.
+- `DMT_CORS_ORIGINS`: Extra comma-separated frontend origins allowed by CORS, in addition to the localhost and 127.0.0.1 defaults (`:4200`, `:4300`, `:4301`, `:8080`, `:8084`). Production and preview hosts are not allowed unless listed here.
 - `MANIFEST_BLOB_URL` / `DMT_MANIFEST_URL`: Optional override for the hydrate recipe's source layer manifest.
 - `BLOB_READ_WRITE_TOKEN`: Required for future real Vercel Blob sync work. The skeleton script only checks whether it is present and never prints the value.
 
