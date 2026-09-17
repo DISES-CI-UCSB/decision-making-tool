@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import math
 import time
 from typing import Any, Iterable
 
 from .artifacts import RuntimeArtifact
+from .config import get_settings
 from .metric_adapters import (
     AREA_METRIC_IDS,
     SolutionRaster,
@@ -16,6 +18,9 @@ from .metric_adapters import (
 
 class PolygonMetricError(ValueError):
     pass
+
+
+EARTH_RADIUS_KM = 6371.0088
 
 
 def calculate_custom_polygon_metrics(
@@ -144,13 +149,44 @@ def validate_polygon_geometry(
     geometry_type = geometry.get("type")
     coordinates = geometry.get("coordinates")
     if geometry_type == "Polygon":
-        return [_parse_polygon(coordinates)]
-    if geometry_type == "MultiPolygon":
+        polygons = [_parse_polygon(coordinates)]
+    elif geometry_type == "MultiPolygon":
         if not isinstance(coordinates, list) or not coordinates:
             raise PolygonMetricError("MultiPolygon coordinates must be a non-empty array.")
-        return [_parse_polygon(polygon) for polygon in coordinates]
+        polygons = [_parse_polygon(polygon) for polygon in coordinates]
+    else:
+        raise PolygonMetricError("geometry type must be Polygon or MultiPolygon.")
 
-    raise PolygonMetricError("geometry type must be Polygon or MultiPolygon.")
+    _enforce_polygon_caps(polygons)
+    return polygons
+
+
+def _enforce_polygon_caps(polygons: list[list[list[tuple[float, float]]]]) -> None:
+    settings = get_settings()
+    vertex_count = sum(len(ring) for polygon in polygons for ring in polygon)
+    if vertex_count > settings.max_polygon_vertices:
+        raise PolygonMetricError(
+            "too_many_vertices: geometry has "
+            f"{vertex_count} vertices; maximum is {settings.max_polygon_vertices}."
+        )
+
+    area_km2 = sum(_spherical_ring_area_km2(polygon[0]) for polygon in polygons)
+    if area_km2 > settings.max_polygon_area_km2:
+        raise PolygonMetricError(
+            "area_exceeds_national_territory: geometry area is "
+            f"{area_km2:.0f} km2; maximum is {settings.max_polygon_area_km2:.0f} km2."
+        )
+
+
+def _spherical_ring_area_km2(ring: list[tuple[float, float]]) -> float:
+    if len(ring) < 4:
+        return 0.0
+    total = 0.0
+    for (lon1, lat1), (lon2, lat2) in zip(ring, ring[1:]):
+        total += math.radians(lon2 - lon1) * (
+            math.sin(math.radians(lat1)) + math.sin(math.radians(lat2))
+        )
+    return abs(total) * EARTH_RADIUS_KM * EARTH_RADIUS_KM / 2.0
 
 
 def _parse_polygon(coordinates: Any) -> list[list[tuple[float, float]]]:

@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
@@ -34,3 +36,13 @@ def use_tiny_artifact(*, required: bool = True) -> None:
     os.environ["DMT_ARTIFACT_REQUIRED"] = "true" if required else "false"
     os.environ["DMT_ARTIFACT_DIR"] = str(TINY_ARTIFACT_DIR)
     os.environ["DMT_ARTIFACT_MANIFEST"] = str(TINY_ARTIFACT_MANIFEST)
+
+
+@pytest.fixture(autouse=True)
+def disable_app_rate_limit(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DMT_RATE_LIMIT_PER_MINUTE", "0")
+    from app.rate_limit import reset_rate_limiter
+
+    reset_rate_limiter()
+    yield
+    reset_rate_limiter()
