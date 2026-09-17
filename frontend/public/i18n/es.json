@@ -1469,7 +1469,7 @@
     "viewBreakdown": "Ver desglose",
     "solutionBreakdownTitle": "Desglose del escenario",
     "closeBreakdown": "Cerrar desglose del escenario",
-    "selectedLayersTitle": "Capas seleccionadas",
+    "selectedLayersTitle": "Capas mostradas",
     "selectedLayersEmpty": "No hay capas seleccionadas aún. Agrega capas desde Capas disponibles para controlar el orden de la pila.",
     "dragToReorder": "Arrastrar para reordenar {{name}}",
     "noMapLayerAvailable": "Capa de mapa no disponible",
