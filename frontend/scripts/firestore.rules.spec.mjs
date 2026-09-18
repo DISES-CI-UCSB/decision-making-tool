@@ -1,3 +1,4 @@
+import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { after, before, beforeEach, describe, it } from 'node:test';
@@ -76,6 +77,23 @@ function totpMissingIdentifierDb(actor) {
     sign_in_provider: 'google.com',
     sign_in_second_factor: 'totp',
   });
+}
+
+function gticSelfProvisionedUser(actor) {
+  return {
+    uid: actor.uid,
+    email: actor.email,
+    displayName: actor.name,
+    status: 'active',
+    role: 'authorized_viewer',
+    tier: 2,
+    isAdmin: false,
+    isSuperAdmin: false,
+    allowedSirapIds: [],
+    administeredSirapIds: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
 }
 
 function pendingAccessRequestData(actor, extras = {}) {
@@ -555,31 +573,82 @@ describe('TOTP active user scenarios', () => {
   });
 });
 
-describe('A: no self-provision', () => {
-  it('denies first-factor self-create of an active user or directory row', async () => {
+describe('SEC-08: no self-provision of users/{uid}', () => {
+  it('has retired validSelfProvisionedUser and keeps create on super-admin only', () => {
+    const rules = readFileSync(RULES_PATH, 'utf8');
+    assert.equal(rules.includes('validSelfProvisionedUser'), false);
+    assert.match(rules, /allow create:\s*if isSuperAdmin\(\) && validUserRecord\(uid\);/);
+  });
+
+  it('denies the original Google first-factor self-create payload', async () => {
     const db = firstFactorDb(ACTORS.pending);
-    await assertFails(
-      setDoc(doc(db, 'users', ACTORS.pending.uid), {
-        uid: ACTORS.pending.uid,
-        email: ACTORS.pending.email,
-        displayName: ACTORS.pending.name,
-        status: 'active',
-        role: 'authorized_viewer',
-        tier: 2,
-        isAdmin: false,
-        isSuperAdmin: false,
-        allowedSirapIds: [],
-        administeredSirapIds: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }),
-    );
+    await assertFails(setDoc(doc(db, 'users', ACTORS.pending.uid), gticSelfProvisionedUser(ACTORS.pending)));
     await assertFails(
       setDoc(doc(db, 'userDirectory', ACTORS.pending.uid), {
         uid: ACTORS.pending.uid,
         email: ACTORS.pending.email,
         displayName: ACTORS.pending.name,
         status: 'active',
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it('denies create from TOTP non-admins, including a signed-in user with no user row', async () => {
+    const fresh = { uid: 'fresh-totp', email: 'fresh-totp@example.com', name: 'Fresh TOTP' };
+    await assertFails(setDoc(doc(totpDb(fresh), 'users', fresh.uid), gticSelfProvisionedUser(fresh)));
+    await assertFails(
+      setDoc(doc(totpDb(ACTORS.active), 'users', 'self-made-colleague'), {
+        ...gticSelfProvisionedUser({
+          uid: 'self-made-colleague',
+          email: 'colleague@example.com',
+          name: 'Colleague',
+        }),
+      }),
+    );
+    await assertFails(
+      setDoc(doc(totpDb(ACTORS.sirapAdmin), 'users', 'sirap-minted-user'), {
+        ...gticSelfProvisionedUser({
+          uid: 'sirap-minted-user',
+          email: 'minted@example.com',
+          name: 'Minted User',
+        }),
+      }),
+    );
+    await assertFails(
+      setDoc(doc(totpDb(ACTORS.publisher), 'users', 'publisher-minted-user'), {
+        ...gticSelfProvisionedUser({
+          uid: 'publisher-minted-user',
+          email: 'pub-minted@example.com',
+          name: 'Publisher Minted',
+        }),
+      }),
+    );
+  });
+
+  it('denies unauthenticated create and first-factor role escalation on an existing user', async () => {
+    const anonDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(
+      setDoc(
+        doc(anonDb, 'users', 'anon-user'),
+        gticSelfProvisionedUser({ uid: 'anon-user', email: 'anon@example.com', name: 'Anon' }),
+      ),
+    );
+    await assertFails(
+      updateDoc(doc(firstFactorDb(ACTORS.active), 'users', ACTORS.active.uid), {
+        role: 'admin',
+        isAdmin: true,
+        isSuperAdmin: true,
+        tier: 3,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(totpDb(ACTORS.active), 'users', ACTORS.active.uid), {
+        role: 'admin',
+        isAdmin: true,
+        isSuperAdmin: true,
+        tier: 3,
         updatedAt: serverTimestamp(),
       }),
     );
