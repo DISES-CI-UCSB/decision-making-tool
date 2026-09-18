@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from fastapi import HTTPException, Request, status
 
 from .config import get_settings
+from .security_log import EVENT_RATE_LIMITED, EVENT_REPEAT_BLOCKED, emit_from_request
 
 
 EXPENSIVE_POST_PATHS = frozenset(
@@ -22,11 +23,13 @@ EXPENSIVE_POST_PATHS = frozenset(
 class RateLimitDecision:
     allowed: bool
     retry_after_seconds: float
+    denial_count: int = 0
 
 
 class InMemoryRateLimiter:
     def __init__(self) -> None:
         self._hits: dict[str, list[float]] = {}
+        self._denials: dict[str, list[float]] = {}
         self._lock = threading.Lock()
 
     def check(
@@ -36,22 +39,27 @@ class InMemoryRateLimiter:
         window_seconds: float = 60.0,
     ) -> RateLimitDecision:
         if max_requests <= 0:
-            return RateLimitDecision(True, 0.0)
+            return RateLimitDecision(True, 0.0, 0)
         now = time.monotonic()
         window_start = now - window_seconds
         with self._lock:
             hits = [stamp for stamp in self._hits.get(key, []) if stamp > window_start]
+            denials = [stamp for stamp in self._denials.get(key, []) if stamp > window_start]
             if len(hits) >= max_requests:
                 retry_after = window_seconds - (now - hits[0])
+                denials.append(now)
                 self._hits[key] = hits
-                return RateLimitDecision(False, max(retry_after, 0.0))
+                self._denials[key] = denials
+                return RateLimitDecision(False, max(retry_after, 0.0), len(denials))
             hits.append(now)
             self._hits[key] = hits
-            return RateLimitDecision(True, 0.0)
+            self._denials[key] = denials
+            return RateLimitDecision(True, 0.0, 0)
 
     def reset(self) -> None:
         with self._lock:
             self._hits.clear()
+            self._denials.clear()
 
 
 _LIMITER = InMemoryRateLimiter()
@@ -71,6 +79,9 @@ def enforce_expensive_post_rate_limit(request: Request, max_requests: int) -> No
     decision = _LIMITER.check(client_key(request), max_requests)
     if decision.allowed:
         return
+    emit_from_request(request, EVENT_RATE_LIMITED, status.HTTP_429_TOO_MANY_REQUESTS)
+    if decision.denial_count >= 2:
+        emit_from_request(request, EVENT_REPEAT_BLOCKED, status.HTTP_429_TOO_MANY_REQUESTS)
     raise HTTPException(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         detail={
