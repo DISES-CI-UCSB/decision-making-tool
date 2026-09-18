@@ -55,6 +55,9 @@ jobs:
       - name: Run fast frontend unit tests
         run: yarn test
 
+      - name: Verify baseline security headers
+        run: yarn test:security-headers
+
       - name: Test and validate layer manifest
         run: yarn check:layer-manifest
 

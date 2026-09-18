@@ -140,7 +140,10 @@ Chat #4 VM fixture benchmark on 2026-06-04 after rebuilding commit `3101d003`:
 - `DMT_ARTIFACT_SCHEMA_VERSION`: Expected manifest schema version. Defaults to `metrics-artifact-manifest/v1`.
 - `DMT_METRICS_PIPELINE_PATH`: Path to the shared metrics pipeline. Docker sets this to `/metrics_pipeline`.
 - `DMT_RELEASE_SPECS_DIR`: Path to release-spec JSON contracts. Docker sets this to `/data/metrics/release-specs`.
-- `DMT_CORS_ORIGINS`: Extra comma-separated frontend origins allowed by CORS, in addition to localhost dev ports, `:8080`, and `*.vercel.app`.
+- `DMT_CORS_ORIGINS`: Extra comma-separated frontend origins allowed by CORS, in addition to the localhost and 127.0.0.1 defaults (`:4200`, `:4300`, `:4301`, `:8080`, `:8084`). Production and preview hosts are not allowed unless listed here.
+- `DMT_MAX_POLYGON_VERTICES`: Maximum vertices across every ring in a custom-AOI geometry. Defaults to `5000`. Oversized geometry returns `422` with `too_many_vertices` before raster work starts.
+- `DMT_MAX_POLYGON_AREA_KM2`: Maximum geodesic area in km². Defaults to `2200000` (Colombia land plus maritime EEZ, with a small buffer). Oversized geometry returns `422` with `area_exceeds_national_territory`.
+- `DMT_RATE_LIMIT_PER_MINUTE`: In-process request cap per client IP on expensive custom-polygon POSTs. Defaults to `30`. Set to `0` to disable. Exceeding the cap returns `429` with `Retry-After`. Job status GET/DELETE, `/health`, and `/ready` are not limited.
 - `MANIFEST_BLOB_URL` / `DMT_MANIFEST_URL`: Optional override for the hydrate recipe's source layer manifest.
 - `BLOB_READ_WRITE_TOKEN`: Required for future real Vercel Blob sync work. The skeleton script only checks whether it is present and never prints the value.
 
@@ -148,7 +151,7 @@ Chat #4 VM fixture benchmark on 2026-06-04 after rebuilding commit `3101d003`:
 
 - `GET /health`: Process-alive check. Returns `200` when the app is running.
 - `GET /ready`: Artifact-aware readiness check. In no-artifact development mode, missing artifacts return `200` with `available=false`. When `DMT_ARTIFACT_REQUIRED=true`, missing or invalid runtime artifacts return `503`; readiness returns `200` only after the selected artifact loads.
-- `POST /metrics/custom-polygon`: Accepts GeoJSON `Polygon` or `MultiPolygon` geometry. With the tiny fixture it supports the area metric pair (`area`, `priority_area_in_region`, `national_contribution`). With the real raster artifact it rasterizes the AOI on the Colombia reference grid and supports implemented Tier 1 area, binary overlap, percent overlap, land-cover, protected-area, water, and carbon metrics. Response metadata includes warmup/request timing, selected/processed cell counts, layer usage, and metric coverage/unavailable reasons.
+- `POST /metrics/custom-polygon`: Accepts GeoJSON `Polygon` or `MultiPolygon` geometry. Vertex and area caps are applied before raster work. This route shares the application-layer rate limiter with the other expensive custom-polygon POSTs. With the tiny fixture it supports the area metric pair (`area`, `priority_area_in_region`, `national_contribution`). With the real raster artifact it rasterizes the AOI on the Colombia reference grid and supports implemented Tier 1 area, binary overlap, percent overlap, land-cover, protected-area, water, and carbon metrics. Response metadata includes warmup/request timing, selected/processed cell counts, layer usage, and metric coverage/unavailable reasons.
 
 ## Shared Metric Adapters
 

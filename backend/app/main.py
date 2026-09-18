@@ -9,7 +9,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any, Callable
 
-from fastapi import FastAPI, Header, HTTPException, Response, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from .area_profile import (
@@ -42,7 +42,12 @@ from .metric_adapters import (
     build_full_grid_presence_raster,
     rasterize_custom_polygon_mask,
 )
-from .polygon_metrics import PolygonMetricError, calculate_custom_polygon_metrics
+from .polygon_metrics import (
+    PolygonMetricError,
+    calculate_custom_polygon_metrics,
+    validate_polygon_geometry,
+)
+from .rate_limit import expensive_post_rate_limit
 from .solution_registry import SolutionRegistryError
 from .species_index import RuntimeSpeciesBitsetIndex
 
@@ -171,7 +176,6 @@ def cors_origins(extra: str | None = None) -> list[str]:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins(),
-    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -218,8 +222,10 @@ def ready() -> ReadinessResponse:
     responses={
         400: {"model": PolygonMetricsResponse},
         422: {"model": PolygonMetricsResponse},
+        429: {"description": "Application-layer rate limit exceeded."},
         503: {"model": PolygonMetricsResponse},
     },
+    dependencies=[Depends(expensive_post_rate_limit)],
 )
 def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResponse:
     started = time.perf_counter()
@@ -303,6 +309,7 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
 @app.post(
     "/area-profile/custom-polygon",
     response_model=CustomAreaProfileResponse,
+    dependencies=[Depends(expensive_post_rate_limit)],
 )
 def custom_polygon_area_profile(
     request: CustomAreaProfileRequest,
@@ -373,11 +380,20 @@ def custom_polygon_area_profile(
     "/area-profile/custom-polygon/species-coverage/jobs",
     response_model=DetailedSpeciesJobResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(expensive_post_rate_limit)],
 )
 def create_detailed_species_job(
     request: DetailedSpeciesCoverageRequest,
     response: Response,
 ) -> DetailedSpeciesJobResponse:
+    if request.geometry is not None:
+        try:
+            validate_polygon_geometry(request.geometry)
+        except PolygonMetricError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"status": "invalid_request", "message": str(exc)},
+            ) from exc
     queue = _require_detailed_species_queue()
     settings = get_settings()
     artifact = get_runtime_artifact_for_solution(settings, request.solution_id)
