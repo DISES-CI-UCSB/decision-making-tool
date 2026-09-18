@@ -1418,6 +1418,11 @@ export class AdminBoundaryService {
   private clearSelectionState(): void {
     this.clearSelectionHighlight();
     this.appState.clearAOI();
+    // Empty-map clicks deselect AOI and return to Overview. Comparison already
+    // cleared that AOI on entry, so keep the Comparison tab put.
+    if (this.appState.rightSidebarMode$() === 'comparison') {
+      return;
+    }
     this.appState.setRightSidebarMode(this.appState.hasActiveSolution() ? 'overview' : 'welcome');
   }
 
