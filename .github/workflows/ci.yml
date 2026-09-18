@@ -58,6 +58,9 @@ jobs:
       - name: Verify baseline security headers
         run: yarn test:security-headers
 
+      - name: Verify secrets-probe GET is hidden
+        run: yarn test:secrets-probe
+
       - name: Test and validate layer manifest
         run: yarn check:layer-manifest
 

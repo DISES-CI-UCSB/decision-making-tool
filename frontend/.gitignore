@@ -41,6 +41,7 @@ firebase-debug.log
 .history/*
 
 # Miscellaneous
+/api/dev/.secrets-probe-handler.cjs
 /.angular/cache
 .sass-cache/
 /connect.lock
