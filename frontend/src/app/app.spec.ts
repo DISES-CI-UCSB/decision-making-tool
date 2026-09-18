@@ -1,3 +1,4 @@
+import { Component } from '@angular/core';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -16,6 +17,13 @@ import { SolutionLayerService } from '@features/map/services/solution-layer.serv
 import { AuthModalComponent } from '@features/auth/auth-modal/auth-modal';
 import { App } from './app';
 
+@Component({
+  standalone: true,
+  selector: 'app-about-route-stub',
+  template: '',
+})
+class AboutRouteStubComponent {}
+
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -26,10 +34,15 @@ describe('App', () => {
           fallbackLang: 'en',
           loader: provideTranslateLoader(TranslateNoOpLoader),
         }),
-        provideRouter([]),
+        provideRouter([{ path: 'about', component: AboutRouteStubComponent }]),
         provideNoopAnimations(),
       ],
     }).compileComponents();
+  });
+
+  afterEach(async () => {
+    TestBed.resetTestingModule();
+    await Promise.resolve();
   });
 
   it('should create the app', () => {
@@ -60,13 +73,14 @@ describe('App', () => {
     expect(compiled.querySelector('#landing-welcome-modal-login-button')).not.toBeNull();
   });
 
-  it('closes the landing welcome modal when About is chosen', () => {
+  it('closes the landing welcome modal when About is chosen', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
     compiled.querySelector<HTMLAnchorElement>('#landing-welcome-modal-about-link')?.click();
     fixture.detectChanges();
+    await fixture.whenStable();
 
     expect(
       (fixture.componentInstance as unknown as { landingWelcomeModalOpen: boolean })
