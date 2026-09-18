@@ -52,7 +52,9 @@
     "sirapDescription": "Sistemas regionales de áreas protegidas que contribuyen a la planificación territorial.",
     "sirapEmptyMessage": "Los logos de los SIRAP aún no están disponibles. Se agregarán cuando se reciban los archivos.",
     "regionalCorporationsTitle": "Corporaciones autónomas regionales",
-    "regionalCorporationsDescription": "Autoridades ambientales regionales que pueden participar en la colaboración más amplia de planificación para la conservación."
+    "regionalCorporationsDescription": "Autoridades ambientales regionales que pueden participar en la colaboración más amplia de planificación para la conservación.",
+    "acknowledgementsTitle": "Agradecimientos",
+    "acknowledgementsDescription": "Esta herramienta se adaptó a partir de conceptos desarrollados originalmente para la herramienta Where to Work de Nature Conservancy of Canada y Carleton University. La primera iteración de esta herramienta fue desarrollada por el Programa Global sobre Naturaleza para el Desarrollo del PNUD, con el apoyo financiero del Bezos Earth Fund. La iteración más reciente ha sido desarrollada por el equipo ECOPLAN, con el apoyo financiero de NSF, UCSB y CI. Los datos y los métodos de modelación fueron desarrollados por la Mesa Nacional de Prioridades de Conservación y otras instituciones y organizaciones mencionadas arriba, e implementados por el equipo ECOPLAN."
   },
   "common": {
     "close": "Cerrar"

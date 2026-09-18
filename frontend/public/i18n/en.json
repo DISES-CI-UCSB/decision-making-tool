@@ -52,7 +52,9 @@
     "sirapDescription": "Regional protected area systems contributing to territorial planning.",
     "sirapEmptyMessage": "SIRAP logos are not yet available. They will be added when assets are provided.",
     "regionalCorporationsTitle": "Regional autonomous corporations",
-    "regionalCorporationsDescription": "Regional environmental authorities that can participate in the broader conservation planning collaboration."
+    "regionalCorporationsDescription": "Regional environmental authorities that can participate in the broader conservation planning collaboration.",
+    "acknowledgementsTitle": "Acknowledgements",
+    "acknowledgementsDescription": "This tool was adapted from concepts originally developed for the Where to Work tool by the Nature Conservancy of Canada and Carleton University. The first iteration of this tool was developed by the UNDP Global Programme on Nature for Development, and with financial support from the Bezos Earth Fund. The most recent iteration has been developed by the ECOPLAN team, with financial support from NSF, UCSB, and CI. Data and modeling methods were developed by the Mesa Nacional de Prioridades de Conservación and other institutions and organizations listed above, and implemented by the ECOPLAN team."
   },
   "common": {
     "close": "Close"
