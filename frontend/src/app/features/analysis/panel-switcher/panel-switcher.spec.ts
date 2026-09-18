@@ -423,6 +423,28 @@ describe('PanelSwitcherComponent', () => {
     expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
   });
 
+  it('pins the area unit toggle above the overview body', () => {
+    const solution = mockData.getSolutionById('sol-001');
+    expect(solution).not.toBeNull();
+
+    appState.activeSolution$.set(solution);
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const headerToggle = compiled.querySelector(
+      '#right-sidebar-v3-overview-header #right-sidebar-overview-area-unit-toggle',
+    );
+    const bodyToggle = compiled.querySelector(
+      '#right-sidebar-v3-overview-body #right-sidebar-overview-area-unit-toggle',
+    );
+
+    expect(headerToggle).not.toBeNull();
+    expect(bodyToggle).toBeNull();
+  });
+
   it('combines selected priority area with its share of Colombia in overview', async () => {
     const solution = buildTestSolution();
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(

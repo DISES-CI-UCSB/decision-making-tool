@@ -23,6 +23,7 @@ describe('AdminBoundaryService', () => {
   let appState: {
     selectedAOI$: typeof selectedAOI;
     activeSolution$: ReturnType<typeof signal<Solution | null>>;
+    rightSidebarMode$: ReturnType<typeof signal<'welcome' | 'overview' | 'aoi' | 'comparison'>>;
     selectAOI: ReturnType<typeof vi.fn>;
     clearAOI: ReturnType<typeof vi.fn>;
     setRightSidebarMode: ReturnType<typeof vi.fn>;
@@ -81,6 +82,7 @@ describe('AdminBoundaryService', () => {
     appState = {
       selectedAOI$: selectedAOI,
       activeSolution$: signal<Solution | null>(null),
+      rightSidebarMode$: signal<'welcome' | 'overview' | 'aoi' | 'comparison'>('overview'),
       selectAOI: vi.fn((aoi: AOI) => selectedAOI.set(aoi)),
       clearAOI: vi.fn(() => selectedAOI.set(null)),
       setRightSidebarMode: vi.fn(),
@@ -308,6 +310,29 @@ describe('AdminBoundaryService', () => {
     expect(view.hitTest).not.toHaveBeenCalled();
     expect(selectedAOI()).toBeNull();
     expect(appState.setRightSidebarMode).toHaveBeenCalledWith('overview');
+  });
+
+  it('keeps the Comparison tab open when an empty-map click clears AOI', async () => {
+    const service = TestBed.inject(AdminBoundaryService);
+    appState.rightSidebarMode$.set('comparison');
+    const view = {
+      hitTest: vi.fn().mockResolvedValue({ results: [] }),
+    };
+
+    await (
+      service as unknown as {
+        handleMapClick(
+          mapView: never,
+          mapPoint: Point,
+          screenX: number,
+          screenY: number,
+        ): Promise<void>;
+      }
+    ).handleMapClick(view as never, new Point({ x: 5, y: 5 }), 100, 100);
+
+    expect(selectedAOI()).toBeNull();
+    expect(appState.clearAOI).toHaveBeenCalledOnce();
+    expect(appState.setRightSidebarMode).not.toHaveBeenCalled();
   });
 
   it('uses the immutable visual-only outline without changing AOI boundary sources', () => {
