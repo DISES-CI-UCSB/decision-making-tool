@@ -1359,7 +1359,8 @@
                             [id]="'right-sidebar-v3-overview-gain-row-' + entry.id"
                             class="v3-metric-row"
                             [class.v3-metric-row-unavailable]="entry.unavailable"
-                            [class.flex-wrap]="!!entry.partialNote"
+                            [class.v3-metric-row-split]="!!entry.referenceSplit"
+                            [class.flex-wrap]="!!entry.partialNote && !entry.referenceSplit"
                           >
                             <div
                               [id]="'right-sidebar-v3-overview-gain-icon-shell-' + entry.id"
@@ -1494,21 +1495,59 @@
                                 {{ entry.descriptionKey | translate }}
                               </p>
                             </div>
-                            <div [id]="'right-sidebar-v3-overview-gain-value-shell-' + entry.id">
-                              <p
-                                [id]="'right-sidebar-v3-overview-gain-value-' + entry.id"
-                                class="v3-m-val"
-                                [attr.data-full-value]="
-                                  entry.fullValue && entry.fullValue !== entry.value
-                                    ? entry.fullValue
-                                    : null
-                                "
-                                [attr.tabindex]="
-                                  entry.fullValue && entry.fullValue !== entry.value ? 0 : null
-                                "
-                              >
-                                {{ entry.value }}
-                              </p>
+                            <div
+                              [id]="'right-sidebar-v3-overview-gain-value-shell-' + entry.id"
+                              [class.v3-overview-split-values]="!!entry.referenceSplit"
+                            >
+                              @if (entry.referenceSplit; as split) {
+                                <p
+                                  [id]="'right-sidebar-v3-overview-gain-value-' + entry.id"
+                                  class="v3-m-val flex items-center justify-end gap-1.5 tabular-nums"
+                                >
+                                  <span
+                                    [id]="'right-sidebar-v3-overview-gain-value-17-' + entry.id"
+                                    class="text-green-700"
+                                    [attr.data-full-value]="
+                                      split.full17 !== split.compact17 ? split.full17 : null
+                                    "
+                                    [attr.tabindex]="
+                                      split.full17 !== split.compact17 ? 0 : null
+                                    "
+                                    >{{ split.compact17 }}</span
+                                  >
+                                  <span
+                                    [id]="'right-sidebar-v3-overview-gain-value-divider-' + entry.id"
+                                    aria-hidden="true"
+                                    class="inline-block h-3.5 w-px shrink-0 self-center bg-slate-300"
+                                  ></span>
+                                  <span
+                                    [id]="'right-sidebar-v3-overview-gain-value-30-' + entry.id"
+                                    class="text-green-900"
+                                    [attr.data-full-value]="
+                                      split.full30 !== split.compact30 ? split.full30 : null
+                                    "
+                                    [attr.tabindex]="
+                                      split.full30 !== split.compact30 ? 0 : null
+                                    "
+                                    >{{ split.compact30 }}</span
+                                  >
+                                </p>
+                              } @else {
+                                <p
+                                  [id]="'right-sidebar-v3-overview-gain-value-' + entry.id"
+                                  class="v3-m-val"
+                                  [attr.data-full-value]="
+                                    entry.fullValue && entry.fullValue !== entry.value
+                                      ? entry.fullValue
+                                      : null
+                                  "
+                                  [attr.tabindex]="
+                                    entry.fullValue && entry.fullValue !== entry.value ? 0 : null
+                                  "
+                                >
+                                  {{ entry.value }}
+                                </p>
+                              }
                               @if (entry.unit) {
                                 <p
                                   [id]="'right-sidebar-v3-overview-gain-unit-' + entry.id"
@@ -1522,6 +1561,7 @@
                               <p
                                 [id]="'right-sidebar-v3-overview-gain-partial-note-' + entry.id"
                                 class="m-0 basis-full text-[10px] leading-[1.35] text-slate-500"
+                                [class.col-span-full]="!!entry.referenceSplit"
                               >
                                 {{ entry.partialNote }}
                               </p>

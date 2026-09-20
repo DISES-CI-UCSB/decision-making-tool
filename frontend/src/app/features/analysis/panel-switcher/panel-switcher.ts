@@ -191,12 +191,15 @@ import {
 } from './aoi-ecosystems.utils';
 import {
   formatSpeciesGroupsProtectedValue,
+  formatSpeciesReferenceSplit,
+  formatSpeciesReferenceUnit,
   formatSpeciesReferenceValue,
   overviewMetricCandidateIds,
   readSpeciesReferenceSummary,
   rollupSpeciesGoalsTaxa,
   summarizeEcosystemGoals,
   type SpeciesReferenceGroupSummary,
+  type SpeciesReferenceSplit,
   type SpeciesReferenceSummary,
 } from './overview-metrics.utils';
 import { classifyOverviewTargetDomains } from './overview-target-domains.utils';
@@ -235,6 +238,8 @@ interface OverviewMetricDisplayEntry {
   unit: string;
   /** Localized caveat when the metric is `partial`; empty when the value is complete. */
   partialNote: string;
+  /** Dual 17/30 counts when national/targetless checkpoints differ. */
+  referenceSplit?: SpeciesReferenceSplit | null;
   conditional: boolean;
   unavailable: boolean;
 }
@@ -4103,6 +4108,20 @@ export class PanelSwitcherComponent {
       : this.formatMetricForPanel(metric, mode);
   }
 
+  private formatOverviewMetricUnitForPanel(metric: MetricValue): string {
+    return (
+      formatSpeciesReferenceUnit(metric, (key, params) => this.translate.instant(key, params)) ?? ''
+    );
+  }
+
+  private formatOverviewMetricReferenceSplit(metric: MetricValue): SpeciesReferenceSplit | null {
+    return formatSpeciesReferenceSplit(
+      metric,
+      this.metricFormatOptions('compact'),
+      this.metricFormatOptions('full'),
+    );
+  }
+
   private metricFormatOptions(mode: MetricNumberFormatMode): MetricFormatOptions {
     return {
       areaUnit: this.areaDisplayUnit(),
@@ -5370,8 +5389,9 @@ export class PanelSwitcherComponent {
           iconClass: metric.iconClass,
           value: this.formatOverviewMetricForPanel(realMetric),
           fullValue: this.formatOverviewMetricForPanel(realMetric, 'full'),
-          unit: '',
+          unit: this.formatOverviewMetricUnitForPanel(realMetric),
           partialNote: this.metricPartialNote(realMetric),
+          referenceSplit: this.formatOverviewMetricReferenceSplit(realMetric),
           conditional: Boolean(metric.conditional),
           unavailable: false,
         };

@@ -179,6 +179,8 @@ def put_blob(token: str, source_path: Path, blob_path: str) -> str | None:
             str(source_path),
             "--pathname",
             blob_path,
+            "--token",
+            token,
             "--rw-token",
             token,
             "--no-color",
@@ -189,6 +191,8 @@ def put_blob(token: str, source_path: Path, blob_path: str) -> str | None:
     )
     output = f"{completed.stdout}\n{completed.stderr}".replace(token, "[redacted]")
     if completed.returncode != 0:
+        if "already exists" in output.lower():
+            return None
         raise TransientUploadError(
             output.strip() or f"vercel blob put failed with code {completed.returncode}"
         )
@@ -359,6 +363,9 @@ def run_upload(
     _atomic_write_json(report_path, report)
 
     for index, (entry, progress) in enumerate(zip(verified_entries, report["entries"])):
+        if progress.get("status") in {"uploaded", "already-complete"}:
+            continue
+
         def process() -> str:
             remote = fetch_remote_sha256(entry["expectedPublicUrl"])
             if remote is not None:

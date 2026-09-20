@@ -28,6 +28,12 @@ V220_CONTRACT_PATH = (
     / "solutions-v2-2-0"
     / "species-exception.json"
 )
+V301_CONTRACT_PATH = (
+    Path(__file__).parents[2]
+    / "release-specs"
+    / "solutions-v3-0-1-20260903"
+    / "species-exception.json"
+)
 
 
 def _records() -> list[SpeciesRecord]:
@@ -121,6 +127,24 @@ def test_v220_policy_carries_exact_exception_with_fail_closed_continuation():
     )
     assert policy.document["patchResolution"]["continuationCatalogVersion"] == "2.2.0"
     assert policy.document["patchResolution"]["wildcardSkipAllowed"] is False
+
+
+def test_v301_policy_scores_both_former_maxent_gap_plants():
+    policy = load_species_exception(
+        V301_CONTRACT_PATH,
+        release_id="solutions-v3-0-1-20260903",
+        catalog_version="3.0.1",
+    )
+
+    available = policy.filter_available(_records())
+
+    assert len(available) == 8300
+    assert policy.excluded_filenames == ()
+    assert policy.binding["excluded"] == 0
+    assert {record.scientific_name for record in available} >= {
+        "Hypericum strictum",
+        "Paradrymonia ciliosa",
+    }
 
 
 def test_species_exception_rejects_wildcard_patch_skip(tmp_path: Path):

@@ -345,6 +345,33 @@ def test_land_structured_targets_include_post_hoc_zero_and_unknown_rows(
     assert coverage[-1]["met"] is None
 
 
+def test_land_structured_targets_exclude_leftover_zero_total_amount(tmp_path: Path):
+    summary = tmp_path / "EspRep17+RUNAP_summary.csv"
+    summary.write_text(
+        "feature,met,total_amount,relative_target,relative_held,relative_shortfall,"
+        "feature_type,class,scenario,evaluated\n"
+        "Solver species,TRUE,10,0.17,0.2,0,species,Aves,EspRep,prioritizr_model\n"
+        "Nymphargus siren,TRUE,0,0,NA,NA,species,Amphibia,EspRep,prioritizr_model\n"
+        "Pristimantis malkini,NA,0,0.17,NA,NA,species,Amphibia,EspRep,post-hoc\n",
+        encoding="utf-8",
+    )
+
+    finder_inputs, _, coverage, _ = structured_finder_inputs(
+        summary,
+        solution_id="esprep17_runap",
+        domain="land",
+    )
+
+    assert finder_inputs["structuredTargets"]["speciesRepresentation"] == [
+        {"featureId": "solver_species", "targetPercent": 17.0},
+    ]
+    assert [row["feature"] for row in coverage] == [
+        "Solver species",
+        "Nymphargus siren",
+        "Pristimantis malkini",
+    ]
+
+
 @pytest.mark.parametrize(
     ("second_target", "message"),
     [(0.17, "duplicate normalized"), (0.3, "conflicting targets")],

@@ -163,8 +163,8 @@
       "valueUnavailable": "No disponible",
       "deltaUnavailable": "Sin delta",
       "partialSpeciesCoverage": "Basado en {{available}} de {{total}} especies catalogadas",
-      "partialSpeciesSources": "Valor parcial: {{excluded}} fuentes de especies aprobadas no disponibles",
-      "partialSources": "Valor parcial: algunas fuentes de entrada aprobadas no están disponibles"
+      "partialSpeciesSources": "Excluye {{excluded}} especies cuyas capas de distribución no estaban en el inventario de origen.",
+      "partialSources": "Excluye especies cuyas capas de distribución no estaban en el inventario de origen."
     },
     "exports": {
       "downloadOverviewCsv": "DESCARGAR MÉTRICAS DEL RESUMEN CSV",
@@ -539,6 +539,8 @@
         "conservationGoalsMetDesc": "Porcentaje de elementos de conservación alcanzados",
         "speciesGroupsProtected": "Grupos de especies protegidos",
         "speciesGroupsProtectedDesc": "Protección del hábitat",
+        "assumedRangeTargetSingle": "Si se asume una meta de {{percent}}% del área de distribución",
+        "assumedRangeTargetBoth": "Si se asumen metas de 17% / 30% del área de distribución",
         "threatenedSpeciesSecured": "Especies amenazadas aseguradas",
         "threatenedSpeciesSecuredDesc": "Metas de hábitat UICN cumplidas",
         "ecosystemCoverage": "Cobertura de ecosistemas",

@@ -129,6 +129,8 @@ async function listBlobByPrefix(token, prefix, limit = 10) {
   const { stdout, stderr } = await execFileAsync('vercel', [
     'blob',
     'list',
+    '--token',
+    token,
     '--rw-token',
     token,
     '--limit',
@@ -502,9 +504,8 @@ const isCalledDirectly =
   process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
 if (isCalledDirectly) {
   main().catch((error) => {
-    console.error(
-      `[publish:layer-manifest] ${(error instanceof Error && error.message) || String(error)}`,
-    );
+    const raw = (error instanceof Error && error.message) || String(error);
+    console.error(`[publish:layer-manifest] ${raw.replace(/(--(?:rw-)?token)\s+\S+/g, '$1 <redacted>')}`);
     process.exit(1);
   });
 }
