@@ -103,6 +103,105 @@ export function normalizeSpeciesGoalsTaxonId(
 }
 
 /** Roll up the species-goals catalog the breakdown modal already loads. */
+export const SPECIES_RICHNESS_METRIC_BY_TAXON: Record<SpeciesGoalsTaxonId, string> = {
+  mammals: 'species_richness_mammals',
+  birds: 'species_richness_birds',
+  amphibians: 'species_richness_amphibians',
+  reptiles: 'species_richness_reptiles',
+  plants: 'species_richness_plants',
+};
+
+const SPECIES_GOALS_RICHNESS_SOURCE = 'species-goals-compact';
+
+/** Compact richness is missing or skip-species left it as derivation_needed. */
+export function needsSpeciesGoalsRichnessBackfill(
+  metric: MetricValue | null | undefined,
+): boolean {
+  if (!metric) {
+    return true;
+  }
+  if (metric.status === 'derivation_needed') {
+    return true;
+  }
+  return (
+    (metric.status === 'ready' || metric.status === 'partial') &&
+    (metric.value === null || !Number.isFinite(metric.value))
+  );
+}
+
+/**
+ * Count species with modeled range inside the selected AOI, by taxon.
+ * Sparse species-goals rows are exactly those species; hydrate also keeps
+ * zero-range catalog leftovers that must not be counted.
+ */
+export function countSpeciesGoalsAoiRichness(
+  records: readonly HydratedSpeciesGoalsRecord[] | null | undefined,
+): Record<SpeciesGoalsTaxonId, number> {
+  const counts = {
+    mammals: 0,
+    birds: 0,
+    amphibians: 0,
+    reptiles: 0,
+    plants: 0,
+  };
+  if (!records?.length) {
+    return counts;
+  }
+
+  for (const record of records) {
+    if (record.availability === 'unavailable' || record.no_range_in_scope) {
+      continue;
+    }
+    if (!(record.range_in_aoi_area_km2 > 0)) {
+      continue;
+    }
+    const taxonId = normalizeSpeciesGoalsTaxonId(record.group);
+    if (!taxonId) {
+      continue;
+    }
+    counts[taxonId] += 1;
+  }
+  return counts;
+}
+
+export function backfillAoiSpeciesRichnessMetrics(
+  metrics: readonly MetricValue[],
+  records: readonly HydratedSpeciesGoalsRecord[] | null | undefined,
+): MetricValue[] {
+  if (!records?.length) {
+    return [...metrics];
+  }
+
+  const counts = countSpeciesGoalsAoiRichness(records);
+  const next = [...metrics];
+  const indexById = new Map(next.map((metric, index) => [metric.metricId, index] as const));
+
+  for (const taxonId of SPECIES_GOALS_TAXA_IDS) {
+    const metricId = SPECIES_RICHNESS_METRIC_BY_TAXON[taxonId];
+    const existing = indexById.has(metricId) ? next[indexById.get(metricId)!] : undefined;
+    if (!needsSpeciesGoalsRichnessBackfill(existing)) {
+      continue;
+    }
+    const backfilled: MetricValue = {
+      metricId,
+      value: counts[taxonId],
+      unit: existing?.unit ?? 'count',
+      status: 'ready',
+      source: SPECIES_GOALS_RICHNESS_SOURCE,
+      notes: existing?.notes ?? null,
+      labelKey: existing?.labelKey ?? `metrics.tier1.${metricId}`,
+      formatHint: existing?.formatHint ?? 'number',
+    };
+    if (existing && indexById.has(metricId)) {
+      next[indexById.get(metricId)!] = backfilled;
+    } else {
+      indexById.set(metricId, next.length);
+      next.push(backfilled);
+    }
+  }
+  return next;
+}
+
 export function rollupSpeciesGoalsTaxa(
   records: readonly HydratedSpeciesGoalsRecord[] | null | undefined,
 ): SpeciesGoalsTaxaRollup[] {

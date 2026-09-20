@@ -13,7 +13,10 @@ import {
   formatSpeciesReferenceSplit,
   formatSpeciesReferenceUnit,
   formatSpeciesReferenceValue,
+  backfillAoiSpeciesRichnessMetrics,
+  countSpeciesGoalsAoiRichness,
   formatSpeciesGroupsProtectedValue,
+  needsSpeciesGoalsRichnessBackfill,
   normalizeSpeciesGoalsTaxonId,
   overviewMetricCandidateIds,
   readSpeciesReferenceSummary,
@@ -255,6 +258,45 @@ describe('species-goals taxa rollup', () => {
     ]);
   });
 
+  it('counts only species with range in the AOI for richness backfill', () => {
+    const records = hydrateSpeciesGoals(rollupRangeCatalog(), rollupRangeCompact(), '05');
+    const extras = [
+      buildSpeciesGoalsRecord('ghost-frog', 'Amphibians', true, true, true, 'unavailable'),
+      {
+        ...buildSpeciesGoalsRecord('outside-bird', 'Birds', null, false, false),
+        range_in_aoi_area_km2: 0,
+        no_range_in_scope: true,
+      },
+    ];
+
+    expect(countSpeciesGoalsAoiRichness([...records, ...extras])).toEqual({
+      mammals: 1,
+      birds: 0,
+      amphibians: 1,
+      reptiles: 0,
+      plants: 0,
+    });
+  });
+
+  it('counts Meta-sized species-goals rows into the five taxon richness cards', () => {
+    const records = [
+      ...buildRichnessRecords('mammals', 186),
+      ...buildRichnessRecords('birds', 1088),
+      ...buildRichnessRecords('amphibians', 63),
+      ...buildRichnessRecords('reptiles', 85),
+      ...buildRichnessRecords('plants', 4757),
+    ];
+
+    expect(countSpeciesGoalsAoiRichness(records)).toEqual({
+      mammals: 186,
+      birds: 1088,
+      amphibians: 63,
+      reptiles: 85,
+      plants: 4757,
+    });
+    expect(records).toHaveLength(6179);
+  });
+
   it('uses 17/30 checkpoints when a taxon has no configured targets', () => {
     const records = [
       buildSpeciesGoalsRecord('frog-a', 'amphibians', null, true, false),
@@ -290,6 +332,80 @@ function buildMetric(
     formatHint: 'number',
     details,
   };
+}
+
+describe('AOI species-goals richness backfill', () => {
+  it('backfills derivation_needed and null richness without touching ready zeros', () => {
+    const metrics: MetricValue[] = [
+      { ...buildMetric('species_richness_mammals', 0), value: null },
+      {
+        ...buildMetric('species_richness_birds', 0),
+        status: 'derivation_needed',
+        value: null,
+      },
+      buildMetric('species_richness_amphibians', 12),
+      buildMetric('threatened_species_secured', 0),
+      {
+        ...buildMetric('species_pct_of_national', 0),
+        status: 'derivation_needed',
+        value: null,
+      },
+      {
+        ...buildMetric('species_groups_protected', 0),
+        status: 'derivation_needed',
+        value: null,
+      },
+    ];
+    const records = [
+      ...buildRichnessRecords('mammals', 186),
+      ...buildRichnessRecords('birds', 1088),
+      ...buildRichnessRecords('amphibians', 63),
+      ...buildRichnessRecords('reptiles', 85),
+      ...buildRichnessRecords('plants', 4757),
+    ];
+
+    const backfilled = backfillAoiSpeciesRichnessMetrics(metrics, records);
+    const byId = new Map(backfilled.map((metric) => [metric.metricId, metric]));
+
+    expect(byId.get('species_richness_mammals')).toEqual(
+      expect.objectContaining({
+        value: 186,
+        status: 'ready',
+        source: 'species-goals-compact',
+      }),
+    );
+    expect(byId.get('species_richness_birds')?.value).toBe(1088);
+    expect(byId.get('species_richness_amphibians')?.value).toBe(12);
+    expect(byId.get('species_richness_amphibians')?.source).toBe('test');
+    expect(byId.get('species_richness_reptiles')?.value).toBe(85);
+    expect(byId.get('species_richness_plants')?.value).toBe(4757);
+    expect(byId.get('threatened_species_secured')?.value).toBe(0);
+    expect(byId.get('species_pct_of_national')?.status).toBe('derivation_needed');
+    expect(byId.get('species_groups_protected')?.status).toBe('derivation_needed');
+  });
+
+  it('keeps compact richness when it is already displayable', () => {
+    expect(
+      needsSpeciesGoalsRichnessBackfill(buildMetric('species_richness_mammals', 186)),
+    ).toBe(false);
+    expect(
+      needsSpeciesGoalsRichnessBackfill({
+        ...buildMetric('species_richness_mammals', 0),
+        status: 'derivation_needed',
+        value: null,
+      }),
+    ).toBe(true);
+    expect(needsSpeciesGoalsRichnessBackfill(undefined)).toBe(true);
+  });
+});
+
+function buildRichnessRecords(
+  group: string,
+  count: number,
+): HydratedSpeciesGoalsRecord[] {
+  return Array.from({ length: count }, (_, index) =>
+    buildSpeciesGoalsRecord(`${group}-${index}`, group, null, false, false),
+  );
 }
 
 function buildSpeciesGoalsRecord(

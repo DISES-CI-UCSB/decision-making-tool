@@ -191,13 +191,17 @@ import {
   STRATEGIC_ECOSYSTEM_BARS,
 } from './aoi-ecosystems.utils';
 import {
+  backfillAoiSpeciesRichnessMetrics,
   formatSpeciesGroupsProtectedValue,
   formatSpeciesReferenceSplit,
   formatSpeciesReferenceUnit,
   formatSpeciesReferenceValue,
+  needsSpeciesGoalsRichnessBackfill,
   overviewMetricCandidateIds,
   readSpeciesReferenceSummary,
   rollupSpeciesGoalsTaxa,
+  SPECIES_GOALS_TAXA_IDS,
+  SPECIES_RICHNESS_METRIC_BY_TAXON,
   summarizeEcosystemGoals,
   type SpeciesReferenceGroupSummary,
   type SpeciesReferenceSplit,
@@ -764,6 +768,7 @@ export class PanelSwitcherComponent {
   protected readonly isGoalsLoading = signal(false);
   protected readonly goalsLoadFailed = signal(false);
   private readonly overviewSpeciesGoalsRecords = signal<HydratedSpeciesGoalsRecord[] | null>(null);
+  private readonly aoiSpeciesGoalsRecords = signal<HydratedSpeciesGoalsRecord[] | null>(null);
   protected readonly customAoiMetrics = signal<MetricValue[]>([]);
   protected readonly isCustomAoiMetricsLoading = signal(false);
   protected readonly customAoiMetricsLoadFailed = signal(false);
@@ -934,6 +939,38 @@ export class PanelSwitcherComponent {
       return { solutionId, geographyLevel: 'siraps', scopeId: sirapId };
     }
     return { solutionId, geographyLevel: 'national', scopeId: 'colombia' };
+  });
+  private readonly aoiSpeciesGoalsRequest = computed<{
+    solutionId: string;
+    geographyLevel: GeographyLevel;
+    scopeId: string;
+  } | null>(() => {
+    const aoi = this.selectedAoi();
+    const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
+    if (
+      !aoi ||
+      aoi.type === 'custom' ||
+      !solutionId ||
+      this.isMarineSolution() ||
+      this.isOverviewLoading() ||
+      (!this.cachedMetricsDocument() && !this.overviewLoadFailed()) ||
+      !this.hasSpeciesGoalsArtifacts(aoi)
+    ) {
+      return null;
+    }
+    const context = this.resolveSelectedAoiSpeciesGoalsContext(aoi);
+    if (!context) {
+      return null;
+    }
+    const compactMetrics = this.resolveAoiMetrics(this.cachedMetricsDocument(), aoi);
+    const needsBackfill = SPECIES_GOALS_TAXA_IDS.some((taxonId) =>
+      needsSpeciesGoalsRichnessBackfill(
+        compactMetrics.find(
+          (metric) => metric.metricId === SPECIES_RICHNESS_METRIC_BY_TAXON[taxonId],
+        ),
+      ),
+    );
+    return needsBackfill ? { solutionId, ...context } : null;
   });
   protected readonly overviewGoalsTaxa = computed<OverviewGoalsTaxaEntry[]>(() =>
     this.buildOverviewGoalsTaxa(),
@@ -1200,7 +1237,10 @@ export class PanelSwitcherComponent {
       return this.customAoiMetrics();
     }
 
-    return this.resolveAoiMetrics(this.cachedMetricsDocument(), aoi);
+    return backfillAoiSpeciesRichnessMetrics(
+      this.resolveAoiMetrics(this.cachedMetricsDocument(), aoi),
+      this.aoiSpeciesGoalsRecords(),
+    );
   });
   protected readonly aoiMetricsById = computed<Map<string, MetricValue>>(
     () => new Map(this.aoiMetrics().map((metric) => [metric.metricId, metric] as const)),
@@ -1710,6 +1750,29 @@ export class PanelSwitcherComponent {
       )
       .subscribe((records) => {
         this.overviewSpeciesGoalsRecords.set(records);
+      });
+
+    toObservable(this.aoiSpeciesGoalsRequest)
+      .pipe(
+        distinctUntilChanged(
+          (previous, current) =>
+            previous?.solutionId === current?.solutionId &&
+            previous?.geographyLevel === current?.geographyLevel &&
+            previous?.scopeId === current?.scopeId,
+        ),
+        switchMap((request) => {
+          if (!request) {
+            this.aoiSpeciesGoalsRecords.set(null);
+            return of<HydratedSpeciesGoalsRecord[] | null>(null);
+          }
+          return this.speciesGoals
+            .load(request.solutionId, request.geographyLevel, request.scopeId)
+            .pipe(catchError(() => of<HydratedSpeciesGoalsRecord[] | null>(null)));
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((records) => {
+        this.aoiSpeciesGoalsRecords.set(records);
       });
 
     toObservable(this.activeSolution)
@@ -2853,7 +2916,7 @@ export class PanelSwitcherComponent {
       ? this.loadCustomAoiDetailedSpeciesGoals(this.customAoiGeometry()!, solutionId)
       : useSirapWideCoverage
         ? this.loadSirapWideDetailedSpeciesGoals(solutionId)
-        : this.speciesGoals.load(solutionId, context!.geographyLevel, context!.scopeId);
+        : this.loadKnownAoiSpeciesGoals(solutionId, context!);
     const loadSirapRangeContext =
       this.isSirapScopedSolution() &&
       this.goalsModalScope() === 'selected-aoi' &&
@@ -2890,6 +2953,34 @@ export class PanelSwitcherComponent {
     });
   }
 
+  private loadKnownAoiSpeciesGoals(
+    solutionId: string,
+    context: { geographyLevel: GeographyLevel; scopeId: string },
+  ): Observable<HydratedSpeciesGoalsRecord[] | null> {
+    const request = this.aoiSpeciesGoalsRequest();
+    const cached = this.aoiSpeciesGoalsRecords();
+    if (
+      cached &&
+      request &&
+      request.solutionId === solutionId &&
+      request.geographyLevel === context.geographyLevel &&
+      request.scopeId === context.scopeId
+    ) {
+      return of(cached);
+    }
+    return this.speciesGoals.load(solutionId, context.geographyLevel, context.scopeId);
+  }
+
+  private resolveSelectedAoiSpeciesGoalsContext(
+    aoi: AOI | null,
+  ): { geographyLevel: GeographyLevel; scopeId: string } | null {
+    if (!aoi || aoi.type === 'custom' || !isMetricCompatibleAoiSource(aoi)) {
+      return null;
+    }
+    const geographyLevel = aoiTypeToGeographyLevel(aoi.type);
+    return geographyLevel ? { geographyLevel, scopeId: extractRawAoiScopeId(aoi.id) } : null;
+  }
+
   private resolveGoalsModalSpeciesContext(): {
     geographyLevel: GeographyLevel;
     scopeId: string;
@@ -2909,11 +3000,7 @@ export class PanelSwitcherComponent {
       }
       return { geographyLevel: 'national', scopeId: 'colombia' };
     }
-    if (!isMetricCompatibleAoiSource(aoi)) {
-      return null;
-    }
-    const geographyLevel = aoiTypeToGeographyLevel(aoi.type);
-    return geographyLevel ? { geographyLevel, scopeId: extractRawAoiScopeId(aoi.id) } : null;
+    return this.resolveSelectedAoiSpeciesGoalsContext(aoi);
   }
 
   private loadCustomAoiDetailedSpeciesGoals(

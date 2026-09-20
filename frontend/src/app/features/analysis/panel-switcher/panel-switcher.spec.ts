@@ -5981,6 +5981,98 @@ describe('PanelSwitcherComponent', () => {
       expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
       expect(compiled.querySelector('#aoi-species-partial-note')).toBeNull();
     });
+
+    it('backfills Meta taxon cards from species-goals when compact skipped species', async () => {
+      const solution = buildTestSolution();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildSkipSpeciesDepartmentMetricsDocument(solution.id)),
+      );
+      vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+        of(buildMetaSpeciesGoalsRichnessRecords()),
+      );
+      vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+        id: solution.id,
+        domain: 'land',
+        precomputedMetricUrls: {
+          speciesGoalsCatalog: '/releases/test/species-goals/catalog.json',
+          speciesGoalsByGeography: {
+            departments: '/releases/test/species-goals/departments.json',
+            municipalities: '/releases/test/species-goals/municipalities.json',
+            siraps: '/releases/test/species-goals/siraps.json',
+            national: '/releases/test/species-goals/national.json',
+          },
+        },
+      } as CatalogSolution);
+      appLocale.setLocale('en');
+      appState.activeSolution$.set(solution);
+      appState.selectAOI(buildMetaDepartmentAoi());
+      appState.setRightSidebarMode('aoi');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'departments', '50');
+      expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('186');
+      expect(compiled.querySelector('#aoi-species-value-birds')?.textContent).toContain('1088');
+      expect(compiled.querySelector('#aoi-species-value-amphibians')?.textContent).toContain('63');
+      expect(compiled.querySelector('#aoi-species-value-reptiles')?.textContent).toContain('85');
+      expect(compiled.querySelector('#aoi-species-value-plants')?.textContent).toContain('4757');
+      expect(compiled.querySelector('#aoi-stat-threatened-value')?.textContent).toContain('89');
+      expect(compiled.querySelector('#aoi-stat-threatened-secured-value')?.textContent).toContain(
+        '0',
+      );
+      expect(compiled.querySelector('#aoi-stat-endemic-value')?.textContent).toContain('218');
+      expect(compiled.querySelector('#aoi-stat-national-species-value')?.textContent).toContain(
+        '--',
+      );
+
+      const metricsById = new Map(
+        (
+          fixture.componentInstance as unknown as { aoiMetrics(): MetricValue[] }
+        )
+          .aoiMetrics()
+          .map((metric) => [metric.metricId, metric] as const),
+      );
+      expect(metricsById.get('species_groups_protected')?.status).toBe('derivation_needed');
+      expect(metricsById.get('species_pct_of_national')?.status).toBe('derivation_needed');
+      expect(metricsById.get('threatened_species_secured')?.value).toBe(0);
+    });
+
+    it('keeps published compact richness instead of species-goals counts', async () => {
+      const solution = buildTestSolution();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildPartialSpeciesMetricsDocument(solution.id)),
+      );
+      vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+        of(buildMetaSpeciesGoalsRichnessRecords()),
+      );
+      vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+        id: solution.id,
+        domain: 'land',
+        precomputedMetricUrls: {
+          speciesGoalsCatalog: '/releases/test/species-goals/catalog.json',
+          speciesGoalsByGeography: {
+            departments: '/releases/test/species-goals/departments.json',
+          },
+        },
+      } as CatalogSolution);
+      appLocale.setLocale('en');
+      appState.activeSolution$.set(solution);
+      appState.selectAOI(buildMetaDepartmentAoi());
+      appState.setRightSidebarMode('aoi');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+      expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('186');
+      expect(compiled.querySelector('#aoi-species-value-birds')?.textContent).toContain('1081');
+      expect(compiled.querySelector('#aoi-species-value-plants')?.textContent).toContain('4726');
+    });
   });
 });
 
@@ -6943,7 +7035,7 @@ function buildRegionalSirapMetricsDocument(
 
 function buildUnavailableMetric(
   metricId: string,
-  status: Extract<MetricValue['status'], 'blocked' | 'pending'>,
+  status: Extract<MetricValue['status'], 'blocked' | 'pending' | 'derivation_needed'>,
 ): MetricValue {
   return {
     ...buildMetric(metricId, 0, 'km²', 'number'),
@@ -7143,6 +7235,94 @@ function buildTargetlessSpeciesMetricsDocument(solutionId: string): CachedSoluti
       },
     },
   };
+}
+
+function buildSkipSpeciesDepartmentMetricsDocument(
+  solutionId: string,
+): CachedSolutionMetricsDocument {
+  return {
+    solutionId,
+    generatedAt: '2026-08-05T00:00:00.000Z',
+    geographies: {
+      departments: {
+        '50': {
+          name: 'Meta',
+          metrics: [
+            buildMetric('priority_area_in_region', 18_003, 'km²', 'number'),
+            {
+              ...buildUnavailableMetric('species_richness_mammals', 'derivation_needed'),
+              unit: 'count',
+            },
+            {
+              ...buildUnavailableMetric('species_richness_birds', 'derivation_needed'),
+              unit: 'count',
+            },
+            {
+              ...buildUnavailableMetric('species_richness_amphibians', 'derivation_needed'),
+              unit: 'count',
+            },
+            {
+              ...buildUnavailableMetric('species_richness_reptiles', 'derivation_needed'),
+              unit: 'count',
+            },
+            {
+              ...buildUnavailableMetric('species_richness_plants', 'derivation_needed'),
+              unit: 'count',
+            },
+            buildMetric('threatened_species_count', 89, 'count', 'number'),
+            buildMetric('threatened_species_secured', 0, 'count', 'number'),
+            buildMetric('endemic_species_count', 218, 'count', 'number'),
+            buildUnavailableMetric('species_pct_of_national', 'derivation_needed'),
+            buildUnavailableMetric('species_groups_protected', 'derivation_needed'),
+          ],
+        },
+      },
+    },
+  };
+}
+
+function buildMetaSpeciesGoalsRichnessRecords(): HydratedSpeciesGoalsRecord[] {
+  return [
+    ...buildTaxonRichnessRecords(undefined, 'mammals', 186),
+    ...buildTaxonRichnessRecords(undefined, 'birds', 1088),
+    ...buildTaxonRichnessRecords(undefined, 'amphibians', 63),
+    ...buildTaxonRichnessRecords(undefined, 'reptiles', 85),
+    ...buildTaxonRichnessRecords(undefined, 'plants', 4757),
+  ];
+}
+
+function buildTaxonRichnessRecords(
+  template: HydratedSpeciesGoalsRecord | undefined,
+  group: string,
+  count: number,
+): HydratedSpeciesGoalsRecord[] {
+  const base: HydratedSpeciesGoalsRecord = template ?? {
+    id: group,
+    scientific_name: group,
+    group,
+    iucn_status: null,
+    range_area_km2: 10,
+    range_in_aoi_area_km2: 10,
+    range_in_aoi_pct: 100,
+    solution_covered_in_aoi_area_km2: 1,
+    solution_covered_in_aoi_pct: 10,
+    pre_existing_covered_in_aoi_area_km2: 0,
+    pre_existing_covered_in_aoi_pct: 0,
+    new_covered_in_aoi_area_km2: 1,
+    new_covered_in_aoi_pct: 10,
+    availability: 'available',
+    no_range_in_scope: false,
+    configured_target_percent: null,
+    met_17_percent: false,
+    met_30_percent: false,
+    configured_target_met: null,
+  };
+  return Array.from({ length: count }, (_, index) => ({
+    ...base,
+    id: `${group}-${index}`,
+    scientific_name: `${group} ${index}`,
+    group,
+  }));
 }
 
 function buildValuelessSpeciesMetricsDocument(solutionId: string): CachedSolutionMetricsDocument {
