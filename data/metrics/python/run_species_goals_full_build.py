@@ -197,9 +197,10 @@ def _resolve_worker_count(*, national_only: bool, requested: int | None) -> int:
                 f"{MAX_NATIONAL_ONLY_WORKERS} for --national-only"
             )
         return requested
-    if requested != WORKER_COUNT:
+    if not 1 <= requested <= MAX_NATIONAL_ONLY_WORKERS:
         raise ValueError(
-            "the approved full-geography build requires exactly 3 workers"
+            "--workers must be between 1 and "
+            f"{MAX_NATIONAL_ONLY_WORKERS} for full-geography"
         )
     return requested
 

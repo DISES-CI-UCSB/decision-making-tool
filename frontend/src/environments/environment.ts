@@ -23,9 +23,9 @@ export const environment = {
   },
   googleClientId: '',
   manifestBlobUrl:
-    'https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-6-0/manifest.json',
+    'https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-7-0/manifest.json',
   catalogReleaseIndexBlobUrl:
-    'https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.6.0/catalog-release-index.json',
+    'https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.7.0/catalog-release-index.json',
   sirapManifestBlobUrl: '',
   blobAssetProxyPath: '',
   solutionCapabilityOverrides: {
