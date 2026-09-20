@@ -2359,7 +2359,11 @@ export class PanelSwitcherComponent {
       return [];
     }
 
-    const targetedDomains = classifyOverviewTargetDomains(document.targetContext);
+    const catalogSolution = this.findActiveCatalogSolution(this.activeSolution());
+    const targetedDomains = classifyOverviewTargetDomains(
+      document.targetContext,
+      catalogSolution?.finderInputs ?? null,
+    );
     const strategicTargeted = targetedDomains.has('strategicEcosystems');
     const strategicRasterRows = this.strategicOutcomeRows();
     const strategicRelativeTarget = this.singleRelativeTarget(

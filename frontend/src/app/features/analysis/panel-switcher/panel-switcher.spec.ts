@@ -4033,6 +4033,127 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
   });
 
+  it('uses catalog finderInputs when goals targetContext is blank', () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = null;
+    goalsDocument.targetContext.targetFeatureIds = [];
+    goalsDocument.targetContext.relativeTargetsByType = {
+      ecosystems: [0.17],
+    };
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: 'test-solution',
+      finderInputs: {
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosystems'],
+      },
+    } as unknown as CatalogSolution);
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      getGoalsTargetRuleLabel(): string;
+      targetProgressGoalsDomains: () => { id: string; targeted: boolean }[];
+    };
+
+    expect(component.targetProgressGoalsDomains().map((domain) => domain.id)).toEqual([
+      'ecosystems',
+    ]);
+    expect(component.getGoalsTargetRuleLabel()).toContain(
+      'analysis.overview.goalsWidget.targetRuleSingle',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-ecosystems'),
+    ).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-no-targets')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-widget-target-rule')?.textContent,
+    ).not.toContain('analysis.overview.goalsWidget.targetRuleNone');
+  });
+
+  it('uses goals relativeTargetsByType when catalog finderInputs are also blank', () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = null;
+    goalsDocument.targetContext.targetFeatureIds = [];
+    goalsDocument.targetContext.relativeTargetsByType = {
+      ecosystems: [0.17],
+    };
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: 'test-solution',
+      finderInputs: {
+        targetFeatureSet: null,
+        targetFeatureIds: [],
+      },
+    } as unknown as CatalogSolution);
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      getGoalsTargetRuleLabel(): string;
+      targetProgressGoalsDomains: () => { id: string; targeted: boolean }[];
+    };
+
+    expect(component.targetProgressGoalsDomains().map((domain) => domain.id)).toEqual([
+      'ecosystems',
+    ]);
+    expect(component.getGoalsTargetRuleLabel()).toContain(
+      'analysis.overview.goalsWidget.targetRuleSingle',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-ecosystems'),
+    ).toBeNull();
+  });
+
+  it('keeps empty-target copy when goals and catalog have no target evidence', () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = null;
+    goalsDocument.targetContext.targetFeatureIds = [];
+    goalsDocument.targetContext.relativeTargetsByType = {};
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: 'test-solution',
+      finderInputs: {
+        targetFeatureSet: null,
+        targetFeatureIds: [],
+      },
+    } as unknown as CatalogSolution);
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      getGoalsTargetRuleLabel(): string;
+      targetProgressGoalsDomains: () => { id: string }[];
+    };
+
+    expect(component.targetProgressGoalsDomains()).toEqual([]);
+    expect(component.getGoalsTargetRuleLabel()).toContain(
+      'analysis.overview.goalsWidget.targetRuleNone',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-no-targets')?.textContent,
+    ).toContain('analysis.overview.goalsWidget.noTargetsSet');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-widget-target-rule')?.textContent,
+    ).toContain('analysis.overview.goalsWidget.targetRuleNone');
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-ecosystems'),
+    ).not.toBeNull();
+  });
+
   it('uses complete species rollups without filtering post-hoc provenance', () => {
     goalsDocument = buildGoalsDocument();
     goalsDocument.targetContext.targetFeatureSet = 'species';
@@ -6029,9 +6150,7 @@ describe('PanelSwitcherComponent', () => {
       );
 
       const metricsById = new Map(
-        (
-          fixture.componentInstance as unknown as { aoiMetrics(): MetricValue[] }
-        )
+        (fixture.componentInstance as unknown as { aoiMetrics(): MetricValue[] })
           .aoiMetrics()
           .map((metric) => [metric.metricId, metric] as const),
       );
