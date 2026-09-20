@@ -2310,9 +2310,7 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#aoi-mec-classifications-modal-mec-source-overview'),
     ).not.toBeNull();
-    expect(
-      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map'),
-    ).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map')).not.toBeNull();
     const table = compiled.querySelector('#aoi-mec-modal-table');
     expect(table).not.toBeNull();
     expect(compiled.querySelectorAll('#aoi-mec-modal-table')).toHaveLength(1);
@@ -2650,6 +2648,65 @@ describe('PanelSwitcherComponent', () => {
     expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
   });
 
+  it('keeps MEC for a national compact Territorial Orinoquia row even when aggregate metrics exist', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedSirapMetricsDocument(
+          solution.id,
+          [
+            buildMetric('ecosystem_coverage', 60227, 'km²', 'number'),
+            buildMetric('ecosystem_coverage_paramo', 1600, 'km²', 'number'),
+            buildMetric('ecosystem_coverage_dry_forest', 461, 'km²', 'number'),
+            buildMetric('ecosystem_coverage_wetlands', 23100, 'km²', 'number'),
+          ],
+          'territorial_territorial_orinoquia_7',
+          'Territorial Orinoquia',
+        ),
+      ),
+    );
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildV2MecDocument(solution.id, {
+          geographyLevel: 'siraps',
+          scopeId: 'territorial_territorial_orinoquia_7',
+          scopeName: 'Territorial Orinoquia',
+          boundaryProvenanceRef: 'siraps',
+        }),
+        format: 'mec-compact-v2',
+      }),
+    );
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'land',
+      scope: 'national',
+      precomputedMetricUrls: {},
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'sirap:territorial_territorial_orinoquia_7',
+      name: 'Territorial Orinoquia',
+      type: 'sirap',
+      geometryUrl: '/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+      boundarySourceLayerKey: 'siraps_territorial_updated',
+      boundarySourceId: 'aoi-siraps-territorial-updated-colombia',
+      boundaryGeometrySelection: 'whole-feature',
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-sirap-ecosystem-aggregates')).toBeNull();
+    expect(compiled.querySelector('#aoi-sirap-biodiversity-context')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-breakdown-select')).not.toBeNull();
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'siraps');
+  });
+
   it('keeps the species drilldown for departments with explicit artifacts', async () => {
     const solution = {
       ...buildTestSolution(),
@@ -2797,9 +2854,7 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-label-iavh-total')
         ?.textContent,
     ).toContain('analysis.overview.goalsWidget.sirap.ecosystems.iavh');
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-paramo'),
-    ).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-paramo')).toBeNull();
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-dry-forest'),
     ).toBeNull();
@@ -2874,9 +2929,7 @@ describe('PanelSwitcherComponent', () => {
         }
       ).getGoalsModalTitleParams(),
     ).toEqual({ sirapName: 'SIRAP Eje Cafetero' });
-    expect(
-      compiled.querySelector('#conservation-goals-modal-mec-source-overview'),
-    ).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-mec-source-overview')).not.toBeNull();
     expect(compiled.querySelector('#conservation-goals-modal-mec-source-map')).not.toBeNull();
   });
 
@@ -3694,9 +3747,7 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#aoi-mec-classifications-modal-mec-source-overview'),
     ).not.toBeNull();
-    expect(
-      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map'),
-    ).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map')).not.toBeNull();
 
     (
       compiled.querySelector('#aoi-mec-classifications-modal-close-button') as HTMLButtonElement
@@ -5404,9 +5455,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#conservation-goals-modal-title')?.textContent).toContain(
       'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle',
     );
-    expect(
-      compiled.querySelector('#conservation-goals-modal-mec-source-overview'),
-    ).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-mec-source-overview')).not.toBeNull();
     expect(compiled.querySelector('#conservation-goals-modal-mec-source-map')).not.toBeNull();
     expect(
       compiled.querySelectorAll('button[id^="conservation-goals-modal-ecosystem-level-"]'),

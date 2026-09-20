@@ -16,6 +16,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
   resolveLayerLabel,
   isMecCompactV2Document,
+  reachesCoverageCheckpoint,
   type AOI,
   type AnalysisMetricSectionFixture,
   type CachedSolutionMetricsDocument,
@@ -2277,9 +2278,17 @@ export class PanelSwitcherComponent {
 
   /** Illustrative range-coverage checkpoints (Aichi 17% / GBF 30%) used to summarize
    * incidental coverage for domains that were *not* part of the solution's target set.
-   * These are not real targets - no target was set - so we never call them "met". */
-  private static readonly RANGE_COVERAGE_CHECKPOINT_17 = 0.17;
-  private static readonly RANGE_COVERAGE_CHECKPOINT_30 = 0.3;
+   * These are not real targets - no target was set - so we never call them "met".
+   * `relativeHeld` is a 0–1 fraction; 16.9999999% still counts as 17%. */
+  private reachesRangeCoverageCheckpoint(
+    relativeHeld: number | null | undefined,
+    targetPercent: 17 | 30,
+  ): boolean {
+    if (relativeHeld === null || relativeHeld === undefined) {
+      return false;
+    }
+    return reachesCoverageCheckpoint(relativeHeld * 100, targetPercent);
+  }
 
   private buildOverviewGoalsDomains(): OverviewGoalsDomainEntry[] {
     const document = this.solutionGoalsDocument();
@@ -2390,10 +2399,10 @@ export class PanelSwitcherComponent {
       if (feature.relativeHeld === null || feature.relativeHeld === undefined) {
         continue;
       }
-      if (feature.relativeHeld >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_17) {
+      if (this.reachesRangeCoverageCheckpoint(feature.relativeHeld, 17)) {
         reached17Count += 1;
       }
-      if (feature.relativeHeld >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_30) {
+      if (this.reachesRangeCoverageCheckpoint(feature.relativeHeld, 30)) {
         reached30Count += 1;
       }
     }
@@ -2499,10 +2508,8 @@ export class PanelSwitcherComponent {
       remainingRelativeHeld: null,
       preExistingCoverageAreaKm2: null,
       newCoverageAreaKm2: null,
-      reached17:
-        (feature.relativeHeld ?? -1) >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_17,
-      reached30:
-        (feature.relativeHeld ?? -1) >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_30,
+      reached17: this.reachesRangeCoverageCheckpoint(feature.relativeHeld, 17),
+      reached30: this.reachesRangeCoverageCheckpoint(feature.relativeHeld, 30),
     };
   }
 
@@ -2580,12 +2587,8 @@ export class PanelSwitcherComponent {
           : row.remainingCoveragePercent / 100,
       preExistingCoverageAreaKm2: row.preExistingCoverageKm2,
       newCoverageAreaKm2: row.newPrioritizrCoverageKm2,
-      reached17:
-        relativeHeld !== null &&
-        relativeHeld >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_17,
-      reached30:
-        relativeHeld !== null &&
-        relativeHeld >= PanelSwitcherComponent.RANGE_COVERAGE_CHECKPOINT_30,
+      reached17: this.reachesRangeCoverageCheckpoint(relativeHeld, 17),
+      reached30: this.reachesRangeCoverageCheckpoint(relativeHeld, 30),
     };
   }
 

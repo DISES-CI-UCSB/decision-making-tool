@@ -1,4 +1,9 @@
-import type { GoalFeatureRow, HydratedSpeciesGoalsRecord, MetricValue } from '@core/models';
+import {
+  reachesCoverageCheckpoint,
+  type GoalFeatureRow,
+  type HydratedSpeciesGoalsRecord,
+  type MetricValue,
+} from '@core/models';
 import {
   formatNumber,
   formatPanelMetric,
@@ -323,7 +328,9 @@ function isFiniteCount(value: unknown): value is number {
 
 function countFeaturesAtCoverage(features: readonly GoalFeatureRow[], threshold: number): number {
   return features.filter(
-    (feature) => feature.relativeHeld !== null && feature.relativeHeld >= threshold,
+    (feature) =>
+      feature.relativeHeld !== null &&
+      reachesCoverageCheckpoint(feature.relativeHeld * 100, threshold * 100),
   ).length;
 }
 

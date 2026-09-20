@@ -482,9 +482,7 @@
                                         id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-text"
                                         class="v3-methodology-tooltip-text"
                                       >
-                                        {{
-                                          'mapLayersPanel.ecosystemInfoModal.intro' | translate
-                                        }}
+                                        {{ 'mapLayersPanel.ecosystemInfoModal.intro' | translate }}
                                       </span>
                                       <span
                                         id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-links"
@@ -1510,13 +1508,13 @@
                                     [attr.data-full-value]="
                                       split.full17 !== split.compact17 ? split.full17 : null
                                     "
-                                    [attr.tabindex]="
-                                      split.full17 !== split.compact17 ? 0 : null
-                                    "
+                                    [attr.tabindex]="split.full17 !== split.compact17 ? 0 : null"
                                     >{{ split.compact17 }}</span
                                   >
                                   <span
-                                    [id]="'right-sidebar-v3-overview-gain-value-divider-' + entry.id"
+                                    [id]="
+                                      'right-sidebar-v3-overview-gain-value-divider-' + entry.id
+                                    "
                                     aria-hidden="true"
                                     class="inline-block h-3.5 w-px shrink-0 self-center bg-slate-300"
                                   ></span>
@@ -1526,9 +1524,7 @@
                                     [attr.data-full-value]="
                                       split.full30 !== split.compact30 ? split.full30 : null
                                     "
-                                    [attr.tabindex]="
-                                      split.full30 !== split.compact30 ? 0 : null
-                                    "
+                                    [attr.tabindex]="split.full30 !== split.compact30 ? 0 : null"
                                     >{{ split.compact30 }}</span
                                   >
                                 </p>
@@ -2314,7 +2310,7 @@
                           >
                             {{ 'analysis.aoi.stats.speciesChartAxisLabel' | translate }}
                           </p>
-                          @if (isSirapAoiSelected()) {
+                          @if (isSirapScopedSolution() && isSirapAoiSelected()) {
                             <p
                               id="aoi-sirap-biodiversity-context"
                               class="m-0 mb-1 ml-19 text-start text-[11px] leading-[1.3] text-slate-500"
@@ -2584,7 +2580,11 @@
                       id="aoi-body-ecosystems-inner"
                       class="collapse-motion-inner aoi-section-body"
                     >
-                      @if (isSirapAoiSelected() && hasSirapAggregateEcosystemMetrics()) {
+                      @if (
+                        isSirapScopedSolution() &&
+                        isSirapAoiSelected() &&
+                        hasSirapAggregateEcosystemMetrics()
+                      ) {
                         <div id="aoi-sirap-ecosystem-aggregates" class="flex flex-col gap-2">
                           <p
                             id="aoi-sirap-ecosystem-aggregates-description"
@@ -4178,32 +4178,20 @@
             <a
               id="conservation-goals-modal-mec-source-overview"
               class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-              [href]="
-                'solutionControls.finder.step1.ecosystemsOverviewSourceUrl'
-                  | translate
-              "
+              [href]="'solutionControls.finder.step1.ecosystemsOverviewSourceUrl' | translate"
               target="_blank"
               rel="noopener noreferrer"
             >
-              {{
-                'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel'
-                  | translate
-              }}
+              {{ 'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel' | translate }}
             </a>
             <a
               id="conservation-goals-modal-mec-source-map"
               class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-              [href]="
-                'solutionControls.finder.step1.ecosystemsDataSourceUrl'
-                  | translate
-              "
+              [href]="'solutionControls.finder.step1.ecosystemsDataSourceUrl' | translate"
               target="_blank"
               rel="noopener noreferrer"
             >
-              {{
-                'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel'
-                  | translate
-              }}
+              {{ 'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel' | translate }}
             </a>
           </div>
         }
@@ -6422,39 +6410,24 @@
       }}
     </p>
 
-    <div
-      id="aoi-mec-classifications-modal-mec-source-links"
-      class="flex flex-wrap gap-x-3 gap-y-1"
-    >
+    <div id="aoi-mec-classifications-modal-mec-source-links" class="flex flex-wrap gap-x-3 gap-y-1">
       <a
         id="aoi-mec-classifications-modal-mec-source-overview"
         class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-        [href]="
-          'solutionControls.finder.step1.ecosystemsOverviewSourceUrl'
-            | translate
-        "
+        [href]="'solutionControls.finder.step1.ecosystemsOverviewSourceUrl' | translate"
         target="_blank"
         rel="noopener noreferrer"
       >
-        {{
-          'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel'
-            | translate
-        }}
+        {{ 'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel' | translate }}
       </a>
       <a
         id="aoi-mec-classifications-modal-mec-source-map"
         class="inline-flex text-xs font-semibold text-sky-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-        [href]="
-          'solutionControls.finder.step1.ecosystemsDataSourceUrl'
-            | translate
-        "
+        [href]="'solutionControls.finder.step1.ecosystemsDataSourceUrl' | translate"
         target="_blank"
         rel="noopener noreferrer"
       >
-        {{
-          'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel'
-            | translate
-        }}
+        {{ 'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel' | translate }}
       </a>
     </div>
 

@@ -5,6 +5,7 @@ import {
   hydrateSpeciesGoals,
   isSpeciesGoalsCatalog,
   isSpeciesGoalsCompactDocument,
+  reachesCoverageCheckpoint,
   selectSpeciesTargetOverlay,
   type SpeciesGoalsCatalog,
   type SpeciesGoalsCompactDocument,
@@ -200,6 +201,49 @@ describe('species goals contracts', () => {
 
     expect(rows.map((row) => row.id)).toEqual(['one-km', 'large-range']);
     expect(rows.map((row) => row.range_area_km2)).toEqual([1, 2500]);
+  });
+
+  it('treats 16.9999999% as reaching the 17% coverage checkpoint', () => {
+    expect(reachesCoverageCheckpoint(16.9999999, 17)).toBe(true);
+    expect(reachesCoverageCheckpoint(16.9, 17)).toBe(false);
+    expect(reachesCoverageCheckpoint(17, 17)).toBe(true);
+  });
+
+  it('accepts compact 17/30 flags from km² comparison when percent rounding crosses the line', () => {
+    const justUnder30 = compact();
+    justUnder30.rows = [
+      [
+        0,
+        0,
+        889530.91922,
+        266859.275766,
+        0,
+        266859.275766,
+        17,
+        SPECIES_GOALS_FLAGS.targetConfigured |
+          SPECIES_GOALS_FLAGS.met17 |
+          SPECIES_GOALS_FLAGS.met30 |
+          SPECIES_GOALS_FLAGS.configuredTargetMet,
+      ],
+    ];
+    expect(isSpeciesGoalsCompactDocument(justUnder30)).toBe(true);
+
+    const percentLooks30FlagOff = compact();
+    percentLooks30FlagOff.rows = [
+      [
+        0,
+        0,
+        672220.63901,
+        201666.191703,
+        87905.77587,
+        113760.415833,
+        17,
+        SPECIES_GOALS_FLAGS.targetConfigured |
+          SPECIES_GOALS_FLAGS.met17 |
+          SPECIES_GOALS_FLAGS.configuredTargetMet,
+      ],
+    ];
+    expect(isSpeciesGoalsCompactDocument(percentLooks30FlagOff)).toBe(true);
   });
 
   it('accepts Prioritizr-met km² coverage that lands 1e-7 under the 17% flag', () => {
