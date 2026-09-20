@@ -77,6 +77,20 @@ describe('HeaderComponent auth state', () => {
     expect(fixture.nativeElement.querySelector('#foundation-header-home-link')).not.toBeNull();
   });
 
+  it('links Guide and About from the header information nav', () => {
+    const fixture = TestBed.createComponent(HeaderComponent);
+    fixture.detectChanges();
+
+    const header = fixture.nativeElement as HTMLElement;
+    expect(header.querySelector('#foundation-header-info-nav')).not.toBeNull();
+    expect(header.querySelector('#foundation-header-guide-link')?.getAttribute('href')).toBe(
+      '/guide',
+    );
+    expect(header.querySelector('#foundation-header-about-link')?.getAttribute('href')).toBe(
+      '/about',
+    );
+  });
+
   it('shows login controls only for anonymous users', () => {
     const fixture = TestBed.createComponent(HeaderComponent);
     fixture.detectChanges();

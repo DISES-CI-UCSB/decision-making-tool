@@ -108,13 +108,26 @@
       ></app-dev-tools-panel>
     }
 
-    <a
-      id="foundation-header-about-link"
-      routerLink="/about"
-      class="inline-flex min-h-10 items-center rounded-md px-1 py-1 text-sm font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+    <nav
+      id="foundation-header-info-nav"
+      class="inline-flex items-center gap-3"
+      [attr.aria-label]="'header.infoNavLabel' | translate"
     >
-      {{ 'header.about' | translate }}
-    </a>
+      <a
+        id="foundation-header-guide-link"
+        routerLink="/guide"
+        class="inline-flex min-h-10 items-center rounded-md px-1 py-1 text-sm font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+      >
+        {{ 'header.guide' | translate }}
+      </a>
+      <a
+        id="foundation-header-about-link"
+        routerLink="/about"
+        class="inline-flex min-h-10 items-center rounded-md px-1 py-1 text-sm font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+      >
+        {{ 'header.about' | translate }}
+      </a>
+    </nav>
 
     <nav
       id="foundation-header-language-toggle-nav"

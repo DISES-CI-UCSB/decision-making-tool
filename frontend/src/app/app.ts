@@ -55,8 +55,8 @@ export class App implements OnInit {
   @ViewChild(HeaderComponent)
   private readonly header?: HeaderComponent;
 
-  protected get isAboutPage(): boolean {
-    return this.router.url.startsWith('/about');
+  protected get isStandalonePage(): boolean {
+    return this.router.url.startsWith('/about') || this.router.url.startsWith('/guide');
   }
 
   ngOnInit(): void {
@@ -89,6 +89,10 @@ export class App implements OnInit {
   }
 
   protected openAboutFromLandingWelcome(): void {
+    this.closeLandingWelcomeModal();
+  }
+
+  protected openGuideFromLandingWelcome(): void {
     this.closeLandingWelcomeModal();
   }
 
