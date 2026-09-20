@@ -42,7 +42,7 @@ Do not reuse 2025 R/Shiny sizing. Those numbers described a different stack.
 | Operator workstation (UI-only `yarn start`) | Node 22 + Yarn 4; enough RAM for `ng serve` | Same, plus Docker Desktop if you also hydrate locally | First hydrate is about 15–25 minutes and needs outbound HTTPS to public Blob. |
 | End-user client | Modern browser with Canvas and WebGL | Same | Outbound HTTPS to the SPA, Blob, Firebase/Google, ArcGIS dependencies, and the metrics API. |
 
-Blob inventory estimates in [architecture.md](../architecture.md#runtime-and-deployment-requirements) (~1–2 GB today, ~4–5 GB near-term) are planning numbers for object storage, not the metrics-VM disk floor.
+Blob object storage is **364 GiB** measured 18 Sep 2026 (52,347 files; about 350 GiB is historical `releases/`). That is not the metrics-VM disk floor. See [architecture.md](../architecture.md#runtime-and-deployment-requirements) and [system-administration.md](./system-administration.md#hardware-sizing).
 
 Species-coverage jobs are a one-worker queue (about 10 queued slots). Twenty unique jobs at once produced HTTP 429s in the 7 September 2026 probe. There is no user research yet on how often people draw custom AOIs.
 

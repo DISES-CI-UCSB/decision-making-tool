@@ -166,7 +166,7 @@ There is no application-owned PostgreSQL (or other) database in the current prod
 | Data — Firestore / Firebase | Google-managed | No PNNC-owned database server. |
 | Data — Vercel Blob | Vercel-managed object storage | Measured inventory **18 Sep 2026: 364 GiB / 52,347 files**. About **350 GiB** is historical `releases/`. A current working set is still **tens of GiB** (one solutions release about **75–83 GiB**). |
 
-Do not write storage as “1–2 GB.” That figure in [`architecture.md`](../architecture.md) is an outdated internal estimate, not this inventory.
+Do not write storage as “1–2 GB.” That was an earlier planning estimate. The live inventory and the Storage row in [`architecture.md`](../architecture.md) are **364 GiB**.
 
 ---
 
