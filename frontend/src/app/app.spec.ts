@@ -24,6 +24,13 @@ import { App } from './app';
 })
 class AboutRouteStubComponent {}
 
+@Component({
+  standalone: true,
+  selector: 'app-guide-route-stub',
+  template: '',
+})
+class GuideRouteStubComponent {}
+
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -34,7 +41,10 @@ describe('App', () => {
           fallbackLang: 'en',
           loader: provideTranslateLoader(TranslateNoOpLoader),
         }),
-        provideRouter([{ path: 'about', component: AboutRouteStubComponent }]),
+        provideRouter([
+          { path: 'about', component: AboutRouteStubComponent },
+          { path: 'guide', component: GuideRouteStubComponent },
+        ]),
         provideNoopAnimations(),
       ],
     }).compileComponents();
@@ -67,10 +77,34 @@ describe('App', () => {
       'landingWelcome.title',
     );
     expect(compiled.querySelector('#landing-welcome-modal-select-solution-button')).not.toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-guide-link')?.getAttribute('href')).toBe(
+      '/guide',
+    );
+    expect(compiled.querySelector('#landing-welcome-modal-guide-link')?.textContent).toContain(
+      'landingWelcome.actions.howToGuide',
+    );
     expect(compiled.querySelector('#landing-welcome-modal-about-link')?.getAttribute('href')).toBe(
       '/about',
     );
+    expect(compiled.querySelector('#landing-welcome-modal-about-link')?.textContent).toContain(
+      'landingWelcome.actions.about',
+    );
     expect(compiled.querySelector('#landing-welcome-modal-login-button')).not.toBeNull();
+  });
+
+  it('closes the landing welcome modal when Guide is chosen', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    compiled.querySelector<HTMLAnchorElement>('#landing-welcome-modal-guide-link')?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(
+      (fixture.componentInstance as unknown as { landingWelcomeModalOpen: boolean })
+        .landingWelcomeModalOpen,
+    ).toBe(false);
   });
 
   it('closes the landing welcome modal when About is chosen', async () => {
@@ -113,7 +147,12 @@ describe('App', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('#landing-welcome-modal-login-button')).toBeNull();
-    expect(compiled.querySelector('#landing-welcome-modal-about-link')).not.toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-guide-link')?.textContent).toContain(
+      'landingWelcome.actions.howToGuide',
+    );
+    expect(compiled.querySelector('#landing-welcome-modal-about-link')?.textContent).toContain(
+      'landingWelcome.actions.about',
+    );
   });
 
   it('opens the solution finder from the landing welcome modal', () => {
