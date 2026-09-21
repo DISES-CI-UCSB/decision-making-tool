@@ -318,8 +318,6 @@
           "targetProgressTitle": "Avance de las metas seleccionadas",
           "targetProgressUnavailable": "El avance autoritativo de las metas no está disponible para este escenario regional.",
           "targetLabel": "Meta {{percent}}",
-          "achievedLabel": "Alcanzado {{percent}}",
-          "achievedLabelWithArea": "Alcanzado {{percent}} ({{area}})",
           "targets": {
             "strategic-ecosystems": "Ecosistemas estratégicos",
             "dry-forest": "Bosque seco tropical",

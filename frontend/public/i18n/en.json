@@ -318,8 +318,6 @@
           "targetProgressTitle": "Selected target progress",
           "targetProgressUnavailable": "Authoritative target progress is unavailable for this regional scenario.",
           "targetLabel": "Target {{percent}}",
-          "achievedLabel": "Achieved {{percent}}",
-          "achievedLabelWithArea": "Achieved {{percent}} ({{area}})",
           "targets": {
             "strategic-ecosystems": "Strategic ecosystems",
             "dry-forest": "Tropical dry forest",

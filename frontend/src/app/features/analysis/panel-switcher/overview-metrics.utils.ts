@@ -114,9 +114,7 @@ export const SPECIES_RICHNESS_METRIC_BY_TAXON: Record<SpeciesGoalsTaxonId, strin
 const SPECIES_GOALS_RICHNESS_SOURCE = 'species-goals-compact';
 
 /** Compact richness is missing or skip-species left it as derivation_needed. */
-export function needsSpeciesGoalsRichnessBackfill(
-  metric: MetricValue | null | undefined,
-): boolean {
+export function needsSpeciesGoalsRichnessBackfill(metric: MetricValue | null | undefined): boolean {
   if (!metric) {
     return true;
   }
@@ -261,6 +259,39 @@ export function rollupSpeciesGoalsTaxa(
       },
     ];
   });
+}
+
+export interface SpeciesGoalsOverview {
+  reached17Count: number;
+  reached30Count: number;
+  totalCount: number;
+}
+
+/** Domain-level 17/30 rollup for untargeted Overview species. Null when the sidecar is empty. */
+export function summarizeSpeciesGoalsRecords(
+  records: readonly HydratedSpeciesGoalsRecord[] | null | undefined,
+): SpeciesGoalsOverview | null {
+  if (!records?.length) {
+    return null;
+  }
+
+  let totalCount = 0;
+  let reached17Count = 0;
+  let reached30Count = 0;
+  for (const record of records) {
+    if (record.availability === 'unavailable') {
+      continue;
+    }
+    totalCount += 1;
+    if (record.met_17_percent) {
+      reached17Count += 1;
+    }
+    if (record.met_30_percent) {
+      reached30Count += 1;
+    }
+  }
+
+  return totalCount > 0 ? { totalCount, reached17Count, reached30Count } : null;
 }
 
 export interface EcosystemGoalsOverview {

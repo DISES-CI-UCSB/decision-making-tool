@@ -23,6 +23,7 @@ import {
   resolveOverviewMetric,
   rollupSpeciesGoalsTaxa,
   summarizeEcosystemGoals,
+  summarizeSpeciesGoalsRecords,
 } from './overview-metrics.utils';
 
 const compactOptions: MetricFormatOptions = {
@@ -316,6 +317,33 @@ describe('species-goals taxa rollup', () => {
   });
 });
 
+describe('summarizeSpeciesGoalsRecords', () => {
+  it('rolls available sidecar rows into 17/30 additional-outcome counts', () => {
+    expect(
+      summarizeSpeciesGoalsRecords([
+        buildSpeciesGoalsRecord('bear', 'mammals', null, true, true),
+        buildSpeciesGoalsRecord('rail', 'birds', null, true, false),
+        buildSpeciesGoalsRecord('frog', 'amphibians', null, false, false),
+        buildSpeciesGoalsRecord('ghost', 'amphibians', null, true, true, 'unavailable'),
+      ]),
+    ).toEqual({
+      totalCount: 3,
+      reached17Count: 2,
+      reached30Count: 1,
+    });
+  });
+
+  it('returns null when the sidecar is missing or has no available rows', () => {
+    expect(summarizeSpeciesGoalsRecords(null)).toBeNull();
+    expect(summarizeSpeciesGoalsRecords([])).toBeNull();
+    expect(
+      summarizeSpeciesGoalsRecords([
+        buildSpeciesGoalsRecord('ghost', 'amphibians', null, true, true, 'unavailable'),
+      ]),
+    ).toBeNull();
+  });
+});
+
 function buildMetric(
   metricId: string,
   value: number,
@@ -385,9 +413,9 @@ describe('AOI species-goals richness backfill', () => {
   });
 
   it('keeps compact richness when it is already displayable', () => {
-    expect(
-      needsSpeciesGoalsRichnessBackfill(buildMetric('species_richness_mammals', 186)),
-    ).toBe(false);
+    expect(needsSpeciesGoalsRichnessBackfill(buildMetric('species_richness_mammals', 186))).toBe(
+      false,
+    );
     expect(
       needsSpeciesGoalsRichnessBackfill({
         ...buildMetric('species_richness_mammals', 0),
@@ -399,10 +427,7 @@ describe('AOI species-goals richness backfill', () => {
   });
 });
 
-function buildRichnessRecords(
-  group: string,
-  count: number,
-): HydratedSpeciesGoalsRecord[] {
+function buildRichnessRecords(group: string, count: number): HydratedSpeciesGoalsRecord[] {
   return Array.from({ length: count }, (_, index) =>
     buildSpeciesGoalsRecord(`${group}-${index}`, group, null, false, false),
   );

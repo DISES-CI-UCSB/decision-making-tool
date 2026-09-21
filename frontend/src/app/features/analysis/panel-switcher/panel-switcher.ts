@@ -156,6 +156,8 @@ import {
   appendUnit as appendMetricUnit,
   areaUnitLabel,
   formatAreaValue as formatAreaMetricValue,
+  formatSirapCompactArea,
+  formatSirapProgressPercent,
   formatMetricDelta,
   formatMetricValue as formatPresentedMetricValue,
   formatNumber as formatPresentedNumber,
@@ -203,6 +205,7 @@ import {
   SPECIES_GOALS_TAXA_IDS,
   SPECIES_RICHNESS_METRIC_BY_TAXON,
   summarizeEcosystemGoals,
+  summarizeSpeciesGoalsRecords,
   type SpeciesReferenceGroupSummary,
   type SpeciesReferenceSplit,
   type SpeciesReferenceSummary,
@@ -924,11 +927,7 @@ export class PanelSwitcherComponent {
     scopeId: string;
   } | null>(() => {
     const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
-    if (!solutionId) {
-      return null;
-    }
-    const speciesDomain = this.overviewGoalsDomains().find((entry) => entry.id === 'species');
-    if (!speciesDomain?.targeted) {
+    if (!solutionId || this.isMarineSolution() || !this.solutionGoalsDocument()) {
       return null;
     }
     if (this.isSirapScopedSolution()) {
@@ -1040,10 +1039,16 @@ export class PanelSwitcherComponent {
   protected readonly compactMecColumnHeadings = COMPACT_MEC_COLUMN_HEADINGS;
   private goalsModalEcosystemMecSolutionId: string | null = null;
   private goalsModalSpeciesRequestId = 0;
-  protected readonly goalsModalDomain = computed<OverviewGoalsDomainEntry | null>(
-    () =>
-      this.overviewGoalsDomains().find((domain) => domain.id === this.goalsModalDomainId()) ?? null,
-  );
+  protected readonly goalsModalDomain = computed<OverviewGoalsDomainEntry | null>(() => {
+    const domainId = this.goalsModalDomainId();
+    if (!domainId) {
+      return null;
+    }
+    return (
+      this.overviewGoalsDomains().find((domain) => domain.id === domainId) ??
+      this.fallbackGoalsModalDomain(domainId)
+    );
+  });
   protected readonly isNationalGoalsModal = computed(
     () => this.goalsModalScope() === 'solution-overview' && !this.isSirapScopedSolution(),
   );
@@ -2267,14 +2272,27 @@ export class PanelSwitcherComponent {
       return this.localizedText('analysis.overview.goalsWidget.sirap.status.met');
     }
     return this.translate.instant('analysis.overview.goalsWidget.sirap.status.shortfall', {
-      percent: this.getGoalsPercentLabel(feature.shortfallPercent),
+      percent: this.getSirapProgressPercentLabel(feature.shortfallPercent),
     });
+  }
+
+  protected getSirapProgressPercentLabel(pctMet: number | null): string {
+    if (pctMet === null) {
+      return '--';
+    }
+    return formatSirapProgressPercent(pctMet, this.metricFormatOptions('full'));
+  }
+
+  protected formatSirapFeatureProgress(feature: SirapOverviewTargetFeature): string {
+    const percent = this.getSirapProgressPercentLabel(feature.achievedPercent);
+    const area = this.formatSirapAchievedArea(feature);
+    return area ? `${percent} (${area})` : percent;
   }
 
   protected formatSirapAchievedArea(feature: SirapOverviewTargetFeature): string | null {
     return feature.achievedAreaKm2 === null
       ? null
-      : this.formatAreaValue(feature.achievedAreaKm2, 'full');
+      : formatSirapCompactArea(feature.achievedAreaKm2, this.metricFormatOptions('compact'));
   }
 
   private sirapAchievedAreaKm2(value: number | null | undefined): number | null {
@@ -2375,14 +2393,24 @@ export class PanelSwitcherComponent {
         : strategicRasterRows.filter(
             (row) => row.coverageFraction + Number.EPSILON >= strategicRelativeTarget,
           ).length;
+    const strategicTotalCount = strategicRasterRows.length;
     const strategicRasterCheckpoints = {
       reached17Count: strategicRasterRows.filter((row) => row.reached17).length,
       reached30Count: strategicRasterRows.filter((row) => row.reached30).length,
     };
+    const strategicCheckpoints = strategicTargeted
+      ? this.countRangeCoverageCheckpoints(document.features.strategicEcosystems)
+      : strategicRasterCheckpoints;
     const speciesTargeted = targetedDomains.has('species');
     const speciesReference = speciesTargeted ? null : this.speciesReferenceSummary();
-    const speciesTotalCount =
-      speciesReference?.totalCount ?? document.summary.byType.species.totalSpeciesCount;
+    const speciesGoalsSummary = speciesTargeted
+      ? null
+      : summarizeSpeciesGoalsRecords(this.overviewSpeciesGoalsRecords());
+    const speciesTotalCount = speciesTargeted
+      ? document.summary.byType.species.totalSpeciesCount
+      : (speciesReference?.totalCount ??
+        speciesGoalsSummary?.totalCount ??
+        document.features.species.length);
     const ecosystemSummary = summarizeEcosystemGoals(document.features.ecosystems);
     const ecosystemTotalCount =
       ecosystemSummary.totalCount || (this.hasSirapMecCoverageBreakdown() ? 1 : 0);
@@ -2402,14 +2430,12 @@ export class PanelSwitcherComponent {
           document.targetContext.relativeTargetsByType['strategicEcosystems'],
         ),
         metCount: strategicTargeted ? strategicMetCount : 0,
-        totalCount: strategicRasterRows.length,
+        totalCount: strategicTotalCount,
         pctMet:
-          strategicTargeted && strategicRasterRows.length > 0
-            ? (strategicMetCount / strategicRasterRows.length) * 100
+          strategicTargeted && strategicTotalCount > 0
+            ? (strategicMetCount / strategicTotalCount) * 100
             : null,
-        ...(strategicTargeted
-          ? this.countRangeCoverageCheckpoints(document.features.strategicEcosystems)
-          : strategicRasterCheckpoints),
+        ...strategicCheckpoints,
       },
       {
         id: 'ecosystems',
@@ -2444,7 +2470,12 @@ export class PanelSwitcherComponent {
               reached17Count: speciesReference.reached17Count,
               reached30Count: speciesReference.reached30Count,
             }
-          : this.countRangeCoverageCheckpoints(document.features.species)),
+          : speciesGoalsSummary
+            ? {
+                reached17Count: speciesGoalsSummary.reached17Count,
+                reached30Count: speciesGoalsSummary.reached30Count,
+              }
+            : this.countRangeCoverageCheckpoints(document.features.species)),
       },
     ];
 
@@ -2481,7 +2512,16 @@ export class PanelSwitcherComponent {
   );
 
   protected readonly additionalOutcomeGoalsDomains = computed<OverviewGoalsDomainEntry[]>(() =>
-    this.overviewGoalsDomains().filter((domain) => !domain.targeted),
+    this.overviewGoalsDomains().filter((domain) => {
+      if (domain.targeted) {
+        return false;
+      }
+      return !(
+        this.isSirapScopedSolution() &&
+        domain.id === 'ecosystems' &&
+        this.sirapOverviewEcosystemMetrics().length > 0
+      );
+    }),
   );
 
   private formatGoalsRelativeTargetLabel(targets: number[] | undefined): string {
@@ -2552,7 +2592,9 @@ export class PanelSwitcherComponent {
         : null;
     return {
       id: feature.featureId,
-      name: feature.label ?? feature.featureName,
+      name: this.isSirapScopedSolution()
+        ? this.sirapTargetFeatureLabel(feature.featureId, feature.label ?? feature.featureName)
+        : (feature.label ?? feature.featureName),
       secondaryLabel,
       taxonGroup: feature.taxonGroup ?? null,
       iucnStatus: feature.iucnStatus ?? null,
@@ -2570,7 +2612,7 @@ export class PanelSwitcherComponent {
       sirapExtentKm2: null,
       ecosystemSharePercent: null,
       nationalEcosystemSharePercent: null,
-      solutionCoverageAreaKm2: null,
+      solutionCoverageAreaKm2: this.sirapAchievedAreaKm2(feature.absoluteHeldKm2),
       remainingCoverageAreaKm2: null,
       remainingRelativeHeld: null,
       preExistingCoverageAreaKm2: null,
@@ -2814,9 +2856,39 @@ export class PanelSwitcherComponent {
     this.scheduleGoalsModalContent();
     if (this.goalsModalDomain()?.featureType === 'ecosystems') {
       this.loadGoalsModalEcosystemMec();
-    } else if (this.goalsModalDomain()?.featureType === 'species') {
+    } else if (domainId === 'species') {
       this.loadGoalsModalSpecies();
     }
+  }
+
+  private fallbackGoalsModalDomain(domainId: string): OverviewGoalsDomainEntry | null {
+    if (domainId !== 'species') {
+      return null;
+    }
+    const document = this.solutionGoalsDocument();
+    const catalogSolution = this.findActiveCatalogSolution(this.activeSolution());
+    const targeted = document
+      ? classifyOverviewTargetDomains(
+          document.targetContext,
+          catalogSolution?.finderInputs ?? null,
+        ).has('species')
+      : false;
+    return {
+      id: 'species',
+      featureType: 'species',
+      labelKey: 'analysis.overview.goalsWidget.species',
+      targeted,
+      targetLabel: document
+        ? this.formatGoalsRelativeTargetLabel(
+            document.targetContext.relativeTargetsByType['species'],
+          )
+        : this.localizedText('analysis.overview.goalsWidget.targetUnknown'),
+      metCount: 0,
+      totalCount: 0,
+      pctMet: null,
+      reached17Count: 0,
+      reached30Count: 0,
+    };
   }
 
   protected closeGoalsModal(): void {
