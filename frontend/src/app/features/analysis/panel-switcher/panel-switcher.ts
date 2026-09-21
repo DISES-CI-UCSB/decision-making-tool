@@ -31,7 +31,10 @@ import {
   type GeographyLevel,
   type HydratedSpeciesGoalsRecord,
   type LayerLocale,
+  hydrateMesaEcosystemCoverageRows,
   type MecCompactDocument,
+  type MesaEcosystemCoverageCompactDocument,
+  type MesaEcosystemCoverageRow,
   type MecViewId,
   type MetricComparisonValue,
   type MetricReadinessStatus,
@@ -63,6 +66,7 @@ import {
   type MecNationalDenominatorLoadResult,
   type MecMetricsLoadResult,
 } from '@core/services/mec-metrics-loader.service';
+import { MesaEcosystemCoverageLoaderService } from '@core/services/mesa-ecosystem-coverage-loader.service';
 import {
   AppStateService,
   type AreaDisplayUnit,
@@ -94,6 +98,7 @@ import {
   map,
   of,
   switchMap,
+  take,
   takeWhile,
   tap,
   throwError,
@@ -170,6 +175,7 @@ import {
   type MetricFormatOptions,
 } from '../utils/metric-presentation.utils';
 import {
+  applyMesaRelativeHeldToIavhRows,
   buildCustomMecData,
   buildDummyCoverageRows,
   buildMecCoverageRowsByView,
@@ -715,6 +721,7 @@ export class PanelSwitcherComponent {
   private readonly speciesGoals = inject(SpeciesGoalsLoaderService);
   private readonly strategicOutcomes = inject(StrategicEcosystemOutcomesLoaderService);
   private readonly mecMetrics = inject(MecMetricsLoaderService);
+  private readonly mesaEcosystemCoverage = inject(MesaEcosystemCoverageLoaderService);
   private readonly solutionLayer = inject(SolutionLayerService);
   private readonly translate = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
@@ -993,6 +1000,8 @@ export class PanelSwitcherComponent {
   protected readonly goalsModalTaxonGroup = signal('all');
   protected readonly goalsModalEcosystemBreakdownId = signal<MecBreakdownId>('iavh');
   protected readonly goalsModalEcosystemMecDocument = signal<MecCompactDocument | null>(null);
+  protected readonly goalsModalMesaEcosystemDocument =
+    signal<MesaEcosystemCoverageCompactDocument | null>(null);
   protected readonly goalsModalEcosystemNationalAreas = signal<ReadonlyMap<string, number> | null>(
     null,
   );
@@ -1016,7 +1025,7 @@ export class PanelSwitcherComponent {
   protected readonly goalsModalNationalCoverageMetrics = GOALS_MODAL_NATIONAL_COVERAGE_METRICS;
   protected readonly expandedMecColumnHeadings = EXPANDED_MEC_COLUMN_HEADINGS;
   protected readonly compactMecColumnHeadings = COMPACT_MEC_COLUMN_HEADINGS;
-  private goalsModalEcosystemMecSolutionId: string | null = null;
+  private goalsModalEcosystemMecLoadKey: string | null = null;
   private goalsModalSpeciesRequestId = 0;
   protected readonly goalsModalDomain = computed<OverviewGoalsDomainEntry | null>(() => {
     const domainId = this.goalsModalDomainId();
@@ -1084,7 +1093,10 @@ export class PanelSwitcherComponent {
       }
       if (mecRows) {
         const relativeTarget = this.getGoalsModalEcosystemRelativeTarget();
-        return mecRows.map((row) => this.toGoalsModalEcosystemRow(row, relativeTarget));
+        const rows = mecRows.map((row) => this.toGoalsModalEcosystemRow(row, relativeTarget));
+        return this.goalsModalEcosystemBreakdownId() === 'iavh'
+          ? this.applyMesaRelativeHeldToGoalRows(rows)
+          : rows;
       }
     }
     if (domain.featureType === 'strategicEcosystems') {
@@ -1391,18 +1403,25 @@ export class PanelSwitcherComponent {
     status: 'unavailable',
     reason: 'no-selection',
   });
+  private readonly knownAoiMesaEcosystemDocument =
+    signal<MesaEcosystemCoverageCompactDocument | null>(null);
   private readonly mecCoverageRowsByView = computed<ReadonlyMap<MecViewId, MecCoverageRow[]>>(
     () => {
       const state = this.mecPanelState();
       if (state.status === 'loaded') {
         const sirapScoped = this.isSirapScopedSolution();
-        return buildMecCoverageRowsByView(
+        const rowsByView = buildMecCoverageRowsByView(
           state.document,
           state.scopeIndex,
           state.nationalDocument,
           sirapScoped ? 'sirap' : 'national',
           sirapScoped ? this.nationalMecAreaKm2ByClass() : null,
           state.referenceScopeIndex,
+        );
+        return this.applyMesaRelativeHeldToIavhView(
+          rowsByView,
+          this.knownAoiMesaEcosystemDocument(),
+          this.selectedAoi(),
         );
       }
       return state.status === 'custom'
@@ -1818,6 +1837,8 @@ export class PanelSwitcherComponent {
             );
           }
 
+          this.knownAoiMesaEcosystemDocument.set(null);
+          this.loadKnownAoiMesaDocument(request);
           return concat(
             of<MecPanelState>({ status: 'loading' }),
             this.loadKnownAoiMecDocuments(request).pipe(
@@ -1837,6 +1858,13 @@ export class PanelSwitcherComponent {
       )
       .subscribe((state) => {
         this.mecPanelState.set(state);
+        if (
+          state.status === 'custom' ||
+          state.status === 'unavailable' ||
+          state.status === 'error'
+        ) {
+          this.knownAoiMesaEcosystemDocument.set(null);
+        }
         if (state.status === 'custom' && state.data.mode === 'mesa-solution') {
           this.selectedMecBreakdownId.set('iavh');
           this.mecModalBreakdownId.set('iavh');
@@ -2686,28 +2714,87 @@ export class PanelSwitcherComponent {
   ): GoalsModalRow[] {
     const goalRows = features.map((feature) => this.toGoalsModalRow(feature));
     const mecDocument = this.goalsModalEcosystemMecDocument();
-    if (!mecRows || !mecDocument || !isMecCompactV2Document(mecDocument)) {
-      return goalRows;
+    const withExtent =
+      !mecRows || !mecDocument || !isMecCompactV2Document(mecDocument)
+        ? goalRows
+        : goalRows.map((goalRow) => {
+            const mecRow = mecRows.find((row) => slugify(row.label) === slugify(goalRow.name));
+            if (!mecRow) {
+              return goalRow;
+            }
+            const coverageRow = this.toGoalsModalEcosystemRow(mecRow, goalRow.relativeTarget);
+            return {
+              ...goalRow,
+              ecosystemAreaKm2: coverageRow.ecosystemAreaKm2,
+              nationalExtentKm2: coverageRow.nationalExtentKm2,
+              sirapExtentKm2: coverageRow.sirapExtentKm2,
+              ecosystemSharePercent: coverageRow.ecosystemSharePercent,
+              nationalEcosystemSharePercent: coverageRow.nationalEcosystemSharePercent,
+            };
+          });
+    return this.applyMesaRelativeHeldToGoalRows(withExtent);
+  }
+
+  private applyMesaRelativeHeldToIavhView(
+    rowsByView: ReadonlyMap<MecViewId, MecCoverageRow[]>,
+    document: MesaEcosystemCoverageCompactDocument | null,
+    aoi: AOI | null,
+  ): ReadonlyMap<MecViewId, MecCoverageRow[]> {
+    const iavhRows = rowsByView.get('biomeRegion');
+    if (!document || !aoi || !iavhRows) {
+      return rowsByView;
     }
+    const mesaRows = new Map(
+      hydrateMesaEcosystemCoverageRows(document, extractRawAoiScopeId(aoi.id), aoi.name).map(
+        (row) => [
+          slugify(row.feature),
+          {
+            relativeHeld: row.relativeHeld,
+            totalAmount: row.totalAmount,
+            absoluteHeld: row.absoluteHeld,
+          },
+        ],
+      ),
+    );
+    if (mesaRows.size === 0) {
+      return rowsByView;
+    }
+    const next = new Map(rowsByView);
+    next.set('biomeRegion', applyMesaRelativeHeldToIavhRows(iavhRows, mesaRows));
+    return next;
+  }
 
-    const mecRowsByLabel = new Map(mecRows.map((row) => [slugify(row.label), row]));
-    return goalRows.map((goalRow) => {
-      const mecRow = mecRowsByLabel.get(slugify(goalRow.name));
-      if (!mecRow) {
-        return goalRow;
+  private applyMesaRelativeHeldToGoalRows(rows: GoalsModalRow[]): GoalsModalRow[] {
+    const mesaRows = this.goalsModalMesaEcosystemRows();
+    if (mesaRows.size === 0) {
+      return rows;
+    }
+    return rows.map((row) => {
+      const mesa = mesaRows.get(slugify(row.name));
+      if (!mesa) {
+        return row;
       }
-
-      const coverageRow = this.toGoalsModalEcosystemRow(mecRow, goalRow.relativeTarget);
       return {
-        ...goalRow,
-        // Keep goals/Mesa relativeHeld and status; MEC only supplies map extent.
-        ecosystemAreaKm2: coverageRow.ecosystemAreaKm2,
-        nationalExtentKm2: coverageRow.nationalExtentKm2,
-        sirapExtentKm2: coverageRow.sirapExtentKm2,
-        ecosystemSharePercent: coverageRow.ecosystemSharePercent,
-        nationalEcosystemSharePercent: coverageRow.nationalEcosystemSharePercent,
+        ...row,
+        relativeHeld: mesa.relativeHeld,
+        met: mesa.met,
+        reached17: this.reachesRangeCoverageCheckpoint(mesa.relativeHeld, 17),
+        reached30: this.reachesRangeCoverageCheckpoint(mesa.relativeHeld, 30),
       };
     });
+  }
+
+  private goalsModalMesaEcosystemRows(): ReadonlyMap<string, MesaEcosystemCoverageRow> {
+    const document = this.goalsModalMesaEcosystemDocument();
+    const context = this.resolveGoalsModalSpeciesContext();
+    if (!document || !context) {
+      return new Map();
+    }
+    return new Map(
+      hydrateMesaEcosystemCoverageRows(document, context.scopeId, this.selectedAoi()?.name).map(
+        (row) => [slugify(row.feature), row],
+      ),
+    );
   }
 
   private getGoalsModalEcosystemRelativeTarget(): number | null {
@@ -2880,10 +2967,11 @@ export class PanelSwitcherComponent {
     this.goalsModalSpeciesLoading.set(false);
     this.goalsModalSpeciesLoadFailed.set(false);
     this.goalsModalEcosystemMecDocument.set(null);
+    this.goalsModalMesaEcosystemDocument.set(null);
     this.goalsModalEcosystemNationalAreas.set(null);
     this.goalsModalEcosystemMecLoading.set(false);
     this.goalsModalEcosystemMecLoadFailed.set(false);
-    this.goalsModalEcosystemMecSolutionId = null;
+    this.goalsModalEcosystemMecLoadKey = null;
   }
 
   private tearDownAoiCoverageModals(): void {
@@ -3383,16 +3471,29 @@ export class PanelSwitcherComponent {
       return;
     }
 
-    if (this.goalsModalEcosystemMecSolutionId === solutionId) {
+    const context = this.resolveGoalsModalSpeciesContext();
+    const geographyLevel: GeographyLevel =
+      context?.geographyLevel ?? (this.isSirapPrimaryGoalsModal() ? 'siraps' : 'national');
+    const loadKey = `${solutionId}|${geographyLevel}`;
+    if (this.goalsModalEcosystemMecLoadKey === loadKey) {
       return;
     }
 
-    this.goalsModalEcosystemMecSolutionId = solutionId;
+    this.goalsModalEcosystemMecLoadKey = loadKey;
     this.goalsModalEcosystemMecDocument.set(null);
+    this.goalsModalMesaEcosystemDocument.set(null);
     this.goalsModalEcosystemNationalAreas.set(null);
     this.goalsModalEcosystemMecLoading.set(true);
     this.goalsModalEcosystemMecLoadFailed.set(false);
-    const geographyLevel: GeographyLevel = this.isSirapPrimaryGoalsModal() ? 'siraps' : 'national';
+    this.mesaEcosystemCoverage
+      .load(solutionId, geographyLevel)
+      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
+      .subscribe((mesa) => {
+        if (this.goalsModalEcosystemMecLoadKey !== loadKey) {
+          return;
+        }
+        this.goalsModalMesaEcosystemDocument.set(mesa.status === 'loaded' ? mesa.document : null);
+      });
     const load: Observable<{
       mec: MecMetricsLoadResult;
       nationalDenominator: MecNationalDenominatorLoadResult | null;
@@ -3407,7 +3508,7 @@ export class PanelSwitcherComponent {
     load
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ mec: result, nationalDenominator }) => {
-        if (this.goalsModalEcosystemMecSolutionId !== solutionId) {
+        if (this.goalsModalEcosystemMecLoadKey !== loadKey) {
           return;
         }
         this.goalsModalEcosystemMecDocument.set(
@@ -3432,7 +3533,7 @@ export class PanelSwitcherComponent {
   }
 
   protected retryGoalsModalEcosystemMec(): void {
-    this.goalsModalEcosystemMecSolutionId = null;
+    this.goalsModalEcosystemMecLoadKey = null;
     this.loadGoalsModalEcosystemMec();
   }
 
@@ -4381,6 +4482,23 @@ export class PanelSwitcherComponent {
     };
   }
 
+  private loadKnownAoiMesaDocument(request: Extract<MecRequest, { kind: 'load' }>): void {
+    this.mesaEcosystemCoverage
+      .load(request.solutionId, request.geographyLevel)
+      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        const current = this.buildMecRequest(
+          this.activeSolution(),
+          this.selectedAoi(),
+          this.customAoiGeometry(),
+        );
+        if (current.kind !== 'load' || current.key !== request.key) {
+          return;
+        }
+        this.knownAoiMesaEcosystemDocument.set(result.status === 'loaded' ? result.document : null);
+      });
+  }
+
   private loadKnownAoiMecDocuments(request: Extract<MecRequest, { kind: 'load' }>): Observable<{
     selected: MecMetricsLoadResult;
     national: MecCompactDocument | null;
@@ -4396,7 +4514,7 @@ export class PanelSwitcherComponent {
       national: this.mecMetrics
         .loadMecMetrics(request.solutionId, referenceGeography)
         .pipe(map((result) => (result.status === 'loaded' ? result.document : null))),
-    });
+    }).pipe(map(({ selected: result, national }) => ({ selected: result, national })));
   }
 
   private toMecPanelState(

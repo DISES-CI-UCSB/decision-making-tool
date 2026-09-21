@@ -292,6 +292,8 @@ export interface RuntimeSolutionPrecomputedMetricUrls {
   mecByGeography?: RuntimeSolutionMecGeographyUrls;
   /** Versioned `mec-compact-v2` shards used by current clients when published. */
   mecV2ByGeography?: RuntimeSolutionMecGeographyUrls;
+  /** Mesa 1 km ecosystem relative_held shards, national and known-AOI geography. */
+  mesaEcosystemByGeography?: RuntimeSolutionMecGeographyUrls;
   /** Shared Colombia-wide MEC class areas for SIRAP reporting denominators. */
   mecNationalDenominator?: string;
   /** Shared immutable identity/taxonomy catalog for species coverage rows. */

@@ -35,6 +35,7 @@ import {
   MecMetricsLoaderService,
   type MecMetricsLoadResult,
 } from '@core/services/mec-metrics-loader.service';
+import { MesaEcosystemCoverageLoaderService } from '@core/services/mesa-ecosystem-coverage-loader.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
 import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
@@ -117,6 +118,9 @@ describe('PanelSwitcherComponent', () => {
       loadMecMetrics: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
       loadNationalDenominator: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
     };
+    const mesaEcosystemCoverageLoaderSpy = {
+      load: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
+    };
     speciesGoalsLoaderSpy = {
       load: vi.fn(() => of(buildHydratedSpeciesRecords(goalsDocument))),
     };
@@ -143,6 +147,7 @@ describe('PanelSwitcherComponent', () => {
       providers: [
         { provide: ApiService, useValue: apiServiceSpy },
         { provide: MecMetricsLoaderService, useValue: mecMetricsLoaderSpy },
+        { provide: MesaEcosystemCoverageLoaderService, useValue: mesaEcosystemCoverageLoaderSpy },
         { provide: SpeciesGoalsLoaderService, useValue: speciesGoalsLoaderSpy },
         {
           provide: SolutionGoalsLoaderService,

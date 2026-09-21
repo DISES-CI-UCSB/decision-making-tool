@@ -484,6 +484,9 @@
         "mecV2ByGeography": {
           "$ref": "#/$defs/mecGeographyUrls"
         },
+        "mesaEcosystemByGeography": {
+          "$ref": "#/$defs/mecGeographyUrls"
+        },
         "mecNationalDenominator": {
           "type": "string",
           "format": "uri"

@@ -283,6 +283,29 @@ export function resolveSirapMecScopeIndex(
   return matches.length === 1 ? matches[0] : null;
 }
 
+export function applyMesaRelativeHeldToIavhRows(
+  rows: MecCoverageRow[],
+  mesaRowsByLabel: ReadonlyMap<
+    string,
+    { relativeHeld: number | null; totalAmount: number; absoluteHeld: number }
+  >,
+): MecCoverageRow[] {
+  return rows.map((row) => {
+    const mesa = mesaRowsByLabel.get(slugify(row.label));
+    if (!mesa) {
+      return row;
+    }
+    const relativeHeld = mesa.relativeHeld;
+    return {
+      ...row,
+      solutionCoveragePercent:
+        relativeHeld === null ? row.solutionCoveragePercent : relativeHeld * 100,
+      mesaTotalInAoi: mesa.totalAmount,
+      mesaHeldInAoi: mesa.absoluteHeld,
+    };
+  });
+}
+
 export function isMecViewAvailable(document: MecCompactDocument, view: MecViewId): boolean {
   if (document.viewSupport.unsupported.some((item) => item.view === view)) {
     return false;
