@@ -345,7 +345,9 @@
           "ecosystemCoverageTitle": "Cobertura de ecosistemas",
           "speciesTitle": "Especies representadas",
           "ecosystems": {
-            "iavh": "Área del mapa nacional de ecosistemas (MEC)"
+            "iavh": "Área del mapa nacional de ecosistemas (MEC)",
+            "iavhLine1": "Mapa nacional de ecosistemas (MEC)",
+            "iavhLine2": "Área"
           },
           "species": {
             "mammals": "Mamíferos",

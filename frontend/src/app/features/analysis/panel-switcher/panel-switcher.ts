@@ -885,27 +885,6 @@ export class PanelSwitcherComponent {
       ['iavh-total', 'ecosystem_coverage', 'analysis.overview.goalsWidget.sirap.ecosystems.iavh'],
     ]),
   );
-  protected readonly sirapOverviewSpeciesMetrics = computed<SirapOverviewMetricEntry[]>(() =>
-    this.buildSirapOverviewMetricEntries([
-      [
-        'mammals',
-        'species_richness_mammals',
-        'analysis.overview.goalsWidget.sirap.species.mammals',
-      ],
-      ['birds', 'species_richness_birds', 'analysis.overview.goalsWidget.sirap.species.birds'],
-      [
-        'amphibians',
-        'species_richness_amphibians',
-        'analysis.overview.goalsWidget.sirap.species.amphibians',
-      ],
-      [
-        'reptiles',
-        'species_richness_reptiles',
-        'analysis.overview.goalsWidget.sirap.species.reptiles',
-      ],
-      ['plants', 'species_richness_plants', 'analysis.overview.goalsWidget.sirap.species.plants'],
-    ]),
-  );
   /** SIRAP goal summaries load only from an explicit regional release URL. */
   private readonly goalsDocumentSolutionId = computed<string | null>(() => {
     const solutionId = this.activeSolutionId();
@@ -5117,15 +5096,6 @@ export class PanelSwitcherComponent {
     );
   }
 
-  protected hasSirapSpeciesCoverageBreakdown(): boolean {
-    const urls = this.findActiveCatalogSolution(this.activeSolution())?.precomputedMetricUrls;
-    return Boolean(
-      this.isSirapScopedSolution() &&
-      urls?.speciesGoalsCatalog &&
-      urls.speciesGoalsByGeography?.siraps,
-    );
-  }
-
   protected hasSirapMecCoverageBreakdown(): boolean {
     const urls = this.findActiveCatalogSolution(this.activeSolution())?.precomputedMetricUrls;
     return Boolean(this.isSirapScopedSolution() && urls?.mecV2ByGeography?.siraps);
@@ -5727,7 +5697,7 @@ export class PanelSwitcherComponent {
   private formatSirapOverviewMetricValue(metric: MetricValue): string {
     const unit = metric.unit?.replace('²', '2').toLowerCase();
     if (unit === 'km2' || metric.metricId === 'ecosystem_coverage') {
-      return this.appendUnit(this.formatNumber(metric.value ?? 0, 'full', 0, 0), 'km²');
+      return formatSirapCompactArea(metric.value ?? 0, this.metricFormatOptions('compact'));
     }
 
     return formatPanelMetric(metric, {

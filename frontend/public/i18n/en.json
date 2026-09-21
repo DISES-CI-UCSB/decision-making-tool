@@ -345,7 +345,9 @@
           "ecosystemCoverageTitle": "Ecosystem coverage",
           "speciesTitle": "Species represented",
           "ecosystems": {
-            "iavh": "National ecosystem map (MEC) area"
+            "iavh": "National ecosystem map (MEC) area",
+            "iavhLine1": "National ecosystem map (MEC)",
+            "iavhLine2": "area"
           },
           "species": {
             "mammals": "Mammals",

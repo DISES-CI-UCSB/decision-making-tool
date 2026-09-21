@@ -269,11 +269,15 @@
                             class="grid gap-2 rounded-md border border-emerald-200 bg-white/80 p-2.5"
                           >
                             <div
-                              [id]="'right-sidebar-v3-overview-sirap-target-group-header-' + group.id"
+                              [id]="
+                                'right-sidebar-v3-overview-sirap-target-group-header-' + group.id
+                              "
                               class="flex items-start justify-between gap-3"
                             >
                               <div
-                                [id]="'right-sidebar-v3-overview-sirap-target-group-copy-' + group.id"
+                                [id]="
+                                  'right-sidebar-v3-overview-sirap-target-group-copy-' + group.id
+                                "
                               >
                                 <h6
                                   [id]="
@@ -283,16 +287,6 @@
                                 >
                                   {{ group.label }}
                                 </h6>
-                                @if (getSirapTargetModeLabel(group.targetMode); as modeLabel) {
-                                  <p
-                                    [id]="
-                                      'right-sidebar-v3-overview-sirap-target-group-mode-' + group.id
-                                    "
-                                    class="mt-0.5 mb-0 text-[11px] leading-4 text-slate-500"
-                                  >
-                                    {{ modeLabel }}
-                                  </p>
-                                }
                               </div>
                               <span
                                 [id]="
@@ -303,7 +297,11 @@
                                 {{
                                   'analysis.overview.goalsWidget.sirap.targetLabel'
                                     | translate
-                                      : { percent: getSirapProgressPercentLabel(group.targetPercent) }
+                                      : {
+                                          percent: getSirapProgressPercentLabel(
+                                            group.targetPercent
+                                          ),
+                                        }
                                 }}
                               </span>
                             </div>
@@ -330,17 +328,21 @@
                                     "
                                     class="flex items-baseline justify-between gap-3 text-xs"
                                   >
-                                    <span
-                                      [id]="
-                                        'right-sidebar-v3-overview-sirap-target-feature-label-' +
-                                        group.id +
-                                        '-' +
-                                        feature.id
-                                      "
-                                      class="text-slate-700"
-                                    >
-                                      {{ feature.label }}
-                                    </span>
+                                    @if (
+                                      group.features.length > 1 && feature.label !== group.label
+                                    ) {
+                                      <span
+                                        [id]="
+                                          'right-sidebar-v3-overview-sirap-target-feature-label-' +
+                                          group.id +
+                                          '-' +
+                                          feature.id
+                                        "
+                                        class="text-slate-700"
+                                      >
+                                        {{ feature.label }}
+                                      </span>
+                                    }
                                     <strong
                                       [id]="
                                         'right-sidebar-v3-overview-sirap-target-feature-achieved-' +
@@ -584,7 +586,10 @@
                       </p>
                     }
 
-                    @if (additionalOutcomeGoalsDomains().length > 0) {
+                    @if (
+                      additionalOutcomeGoalsDomains().length > 0 ||
+                      sirapOverviewEcosystemMetrics().length > 0
+                    ) {
                       <div
                         id="right-sidebar-v3-overview-goals-additional-section"
                         class="grid gap-2.5 rounded-md border border-slate-200 bg-slate-50/60 p-2.5"
@@ -601,33 +606,35 @@
                               'analysis.overview.goalsWidget.additionalOutcomesHeading' | translate
                             }}
                           </p>
-                          <div
-                            id="right-sidebar-v3-overview-goals-additional-legend"
-                            class="mt-0.5 flex items-center gap-3 text-[9px] font-bold tracking-wide text-slate-500 uppercase"
-                          >
-                            <span
-                              id="right-sidebar-v3-overview-goals-additional-legend-17"
-                              class="inline-flex items-center gap-1"
+                          @if (additionalOutcomeGoalsDomains().length > 0) {
+                            <div
+                              id="right-sidebar-v3-overview-goals-additional-legend"
+                              class="mt-0.5 flex items-center gap-3 text-[9px] font-bold tracking-wide text-slate-500 uppercase"
                             >
                               <span
-                                id="right-sidebar-v3-overview-goals-additional-legend-17-swatch"
-                                aria-hidden="true"
-                                class="h-1.5 w-1.5 rounded-full bg-green-300"
-                              ></span>
-                              {{ 'analysis.overview.goalsWidget.legend17' | translate }}
-                            </span>
-                            <span
-                              id="right-sidebar-v3-overview-goals-additional-legend-30"
-                              class="inline-flex items-center gap-1"
-                            >
+                                id="right-sidebar-v3-overview-goals-additional-legend-17"
+                                class="inline-flex items-center gap-1"
+                              >
+                                <span
+                                  id="right-sidebar-v3-overview-goals-additional-legend-17-swatch"
+                                  aria-hidden="true"
+                                  class="h-1.5 w-1.5 rounded-full bg-green-300"
+                                ></span>
+                                {{ 'analysis.overview.goalsWidget.legend17' | translate }}
+                              </span>
                               <span
-                                id="right-sidebar-v3-overview-goals-additional-legend-30-swatch"
-                                aria-hidden="true"
-                                class="h-1.5 w-1.5 rounded-full bg-green-700"
-                              ></span>
-                              {{ 'analysis.overview.goalsWidget.legend30' | translate }}
-                            </span>
-                          </div>
+                                id="right-sidebar-v3-overview-goals-additional-legend-30"
+                                class="inline-flex items-center gap-1"
+                              >
+                                <span
+                                  id="right-sidebar-v3-overview-goals-additional-legend-30-swatch"
+                                  aria-hidden="true"
+                                  class="h-1.5 w-1.5 rounded-full bg-green-700"
+                                ></span>
+                                {{ 'analysis.overview.goalsWidget.legend30' | translate }}
+                              </span>
+                            </div>
+                          }
                         </div>
 
                         @for (domain of additionalOutcomeGoalsDomains(); track domain.id) {
@@ -982,11 +989,7 @@
                             </button>
                           </article>
                         }
-                      </div>
-                    }
 
-                    @if (isSirapScopedSolution()) {
-                      <div id="right-sidebar-v3-overview-sirap-summary" class="grid gap-3">
                         @if (sirapOverviewEcosystemMetrics().length > 0) {
                           <section
                             id="right-sidebar-v3-overview-sirap-ecosystem-coverage"
@@ -1012,99 +1015,118 @@
                                   "
                                   class="min-w-0 text-slate-700"
                                 >
-                                  {{ metric.labelKey | translate }}
                                   @if (metric.id === 'iavh-total') {
                                     <span
-                                      id="right-sidebar-v3-overview-sirap-ecosystem-mec-help"
-                                      class="v3-methodology-help"
-                                      (mouseenter)="
-                                        showMethodologyTooltip(
-                                          $event,
-                                          'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
-                                        )
-                                      "
-                                      (mouseleave)="
-                                        hideMethodologyTooltip(
-                                          'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
-                                        )
-                                      "
-                                      (focusin)="
-                                        showMethodologyTooltip(
-                                          $event,
-                                          'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
-                                        )
-                                      "
-                                      (focusout)="
-                                        hideMethodologyTooltip(
-                                          'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
-                                        )
-                                      "
+                                      id="right-sidebar-v3-overview-sirap-ecosystem-iavh-line-1"
+                                      class="block"
                                     >
-                                      <button
-                                        id="right-sidebar-v3-overview-sirap-ecosystem-mec-help-trigger"
-                                        type="button"
-                                        class="v3-methodology-trigger"
-                                        [attr.aria-label]="
-                                          'analysis.overview.methodologyInfoLabel' | translate
-                                        "
-                                        aria-describedby="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip"
-                                      >
-                                        <app-info-icon
-                                          rootId="right-sidebar-v3-overview-sirap-ecosystem-mec-help-indicator"
-                                          colorClass="text-slate-400"
-                                        />
-                                      </button>
+                                      {{
+                                        'analysis.overview.goalsWidget.sirap.ecosystems.iavhLine1'
+                                          | translate
+                                      }}
+                                    </span>
+                                    <span
+                                      id="right-sidebar-v3-overview-sirap-ecosystem-iavh-line-2"
+                                      class="inline-flex items-baseline gap-0.5"
+                                    >
+                                      {{
+                                        'analysis.overview.goalsWidget.sirap.ecosystems.iavhLine2'
+                                          | translate
+                                      }}
                                       <span
-                                        id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip"
-                                        role="tooltip"
-                                        popover="manual"
-                                        class="v3-methodology-tooltip v3-methodology-tooltip-overlay pointer-events-auto"
+                                        id="right-sidebar-v3-overview-sirap-ecosystem-mec-help"
+                                        class="v3-methodology-help"
+                                        (mouseenter)="
+                                          showMethodologyTooltip(
+                                            $event,
+                                            'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
+                                          )
+                                        "
+                                        (mouseleave)="
+                                          hideMethodologyTooltip(
+                                            'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
+                                          )
+                                        "
+                                        (focusin)="
+                                          showMethodologyTooltip(
+                                            $event,
+                                            'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
+                                          )
+                                        "
+                                        (focusout)="
+                                          hideMethodologyTooltip(
+                                            'right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip'
+                                          )
+                                        "
                                       >
-                                        <span
-                                          id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-text"
-                                          class="v3-methodology-tooltip-text"
+                                        <button
+                                          id="right-sidebar-v3-overview-sirap-ecosystem-mec-help-trigger"
+                                          type="button"
+                                          class="v3-methodology-trigger"
+                                          [attr.aria-label]="
+                                            'analysis.overview.methodologyInfoLabel' | translate
+                                          "
+                                          aria-describedby="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip"
                                         >
-                                          {{
-                                            'mapLayersPanel.ecosystemInfoModal.intro' | translate
-                                          }}
-                                        </span>
+                                          <app-info-icon
+                                            rootId="right-sidebar-v3-overview-sirap-ecosystem-mec-help-indicator"
+                                            colorClass="text-slate-400"
+                                          />
+                                        </button>
                                         <span
-                                          id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-links"
-                                          class="flex flex-col"
+                                          id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip"
+                                          role="tooltip"
+                                          popover="manual"
+                                          class="v3-methodology-tooltip v3-methodology-tooltip-overlay pointer-events-auto"
                                         >
-                                          <a
-                                            id="right-sidebar-v3-overview-sirap-ecosystem-mec-source-overview"
-                                            class="v3-methodology-source-link"
-                                            [href]="
-                                              'solutionControls.finder.step1.ecosystemsOverviewSourceUrl'
-                                                | translate
-                                            "
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                          <span
+                                            id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-text"
+                                            class="v3-methodology-tooltip-text"
                                           >
                                             {{
-                                              'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel'
-                                                | translate
+                                              'mapLayersPanel.ecosystemInfoModal.intro' | translate
                                             }}
-                                          </a>
-                                          <a
-                                            id="right-sidebar-v3-overview-sirap-ecosystem-mec-source-map"
-                                            class="v3-methodology-source-link"
-                                            [href]="
-                                              'solutionControls.finder.step1.ecosystemsDataSourceUrl'
-                                                | translate
-                                            "
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                          </span>
+                                          <span
+                                            id="right-sidebar-v3-overview-sirap-ecosystem-mec-tooltip-links"
+                                            class="flex flex-col"
                                           >
-                                            {{
-                                              'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel'
-                                                | translate
-                                            }}
-                                          </a>
+                                            <a
+                                              id="right-sidebar-v3-overview-sirap-ecosystem-mec-source-overview"
+                                              class="v3-methodology-source-link"
+                                              [href]="
+                                                'solutionControls.finder.step1.ecosystemsOverviewSourceUrl'
+                                                  | translate
+                                              "
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                            >
+                                              {{
+                                                'mapLayersPanel.ecosystemInfoModal.mecOverviewSourceLabel'
+                                                  | translate
+                                              }}
+                                            </a>
+                                            <a
+                                              id="right-sidebar-v3-overview-sirap-ecosystem-mec-source-map"
+                                              class="v3-methodology-source-link"
+                                              [href]="
+                                                'solutionControls.finder.step1.ecosystemsDataSourceUrl'
+                                                  | translate
+                                              "
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                            >
+                                              {{
+                                                'mapLayersPanel.ecosystemInfoModal.mecMapSourceLabel'
+                                                  | translate
+                                              }}
+                                            </a>
+                                          </span>
                                         </span>
                                       </span>
                                     </span>
+                                  } @else {
+                                    {{ metric.labelKey | translate }}
                                   }
                                 </span>
                                 <strong
@@ -1149,84 +1171,6 @@
                                   />
                                   <line
                                     id="right-sidebar-v3-overview-sirap-ecosystem-view-additional-coverage-icon-header"
-                                    x1="2"
-                                    y1="6"
-                                    x2="14"
-                                    y2="6"
-                                    stroke-width="1.3"
-                                  />
-                                </svg>
-                              </button>
-                            }
-                          </section>
-                        }
-
-                        @if (sirapOverviewSpeciesMetrics().length > 0) {
-                          <section
-                            id="right-sidebar-v3-overview-sirap-species"
-                            class="grid gap-1.5"
-                          >
-                            <h5
-                              id="right-sidebar-v3-overview-sirap-species-title"
-                              class="m-0 text-[11px] font-extrabold tracking-[0.06em] text-slate-600 uppercase"
-                            >
-                              {{ 'analysis.overview.goalsWidget.sirap.speciesTitle' | translate }}
-                            </h5>
-                            @for (metric of sirapOverviewSpeciesMetrics(); track metric.id) {
-                              <div
-                                [id]="'right-sidebar-v3-overview-sirap-species-' + metric.id"
-                                class="flex items-baseline justify-between gap-3 border-b border-slate-100 py-1 text-xs"
-                              >
-                                <span
-                                  [id]="
-                                    'right-sidebar-v3-overview-sirap-species-label-' + metric.id
-                                  "
-                                  class="text-slate-700"
-                                >
-                                  {{ metric.labelKey | translate }}
-                                </span>
-                                <strong
-                                  [id]="
-                                    'right-sidebar-v3-overview-sirap-species-value-' + metric.id
-                                  "
-                                  class="font-extrabold tabular-nums text-slate-900"
-                                >
-                                  {{ metric.value }}
-                                </strong>
-                              </div>
-                            }
-                            @if (hasSirapSpeciesCoverageBreakdown()) {
-                              <button
-                                id="right-sidebar-v3-overview-sirap-species-view-additional-coverage"
-                                type="button"
-                                class="mt-0.5 flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                                (click)="openGoalsModal('species')"
-                              >
-                                <span
-                                  id="right-sidebar-v3-overview-sirap-species-view-additional-coverage-label"
-                                >
-                                  {{
-                                    'analysis.overview.goalsWidget.viewCoverageBreakdown'
-                                      | translate
-                                  }}
-                                </span>
-                                <svg
-                                  id="right-sidebar-v3-overview-sirap-species-view-additional-coverage-icon"
-                                  aria-hidden="true"
-                                  viewBox="0 0 16 16"
-                                  class="h-3.5 w-3.5 shrink-0 fill-none stroke-current"
-                                >
-                                  <rect
-                                    id="right-sidebar-v3-overview-sirap-species-view-additional-coverage-icon-frame"
-                                    x="2"
-                                    y="2.5"
-                                    width="12"
-                                    height="11"
-                                    rx="1.5"
-                                    stroke-width="1.3"
-                                  />
-                                  <line
-                                    id="right-sidebar-v3-overview-sirap-species-view-additional-coverage-icon-header"
                                     x1="2"
                                     y1="6"
                                     x2="14"
