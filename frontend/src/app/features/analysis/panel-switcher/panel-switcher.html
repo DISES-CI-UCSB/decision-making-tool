@@ -5073,6 +5073,14 @@
                           >
                             {{ formatMecEcosystemArea(row.solutionCoverageAreaKm2) }}
                           </span>
+                          @if (row.notOnPlanningGrid) {
+                            <span
+                              [id]="'conservation-goals-modal-planning-grid-note-' + rowIndex"
+                              class="text-[10px] font-normal text-slate-500"
+                            >
+                              {{ 'analysis.overview.goalsWidget.modal.notOnPlanningGrid' | translate }}
+                            </span>
+                          }
                           @if (isSirapPrimaryGoalsModal() && row.remainingRelativeHeld !== null) {
                             <span
                               [id]="'conservation-goals-modal-remaining-' + rowIndex"
@@ -5161,6 +5169,14 @@
                         >
                           {{ formatGoalsModalPercent(row.relativeHeld) }}
                         </span>
+                        @if (row.notOnPlanningGrid) {
+                          <span
+                            [id]="'conservation-goals-modal-planning-grid-note-' + rowIndex"
+                            class="w-full text-[10px] font-normal text-slate-500"
+                          >
+                            {{ 'analysis.overview.goalsWidget.modal.notOnPlanningGrid' | translate }}
+                          </span>
+                        }
                       </span>
                     }
                     @if (domain.targeted) {
@@ -5169,7 +5185,7 @@
                         class="flex items-center px-3 py-2 text-slate-700"
                         role="cell"
                       >
-                        {{ formatGoalsModalPercent(row.relativeTarget) }}
+                        {{ formatGoalsModalTarget(row) }}
                       </span>
                       <span
                         [id]="'conservation-goals-modal-status-' + rowIndex"
@@ -5653,6 +5669,14 @@
                           >
                             {{ formatMecEcosystemArea(row.solutionCoverageAreaKm2) }}
                           </span>
+                          @if (row.notOnPlanningGrid) {
+                            <span
+                              [id]="'conservation-goals-modal-planning-grid-note-' + rowIndex"
+                              class="text-[10px] font-normal text-slate-500"
+                            >
+                              {{ 'analysis.overview.goalsWidget.modal.notOnPlanningGrid' | translate }}
+                            </span>
+                          }
                         </span>
                       </div>
                     }
@@ -5663,7 +5687,7 @@
                       class="flex items-center px-3 py-2 text-slate-700"
                       role="cell"
                     >
-                      {{ formatGoalsModalPercent(row.relativeTarget) }}
+                      {{ formatGoalsModalTarget(row) }}
                     </span>
                     <span
                       [id]="'conservation-goals-modal-status-' + rowIndex"
@@ -6169,6 +6193,16 @@
                             >
                               {{ formatMecEcosystemArea(row.solutionCoverageAreaKm2) }}
                             </span>
+                            @if (row.notOnPlanningGrid) {
+                              <span
+                                [id]="'conservation-goals-modal-planning-grid-note-' + $index"
+                                class="text-[10px] font-normal text-slate-500"
+                              >
+                                {{
+                                  'analysis.overview.goalsWidget.modal.notOnPlanningGrid' | translate
+                                }}
+                              </span>
+                            }
                           </span>
                         </div>
                       }
@@ -6178,7 +6212,7 @@
                         [id]="'conservation-goals-modal-target-value-' + $index"
                         class="px-3 py-2.5 text-slate-700"
                       >
-                        {{ formatGoalsModalPercent(row.relativeTarget) }}
+                        {{ formatGoalsModalTarget(row) }}
                       </td>
                       <td [id]="'conservation-goals-modal-status-' + $index" class="px-3 py-2.5">
                         <span
@@ -6671,7 +6705,22 @@
               getMecModalCopyKey('analysis.aoi.mec.modal.totalCoverage') | translate
             "
           >
-            @if (hasExpandedMecCoverage()) {
+            @if (row.mesaOffPlanningGrid) {
+              <span
+                [id]="'aoi-mec-modal-total-coverage-off-grid-' + row.id"
+                class="grid gap-0.5 text-slate-500"
+              >
+                <strong [id]="'aoi-mec-modal-total-coverage-value-' + row.id" class="text-slate-700"
+                  >--</strong
+                >
+                <span
+                  [id]="'aoi-mec-modal-total-coverage-planning-grid-note-' + row.id"
+                  class="text-[10px]"
+                >
+                  {{ 'analysis.aoi.mec.modal.notOnPlanningGrid' | translate }}
+                </span>
+              </span>
+            } @else if (hasExpandedMecCoverage()) {
               <ng-container
                 [ngTemplateOutlet]="customMecMeasure"
                 [ngTemplateOutletContext]="{
@@ -6757,22 +6806,34 @@
             {{ formatMecEcosystemAmount(row.ecosystemAreaKm2, row.mesaTotalInAoi ?? null) }}
           </td>
           <td [id]="'aoi-mec-modal-coverage-' + row.id">
-            <div [id]="'aoi-mec-modal-coverage-bar-' + row.id" class="aoi-mec-coverage-bar">
-              <span
-                [id]="'aoi-mec-modal-existing-fill-' + row.id"
-                [style.width.%]="row.preExistingPercent ?? 0"
-                [style.background-color]="mecExistingColor()"
-              ></span>
-              <span
-                [id]="'aoi-mec-modal-additional-fill-' + row.id"
-                [style.width.%]="row.newPrioritizrPercent ?? 0"
-                [style.background-color]="mecAdditionalColor()"
-              ></span>
-            </div>
-            <span [id]="'aoi-mec-modal-coverage-values-' + row.id">
-              {{ formatMecCoveragePercent(row.preExistingPercent) }} +
-              {{ formatMecCoveragePercent(row.newPrioritizrPercent) }}
-            </span>
+            @if (row.mesaOffPlanningGrid) {
+              <span [id]="'aoi-mec-modal-coverage-off-grid-' + row.id" class="grid gap-0.5">
+                <strong [id]="'aoi-mec-modal-coverage-value-' + row.id">--</strong>
+                <span
+                  [id]="'aoi-mec-modal-coverage-planning-grid-note-' + row.id"
+                  class="text-[10px] text-slate-500"
+                >
+                  {{ 'analysis.aoi.mec.modal.notOnPlanningGrid' | translate }}
+                </span>
+              </span>
+            } @else {
+              <div [id]="'aoi-mec-modal-coverage-bar-' + row.id" class="aoi-mec-coverage-bar">
+                <span
+                  [id]="'aoi-mec-modal-existing-fill-' + row.id"
+                  [style.width.%]="row.preExistingPercent ?? 0"
+                  [style.background-color]="mecExistingColor()"
+                ></span>
+                <span
+                  [id]="'aoi-mec-modal-additional-fill-' + row.id"
+                  [style.width.%]="row.newPrioritizrPercent ?? 0"
+                  [style.background-color]="mecAdditionalColor()"
+                ></span>
+              </div>
+              <span [id]="'aoi-mec-modal-coverage-values-' + row.id">
+                {{ formatMecCoveragePercent(row.preExistingPercent) }} +
+                {{ formatMecCoveragePercent(row.newPrioritizrPercent) }}
+              </span>
+            }
           </td>
         }
       </ng-template>

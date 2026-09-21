@@ -51,6 +51,27 @@ describe('AOI ecosystems utilities', () => {
     expect(row.solutionCoveragePercent).toBeCloseTo(20.2);
     expect(row.mesaTotalInAoi).toBe(6054);
     expect(row.mesaHeldInAoi).toBe(1225);
+    expect(row.mesaOffPlanningGrid).toBe(false);
+  });
+
+  it('clears IAvH Total for catalog classes that Mesa never evaluated', () => {
+    const [row] = applyMesaRelativeHeldToIavhRows(
+      [
+        {
+          id: 'island',
+          label: 'Island mangrove',
+          ecosystemAreaKm2: 2,
+          preExistingCoverageKm2: 2,
+          newPrioritizrCoverageKm2: 0,
+          preExistingPercent: 100,
+          newPrioritizrPercent: 0,
+          solutionCoveragePercent: 100,
+        },
+      ],
+      new Map([['andean-forest', { relativeHeld: 0.202, totalAmount: 6054, absoluteHeld: 1225 }]]),
+    );
+    expect(row.solutionCoveragePercent).toBeNull();
+    expect(row.mesaOffPlanningGrid).toBe(true);
   });
 
   it('calculates strategic overlap against candidate area and clamps the result', () => {

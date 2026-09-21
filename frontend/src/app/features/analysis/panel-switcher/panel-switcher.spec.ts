@@ -6061,16 +6061,16 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-percent-0')
         ?.textContent,
-    ).toContain('--');
+    ).toContain('10');
     expect(
       compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-area-0')?.textContent,
-    ).toContain('--');
+    ).toContain('1 km²');
     expect(
       compiled.querySelector('#conservation-goals-modal-new-coverage-percent-0')?.textContent,
-    ).toContain('--');
+    ).toContain('30');
     expect(
       compiled.querySelector('#conservation-goals-modal-new-coverage-area-0')?.textContent,
-    ).toContain('--');
+    ).toContain('3 km²');
     expect(
       compiled.querySelector('#conservation-goals-modal-coverage-value-0')?.textContent,
     ).toContain('35');

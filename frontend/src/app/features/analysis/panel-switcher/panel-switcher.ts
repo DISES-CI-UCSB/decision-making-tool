@@ -322,6 +322,7 @@ interface GoalsModalRow {
   newCoverageAreaKm2: number | null;
   reached17: boolean;
   reached30: boolean;
+  notOnPlanningGrid?: boolean;
 }
 
 interface GoalsModalSummary {
@@ -1095,7 +1096,10 @@ export class PanelSwitcherComponent {
         const relativeTarget = this.getGoalsModalEcosystemRelativeTarget();
         const rows = mecRows.map((row) => this.toGoalsModalEcosystemRow(row, relativeTarget));
         return this.goalsModalEcosystemBreakdownId() === 'iavh'
-          ? this.applyMesaRelativeHeldToGoalRows(rows)
+          ? this.appendOffPlanningGridGoalRows(
+              this.applyMesaRelativeHeldToGoalRows(rows),
+              mecRows,
+            )
           : rows;
       }
     }
@@ -2730,9 +2734,16 @@ export class PanelSwitcherComponent {
               sirapExtentKm2: coverageRow.sirapExtentKm2,
               ecosystemSharePercent: coverageRow.ecosystemSharePercent,
               nationalEcosystemSharePercent: coverageRow.nationalEcosystemSharePercent,
+              preExistingRelativeHeld: coverageRow.preExistingRelativeHeld,
+              newRelativeHeld: coverageRow.newRelativeHeld,
+              preExistingCoverageAreaKm2: coverageRow.preExistingCoverageAreaKm2,
+              newCoverageAreaKm2: coverageRow.newCoverageAreaKm2,
             };
           });
-    return this.applyMesaRelativeHeldToGoalRows(withExtent);
+    return this.appendOffPlanningGridGoalRows(
+      this.applyMesaRelativeHeldToGoalRows(withExtent),
+      mecRows,
+    );
   }
 
   private applyMesaRelativeHeldToIavhView(
@@ -2772,7 +2783,15 @@ export class PanelSwitcherComponent {
     return rows.map((row) => {
       const mesa = mesaRows.get(slugify(row.name));
       if (!mesa) {
-        return row;
+        return {
+          ...row,
+          relativeHeld: null,
+          relativeTarget: null,
+          met: null,
+          reached17: false,
+          reached30: false,
+          notOnPlanningGrid: true,
+        };
       }
       return {
         ...row,
@@ -2780,8 +2799,39 @@ export class PanelSwitcherComponent {
         met: mesa.met,
         reached17: this.reachesRangeCoverageCheckpoint(mesa.relativeHeld, 17),
         reached30: this.reachesRangeCoverageCheckpoint(mesa.relativeHeld, 30),
+        notOnPlanningGrid: false,
       };
     });
+  }
+
+  private appendOffPlanningGridGoalRows(
+    rows: GoalsModalRow[],
+    mecRows: MecCoverageRow[] | undefined,
+  ): GoalsModalRow[] {
+    const mesaRows = this.goalsModalMesaEcosystemRows();
+    if (mesaRows.size === 0 || !mecRows?.length) {
+      return rows;
+    }
+    const existing = new Set(rows.map((row) => slugify(row.name)));
+    const extras = mecRows
+      .filter((row) => {
+        const key = slugify(row.label);
+        return !existing.has(key) && !mesaRows.has(key);
+      })
+      .map((row) => this.toOffPlanningGridGoalRow(row));
+    return extras.length === 0 ? rows : [...rows, ...extras];
+  }
+
+  private toOffPlanningGridGoalRow(row: MecCoverageRow): GoalsModalRow {
+    return {
+      ...this.toGoalsModalEcosystemRow(row, null),
+      relativeHeld: null,
+      relativeTarget: null,
+      met: null,
+      reached17: false,
+      reached30: false,
+      notOnPlanningGrid: true,
+    };
   }
 
   private goalsModalMesaEcosystemRows(): ReadonlyMap<string, MesaEcosystemCoverageRow> {
@@ -3425,13 +3475,14 @@ export class PanelSwitcherComponent {
     rows: readonly GoalsModalRow[],
     targeted: boolean,
   ): GoalsModalSummary {
-    const metCount = rows.filter((row) => row.met === true).length;
+    const scored = rows.filter((row) => !row.notOnPlanningGrid);
+    const metCount = scored.filter((row) => row.met === true).length;
     return {
       metCount,
-      totalCount: rows.length,
-      pctMet: targeted && rows.length > 0 ? (metCount / rows.length) * 100 : null,
-      reached17Count: rows.filter((row) => row.reached17).length,
-      reached30Count: rows.filter((row) => row.reached30).length,
+      totalCount: scored.length,
+      pctMet: targeted && scored.length > 0 ? (metCount / scored.length) * 100 : null,
+      reached17Count: scored.filter((row) => row.reached17).length,
+      reached30Count: scored.filter((row) => row.reached30).length,
     };
   }
 
@@ -3542,6 +3593,13 @@ export class PanelSwitcherComponent {
       return '--';
     }
     return formatSpeciesCoveragePercent(value * 100, this.appLocale.locale());
+  }
+
+  protected formatGoalsModalTarget(row: GoalsModalRow): string {
+    if (row.notOnPlanningGrid) {
+      return this.translate.instant('analysis.overview.goalsWidget.modal.notTargeted');
+    }
+    return this.formatGoalsModalPercent(row.relativeTarget);
   }
 
   protected formatGoalsModalSharePercent(value: number | null | undefined): string {
