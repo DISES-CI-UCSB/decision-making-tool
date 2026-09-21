@@ -6054,23 +6054,24 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#conservation-goals-modal-ecosystem-area-0')?.className,
     ).toContain('content-center');
     expect(
-      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-0')?.textContent,
-    ).toContain('10');
+      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-percent-0')
+        ?.textContent,
+    ).toContain('--');
     expect(
       compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-area-0')?.textContent,
-    ).toContain('1 km²');
+    ).toContain('--');
     expect(
-      compiled.querySelector('#conservation-goals-modal-new-coverage-0')?.textContent,
-    ).toContain('30');
+      compiled.querySelector('#conservation-goals-modal-new-coverage-percent-0')?.textContent,
+    ).toContain('--');
     expect(
       compiled.querySelector('#conservation-goals-modal-new-coverage-area-0')?.textContent,
-    ).toContain('3 km²');
+    ).toContain('--');
     expect(
       compiled.querySelector('#conservation-goals-modal-coverage-value-0')?.textContent,
-    ).toContain('40');
+    ).toContain('35');
     expect(
       compiled.querySelector('#conservation-goals-modal-coverage-area-0')?.textContent,
-    ).toContain('4 km²');
+    ).toContain('--');
     expect(compiled.textContent).not.toContain('Taxonomy-only ecosystem');
 
     (

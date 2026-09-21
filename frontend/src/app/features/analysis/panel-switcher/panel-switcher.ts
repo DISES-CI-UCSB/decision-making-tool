@@ -2700,17 +2700,12 @@ export class PanelSwitcherComponent {
       const coverageRow = this.toGoalsModalEcosystemRow(mecRow, goalRow.relativeTarget);
       return {
         ...goalRow,
-        relativeHeld: coverageRow.relativeHeld,
-        preExistingRelativeHeld: coverageRow.preExistingRelativeHeld,
-        newRelativeHeld: coverageRow.newRelativeHeld,
+        // Keep goals/Mesa relativeHeld and status; MEC only supplies map extent.
         ecosystemAreaKm2: coverageRow.ecosystemAreaKm2,
         nationalExtentKm2: coverageRow.nationalExtentKm2,
         sirapExtentKm2: coverageRow.sirapExtentKm2,
         ecosystemSharePercent: coverageRow.ecosystemSharePercent,
         nationalEcosystemSharePercent: coverageRow.nationalEcosystemSharePercent,
-        solutionCoverageAreaKm2: coverageRow.solutionCoverageAreaKm2,
-        preExistingCoverageAreaKm2: coverageRow.preExistingCoverageAreaKm2,
-        newCoverageAreaKm2: coverageRow.newCoverageAreaKm2,
       };
     });
   }
