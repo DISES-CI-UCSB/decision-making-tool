@@ -23,6 +23,23 @@ Cada proceso abre **una URL que configuraste**.
 | `development-artifacts/` | Experimentos y maquetas |
 | `legacy-r-shiny-app/` | App de Shiny archivada |
 
+## Arquitectura del frontend
+
+El frontend (`frontend/`) es una SPA (Single Page Application / Aplicación de Página Única) hecha en Angular — toda la interfaz corre como una sola página que intercambia contenido, sin recargas completas. Tiene tres piezas principales:
+
+- **App shell** (`app.html`, `app-shell.ts`) — un layout de tres columnas redimensionable: barra lateral izquierda, mapa central, barra lateral derecha. Un componente raíz (`App`) lo ensambla y controla los modales (pantalla de bienvenida, Buscador de Soluciones).
+- **Áreas de funcionalidad**, cada una en su propia carpeta bajo `features/`:
+  - `solution-finder/` — el cuestionario guiado que asocia las respuestas del usuario con uno de los ~170 escenarios de conservación pre-construidos.
+  - `left-sidebar/` — controles para activar capas de referencia (ecosistemas, especies, costos, límites).
+  - `map/` — el mapa de ArcGIS en sí: renderizado de rásteres de solución, dibujo de AOI personalizadas, clics sobre límites administrativos.
+  - `analysis/` — las pestañas Overview / AOI / Comparison (Resumen / AOI / Comparación) de la barra lateral derecha y sus métricas.
+  - `auth/` — login con Firebase, control de acceso por nivel, solicitudes de acceso SIRAP.
+- **Estado compartido** — un único servicio inyectable, `AppStateService` (`core/services/app-state.service.ts`), guarda el estado transversal (solución activa, AOI seleccionada, modo de la barra lateral derecha) usando signals de Angular (un contenedor de valores reactivo, similar a un Observable pero más simple de leer). Cada panel lee y escribe en este mismo servicio en lugar de comunicarse directamente entre sí — eso es lo que mantiene sincronizados tres paneles de interfaz independientes.
+
+**El flujo de datos refleja la misma separación precalculado-vs-en-vivo mencionada arriba:** los números de AOI conocidas y las definiciones de capas vienen de manifiestos JSON versionados en Vercel Blob (ver "Qué es 'el catálogo'"); los rásteres de solución son `ImageryTileLayer`s de ArcGIS construidos a partir de archivos GeoTIFF (GeoTIFF Optimizado para la Nube); las métricas de polígonos personalizados pasan por el backend de FastAPI descrito abajo.
+
+Stack: Angular (componentes standalone, sin NgModules heredados), Tailwind CSS, ArcGIS Maps SDK for JavaScript (kit de desarrollo de software), ngx-translate para i18n en inglés/español, Firebase Auth.
+
 ## 1. Levantar la app
 
 Necesitas Docker Desktop, salida HTTPS hacia Blob público, y una copia de `.env.example` → `.env`. El Compose raíz carga `.env` y `backend/.env` (ignora `.env.local`). Completa Firebase en `.env` si necesitas login.
