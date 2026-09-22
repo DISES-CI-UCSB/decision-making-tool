@@ -40,6 +40,20 @@ The frontend (`frontend/`) is an Angular single-page app (SPA — the whole UI r
 
 Stack: Angular (standalone components, no legacy NgModules), Tailwind CSS, ArcGIS Maps SDK for JavaScript, ngx-translate for English/Spanish i18n, Firebase Auth.
 
+## Backend architecture
+
+The backend (`backend/`) is a FastAPI (Python web framework) service with one job: compute conservation metrics for a **custom polygon** a user drew on the map.
+
+- **`manifest.json` — the registry for one catalog version.** This is the file `hydrate` reads. It lists every feature raster (land cover, protected areas, carbon, water, and so on), the species matrices, the reference grid, and checksums for **one specific catalog version** — today that's **3.7.0** (`releases/catalog-v3-7-0/manifest.json` on Vercel Blob). Bump the catalog version, and this is the file that changes: it points hydrate at a different set of layers to download. `DMT_MANIFEST_URL` (with `MANIFEST_BLOB_URL` as a fallback — see "The two pointers" above) is the env var that tells the backend which version's manifest to hydrate from. It does not ship Colombia's multi-GB rasters inside the Docker image — that's what hydrate downloads into a mounted volume (`runtime-artifacts/`) using this manifest as its shopping list.
+- **Live AOI (Area of Interest) endpoints — what actually runs on a click.** Once hydrate has filled the volume from that manifest, the API can answer:
+  - `POST /metrics/custom-polygon` — takes a GeoJSON polygon, rasterizes it onto the reference grid, and returns metric values (area, land cover, protected areas, carbon, water, ecosystems, and more) computed **live**, on that request.
+  - `POST /area-profile/custom-polygon` plus a `species-coverage/jobs` pair — richer species/ecosystem breakdowns, run as background jobs (an on-disk SQLite queue) since they're slower than a single request-response cycle should be.
+  - `GET /health` — process is alive. `GET /ready` — the loaded manifest artifact (and the species-job worker) are actually usable; returns `503` if hydrate hasn't run yet for the configured manifest.
+- **Entry point:** `backend/app/main.py`. A lifespan hook calls `warmup_artifacts()` on boot, loading the hydrated rasters and species matrices into an in-memory cache (`app/artifacts.py`) so live requests don't hit disk.
+- **Shared calculators, not duplicated logic:** the backend imports its metric formulas from `data/metrics/python/metrics_pipeline`, the same package the offline pipeline (section 2) uses to precompute known-AOI numbers. One codebase computes both the "already known" (precomputed, from the manifest's batch files) and the "just drawn" (live, from `/metrics/custom-polygon`) numbers.
+
+Stack: FastAPI, Pydantic, rasterio (raster I/O), NumPy, Shapely/PyProj (geometry) via the shared metrics pipeline.
+
 ## 1. Spin up the app
 
 You need Docker Desktop, outbound HTTPS to public Blob, and a copy of `.env.example` → `.env`. Root Compose loads `.env` and `backend/.env` (it ignores `.env.local`). Fill Firebase in `.env` if you need login.
@@ -115,22 +129,49 @@ Plain `yarn start` reads `environment.ts`. Keep that file in sync with the offic
 
 ## 2. Publish new metrics
 
-The pipeline **computes files**. Pointing the app at them is a later step. `main.py` is the calculator.
+**This is many scripts, not one script.** All of them live in `data/metrics/python/metrics_pipeline/` (venv in `data/metrics/python/.venv`) unless noted. Each owns one chunk of the output; none of them talk to the app directly — that's the separate "update the manifests" step at the end.
 
-Typical sequence (commands and flags: `docs/handoffs/parques-it/english/data-operations/metrics-and-artifacts.md`):
+**National and SIRAP (regional) solutions run through the same scripts**, not separate ones. Every script below branches internally on `solution.scope == "sirap"` — SIRAP solutions read different regional-packet rasters and a different land-cover encoding, but it's the same Python file and the same command. The two catalogs (national ~172 solutions, SIRAP ~56 solutions) are published as two separate **batch manifests** at the end, which is where "national" and "SIRAP" become visibly different files.
 
-1. **Compute** — `data/metrics/python/metrics_pipeline/main.py` (venv in `data/metrics/python/.venv`).
-2. **Inspect, dry-run, publish, verify** that verbose output with `inspect_metrics.py`, `publish.py`, `verify_artifacts.py`. Publishing needs a Blob write token in `.env.local`.
-3. **Compact** — `compact_metrics.py`, then the same inspect / publish / verify pass on the compact files (these are what the dashboards load).
-4. **MEC, goals, and species coverage** — `mec_compact.py`, `conservation_goals.py`, and `species_goals.py` write local files. Upload those by hand.
-5. **Wire the routers** (two surfaces)
-   - **SPA / known-AOI numbers:** publish fat national and SIRAP **batch** manifests whose `precomputedMetricUrls` match the new files. For a new catalog version, also publish a **new tiny index** at `catalog-releases/<version>/catalog-release-index.json` (that file lists the batches for **that** version). Point `CATALOG_RELEASE_INDEX_BLOB_URL` and, for an official release, `environment.ts` at it. Rebuild the frontend.
-   - **Custom polygons:** `yarn --cwd frontend generate:layer-manifest` refreshes `hydrationPackage` from `frontend/shared/hydration-package.json`. `publish:layer-manifest` updates live `manifest/manifest.json` — the file hydrate reads.
-6. **Rehydrate** only if custom-AOI inputs changed (`docker compose run --rm --build backend hydrate`, then `docker compose up -d --build --force-recreate`).
+**High-level sequence:**
+
+- **Step 1 — Calculate general metrics.** Area, land cover, carbon, water, protected areas, marine ecosystems, species summary counts. Does **not** include ecosystem coverage, conservation goals, or per-species breakdowns — those are separate steps below.
+- **Step 2 — Validate and upload step 1's output.** Nothing new computed here, just checked and pushed to Blob.
+- **Step 3 — Shrink step 1's output into the compact format.** This compact file, not the verbose one, is what the dashboards actually load.
+- **Step 4 — Validate and upload step 3's compact output.** Same check-and-push as step 2, on the smaller files.
+- **Step 5 — Calculate ecosystem coverage (MEC).** A separate, land-only calculation; uploaded by hand, not by the publish script.
+- **Step 6 — Calculate conservation goal rollups.** Target/held/shortfall numbers from Prioritizr summaries; also uploaded by hand.
+- **Step 7 — Calculate per-species coverage breakdowns.** The slowest step, which is why it's often split off and run separately (see `--skip-species` below).
+- **Update the manifests.** Point the app's manifests at everything steps 1–7 produced. Nothing is calculated here — this is the "make it visible" step.
+- **Rehydrate**, only if custom-AOI inputs changed.
+
+| Step | Script | What it computes | Category it owns |
+|------|--------|-------------------|-------------------|
+| 1 | `main.py` | Per-solution, per-geography metrics: area, land cover, carbon, water, protected areas, marine ecosystems, species summary counts. This is the core calculator — the one people mean when they say "run the pipeline." | General dashboard metrics |
+| 2 | `inspect_metrics.py` → `publish.py` (`--dry-run` first) → `verify_artifacts.py` | Validate the local output against a contract, upload it to Blob, then verify the uploaded bytes match. Publishing needs a Blob write token in `.env.local`. | Upload/verify step for step 1's output |
+| 3 | `compact_metrics.py` | Converts step 1's verbose output into the smaller "compact" format — **this is what the dashboards actually load**, not the verbose files. | Compact wire format |
+| 4 | Same inspect → publish → verify pass, run again on the compact files from step 3. | | |
+| 5 | `mec_compact.py` | MEC (Mapa de Ecosistemas de Colombia — Colombia's ecosystem map) coverage shards, per solution per geography level. Land solutions only; writes local files, **uploaded by hand**, no auto-publish. | Ecosystem coverage |
+| 6 | `conservation_goals.py` | Reads each solution's Prioritizr summary CSV and rolls it up into target/held/shortfall numbers. Writes local files, **uploaded by hand**. | Conservation goals |
+| 7 | `species_goals.py` (used via `main.py --species-goals-*` flags, or standalone through `run_species_goals_full_build.py`) | Per-species coverage breakdowns, per solution per geography. | Species breakdowns |
+
+**Why it's split this way:** each of these is a genuinely different, expensive computation (species coverage in particular is slow), so splitting them lets you re-run just the piece that changed instead of recomputing everything. `data/metrics/generated/releases/catalog-v3-7-0/_notes/skip_species_regular_main.py` is a real example of that from the 3.7.0 release — a wrapper that ran `main.py` with `--skip-species` overnight to get regular metrics out fast, with species backfilled separately afterward.
+
+**Incremental / backfill flags** (this is what most of the "am I missing a step" confusion comes from): `main.py`, `compact_metrics.py`, and `mec_compact.py` all accept `--solution-id` (repeatable, run just one or a few solutions), `--cache-policy use-cache` (default — skip anything already computed) vs `--cache-policy recompute-all` (force everything), and `--chunk-count`/`--chunk-index` to split a run across workers. There are also standalone `backfill_*.py` scripts (e.g. `backfill_endemic_species_count.py`, `backfill_threatened_species_secured.py`) that patch **one specific metric** across existing output without re-running the full pipeline — reach for these instead of a full re-run when only one number is wrong.
+
+**Update the manifests** (two separate surfaces, both need updating):
+- **SPA / known-AOI numbers:** publish fat national and SIRAP **batch** manifests whose `precomputedMetricUrls` point at the new files from steps 3–7. For a new catalog version, also publish a **new tiny index** at `catalog-releases/<version>/catalog-release-index.json`. Point `CATALOG_RELEASE_INDEX_BLOB_URL` and, for an official release, `environment.ts` at it. Rebuild the frontend.
+- **Custom polygons:** `yarn --cwd frontend generate:layer-manifest` refreshes `hydrationPackage` from `frontend/shared/hydration-package.json`. `publish:layer-manifest` updates live `manifest/manifest.json` — the file hydrate reads.
+
+**Known exception:** if a release introduces a layer ID the left sidebar hasn't seen before (a new SIRAP packet's naming, for example), updating manifests alone isn't enough — the sidebar's `LAYER_ID_SYNONYM_GROUPS` (`frontend/src/app/features/left-sidebar/map-layers-panel/map-layers-panel.utils.ts`) is a hardcoded alias table, not manifest-driven, and needs a matching code change. This is a known inconsistency (the same layer gets different ID tokens from different pipeline producers) rather than intended behavior.
+
+**Rehydrate** only if custom-AOI inputs changed (`docker compose run --rm --build backend hydrate`, then `docker compose up -d --build --force-recreate`).
 
 Prefer **new Blob paths** (a new release prefix and tiny index) when numbers change. Metric JSON is cached for a long time, so overwriting the same URL can leave browsers on old bytes. A hard refresh is only a maybe.
 
-A normal release uses the steps above. `publish_land_use_aoi_test_catalog.py` is an old one-off that writes `*-land-use-aoi-test` prefixes on purpose.
+A normal release uses the steps above. `publish_land_use_aoi_test_catalog.py` is an old one-off that writes `*-land-use-aoi-test` prefixes on purpose — don't confuse it with the real pipeline.
+
+Full command syntax and flags for every script above: `docs/handoffs/parques-it/english/data-operations/metrics-and-artifacts.md`.
 
 ## Deployment
 

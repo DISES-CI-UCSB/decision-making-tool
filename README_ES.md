@@ -129,22 +129,47 @@ Estos nombres se desalinearon con el tiempo. Como regla mental: la primera varia
 
 ## 2. Publicar nuevas métricas
 
-El pipeline **calcula archivos**. Apuntar la app hacia ellos es un paso posterior. `main.py` es la calculadora.
+**Esto es muchos scripts, no uno solo.** Todos viven en `data/metrics/python/metrics_pipeline/` (entorno virtual en `data/metrics/python/.venv`), salvo que se indique lo contrario. Cada uno es responsable de un fragmento distinto de la salida; ninguno le habla directamente a la app — eso es el paso separado de "conectar los enrutadores" al final.
 
-Secuencia típica (comandos y flags: `docs/handoffs/parques-it/english/data-operations/metrics-and-artifacts.md`):
+**Las soluciones nacionales y las de SIRAP (regionales) pasan por los mismos scripts**, no por scripts separados. Cada script de abajo se ramifica internamente según `solution.scope == "sirap"` — las soluciones de SIRAP leen rásteres de paquete regional distintos y una codificación de cobertura de suelo distinta, pero es el mismo archivo Python y el mismo comando. Los dos catálogos (nacional, ~172 soluciones; SIRAP, ~56 soluciones) se publican como dos **manifiestos de lote** (batch) separados al final — ahí es donde "nacional" y "SIRAP" se vuelven visiblemente archivos distintos.
 
-1. **Calcular** — `data/metrics/python/metrics_pipeline/main.py` (venv, entorno virtual, en `data/metrics/python/.venv`).
-2. **Inspeccionar, simular (dry-run), publicar, verificar** esa salida detallada con `inspect_metrics.py`, `publish.py`, `verify_artifacts.py`. Publicar necesita un token de escritura de Blob en `.env.local`.
-3. **Compactar** — `compact_metrics.py`, luego el mismo paso de inspeccionar / publicar / verificar sobre los archivos compactos (estos son los que cargan los paneles).
-4. **MEC, metas, y cobertura de especies** — `mec_compact.py`, `conservation_goals.py`, y `species_goals.py` escriben archivos locales. Sube esos manualmente.
-5. **Conectar los enrutadores (routers)** (dos superficies)
-   - **SPA / números de AOI conocidas:** publica los manifiestos de **lote** (batch) nacional y de SIRAP, grandes, cuyos `precomputedMetricUrls` coincidan con los archivos nuevos. Para una nueva versión de catálogo, publica también un **nuevo índice diminuto** en `catalog-releases/<version>/catalog-release-index.json` (ese archivo enumera los lotes para **esa** versión). Apunta `CATALOG_RELEASE_INDEX_BLOB_URL` y, para un lanzamiento oficial, `environment.ts` hacia él. Reconstruye el frontend.
-   - **Polígonos personalizados:** `yarn --cwd frontend generate:layer-manifest` actualiza `hydrationPackage` a partir de `frontend/shared/hydration-package.json`. `publish:layer-manifest` actualiza el `manifest/manifest.json` en vivo — el archivo que lee hydrate.
-6. **Rehidratar** solo si cambiaron las entradas de AOI personalizada (`docker compose run --rm --build backend hydrate`, luego `docker compose up -d --build --force-recreate`).
+**Secuencia de alto nivel:**
+
+- **Paso 1 — Calcular métricas generales.** Área, cobertura de suelo, carbono, agua, áreas protegidas, ecosistemas marinos, conteos resumen de especies. **No** incluye cobertura de ecosistemas, metas de conservación, ni desgloses por especie — esos son pasos separados más abajo.
+- **Paso 2 — Validar y subir la salida del paso 1.** Aquí no se calcula nada nuevo, solo se revisa y se sube a Blob.
+- **Paso 3 — Reducir la salida del paso 1 al formato compacto.** Este archivo compacto, no el detallado, es el que realmente cargan los paneles.
+- **Paso 4 — Validar y subir la salida compacta del paso 3.** La misma revisión y subida del paso 2, pero sobre los archivos más pequeños.
+- **Paso 5 — Calcular cobertura de ecosistemas (MEC).** Un cálculo separado, solo para soluciones terrestres; se sube a mano, no por el script de publicación.
+- **Paso 6 — Calcular resúmenes de metas de conservación.** Números de meta/cumplido/déficit a partir de los resúmenes de Prioritizr; también se sube a mano.
+- **Paso 7 — Calcular desgloses de cobertura por especie.** El paso más lento, por eso a menudo se separa y se corre por su cuenta (ver `--skip-species` abajo).
+- **Conectar los enrutadores.** Apunta los manifiestos de la app hacia todo lo que produjeron los pasos 1–7. Aquí no se calcula nada — es el paso de "hacerlo visible".
+- **Rehidratar**, solo si cambiaron las entradas de AOI personalizada.
+
+| Paso | Script | Qué calcula | Categoría que posee |
+|------|--------|--------------|----------------------|
+| 1 | `main.py` | Métricas por solución y por geografía: área, cobertura de suelo, carbono, agua, áreas protegidas, ecosistemas marinos, conteos resumen de especies. Esta es la calculadora principal — a la que la gente se refiere cuando dice "correr el pipeline". | Métricas generales del panel |
+| 2 | `inspect_metrics.py` → `publish.py` (`--dry-run` primero) → `verify_artifacts.py` | Valida la salida local contra un contrato, la sube a Blob, y luego verifica que los bytes subidos coincidan. Publicar necesita un token de escritura de Blob en `.env.local`. | Paso de subida/verificación para la salida del paso 1 |
+| 3 | `compact_metrics.py` | Convierte la salida detallada del paso 1 al formato más pequeño "compacto" — **esto es lo que realmente cargan los paneles**, no los archivos detallados. | Formato compacto |
+| 4 | El mismo paso de inspeccionar → publicar → verificar, corrido otra vez sobre los archivos compactos del paso 3. | | |
+| 5 | `mec_compact.py` | Fragmentos de cobertura MEC (Mapa de Ecosistemas de Colombia), por solución y por nivel de geografía. Solo soluciones terrestres; escribe archivos locales, **se sube a mano**, sin publicación automática. | Cobertura de ecosistemas |
+| 6 | `conservation_goals.py` | Lee el CSV resumen de Prioritizr de cada solución y lo convierte en números de meta/cumplido/déficit. Escribe archivos locales, **se sube a mano**. | Metas de conservación |
+| 7 | `species_goals.py` (usado vía los flags `main.py --species-goals-*`, o de forma independiente a través de `run_species_goals_full_build.py`) | Desgloses de cobertura por especie, por solución y por geografía. | Desgloses de especies |
+
+**Por qué está dividido así:** cada uno de estos es un cálculo genuinamente distinto y costoso (la cobertura de especies en particular es lenta), así que dividirlos permite volver a correr solo la pieza que cambió en lugar de recalcular todo. `data/metrics/generated/releases/catalog-v3-7-0/_notes/skip_species_regular_main.py` es un ejemplo real de esto del lanzamiento 3.7.0 — un wrapper que corrió `main.py` con `--skip-species` durante la noche para obtener las métricas regulares rápido, y las especies se rellenaron (backfill) por separado después.
+
+**Flags de incremental / backfill** (de aquí viene la mayor parte de la confusión de "¿me falta un paso?"): `main.py`, `compact_metrics.py`, y `mec_compact.py` aceptan `--solution-id` (repetible, corre solo una o unas pocas soluciones), `--cache-policy use-cache` (por defecto — omite lo que ya está calculado) vs. `--cache-policy recompute-all` (fuerza recalcular todo), y `--chunk-count`/`--chunk-index` para dividir una corrida entre workers. También existen scripts `backfill_*.py` independientes (p. ej. `backfill_endemic_species_count.py`, `backfill_threatened_species_secured.py`) que corrigen **una métrica específica** en la salida ya existente sin volver a correr el pipeline completo — úsalos en vez de una corrida completa cuando solo un número está mal.
+
+**Conectar los enrutadores (routers)** (dos superficies separadas, ambas necesitan actualizarse):
+- **SPA / números de AOI conocidas:** publica los manifiestos de **lote** (batch) nacional y de SIRAP, grandes, cuyos `precomputedMetricUrls` apunten a los archivos nuevos de los pasos 3–7. Para una nueva versión de catálogo, publica también un **nuevo índice diminuto** en `catalog-releases/<version>/catalog-release-index.json`. Apunta `CATALOG_RELEASE_INDEX_BLOB_URL` y, para un lanzamiento oficial, `environment.ts` hacia él. Reconstruye el frontend.
+- **Polígonos personalizados:** `yarn --cwd frontend generate:layer-manifest` actualiza `hydrationPackage` a partir de `frontend/shared/hydration-package.json`. `publish:layer-manifest` actualiza el `manifest/manifest.json` en vivo — el archivo que lee hydrate.
+
+**Rehidratar** solo si cambiaron las entradas de AOI personalizada (`docker compose run --rm --build backend hydrate`, luego `docker compose up -d --build --force-recreate`).
 
 Prefiere **nuevas rutas de Blob** (un nuevo prefijo de lanzamiento e índice diminuto) cuando los números cambien. El JSON de métricas se cachea por mucho tiempo, así que sobrescribir la misma URL puede dejar a los navegadores con bytes antiguos. Un refresco forzado (hard refresh) es solo tal vez una solución.
 
-Un lanzamiento normal usa los pasos anteriores. `publish_land_use_aoi_test_catalog.py` es un script antiguo, puntual, que escribe prefijos `*-land-use-aoi-test` a propósito.
+Un lanzamiento normal usa los pasos anteriores. `publish_land_use_aoi_test_catalog.py` es un script antiguo, puntual, que escribe prefijos `*-land-use-aoi-test` a propósito — no lo confundas con el pipeline real.
+
+Sintaxis completa de comandos y flags para cada script de arriba: `docs/handoffs/parques-it/english/data-operations/metrics-and-artifacts.md`.
 
 ## Despliegue
 
