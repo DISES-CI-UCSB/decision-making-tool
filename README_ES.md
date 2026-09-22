@@ -42,9 +42,9 @@ Stack: Angular (componentes standalone, sin NgModules heredados), Tailwind CSS, 
 
 ## Arquitectura del backend
 
-El backend (`backend/`) es un servicio de FastAPI (framework web de Python) con una sola tarea: calcular métricas de conservación para un **polígono personalizado** que alguien dibujó en el mapa.
+El backend (`backend/`) es un servicio de FastAPI (framework web de Python) con una sola tarea: calcular métricas de conservación para un **polígono personalizado** que alguien dibujó en el mapa. La mayor parte de lo que muestra la app: números de AOI conocidas, definiciones de capas, soluciones viene directamente de manifiestos servidos desde Blob (ver "Qué es 'el catálogo'" más abajo). Para hacer esa única tarea, el backend todavía necesita saber qué rásteres y matrices de especies cargar — eso es lo que le indica `manifest.json`:
 
-- **`manifest.json` — el registro de una versión del catálogo.** Este es el archivo que lee hydrate. Enumera cada ráster de rasgos (cobertura de suelo, áreas protegidas, carbono, agua, etc.), las matrices de especies, la grilla de referencia, y checksums para **una versión específica del catálogo** — hoy esa versión es **3.7.0** (`releases/catalog-v3-7-0/manifest.json` en Vercel Blob). Si sube la versión del catálogo, este es el archivo que cambia: apunta a hydrate hacia un conjunto distinto de capas para descargar. `DMT_MANIFEST_URL` (con `MANIFEST_BLOB_URL` como respaldo — ver "Los dos punteros" arriba) es la variable de entorno que le dice al backend de qué versión debe hidratar el manifiesto. No incluye los rásteres de Colombia (varios GB) dentro de la imagen de Docker — eso es lo que hydrate descarga hacia un volumen montado (`runtime-artifacts/`), usando este manifiesto como su lista de compras.
+- **`manifest.json` — el registro de una versión del catálogo.** Este es el archivo que lee hydrate. Enumera cada ráster de rasgos (cobertura de suelo, áreas protegidas, carbono, agua, etc.), las matrices de especies, la grilla de referencia, y checksums para **una versión específica del catálogo** — hoy esa versión es **3.7.0** (`releases/catalog-v3-7-0/manifest.json` en Vercel Blob). Si sube la versión del catálogo, este es el archivo que cambia: apunta a hydrate hacia un conjunto distinto de capas para descargar. `DMT_MANIFEST_URL` (con `MANIFEST_BLOB_URL` como respaldo — ver "Los dos punteros" arriba) es la variable de entorno que le dice al backend de qué versión debe hidratar el manifiesto.
 - **Endpoints de AOI (Area of Interest / Área de Interés) en vivo — lo que corre realmente al hacer clic.** Una vez que hydrate llenó el volumen a partir de ese manifiesto, la API puede responder:
   - `POST /metrics/custom-polygon` — recibe un polígono GeoJSON, lo rasteriza sobre la grilla de referencia, y devuelve valores de métricas (área, cobertura de suelo, áreas protegidas, carbono, agua, ecosistemas, y más) calculados **en vivo**, en esa misma solicitud.
   - `POST /area-profile/custom-polygon` más un par de rutas `species-coverage/jobs` — desgloses más detallados de especies/ecosistemas, ejecutados como trabajos en segundo plano (una cola en SQLite en disco) porque son más lentos de lo que debería ser un ciclo de solicitud-respuesta único.
@@ -129,7 +129,7 @@ Estos nombres se desalinearon con el tiempo. Como regla mental: la primera varia
 
 ## 2. Publicar nuevas métricas
 
-**Esto es muchos scripts, no uno solo.** Todos viven en `data/metrics/python/metrics_pipeline/` (entorno virtual en `data/metrics/python/.venv`), salvo que se indique lo contrario. Cada uno es responsable de un fragmento distinto de la salida; ninguno le habla directamente a la app — eso es el paso separado de "conectar los enrutadores" al final.
+**Esto es muchos scripts, no uno solo, y en dos lenguajes distintos.** Los pasos 1–7 de abajo son Python, y viven en `data/metrics/python/metrics_pipeline/` (entorno virtual en `data/metrics/python/.venv`), salvo que se indique lo contrario — aquí es donde realmente se calculan los números. "Actualizar los manifiestos", al final, es Node.js en cambio: scripts `frontend/layer-manifest/*.mjs` (`generate-manifest.mjs`, `validate-manifest.mjs`, `publish-manifest.mjs`) que ensamblan, validan y publican el índice JSON que apunta a los archivos de métricas que Python ya calculó — ellos mismos no calculan nada.
 
 **Las soluciones nacionales y las de SIRAP (regionales) pasan por los mismos scripts**, no por scripts separados. Cada script de abajo se ramifica internamente según `solution.scope == "sirap"` — las soluciones de SIRAP leen rásteres de paquete regional distintos y una codificación de cobertura de suelo distinta, pero es el mismo archivo Python y el mismo comando. Los dos catálogos (nacional, ~172 soluciones; SIRAP, ~56 soluciones) se publican como dos **manifiestos de lote** (batch) separados al final — ahí es donde "nacional" y "SIRAP" se vuelven visiblemente archivos distintos.
 
@@ -142,7 +142,7 @@ Estos nombres se desalinearon con el tiempo. Como regla mental: la primera varia
 - **Paso 5 — Calcular cobertura de ecosistemas (MEC).** Un cálculo separado, solo para soluciones terrestres; se sube a mano, no por el script de publicación.
 - **Paso 6 — Calcular resúmenes de metas de conservación.** Números de meta/cumplido/déficit a partir de los resúmenes de Prioritizr; también se sube a mano.
 - **Paso 7 — Calcular desgloses de cobertura por especie.** El paso más lento, por eso a menudo se separa y se corre por su cuenta (ver `--skip-species` abajo).
-- **Conectar los enrutadores.** Apunta los manifiestos de la app hacia todo lo que produjeron los pasos 1–7. Aquí no se calcula nada — es el paso de "hacerlo visible".
+- **Actualizar los manifiestos.** Apunta los manifiestos de la app hacia todo lo que produjeron los pasos 1–7. Aquí no se calcula nada — es el paso de "hacerlo visible".
 - **Rehidratar**, solo si cambiaron las entradas de AOI personalizada.
 
 | Paso | Script | Qué calcula | Categoría que posee |
@@ -159,9 +159,11 @@ Estos nombres se desalinearon con el tiempo. Como regla mental: la primera varia
 
 **Flags de incremental / backfill** (de aquí viene la mayor parte de la confusión de "¿me falta un paso?"): `main.py`, `compact_metrics.py`, y `mec_compact.py` aceptan `--solution-id` (repetible, corre solo una o unas pocas soluciones), `--cache-policy use-cache` (por defecto — omite lo que ya está calculado) vs. `--cache-policy recompute-all` (fuerza recalcular todo), y `--chunk-count`/`--chunk-index` para dividir una corrida entre workers. También existen scripts `backfill_*.py` independientes (p. ej. `backfill_endemic_species_count.py`, `backfill_threatened_species_secured.py`) que corrigen **una métrica específica** en la salida ya existente sin volver a correr el pipeline completo — úsalos en vez de una corrida completa cuando solo un número está mal.
 
-**Conectar los enrutadores (routers)** (dos superficies separadas, ambas necesitan actualizarse):
+**Actualizar los manifiestos** (dos superficies separadas, ambas necesitan actualizarse):
 - **SPA / números de AOI conocidas:** publica los manifiestos de **lote** (batch) nacional y de SIRAP, grandes, cuyos `precomputedMetricUrls` apunten a los archivos nuevos de los pasos 3–7. Para una nueva versión de catálogo, publica también un **nuevo índice diminuto** en `catalog-releases/<version>/catalog-release-index.json`. Apunta `CATALOG_RELEASE_INDEX_BLOB_URL` y, para un lanzamiento oficial, `environment.ts` hacia él. Reconstruye el frontend.
 - **Polígonos personalizados:** `yarn --cwd frontend generate:layer-manifest` actualiza `hydrationPackage` a partir de `frontend/shared/hydration-package.json`. `publish:layer-manifest` actualiza el `manifest/manifest.json` en vivo — el archivo que lee hydrate.
+
+**Excepción conocida:** si un lanzamiento introduce un ID de capa que la barra lateral izquierda todavía no conoce (por ejemplo, el nombramiento de un nuevo paquete de SIRAP), actualizar los manifiestos por sí solo no basta — la tabla de alias `LAYER_ID_SYNONYM_GROUPS` de la barra lateral (`frontend/src/app/features/left-sidebar/map-layers-panel/map-layers-panel.utils.ts`) está codificada a mano, no viene del manifiesto, y necesita un cambio de código correspondiente. Esto es una inconsistencia conocida (la misma capa recibe distintos tokens de ID según qué parte del pipeline la produjo), no un comportamiento intencional.
 
 **Rehidratar** solo si cambiaron las entradas de AOI personalizada (`docker compose run --rm --build backend hydrate`, luego `docker compose up -d --build --force-recreate`).
 

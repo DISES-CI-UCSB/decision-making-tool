@@ -41,10 +41,11 @@ The frontend (`frontend/`) is an Angular single-page app (SPA — the whole UI r
 Stack: Angular (standalone components, no legacy NgModules), Tailwind CSS, ArcGIS Maps SDK for JavaScript, ngx-translate for English/Spanish i18n, Firebase Auth.
 
 ## Backend architecture
+The backend (`backend/`) is a FastAPI (Python web framework) service with one 
+job: compute conservation metrics for a **custom polygon** a user drew on the 
+map. Most of what the app shows: known-AOI numbers, layer definitions, solutions comes straight from Blob-served manifests (see "What 'the catalog' is" below). To do that one job, the backend still needs to know which rasters and species matrices to load — that's what `manifest.json` tells it:
 
-The backend (`backend/`) is a FastAPI (Python web framework) service with one job: compute conservation metrics for a **custom polygon** a user drew on the map.
-
-- **`manifest.json` — the registry for one catalog version.** This is the file `hydrate` reads. It lists every feature raster (land cover, protected areas, carbon, water, and so on), the species matrices, the reference grid, and checksums for **one specific catalog version** — today that's **3.7.0** (`releases/catalog-v3-7-0/manifest.json` on Vercel Blob). Bump the catalog version, and this is the file that changes: it points hydrate at a different set of layers to download. `DMT_MANIFEST_URL` (with `MANIFEST_BLOB_URL` as a fallback — see "The two pointers" above) is the env var that tells the backend which version's manifest to hydrate from. It does not ship Colombia's multi-GB rasters inside the Docker image — that's what hydrate downloads into a mounted volume (`runtime-artifacts/`) using this manifest as its shopping list.
+- **`manifest.json` — the registry for one catalog version.** This is the file `hydrate` reads. It lists every feature raster (land cover, protected areas, carbon, water, and so on), the species matrices, the reference grid, and checksums for **one specific catalog version** — today that's **3.7.0** (`releases/catalog-v3-7-0/manifest.json` on Vercel Blob). Bump the catalog version, and this is the file that changes: it points hydrate at a different set of layers to download. `DMT_MANIFEST_URL` (with `MANIFEST_BLOB_URL` as a fallback — see "The two pointers" above) is the env var that tells the backend which version's manifest to hydrate from.
 - **Live AOI (Area of Interest) endpoints — what actually runs on a click.** Once hydrate has filled the volume from that manifest, the API can answer:
   - `POST /metrics/custom-polygon` — takes a GeoJSON polygon, rasterizes it onto the reference grid, and returns metric values (area, land cover, protected areas, carbon, water, ecosystems, and more) computed **live**, on that request.
   - `POST /area-profile/custom-polygon` plus a `species-coverage/jobs` pair — richer species/ecosystem breakdowns, run as background jobs (an on-disk SQLite queue) since they're slower than a single request-response cycle should be.
@@ -129,9 +130,9 @@ Plain `yarn start` reads `environment.ts`. Keep that file in sync with the offic
 
 ## 2. Publish new metrics
 
-**This is many scripts, not one script.** All of them live in `data/metrics/python/metrics_pipeline/` (venv in `data/metrics/python/.venv`) unless noted. Each owns one chunk of the output; none of them talk to the app directly — that's the separate "update the manifests" step at the end.
+**This is many scripts, not one script, and two different languages.** Steps 1–7 below are Python, living in `data/metrics/python/metrics_pipeline/` (venv in `data/metrics/python/.venv`) unless noted — this is where numbers actually get calculated. "Update the manifests," at the end, is Node.js instead: `frontend/layer-manifest/*.mjs` scripts (`generate-manifest.mjs`, `validate-manifest.mjs`, `publish-manifest.mjs`) that assemble, validate, and publish the JSON index pointing at the metric files Python already computed — they calculate nothing themselves.
 
-**National and SIRAP (regional) solutions run through the same scripts**, not separate ones. Every script below branches internally on `solution.scope == "sirap"` — SIRAP solutions read different regional-packet rasters and a different land-cover encoding, but it's the same Python file and the same command. The two catalogs (national ~172 solutions, SIRAP ~56 solutions) are published as two separate **batch manifests** at the end, which is where "national" and "SIRAP" become visibly different files.
+**National and SIRAP (regional) solutions run through the same scripts**. Every script below branches internally on `solution.scope == "sirap"` — SIRAP solutions read different regional-packet rasters and a different land-cover encoding, but it's the same Python file and the same command. The two catalogs (national ~172 solutions, SIRAP ~56 solutions) are published as two separate **batch manifests** at the end, which is where "national" and "SIRAP" become visibly different files.
 
 **High-level sequence:**
 
