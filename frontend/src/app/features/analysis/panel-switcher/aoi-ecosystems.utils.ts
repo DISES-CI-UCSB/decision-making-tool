@@ -68,6 +68,7 @@ export interface MecCoverageRow {
   preExistingContributionToNationalCoveragePercent?: number | null;
   newPrioritizrContributionToNationalCoveragePercent?: number | null;
   contributionToNationalTargetPercent?: number | null;
+  mesaOffPlanningGrid?: boolean;
 }
 
 export interface CustomMecData {
@@ -281,6 +282,39 @@ export function resolveSirapMecScopeIndex(
     )
     .filter((index) => index >= 0);
   return matches.length === 1 ? matches[0] : null;
+}
+
+export function applyMesaRelativeHeldToIavhRows(
+  rows: MecCoverageRow[],
+  mesaRowsByLabel: ReadonlyMap<
+    string,
+    { relativeHeld: number | null; totalAmount: number; absoluteHeld: number }
+  >,
+): MecCoverageRow[] {
+  if (mesaRowsByLabel.size === 0) {
+    return rows;
+  }
+  return rows.map((row) => {
+    const mesa = mesaRowsByLabel.get(slugify(row.label));
+    if (!mesa) {
+      return {
+        ...row,
+        solutionCoveragePercent: null,
+        mesaTotalInAoi: null,
+        mesaHeldInAoi: null,
+        mesaOffPlanningGrid: true,
+      };
+    }
+    const relativeHeld = mesa.relativeHeld;
+    return {
+      ...row,
+      solutionCoveragePercent:
+        relativeHeld === null ? null : relativeHeld * 100,
+      mesaTotalInAoi: mesa.totalAmount,
+      mesaHeldInAoi: mesa.absoluteHeld,
+      mesaOffPlanningGrid: false,
+    };
+  });
 }
 
 export function isMecViewAvailable(document: MecCompactDocument, view: MecViewId): boolean {

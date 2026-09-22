@@ -7,6 +7,7 @@ import type {
 } from '@core/models';
 
 import {
+  applyMesaRelativeHeldToIavhRows,
   buildCustomMecData,
   buildDummyCoverageRows,
   buildMesaCustomMecCoverageRow,
@@ -29,6 +30,48 @@ describe('AOI ecosystems utilities', () => {
 
   it('locks active-solution Mesa coverage to the 417-row parity inventory', () => {
     expect(MESA_IAVH_FEATURE_COUNT).toBe(417);
+  });
+
+  it('replaces IAvH Total with Mesa relative_held when the feature matches', () => {
+    const [row] = applyMesaRelativeHeldToIavhRows(
+      [
+        {
+          id: 'forest',
+          label: 'Andean forest',
+          ecosystemAreaKm2: 10,
+          preExistingCoverageKm2: 1,
+          newPrioritizrCoverageKm2: 3,
+          preExistingPercent: 10,
+          newPrioritizrPercent: 30,
+          solutionCoveragePercent: 40,
+        },
+      ],
+      new Map([['andean-forest', { relativeHeld: 0.202, totalAmount: 6054, absoluteHeld: 1225 }]]),
+    );
+    expect(row.solutionCoveragePercent).toBeCloseTo(20.2);
+    expect(row.mesaTotalInAoi).toBe(6054);
+    expect(row.mesaHeldInAoi).toBe(1225);
+    expect(row.mesaOffPlanningGrid).toBe(false);
+  });
+
+  it('clears IAvH Total for catalog classes that Mesa never evaluated', () => {
+    const [row] = applyMesaRelativeHeldToIavhRows(
+      [
+        {
+          id: 'island',
+          label: 'Island mangrove',
+          ecosystemAreaKm2: 2,
+          preExistingCoverageKm2: 2,
+          newPrioritizrCoverageKm2: 0,
+          preExistingPercent: 100,
+          newPrioritizrPercent: 0,
+          solutionCoveragePercent: 100,
+        },
+      ],
+      new Map([['andean-forest', { relativeHeld: 0.202, totalAmount: 6054, absoluteHeld: 1225 }]]),
+    );
+    expect(row.solutionCoveragePercent).toBeNull();
+    expect(row.mesaOffPlanningGrid).toBe(true);
   });
 
   it('calculates strategic overlap against candidate area and clamps the result', () => {

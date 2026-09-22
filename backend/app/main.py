@@ -9,8 +9,10 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any, Callable
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Response, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .area_profile import (
     calculate_custom_area_profile,
@@ -48,6 +50,12 @@ from .polygon_metrics import (
     validate_polygon_geometry,
 )
 from .rate_limit import expensive_post_rate_limit
+from .security_log import (
+    EVENT_OVERSIZED_POLYGON,
+    emit_from_request,
+    is_oversized_polygon_error,
+    maybe_log_http_exception,
+)
 from .solution_registry import SolutionRegistryError
 from .species_index import RuntimeSpeciesBitsetIndex
 
@@ -182,6 +190,15 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(StarletteHTTPException)
+async def security_http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+):
+    maybe_log_http_exception(request, exc.status_code)
+    return await http_exception_handler(request, exc)
+
+
 @app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse(status="ok")
@@ -227,7 +244,10 @@ def ready() -> ReadinessResponse:
     },
     dependencies=[Depends(expensive_post_rate_limit)],
 )
-def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResponse:
+def custom_polygon_metrics(
+    request: PolygonMetricsRequest,
+    http_request: Request,
+) -> PolygonMetricsResponse:
     started = time.perf_counter()
     settings = get_settings()
     state = get_artifact_state(settings)
@@ -276,6 +296,8 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
             solution_raster,
         )
     except PolygonMetricError as exc:
+        if is_oversized_polygon_error(exc):
+            emit_from_request(http_request, EVENT_OVERSIZED_POLYGON, 422)
         response = PolygonMetricsResponse(
             status="invalid_request",
             message=str(exc),
@@ -313,6 +335,7 @@ def custom_polygon_metrics(request: PolygonMetricsRequest) -> PolygonMetricsResp
 )
 def custom_polygon_area_profile(
     request: CustomAreaProfileRequest,
+    http_request: Request,
 ) -> CustomAreaProfileResponse:
     settings = get_settings()
     get_artifact_state(settings)
@@ -355,6 +378,8 @@ def custom_polygon_area_profile(
             request.solution_id,
         )
     except PolygonMetricError as exc:
+        if is_oversized_polygon_error(exc):
+            emit_from_request(http_request, EVENT_OVERSIZED_POLYGON, 422)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"status": "invalid_request", "message": str(exc)},
@@ -385,11 +410,14 @@ def custom_polygon_area_profile(
 def create_detailed_species_job(
     request: DetailedSpeciesCoverageRequest,
     response: Response,
+    http_request: Request,
 ) -> DetailedSpeciesJobResponse:
     if request.geometry is not None:
         try:
             validate_polygon_geometry(request.geometry)
         except PolygonMetricError as exc:
+            if is_oversized_polygon_error(exc):
+                emit_from_request(http_request, EVENT_OVERSIZED_POLYGON, 422)
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail={"status": "invalid_request", "message": str(exc)},

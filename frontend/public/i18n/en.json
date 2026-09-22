@@ -16,12 +16,16 @@
     },
     "actions": {
       "exploreFirst": "Explore map first",
+      "howToGuide": "How-to guide",
+      "about": "About",
       "selectSolution": "Get Started"
     }
   },
   "header": {
     "appTitle": "Prioritizing Nature",
+    "guide": "Guide",
     "about": "About",
+    "infoNavLabel": "Information pages",
     "primaryPartnersLabel": "Primary partner organizations",
     "primaryPartnersPrevious": "Show previous partner organizations",
     "primaryPartnersNext": "Show next partner organizations",
@@ -40,6 +44,9 @@
     "title": "Organizations supporting conservation planning in Colombia",
     "description": "This decision-support tool is made possible through the expertise, data, and collaboration of the organizations shown below.",
     "backToMap": "Return to map",
+    "guideTitle": "User guide",
+    "guideDescription": "Watch the walkthrough or download the manual to keep as a reference.",
+    "guideAction": "Open user guide",
     "contactTitle": "Contact",
     "contactDescription": "For questions about this tool or conservation priorities, write to:",
     "nationalInstitutionsTitle": "National institutions",
@@ -52,7 +59,26 @@
     "sirapDescription": "Regional protected area systems contributing to territorial planning.",
     "sirapEmptyMessage": "SIRAP logos are not yet available. They will be added when assets are provided.",
     "regionalCorporationsTitle": "Regional autonomous corporations",
-    "regionalCorporationsDescription": "Regional environmental authorities that can participate in the broader conservation planning collaboration."
+    "regionalCorporationsDescription": "Regional environmental authorities that can participate in the broader conservation planning collaboration.",
+    "acknowledgementsTitle": "Acknowledgements",
+    "acknowledgementsDescription": "This tool was adapted from concepts originally developed for the Where to Work tool by the Nature Conservancy of Canada and Carleton University. The first iteration of this tool was developed by the UNDP Global Programme on Nature for Development, and with financial support from the Bezos Earth Fund. The most recent iteration has been developed by the ECOPLAN team, with financial support from NSF, UCSB, and CI. Data and modeling methods were developed by the Mesa Nacional de Prioridades de Conservación and other institutions and organizations listed above, and implemented by the ECOPLAN team."
+  },
+  "guide": {
+    "kicker": "User guide",
+    "title": "Learn how to use the tool",
+    "description": "Watch a walkthrough of the planning workflow, or download the manual for workshops and offline review.",
+    "videoTitle": "Watch the walkthrough",
+    "videoDescription": "A long-form tour of goals, the map, and analysis. It does not play automatically.",
+    "videoCaption": "English · 720p · {{duration}}",
+    "captionsNote": "Captions will be added when available.",
+    "videoLoading": "Loading video…",
+    "videoError": "The video could not be loaded. You can still download the manual.",
+    "manualTitle": "Download the manual",
+    "manualDescription": "A printable companion to the video, useful in workshops and offline review.",
+    "manualMeta": "English · PDF · about 1 MB",
+    "manualDownload": "Download PDF",
+    "manualOtherLanguage": "Spanish manual also available",
+    "manualError": "The manual could not be opened. Try again, or switch language in the header."
   },
   "common": {
     "close": "Close"
@@ -161,8 +187,8 @@
       "valueUnavailable": "Unavailable",
       "deltaUnavailable": "No delta",
       "partialSpeciesCoverage": "Based on {{available}} of {{total}} catalogued species",
-      "partialSpeciesSources": "Partial value: {{excluded}} approved species sources unavailable",
-      "partialSources": "Partial value: some approved source inputs are unavailable"
+      "partialSpeciesSources": "Excludes {{excluded}} species whose range maps were missing from the source inventory.",
+      "partialSources": "Excludes species whose range maps were missing from the source inventory."
     },
     "exports": {
       "downloadOverviewCsv": "DOWNLOAD OVERVIEW METRICS CSV",
@@ -292,8 +318,6 @@
           "targetProgressTitle": "Selected target progress",
           "targetProgressUnavailable": "Authoritative target progress is unavailable for this regional scenario.",
           "targetLabel": "Target {{percent}}",
-          "achievedLabel": "Achieved {{percent}}",
-          "achievedLabelWithArea": "Achieved {{percent}} ({{area}})",
           "targets": {
             "strategic-ecosystems": "Strategic ecosystems",
             "dry-forest": "Tropical dry forest",
@@ -321,7 +345,9 @@
           "ecosystemCoverageTitle": "Ecosystem coverage",
           "speciesTitle": "Species represented",
           "ecosystems": {
-            "iavh": "National ecosystem map (MEC) area"
+            "iavh": "National ecosystem map (MEC) area",
+            "iavhLine1": "National ecosystem map (MEC)",
+            "iavhLine2": "area"
           },
           "species": {
             "mammals": "Mammals",
@@ -372,6 +398,8 @@
           "customSpeciesUnavailable": "Full species coverage is not available for custom drawn areas.",
           "classificationsLoading": "Loading ecosystem classifications...",
           "classificationsLoadError": "The additional ecosystem classifications could not be loaded. The available feature data is still shown below.",
+          "notTargeted": "Not targeted",
+          "notOnPlanningGrid": "Not on the planning grid",
           "retry": "Retry",
           "classificationUnavailable": "This classification is not available for this scenario.",
           "configuredTarget": "Configured target",
@@ -537,6 +565,8 @@
         "conservationGoalsMetDesc": "Share of conservation features achieved",
         "speciesGroupsProtected": "Species Groups Protected",
         "speciesGroupsProtectedDesc": "Habitat protection",
+        "assumedRangeTargetSingle": "Assuming a {{percent}}% range target",
+        "assumedRangeTargetBoth": "Assuming 17% / 30% range targets",
         "threatenedSpeciesSecured": "Threatened Species Secured",
         "threatenedSpeciesSecuredDesc": "IUCN habitat targets met",
         "ecosystemCoverage": "Ecosystem Coverage",
@@ -955,6 +985,7 @@
           "customDescription": "Explore the live ecosystem composition and backend-calculated scenario coverage for this custom AOI.",
           "coverageRequiresSolution": "Select a land scenario to calculate coverage.",
           "coverageNotCalculated": "Not calculated",
+          "notOnPlanningGrid": "Not on the planning grid",
           "aoiArea": "Total AOI land area",
           "candidateArea": "Total scenario area in AOI",
           "classifiedArea": "Mapped ecosystem area",

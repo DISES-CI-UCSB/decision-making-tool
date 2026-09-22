@@ -27,6 +27,7 @@ import hashlib
 import math
 import struct
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -273,6 +274,47 @@ def read_solution_raster(path: Path) -> SolutionRaster:
             new_prioritizr_mask=new_prioritizr,
             pre_existing_mask=pre_existing,
         )
+
+
+@lru_cache(maxsize=4)
+def _cached_terrestrial_template(
+    template_path: str,
+) -> tuple[RasterFingerprint, np.ndarray]:
+    template = read_reference_raster(Path(template_path))
+    return template.fingerprint, np.asarray(template.valid_mask, dtype=bool).copy()
+
+
+def terrestrial_template_scope_mask(
+    raster: SolutionRaster,
+    template_path: Path,
+) -> np.ndarray:
+    """Return Mesa terrestrial-template valid cells as the species-range scope.
+
+    This is the same denominator mesa_parity uses against the science-team
+    summary CSV. ``raster.valid_mask`` / ``solution_data_valid_mask`` must not
+    be used: published September solutions store unselected planning units as
+    nodata, so that mask equals ``selected_mask``.
+    """
+
+    fingerprint, scope = _cached_terrestrial_template(
+        str(Path(template_path).resolve())
+    )
+    if not raster.fingerprint.matches(fingerprint):
+        raise RasterError(
+            f"Species-goals template {template_path} does not match solution "
+            f"grid {raster.path}."
+        )
+    selected = np.asarray(raster.selected_mask, dtype=bool)
+    if scope.shape != selected.shape:
+        raise RasterError(
+            "Species-goals template mask shape does not match the solution raster."
+        )
+    if np.array_equal(scope, selected):
+        raise RasterError(
+            "Terrestrial template valid mask equals the solution selected mask; "
+            "refusing a tautological species-range denominator."
+        )
+    return scope
 
 
 def read_reference_raster(path: Path) -> SolutionRaster:

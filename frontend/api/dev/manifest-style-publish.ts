@@ -194,23 +194,6 @@ async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
 module.exports = handler;
 
 async function publishManifestStyleRequest(req: VercelRequest, res: VercelResponse): Promise<void> {
-  if (req.method === 'GET') {
-    res.status(200).json({
-      message: 'Manifest style publish route is reachable',
-      hasBlobToken: Boolean(process.env[BLOB_TOKEN_ENV_VAR]),
-      hasFirebaseProjectId: Boolean(process.env[FIREBASE_PROJECT_ID_ENV_VAR]),
-      hasFirebaseServiceAccountJson: Boolean(
-        process.env[FIREBASE_SERVICE_ACCOUNT_JSON_ENV_VAR]?.trim(),
-      ),
-      hasFirebaseClientEmail: Boolean(process.env[FIREBASE_CLIENT_EMAIL_ENV_VAR]?.trim()),
-      hasFirebasePrivateKey: Boolean(process.env[FIREBASE_PRIVATE_KEY_ENV_VAR]?.trim()),
-      manifestWritesEnabled: isTruthy(process.env[WRITE_GUARD_ENV_VAR]),
-      productionManifestWritesEnabled: isTruthy(process.env[PRODUCTION_WRITE_GUARD_ENV_VAR]),
-      vercelEnv: process.env['VERCEL_ENV'] ?? null,
-    });
-    return;
-  }
-
   if (req.method !== 'POST') {
     throw new HttpError(405, 'Method not allowed');
   }

@@ -65,6 +65,15 @@ export function metricAvailabilityNote(
   }
 
   const exception = asRecord(metric.details?.['speciesException']);
+  const thresholdOutcomes = metric.details?.['thresholdOutcomes'];
+  const isThresholdOnlyReference =
+    metric.value === null &&
+    Array.isArray(thresholdOutcomes) &&
+    thresholdOutcomes.length === 2 &&
+    exception === null;
+  if (isThresholdOnlyReference) {
+    return null;
+  }
   const available = readCount(exception?.['availableExpected']);
   const total = readCount(exception?.['catalogTotal']);
   if (available !== null && total !== null) {
@@ -127,6 +136,47 @@ export function formatAreaValue(valueKm2: number, options: MetricFormatOptions):
     formatNumber(convertAreaValue(valueKm2, options.areaUnit), options, 0, 2),
     areaUnitLabel(options.areaUnit),
   );
+}
+
+/** Whole-number percent for SIRAP target cards. Ceils; 74.8 → 75%, 17 stays 17%. */
+export function formatSirapProgressPercent(
+  value: number,
+  options: Pick<MetricFormatOptions, 'locale'>,
+): string {
+  return appendUnit(formatNumber(Math.ceil(value), { ...options, mode: 'full' }, 0, 0), '%');
+}
+
+/**
+ * Compact SIRAP card areas with no first decimal. Ceils the current 1-decimal compact
+ * display: 1.7K → 2K, 20.5K → 21K, 25K stays 25K. Values under 1000 stay whole km².
+ */
+export function formatSirapCompactArea(
+  valueKm2: number,
+  options: MetricFormatOptions,
+): string {
+  const displayValue = convertAreaValue(valueKm2, options.areaUnit);
+  const locale = resolveNumberLocale(options.locale);
+  const absoluteValue = Math.abs(displayValue);
+  const compactScale =
+    absoluteValue >= 1_000_000 ? 1_000_000 : absoluteValue >= 1_000 ? 1_000 : 1;
+  const coefficient =
+    compactScale === 1
+      ? Math.ceil(displayValue)
+      : Math.ceil(Math.round((displayValue / compactScale) * 10) / 10);
+  const formattedValue = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(coefficient);
+
+  if (compactScale === 1_000_000) {
+    return appendUnit(`${formattedValue}M`, areaUnitLabel(options.areaUnit));
+  }
+  if (compactScale === 1_000) {
+    const compactLabel =
+      options.locale === 'es' ? `${formattedValue} mil` : `${formattedValue}K`;
+    return appendUnit(compactLabel, areaUnitLabel(options.areaUnit));
+  }
+  return appendUnit(formattedValue, areaUnitLabel(options.areaUnit));
 }
 
 export function formatNumber(

@@ -16,12 +16,16 @@
     },
     "actions": {
       "exploreFirst": "Explorar mapa primero",
+      "howToGuide": "Guía de uso",
+      "about": "Acerca de",
       "selectSolution": "Empezar"
     }
   },
   "header": {
     "appTitle": "Priorizando la Naturaleza",
+    "guide": "Guía",
     "about": "Acerca de",
+    "infoNavLabel": "Páginas de información",
     "primaryPartnersLabel": "Organizaciones aliadas principales",
     "primaryPartnersPrevious": "Mostrar organizaciones aliadas anteriores",
     "primaryPartnersNext": "Mostrar las siguientes organizaciones aliadas",
@@ -40,6 +44,9 @@
     "title": "Organizaciones que apoyan la planificación de la conservación en Colombia",
     "description": "Esta herramienta de apoyo a la toma de decisiones es posible gracias a la experiencia, los datos y la colaboración de las organizaciones que se muestran a continuación.",
     "backToMap": "Volver al mapa",
+    "guideTitle": "Guía de uso",
+    "guideDescription": "Vea el recorrido o descargue el manual para consultarlo después.",
+    "guideAction": "Abrir la guía de uso",
     "contactTitle": "Contacto",
     "contactDescription": "Para preguntas sobre esta herramienta o las prioridades de conservación, escriba a:",
     "nationalInstitutionsTitle": "Instituciones nacionales",
@@ -52,7 +59,26 @@
     "sirapDescription": "Sistemas regionales de áreas protegidas que contribuyen a la planificación territorial.",
     "sirapEmptyMessage": "Los logos de los SIRAP aún no están disponibles. Se agregarán cuando se reciban los archivos.",
     "regionalCorporationsTitle": "Corporaciones autónomas regionales",
-    "regionalCorporationsDescription": "Autoridades ambientales regionales que pueden participar en la colaboración más amplia de planificación para la conservación."
+    "regionalCorporationsDescription": "Autoridades ambientales regionales que pueden participar en la colaboración más amplia de planificación para la conservación.",
+    "acknowledgementsTitle": "Agradecimientos",
+    "acknowledgementsDescription": "Esta herramienta se adaptó a partir de conceptos desarrollados originalmente para la herramienta Where to Work de Nature Conservancy of Canada y Carleton University. La primera iteración de esta herramienta fue desarrollada por el Programa Global sobre Naturaleza para el Desarrollo del PNUD, con el apoyo financiero del Bezos Earth Fund. La iteración más reciente ha sido desarrollada por el equipo ECOPLAN, con el apoyo financiero de NSF, UCSB y CI. Los datos y los métodos de modelación fueron desarrollados por la Mesa Nacional de Prioridades de Conservación y otras instituciones y organizaciones mencionadas arriba, e implementados por el equipo ECOPLAN."
+  },
+  "guide": {
+    "kicker": "Guía de uso",
+    "title": "Aprenda a usar la herramienta",
+    "description": "Vea un recorrido por el flujo de planificación o descargue el manual para talleres y consulta sin conexión.",
+    "videoTitle": "Vea el recorrido",
+    "videoDescription": "Un recorrido completo de los objetivos, el mapa y el análisis. No se reproduce automáticamente.",
+    "videoCaption": "Español · 720p · {{duration}}",
+    "captionsNote": "Los subtítulos se agregarán cuando estén disponibles.",
+    "videoLoading": "Cargando el video…",
+    "videoError": "No se pudo cargar el video. Aún puede descargar el manual.",
+    "manualTitle": "Descargue el manual",
+    "manualDescription": "Un documento imprimible que acompaña el video, útil en talleres y para consulta sin conexión.",
+    "manualMeta": "Español · PDF · aproximadamente 1 MB",
+    "manualDownload": "Descargar PDF",
+    "manualOtherLanguage": "También está disponible el manual en inglés",
+    "manualError": "No se pudo abrir el manual. Inténtelo de nuevo o cambie el idioma en el encabezado."
   },
   "common": {
     "close": "Cerrar"
@@ -161,8 +187,8 @@
       "valueUnavailable": "No disponible",
       "deltaUnavailable": "Sin delta",
       "partialSpeciesCoverage": "Basado en {{available}} de {{total}} especies catalogadas",
-      "partialSpeciesSources": "Valor parcial: {{excluded}} fuentes de especies aprobadas no disponibles",
-      "partialSources": "Valor parcial: algunas fuentes de entrada aprobadas no están disponibles"
+      "partialSpeciesSources": "Excluye {{excluded}} especies cuyas capas de distribución no estaban en el inventario de origen.",
+      "partialSources": "Excluye especies cuyas capas de distribución no estaban en el inventario de origen."
     },
     "exports": {
       "downloadOverviewCsv": "DESCARGAR MÉTRICAS DEL RESUMEN CSV",
@@ -292,8 +318,6 @@
           "targetProgressTitle": "Avance de las metas seleccionadas",
           "targetProgressUnavailable": "El avance autoritativo de las metas no está disponible para este escenario regional.",
           "targetLabel": "Meta {{percent}}",
-          "achievedLabel": "Alcanzado {{percent}}",
-          "achievedLabelWithArea": "Alcanzado {{percent}} ({{area}})",
           "targets": {
             "strategic-ecosystems": "Ecosistemas estratégicos",
             "dry-forest": "Bosque seco tropical",
@@ -321,7 +345,9 @@
           "ecosystemCoverageTitle": "Cobertura de ecosistemas",
           "speciesTitle": "Especies representadas",
           "ecosystems": {
-            "iavh": "Área del mapa nacional de ecosistemas (MEC)"
+            "iavh": "Área del mapa nacional de ecosistemas (MEC)",
+            "iavhLine1": "Mapa nacional de ecosistemas (MEC)",
+            "iavhLine2": "Área"
           },
           "species": {
             "mammals": "Mamíferos",
@@ -372,6 +398,8 @@
           "customSpeciesUnavailable": "La cobertura completa de especies no está disponible para áreas dibujadas.",
           "classificationsLoading": "Cargando clasificaciones de ecosistemas...",
           "classificationsLoadError": "No se pudieron cargar las clasificaciones adicionales de ecosistemas. Los datos disponibles de los elementos se muestran a continuación.",
+          "notTargeted": "Sin meta",
+          "notOnPlanningGrid": "Fuera de la grilla de planificación",
           "retry": "Reintentar",
           "classificationUnavailable": "Esta clasificación no está disponible para este escenario.",
           "configuredTarget": "Meta configurada",
@@ -537,6 +565,8 @@
         "conservationGoalsMetDesc": "Porcentaje de elementos de conservación alcanzados",
         "speciesGroupsProtected": "Grupos de especies protegidos",
         "speciesGroupsProtectedDesc": "Protección del hábitat",
+        "assumedRangeTargetSingle": "Si se asume una meta de {{percent}}% del área de distribución",
+        "assumedRangeTargetBoth": "Si se asumen metas de 17% / 30% del área de distribución",
         "threatenedSpeciesSecured": "Especies amenazadas aseguradas",
         "threatenedSpeciesSecuredDesc": "Metas de hábitat UICN cumplidas",
         "ecosystemCoverage": "Cobertura de ecosistemas",
@@ -874,6 +904,7 @@
           "customDescription": "Explora la composición ecosistémica en vivo y la cobertura del escenario calculada por el backend para este AOI personalizado.",
           "coverageRequiresSolution": "Selecciona un escenario terrestre para calcular la cobertura.",
           "coverageNotCalculated": "Sin calcular",
+          "notOnPlanningGrid": "Fuera de la grilla de planificación",
           "aoiArea": "Área terrestre total del AOI",
           "candidateArea": "Área total del escenario en el AOI",
           "classifiedArea": "Área de ecosistemas cartografiada",

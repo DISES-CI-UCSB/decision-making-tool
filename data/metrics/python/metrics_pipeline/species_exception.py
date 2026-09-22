@@ -152,17 +152,17 @@ def load_species_exception(
             "species exception lacks the fail-closed first-patch resolution policy."
         )
     inventory = raw.get("inventory")
-    if inventory != {
-        "catalogTotal": 8300,
-        "availableExpected": 8298,
-        "excluded": 2,
-    }:
-        raise SpeciesExceptionError("species exception inventory counts are invalid.")
     entries = raw.get("excludedSpecies")
-    if not isinstance(entries, list) or len(entries) != inventory["excluded"]:
-        raise SpeciesExceptionError(
-            "species exception entries do not match the excluded count."
-        )
+    if (
+        not isinstance(inventory, dict)
+        or inventory.get("catalogTotal") != 8300
+        or not isinstance(inventory.get("availableExpected"), int)
+        or not isinstance(inventory.get("excluded"), int)
+        or inventory["availableExpected"] + inventory["excluded"] != 8300
+        or not isinstance(entries, list)
+        or len(entries) != inventory["excluded"]
+    ):
+        raise SpeciesExceptionError("species exception inventory counts are invalid.")
     filenames: list[str] = []
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict):

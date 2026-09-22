@@ -25,6 +25,27 @@
       </a>
     </div>
 
+    <section id="about-page-guide-section" class="mt-12 max-w-3xl">
+      <article
+        id="about-page-guide-card"
+        class="rounded-xl border border-slate-200 bg-white p-5"
+      >
+        <h2 id="about-page-guide-title" class="text-xl font-semibold text-slate-950">
+          {{ 'about.guideTitle' | translate }}
+        </h2>
+        <p id="about-page-guide-description" class="mt-2 text-sm leading-6 text-slate-600">
+          {{ 'about.guideDescription' | translate }}
+        </p>
+        <a
+          id="about-page-guide-link"
+          routerLink="/guide"
+          class="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 sm:w-auto"
+        >
+          {{ 'about.guideAction' | translate }}
+        </a>
+      </article>
+    </section>
+
     <section id="about-page-contact" class="mt-12 max-w-3xl">
       <h2 id="about-page-contact-title" class="text-xl font-semibold text-slate-950">
         {{ 'about.contactTitle' | translate }}
@@ -110,5 +131,14 @@
         }
       </section>
     }
+
+    <section id="about-page-acknowledgements" class="mt-14 max-w-3xl border-t border-slate-200 pt-10">
+      <h2 id="about-page-acknowledgements-title" class="text-xl font-semibold text-slate-950">
+        {{ 'about.acknowledgementsTitle' | translate }}
+      </h2>
+      <p id="about-page-acknowledgements-description" class="mt-2 text-sm leading-6 text-slate-600">
+        {{ 'about.acknowledgementsDescription' | translate }}
+      </p>
+    </section>
   </section>
 </main>

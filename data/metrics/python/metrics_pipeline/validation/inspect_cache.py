@@ -84,6 +84,7 @@ def _inspect_metric_list(
     metrics: Any,
     domain: SolutionDomain | None,
     target_policy_kind: str,
+    target_policy_absent: bool = False,
 ) -> list[InspectIssue]:
     issues: list[InspectIssue] = []
     location = f"geographies.{geography_level}.{scope_id}.metrics"
@@ -144,12 +145,20 @@ def _inspect_metric_list(
             continue
 
         value = metric.get("value")
+        details = metric.get("details")
         dual_reference_value = (
             status == "partial"
             and value is None
-            and target_policy_kind == "dual_reference"
             and metric_id
             in {"species_groups_protected", "threatened_species_secured"}
+            and (
+                target_policy_kind == "dual_reference"
+                or (
+                    target_policy_absent
+                    and isinstance(details, dict)
+                    and "thresholdOutcomes" in details
+                )
+            )
         )
         if status in {"ready", "partial"} and not dual_reference_value:
             if (
@@ -224,6 +233,7 @@ def _inspect_doc(solution_id: str, doc: dict[str, Any]) -> list[InspectIssue]:
     )
     provenance = doc.get(PROVENANCE_KEY)
     domain: SolutionDomain | None = None
+    target_policy = None
     target_policy_kind = "scalar"
     if isinstance(provenance, dict):
         target_policy = provenance.get("speciesTargetPolicy")
@@ -289,6 +299,7 @@ def _inspect_doc(solution_id: str, doc: dict[str, Any]) -> list[InspectIssue]:
                 metrics=scope.get("metrics"),
                 domain=domain,
                 target_policy_kind=target_policy_kind,
+                target_policy_absent=target_policy is None,
             ))
 
     return issues

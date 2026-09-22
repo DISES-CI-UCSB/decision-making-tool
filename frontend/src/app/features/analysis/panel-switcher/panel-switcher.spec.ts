@@ -35,6 +35,7 @@ import {
   MecMetricsLoaderService,
   type MecMetricsLoadResult,
 } from '@core/services/mec-metrics-loader.service';
+import { MesaEcosystemCoverageLoaderService } from '@core/services/mesa-ecosystem-coverage-loader.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { SolutionGoalsLoaderService } from '@core/services/solution-goals-loader.service';
 import { SpeciesGoalsLoaderService } from '@core/services/species-goals-loader.service';
@@ -117,6 +118,9 @@ describe('PanelSwitcherComponent', () => {
       loadMecMetrics: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
       loadNationalDenominator: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
     };
+    const mesaEcosystemCoverageLoaderSpy = {
+      load: vi.fn(() => of({ status: 'unavailable' as const, document: null })),
+    };
     speciesGoalsLoaderSpy = {
       load: vi.fn(() => of(buildHydratedSpeciesRecords(goalsDocument))),
     };
@@ -143,6 +147,7 @@ describe('PanelSwitcherComponent', () => {
       providers: [
         { provide: ApiService, useValue: apiServiceSpy },
         { provide: MecMetricsLoaderService, useValue: mecMetricsLoaderSpy },
+        { provide: MesaEcosystemCoverageLoaderService, useValue: mesaEcosystemCoverageLoaderSpy },
         { provide: SpeciesGoalsLoaderService, useValue: speciesGoalsLoaderSpy },
         {
           provide: SolutionGoalsLoaderService,
@@ -1523,6 +1528,65 @@ describe('PanelSwitcherComponent', () => {
     expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
   });
 
+  it('keeps scenario and within-AOI land-use charts on separate metric families for a SIRAP', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedSirapMetricsDocument(
+          solution.id,
+          [
+            ...buildLandUsePercentMetrics({
+              land_use_artificial_surfaces_pct: 89.1,
+              land_use_agricultural_areas_pct: 9.4,
+              land_use_forests_and_semi_natural_areas_pct: 0.7,
+              land_use_wetlands_pct: 0.8,
+              land_use_water_bodies_pct: 0,
+            }),
+            ...buildLandUseOfAoiPercentMetrics({
+              land_use_artificial_surfaces_pct_of_aoi: 0.2,
+              land_use_agricultural_areas_pct_of_aoi: 19.7,
+              land_use_forests_and_semi_natural_areas_pct_of_aoi: 78.1,
+              land_use_wetlands_pct_of_aoi: 0.8,
+              land_use_water_bodies_pct_of_aoi: 1.3,
+            }),
+          ],
+          'territorial_territorial_orinoquia_7',
+          'Territorial Orinoquia',
+        ),
+      ),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'sirap:territorial_territorial_orinoquia_7',
+      name: 'Territorial Orinoquia',
+      type: 'sirap',
+      geometryUrl: '/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+      boundarySourceLayerKey: 'siraps',
+      boundarySourceId: 'aoi-siraps-combined-colombia',
+      boundaryGeometrySelection: 'whole-feature',
+      areaKm2: 250_000,
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelector('#aoi-landuse-scenario-bar-val-artificial-surfaces')?.textContent,
+    ).toMatch(/89[,.]1%/);
+    expect(
+      compiled.querySelector('#aoi-landuse-aoi-bar-val-forests-and-semi-natural-areas')
+        ?.textContent,
+    ).toMatch(/78[,.]1%/);
+    expect(compiled.querySelector('#aoi-landuse-aoi-chart')?.textContent).not.toMatch(/89[,.]1%/);
+    expect(compiled.querySelector('#aoi-landuse-scenario-chart')?.textContent).not.toMatch(
+      /78[,.]1%/,
+    );
+    expect(apiServiceSpy.getCustomPolygonMetrics).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       label: 'municipality',
@@ -2251,9 +2315,7 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#aoi-mec-classifications-modal-mec-source-overview'),
     ).not.toBeNull();
-    expect(
-      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map'),
-    ).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map')).not.toBeNull();
     const table = compiled.querySelector('#aoi-mec-modal-table');
     expect(table).not.toBeNull();
     expect(compiled.querySelectorAll('#aoi-mec-modal-table')).toHaveLength(1);
@@ -2591,6 +2653,65 @@ describe('PanelSwitcherComponent', () => {
     expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
   });
 
+  it('keeps MEC for a national compact Territorial Orinoquia row even when aggregate metrics exist', async () => {
+    const solution = buildTestSolution();
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(
+        buildCachedSirapMetricsDocument(
+          solution.id,
+          [
+            buildMetric('ecosystem_coverage', 60227, 'km²', 'number'),
+            buildMetric('ecosystem_coverage_paramo', 1600, 'km²', 'number'),
+            buildMetric('ecosystem_coverage_dry_forest', 461, 'km²', 'number'),
+            buildMetric('ecosystem_coverage_wetlands', 23100, 'km²', 'number'),
+          ],
+          'territorial_territorial_orinoquia_7',
+          'Territorial Orinoquia',
+        ),
+      ),
+    );
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockReturnValue(
+      of({
+        status: 'loaded',
+        document: buildV2MecDocument(solution.id, {
+          geographyLevel: 'siraps',
+          scopeId: 'territorial_territorial_orinoquia_7',
+          scopeName: 'Territorial Orinoquia',
+          boundaryProvenanceRef: 'siraps',
+        }),
+        format: 'mec-compact-v2',
+      }),
+    );
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      domain: 'land',
+      scope: 'national',
+      precomputedMetricUrls: {},
+    } as CatalogSolution);
+    appState.activeSolution$.set(solution);
+    appState.selectAOI({
+      id: 'sirap:territorial_territorial_orinoquia_7',
+      name: 'Territorial Orinoquia',
+      type: 'sirap',
+      geometryUrl: '/inputs/boundaries/sirap/siraps_merged_polygon_v2.geojson',
+      boundarySourceLayerKey: 'siraps_territorial_updated',
+      boundarySourceId: 'aoi-siraps-territorial-updated-colombia',
+      boundaryGeometrySelection: 'whole-feature',
+    });
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#aoi-sirap-ecosystem-aggregates')).toBeNull();
+    expect(compiled.querySelector('#aoi-sirap-biodiversity-context')).toBeNull();
+    expect(compiled.querySelector('#aoi-mec-breakdown-select')).not.toBeNull();
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'siraps');
+  });
+
   it('keeps the species drilldown for departments with explicit artifacts', async () => {
     const solution = {
       ...buildTestSolution(),
@@ -2680,19 +2801,33 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-goals-widget-target-rule'),
     ).toBeNull();
-    const targetGroups = (
-      fixture.componentInstance as unknown as {
-        sirapOverviewTargetGroups(): {
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-progress-title'),
+    ).toBeNull();
+    const component = fixture.componentInstance as unknown as {
+      sirapOverviewTargetGroups(): {
+        id: string;
+        features: {
           id: string;
-          features: {
-            id: string;
-            achievedPercent: number;
-            achievedAreaKm2: number | null;
-            targetPercent: number;
-          }[];
+          achievedPercent: number;
+          achievedAreaKm2: number | null;
+          targetPercent: number;
         }[];
-      }
-    ).sirapOverviewTargetGroups();
+      }[];
+      formatSirapAchievedArea(feature: { achievedAreaKm2: number | null }): string | null;
+      formatSirapFeatureProgress(feature: {
+        achievedPercent: number;
+        achievedAreaKm2: number | null;
+      }): string;
+      getSirapProgressPercentLabel(value: number | null): string;
+      targetProgressGoalsDomains(): { id: string }[];
+    };
+    const targetGroups = component.sirapOverviewTargetGroups();
+    expect(targetGroups.map((group) => group.id)).toEqual([
+      'strategic-ecosystems',
+      'dry-forest',
+      'eje-wetlands',
+    ]);
     expect(targetGroups[0].features[0]).toMatchObject({
       id: 'paramos',
       achievedPercent: 51.6,
@@ -2703,44 +2838,118 @@ describe('PanelSwitcherComponent', () => {
       id: 'ec-wetlands',
       achievedAreaKm2: null,
     });
+    expect(component.targetProgressGoalsDomains().map((domain) => domain.id)).not.toContain(
+      'dry-forest',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-strategic-ecosystems'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-dry-forest'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-strategic-ecosystems'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-count-dry-forest'),
+    ).toBeNull();
     expect(
       compiled.querySelector(
         '#right-sidebar-v3-overview-sirap-target-feature-achieved-strategic-ecosystems-paramos',
       )?.textContent,
-    ).toContain('analysis.overview.goalsWidget.sirap.achievedLabelWithArea');
+    ).toContain('52% (2 mil km²)');
     expect(
       compiled.querySelector(
         '#right-sidebar-v3-overview-sirap-target-feature-achieved-dry-forest-bosque-seco',
       )?.textContent,
-    ).toContain('analysis.overview.goalsWidget.sirap.achievedLabelWithArea');
+    ).toContain('17% (6 mil km²)');
     expect(
       compiled.querySelector(
         '#right-sidebar-v3-overview-sirap-target-feature-achieved-eje-wetlands-ec-wetlands',
       )?.textContent,
-    ).toContain('analysis.overview.goalsWidget.sirap.achievedLabel');
+    ).toContain('70%');
     expect(
       compiled.querySelector(
         '#right-sidebar-v3-overview-sirap-target-feature-achieved-eje-wetlands-ec-wetlands',
       )?.textContent,
-    ).not.toContain('analysis.overview.goalsWidget.sirap.achievedLabelWithArea');
+    ).not.toContain('(');
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-mode-dry-forest')
-        ?.textContent,
-    ).toContain('analysis.overview.goalsWidget.sirap.targetModes.inheritsStrategic');
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-progress')?.textContent,
+    ).not.toMatch(/Achieved|Alcanzado|achievedLabel/i);
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-additional-outcomes-description')
-        ?.textContent,
-    ).toContain('analysis.overview.goalsWidget.sirap.additionalOutcomesDescription');
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-status-strategic-ecosystems-paramos',
+      )?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.status.met');
+    expect(
+      compiled
+        .querySelector(
+          '#right-sidebar-v3-overview-sirap-target-feature-status-strategic-ecosystems-paramos',
+        )
+        ?.classList.contains('text-emerald-700'),
+    ).toBe(true);
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-mode-dry-forest'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-mode-eje-wetlands'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-progress')?.textContent,
+    ).not.toContain('inheritsStrategic');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-label-dry-forest-bosque-seco',
+      ),
+    ).toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-label-eje-wetlands-ec-wetlands',
+      ),
+    ).toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-label-strategic-ecosystems-paramos',
+      )?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.features.paramos');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-label-strategic-ecosystems-humedales',
+      )?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.features.humedales');
+    expect(component.formatSirapAchievedArea({ achievedAreaKm2: 1736.75 })).toBe('2 mil km²');
+    expect(component.formatSirapAchievedArea({ achievedAreaKm2: 20455.75 })).toBe('21 mil km²');
+    expect(component.formatSirapAchievedArea({ achievedAreaKm2: 25021 })).toBe('25 mil km²');
+    expect(component.formatSirapAchievedArea({ achievedAreaKm2: 515 })).toBe('515 km²');
+    expect(component.getSirapProgressPercentLabel(74.8)).toBe('75%');
+    expect(component.getSirapProgressPercentLabel(42.1)).toBe('43%');
+    expect(component.getSirapProgressPercentLabel(17)).toBe('17%');
+    expect(
+      component.formatSirapFeatureProgress({ achievedPercent: 51.6, achievedAreaKm2: 1736.75 }),
+    ).toBe('52% (2 mil km²)');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-additional-outcomes-description'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-additional-section #right-sidebar-v3-overview-sirap-ecosystem-coverage',
+      ),
+    ).not.toBeNull();
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-iavh-total')?.textContent,
-    ).toContain('1.250 km²');
+    ).toContain('2 mil km²');
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-label-iavh-total')
-        ?.textContent,
-    ).toContain('analysis.overview.goalsWidget.sirap.ecosystems.iavh');
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-iavh-line-1')?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.ecosystems.iavhLine1');
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-paramo'),
-    ).toBeNull();
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-iavh-line-2')?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.ecosystems.iavhLine2');
+    expect(
+      compiled
+        .querySelector('#right-sidebar-v3-overview-sirap-ecosystem-iavh-line-2')
+        ?.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-mec-help-trigger'),
+    ).not.toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-paramo')).toBeNull();
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-dry-forest'),
     ).toBeNull();
@@ -2757,24 +2966,20 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-mec-source-map'),
     ).not.toBeNull();
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-species-mammals')?.textContent,
-    ).toContain('64');
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-species-plants')?.textContent,
-    ).toContain('1.248');
+    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-species')).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-summary')).toBeNull();
     expect(compiled.querySelector('#right-sidebar-v3-overview-goals-widget-empty')).toBeNull();
-    const speciesCoverageButton = compiled.querySelector(
-      '#right-sidebar-v3-overview-sirap-species-view-additional-coverage',
-    ) as HTMLButtonElement;
     const ecosystemCoverageButton = compiled.querySelector(
       '#right-sidebar-v3-overview-sirap-ecosystem-view-additional-coverage',
     ) as HTMLButtonElement;
-    expect(speciesCoverageButton).not.toBeNull();
     expect(ecosystemCoverageButton).not.toBeNull();
     expect(solutionGoalsLoaderSpy.loadGoals).toHaveBeenCalledWith(solution.id);
 
-    speciesCoverageButton.click();
+    (
+      fixture.componentInstance as unknown as {
+        openGoalsModal(domainId: string): void;
+      }
+    ).openGoalsModal('species');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -2782,7 +2987,7 @@ describe('PanelSwitcherComponent', () => {
       solution_id: solution.id,
       coverage_scope: 'full-grid',
     });
-    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
 
     (
       fixture.componentInstance as unknown as {
@@ -2815,9 +3020,7 @@ describe('PanelSwitcherComponent', () => {
         }
       ).getGoalsModalTitleParams(),
     ).toEqual({ sirapName: 'SIRAP Eje Cafetero' });
-    expect(
-      compiled.querySelector('#conservation-goals-modal-mec-source-overview'),
-    ).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-mec-source-overview')).not.toBeNull();
     expect(compiled.querySelector('#conservation-goals-modal-mec-source-map')).not.toBeNull();
   });
 
@@ -2967,10 +3170,10 @@ describe('PanelSwitcherComponent', () => {
     component.closeGoalsModal();
     fixture.detectChanges();
     (
-      compiled.querySelector(
-        '#right-sidebar-v3-overview-sirap-species-view-additional-coverage',
-      ) as HTMLButtonElement
-    ).click();
+      fixture.componentInstance as unknown as {
+        openGoalsModal(domainId: string): void;
+      }
+    ).openGoalsModal('species');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -2979,7 +3182,7 @@ describe('PanelSwitcherComponent', () => {
       solution_id: solution.id,
       coverage_scope: 'full-grid',
     });
-    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'orinoquia');
     expect(component.getGoalsModalTitleKey()).toBe(
       'analysis.overview.goalsWidget.modal.sirapSpeciesTitle',
     );
@@ -3128,7 +3331,7 @@ describe('PanelSwitcherComponent', () => {
       solution_id: solution.id,
       coverage_scope: 'full-grid',
     });
-    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'orinoquia');
     expect(
       fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
         ?.textContent,
@@ -3255,7 +3458,7 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-wetlands'),
     ).toBeNull();
-    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-species-reptiles')).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-species')).toBeNull();
   });
 
   it('shows SIRAP Total Carbon from carbon_biomass_total on the summary tab', async () => {
@@ -3369,6 +3572,32 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      sirapOverviewTargetGroups(): { id: string }[];
+      targetProgressGoalsDomains(): { id: string; metCount: number; totalCount: number }[];
+      formatSirapAchievedArea(feature: { achievedAreaKm2: number | null }): string | null;
+      formatSirapFeatureProgress(feature: {
+        achievedPercent: number;
+        achievedAreaKm2: number | null;
+      }): string;
+    };
+    expect(component.sirapOverviewTargetGroups().map((group) => group.id)).toEqual([
+      'strategic-ecosystems',
+      'congriales',
+      'savannas',
+    ]);
+    expect(component.targetProgressGoalsDomains()).not.toEqual([
+      expect.objectContaining({ id: 'strategic-ecosystems', metCount: 4, totalCount: 4 }),
+    ]);
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-count-strategic-ecosystems'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-progress-title'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-strategic-ecosystems'),
+    ).not.toBeNull();
     expect(
       compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-congriales'),
     ).not.toBeNull();
@@ -3376,9 +3605,62 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-savannas'),
     ).not.toBeNull();
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-mode-congriales')
-        ?.textContent,
-    ).toContain('analysis.overview.goalsWidget.sirap.targetModes.pairedWithStrategic');
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-mode-congriales'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-group-mode-savannas'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-progress')?.textContent,
+    ).not.toContain('pairedWithStrategic');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-label-congriales-congriales',
+      ),
+    ).toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-label-savannas-savannas',
+      ),
+    ).toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-label-strategic-ecosystems-paramos',
+      )?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.features.paramos');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-achieved-congriales-congriales',
+      ),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-achieved-savannas-savannas',
+      ),
+    ).not.toBeNull();
+    expect(component.formatSirapAchievedArea({ achievedAreaKm2: 1736.75 })).toBe('2 mil km²');
+    expect(component.formatSirapAchievedArea({ achievedAreaKm2: 1736.75 })).not.toContain('1.7');
+    expect(component.formatSirapAchievedArea({ achievedAreaKm2: 1736.75 })).not.toContain('1,7');
+    expect(component.formatSirapAchievedArea({ achievedAreaKm2: 1736.75 })).not.toContain('1.736');
+    expect(component.formatSirapAchievedArea({ achievedAreaKm2: 1736.75 })).not.toContain('1736');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-target-progress')?.textContent,
+    ).not.toMatch(/Achieved|Alcanzado|achievedLabel/i);
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-status-congriales-congriales',
+      )?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.status.met');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-status-savannas-savannas',
+      )?.textContent,
+    ).toContain('analysis.overview.goalsWidget.sirap.status.shortfall');
+    expect(
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-sirap-target-feature-status-savannas-savannas',
+      )?.textContent,
+    ).not.toMatch(/Achieved|Alcanzado/i);
   });
 
   it('blocks stale cached and MEC metrics for the outdated territorial source', async () => {
@@ -3635,9 +3917,7 @@ describe('PanelSwitcherComponent', () => {
     expect(
       compiled.querySelector('#aoi-mec-classifications-modal-mec-source-overview'),
     ).not.toBeNull();
-    expect(
-      compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map'),
-    ).not.toBeNull();
+    expect(compiled.querySelector('#aoi-mec-classifications-modal-mec-source-map')).not.toBeNull();
 
     (
       compiled.querySelector('#aoi-mec-classifications-modal-close-button') as HTMLButtonElement
@@ -3877,12 +4157,14 @@ describe('PanelSwitcherComponent', () => {
     expect(component.formatDelta(areaComparison)).toBe('+200 ha');
   });
 
-  it('separates configured targets from measured additional outcomes', () => {
+  it('separates configured targets from measured additional outcomes', async () => {
     goalsDocument = buildGoalsDocument();
     appState.activeSolution$.set(buildTestSolution());
     appState.setRightSidebarMode('overview');
 
     const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -3910,17 +4192,381 @@ describe('PanelSwitcherComponent', () => {
         ?.textContent,
     ).toContain('1');
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-Mammals'),
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-mammals'),
     ).not.toBeNull();
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-count-17-Mammals')
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-count-17-mammals')
         ?.textContent,
     ).toContain('1');
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-count-30-Mammals')
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-taxa-count-30-mammals')
         ?.textContent,
     ).toContain('1');
     expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-coverage'),
+    ).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-species')).toBeNull();
+  });
+
+  it('shows untargeted species additional outcomes from the species-goals sidecar', async () => {
+    goalsDocument = buildEco17GoalsDocument();
+    const records = buildUntargetedSpeciesGoalsRecords();
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(of(records));
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: 'test-solution',
+      domain: 'land',
+      precomputedMetricUrls: {
+        speciesGoalsCatalog: '/releases/catalog-v3-7-0/species-goals/catalog/v1/catalog.json',
+        speciesGoalsByGeography: {
+          national:
+            '/releases/catalog-v3-7-0/species-goals/compact/v1/test-solution/national.species-goals.compact.json',
+        },
+      },
+    } as CatalogSolution);
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      targetProgressGoalsDomains: () => { id: string }[];
+      additionalOutcomeGoalsDomains: () => {
+        id: string;
+        targeted: boolean;
+        reached17Count: number;
+        reached30Count: number;
+        totalCount: number;
+      }[];
+    };
+
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
+      buildTestSolution().id,
+      'national',
+      'colombia',
+    );
+    expect(component.targetProgressGoalsDomains().map((domain) => domain.id)).toEqual([
+      'ecosystems',
+    ]);
+    expect(
+      component.additionalOutcomeGoalsDomains().find((domain) => domain.id === 'species'),
+    ).toEqual(
+      expect.objectContaining({
+        targeted: false,
+        reached17Count: 5,
+        reached30Count: 2,
+        totalCount: 6,
+      }),
+    );
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-species'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-count-17-species')
+        ?.textContent,
+    ).toContain('5');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-count-30-species')
+        ?.textContent,
+    ).toContain('2');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-view-species'),
+    ).not.toBeNull();
+  });
+
+  it('keeps targeted species in Conservation Target Progress instead of Additional Outcomes', async () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = 'species';
+    goalsDocument.targetContext.targetFeatureIds = ['species'];
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of(buildHydratedSpeciesRecords(goalsDocument)),
+    );
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
+      buildTestSolution().id,
+      'national',
+      'colombia',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-species'),
+    ).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-count-species')?.textContent,
+    ).toContain('0 / 3');
+  });
+
+  it('loads SIRAP packet species-goals for untargeted Additional Outcomes', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildSirapGoalsDocument(solution.id);
+    goalsDocument.summary.byType.species = {
+      metSpeciesCount: 0,
+      totalSpeciesCount: 0,
+      pctMet: 0,
+    };
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(buildRegionalSirapMetricsDocument(solution.id)),
+    );
+    mockSirapCatalogSolution(solution);
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(of(buildUntargetedSpeciesGoalsRecords()));
+    appState.activeSolution$.set(solution);
+    appState.clearAOI();
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalledWith(
+      solution.id,
+      'national',
+      'colombia',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-species'),
+    ).not.toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-count-17-species')
+        ?.textContent,
+    ).toContain('5');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-view-species'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-bar-species'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-legend-17'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-legend-30'),
+    ).not.toBeNull();
+  });
+
+  it('keeps SIRAP MEC and one species card inside Additional Outcomes', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildSirapGoalsDocument(solution.id);
+    goalsDocument.summary.byType.species = {
+      metSpeciesCount: 0,
+      totalSpeciesCount: 0,
+      pctMet: 0,
+    };
+    vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+      of(buildRegionalSirapMetricsDocument(solution.id)),
+    );
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: solution.id,
+      scope: 'sirap',
+      sirapId: 'eje-cafetero',
+      precomputedMetricUrls: {
+        goals: '/releases/sirap-test/goals/cache/test-solution.goals.json',
+        speciesGoalsCatalog: '/releases/sirap-test/species-goals/catalog/v1/catalog.json',
+        speciesGoalsByGeography: {
+          siraps: '/releases/sirap-test/species-goals/test-solution/siraps.json',
+        },
+        mecV2ByGeography: {
+          siraps: '/releases/sirap-test/mec/test-solution/siraps.json',
+        },
+      },
+    } as CatalogSolution);
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(of(buildUntargetedSpeciesGoalsRecords()));
+    appState.activeSolution$.set(solution);
+    appState.clearAOI();
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const additionalSection = compiled.querySelector(
+      '#right-sidebar-v3-overview-goals-additional-section',
+    );
+    expect(additionalSection).not.toBeNull();
+    expect(
+      additionalSection?.querySelectorAll(
+        '#right-sidebar-v3-overview-goals-additional-domain-species',
+      ),
+    ).toHaveLength(1);
+    expect(
+      additionalSection?.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-coverage'),
+    ).not.toBeNull();
+    expect(
+      additionalSection?.querySelector('#right-sidebar-v3-overview-sirap-ecosystem-iavh-total')
+        ?.textContent,
+    ).toContain('2 mil km²');
+    expect(
+      additionalSection?.querySelector(
+        '#right-sidebar-v3-overview-sirap-ecosystem-view-additional-coverage',
+      ),
+    ).not.toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-species')).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-sirap-summary')).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+  });
+
+  it('hides untargeted species when the species-goals sidecar is missing', async () => {
+    goalsDocument = buildEco17GoalsDocument();
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(of(null));
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
+      buildTestSolution().id,
+      'national',
+      'colombia',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-species'),
+    ).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
+  });
+
+  it('uses catalog finderInputs when goals targetContext is blank', () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = null;
+    goalsDocument.targetContext.targetFeatureIds = [];
+    goalsDocument.targetContext.relativeTargetsByType = {
+      ecosystems: [0.17],
+    };
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: 'test-solution',
+      finderInputs: {
+        targetFeatureSet: 'ecosystems',
+        targetFeatureIds: ['ecosystems'],
+      },
+    } as unknown as CatalogSolution);
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      getGoalsTargetRuleLabel(): string;
+      targetProgressGoalsDomains: () => { id: string; targeted: boolean }[];
+    };
+
+    expect(component.targetProgressGoalsDomains().map((domain) => domain.id)).toEqual([
+      'ecosystems',
+    ]);
+    expect(component.getGoalsTargetRuleLabel()).toContain(
+      'analysis.overview.goalsWidget.targetRuleSingle',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-ecosystems'),
+    ).toBeNull();
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-no-targets')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-widget-target-rule')?.textContent,
+    ).not.toContain('analysis.overview.goalsWidget.targetRuleNone');
+  });
+
+  it('uses goals relativeTargetsByType when catalog finderInputs are also blank', () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = null;
+    goalsDocument.targetContext.targetFeatureIds = [];
+    goalsDocument.targetContext.relativeTargetsByType = {
+      ecosystems: [0.17],
+    };
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: 'test-solution',
+      finderInputs: {
+        targetFeatureSet: null,
+        targetFeatureIds: [],
+      },
+    } as unknown as CatalogSolution);
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      getGoalsTargetRuleLabel(): string;
+      targetProgressGoalsDomains: () => { id: string; targeted: boolean }[];
+    };
+
+    expect(component.targetProgressGoalsDomains().map((domain) => domain.id)).toEqual([
+      'ecosystems',
+    ]);
+    expect(component.getGoalsTargetRuleLabel()).toContain(
+      'analysis.overview.goalsWidget.targetRuleSingle',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems'),
+    ).not.toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-ecosystems'),
+    ).toBeNull();
+  });
+
+  it('keeps empty-target copy when goals and catalog have no target evidence', () => {
+    goalsDocument = buildGoalsDocument();
+    goalsDocument.targetContext.targetFeatureSet = null;
+    goalsDocument.targetContext.targetFeatureIds = [];
+    goalsDocument.targetContext.relativeTargetsByType = {};
+    vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+      id: 'test-solution',
+      finderInputs: {
+        targetFeatureSet: null,
+        targetFeatureIds: [],
+      },
+    } as unknown as CatalogSolution);
+    appState.activeSolution$.set(buildTestSolution());
+    appState.setRightSidebarMode('overview');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      getGoalsTargetRuleLabel(): string;
+      targetProgressGoalsDomains: () => { id: string }[];
+    };
+
+    expect(component.targetProgressGoalsDomains()).toEqual([]);
+    expect(component.getGoalsTargetRuleLabel()).toContain(
+      'analysis.overview.goalsWidget.targetRuleNone',
+    );
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-no-targets')?.textContent,
+    ).toContain('analysis.overview.goalsWidget.noTargetsSet');
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-widget-target-rule')?.textContent,
+    ).toContain('analysis.overview.goalsWidget.targetRuleNone');
+    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems')).toBeNull();
+    expect(
+      compiled.querySelector('#right-sidebar-v3-overview-goals-additional-domain-ecosystems'),
+    ).not.toBeNull();
   });
 
   it('uses complete species rollups without filtering post-hoc provenance', () => {
@@ -5010,7 +5656,16 @@ describe('PanelSwitcherComponent', () => {
     ).click();
     fixture.detectChanges();
 
-    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(
+      buildTestSolution().id,
+      'national',
+      'colombia',
+    );
+    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalledWith(
+      buildTestSolution().id,
+      'siraps',
+      expect.anything(),
+    );
   });
 
   it('uses live custom polygon coverage for the national species breakdown', async () => {
@@ -5047,7 +5702,7 @@ describe('PanelSwitcherComponent', () => {
       geometry: buildTestGeometry(),
       solution_id: solution.id,
     });
-    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'national', 'colombia');
     expect(
       fixture.nativeElement.querySelector('#conservation-goals-modal-species-error'),
     ).toBeNull();
@@ -5089,7 +5744,7 @@ describe('PanelSwitcherComponent', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     fixture.detectChanges();
 
-    expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'national', 'colombia');
     expect(
       fixture.nativeElement.querySelector('#conservation-goals-modal-species-error'),
     ).toBeNull();
@@ -5307,7 +5962,7 @@ describe('PanelSwitcherComponent', () => {
     (
       compiled.querySelector('#conservation-goals-modal-species-retry-button') as HTMLButtonElement
     ).click();
-    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledTimes(2);
+    expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledTimes(3);
   });
 
   it('labels and switches the national ecosystem classification breakdown', async () => {
@@ -5345,9 +6000,7 @@ describe('PanelSwitcherComponent', () => {
     expect(compiled.querySelector('#conservation-goals-modal-title')?.textContent).toContain(
       'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle',
     );
-    expect(
-      compiled.querySelector('#conservation-goals-modal-mec-source-overview'),
-    ).not.toBeNull();
+    expect(compiled.querySelector('#conservation-goals-modal-mec-source-overview')).not.toBeNull();
     expect(compiled.querySelector('#conservation-goals-modal-mec-source-map')).not.toBeNull();
     expect(
       compiled.querySelectorAll('button[id^="conservation-goals-modal-ecosystem-level-"]'),
@@ -5406,23 +6059,24 @@ describe('PanelSwitcherComponent', () => {
       compiled.querySelector('#conservation-goals-modal-ecosystem-area-0')?.className,
     ).toContain('content-center');
     expect(
-      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-0')?.textContent,
+      compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-percent-0')
+        ?.textContent,
     ).toContain('10');
     expect(
       compiled.querySelector('#conservation-goals-modal-pre-existing-coverage-area-0')?.textContent,
     ).toContain('1 km²');
     expect(
-      compiled.querySelector('#conservation-goals-modal-new-coverage-0')?.textContent,
+      compiled.querySelector('#conservation-goals-modal-new-coverage-percent-0')?.textContent,
     ).toContain('30');
     expect(
       compiled.querySelector('#conservation-goals-modal-new-coverage-area-0')?.textContent,
     ).toContain('3 km²');
     expect(
       compiled.querySelector('#conservation-goals-modal-coverage-value-0')?.textContent,
-    ).toContain('40');
+    ).toContain('35');
     expect(
       compiled.querySelector('#conservation-goals-modal-coverage-area-0')?.textContent,
-    ).toContain('4 km²');
+    ).toContain('--');
     expect(compiled.textContent).not.toContain('Taxonomy-only ecosystem');
 
     (
@@ -5666,16 +6320,55 @@ describe('PanelSwitcherComponent', () => {
         additionalOutcomeGoalsDomains: () => { id: string; totalCount: number }[];
       };
 
-      expect(
-        compiled.querySelector(
-          '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
-        )?.textContent,
-      ).toContain('17%: 7.8K · 30%: 1.5K');
-      expect(
-        compiled.querySelector(
-          '#right-sidebar-v3-overview-gain-row-metric-03-threatened-species-secured',
-        )?.textContent,
-      ).toContain('17%: 175 · 30%: 70');
+      const groupsRow = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-row-metric-02-species-groups-protected',
+      );
+      const threatenedRow = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-row-metric-03-threatened-species-secured',
+      );
+      const groupsValue17 = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-17-metric-02-species-groups-protected',
+      );
+      const groupsValue30 = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-30-metric-02-species-groups-protected',
+      );
+      const groupsDivider = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-divider-metric-02-species-groups-protected',
+      );
+      const groupsUnit = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-unit-metric-02-species-groups-protected',
+      );
+      const threatenedValue17 = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-17-metric-03-threatened-species-secured',
+      );
+      const threatenedValue30 = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-30-metric-03-threatened-species-secured',
+      );
+      const threatenedDivider = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-value-divider-metric-03-threatened-species-secured',
+      );
+      const threatenedUnit = compiled.querySelector(
+        '#right-sidebar-v3-overview-gain-unit-metric-03-threatened-species-secured',
+      );
+
+      expect(groupsRow?.classList.contains('v3-metric-row-split')).toBe(true);
+      expect(threatenedRow?.classList.contains('v3-metric-row-split')).toBe(true);
+      expect(groupsValue17?.textContent).toContain('7.8K');
+      expect(groupsValue17?.classList.contains('text-green-700')).toBe(true);
+      expect(groupsValue17?.getAttribute('data-full-value')).toBe('7,793');
+      expect(groupsValue30?.textContent).toContain('1.5K');
+      expect(groupsValue30?.classList.contains('text-green-900')).toBe(true);
+      expect(groupsValue30?.getAttribute('data-full-value')).toBe('1,529');
+      expect(groupsDivider).not.toBeNull();
+      expect(groupsUnit?.textContent).toContain('Assuming 17% / 30% range targets');
+      expect(threatenedValue17?.textContent).toContain('175');
+      expect(threatenedValue17?.classList.contains('text-green-700')).toBe(true);
+      expect(threatenedValue17?.getAttribute('data-full-value')).toBeNull();
+      expect(threatenedValue30?.textContent).toContain('70');
+      expect(threatenedValue30?.classList.contains('text-green-900')).toBe(true);
+      expect(threatenedValue30?.getAttribute('data-full-value')).toBeNull();
+      expect(threatenedDivider).not.toBeNull();
+      expect(threatenedUnit?.textContent).toContain('Assuming 17% / 30% range targets');
       expect(
         component.additionalOutcomeGoalsDomains().find((domain) => domain.id === 'species')
           ?.totalCount,
@@ -5834,6 +6527,96 @@ describe('PanelSwitcherComponent', () => {
       expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('--');
       expect(compiled.querySelector('#aoi-species-partial-note')).toBeNull();
     });
+
+    it('backfills Meta taxon cards from species-goals when compact skipped species', async () => {
+      const solution = buildTestSolution();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildSkipSpeciesDepartmentMetricsDocument(solution.id)),
+      );
+      vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+        of(buildMetaSpeciesGoalsRichnessRecords()),
+      );
+      vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+        id: solution.id,
+        domain: 'land',
+        precomputedMetricUrls: {
+          speciesGoalsCatalog: '/releases/test/species-goals/catalog.json',
+          speciesGoalsByGeography: {
+            departments: '/releases/test/species-goals/departments.json',
+            municipalities: '/releases/test/species-goals/municipalities.json',
+            siraps: '/releases/test/species-goals/siraps.json',
+            national: '/releases/test/species-goals/national.json',
+          },
+        },
+      } as CatalogSolution);
+      appLocale.setLocale('en');
+      appState.activeSolution$.set(solution);
+      appState.selectAOI(buildMetaDepartmentAoi());
+      appState.setRightSidebarMode('aoi');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'departments', '50');
+      expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('186');
+      expect(compiled.querySelector('#aoi-species-value-birds')?.textContent).toContain('1088');
+      expect(compiled.querySelector('#aoi-species-value-amphibians')?.textContent).toContain('63');
+      expect(compiled.querySelector('#aoi-species-value-reptiles')?.textContent).toContain('85');
+      expect(compiled.querySelector('#aoi-species-value-plants')?.textContent).toContain('4757');
+      expect(compiled.querySelector('#aoi-stat-threatened-value')?.textContent).toContain('89');
+      expect(compiled.querySelector('#aoi-stat-threatened-secured-value')?.textContent).toContain(
+        '0',
+      );
+      expect(compiled.querySelector('#aoi-stat-endemic-value')?.textContent).toContain('218');
+      expect(compiled.querySelector('#aoi-stat-national-species-value')?.textContent).toContain(
+        '--',
+      );
+
+      const metricsById = new Map(
+        (fixture.componentInstance as unknown as { aoiMetrics(): MetricValue[] })
+          .aoiMetrics()
+          .map((metric) => [metric.metricId, metric] as const),
+      );
+      expect(metricsById.get('species_groups_protected')?.status).toBe('derivation_needed');
+      expect(metricsById.get('species_pct_of_national')?.status).toBe('derivation_needed');
+      expect(metricsById.get('threatened_species_secured')?.value).toBe(0);
+    });
+
+    it('keeps published compact richness instead of species-goals counts', async () => {
+      const solution = buildTestSolution();
+      vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
+        of(buildPartialSpeciesMetricsDocument(solution.id)),
+      );
+      vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+        of(buildMetaSpeciesGoalsRichnessRecords()),
+      );
+      vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
+        id: solution.id,
+        domain: 'land',
+        precomputedMetricUrls: {
+          speciesGoalsCatalog: '/releases/test/species-goals/catalog.json',
+          speciesGoalsByGeography: {
+            departments: '/releases/test/species-goals/departments.json',
+          },
+        },
+      } as CatalogSolution);
+      appLocale.setLocale('en');
+      appState.activeSolution$.set(solution);
+      appState.selectAOI(buildMetaDepartmentAoi());
+      appState.setRightSidebarMode('aoi');
+
+      const fixture = TestBed.createComponent(PanelSwitcherComponent);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const compiled = fixture.nativeElement as HTMLElement;
+      expect(speciesGoalsLoaderSpy.load).not.toHaveBeenCalled();
+      expect(compiled.querySelector('#aoi-species-value-mammals')?.textContent).toContain('186');
+      expect(compiled.querySelector('#aoi-species-value-birds')?.textContent).toContain('1081');
+      expect(compiled.querySelector('#aoi-species-value-plants')?.textContent).toContain('4726');
+    });
   });
 });
 
@@ -5945,6 +6728,122 @@ function buildZeroRangeAmphibianCoverageRecord(): DetailedSpeciesCoverageRecord 
     new_covered_in_aoi_area_km2: 0,
     new_covered_in_aoi_pct: 0,
   };
+}
+
+function buildEco17GoalsDocument(): SolutionGoalsDocument {
+  const document = buildGoalsDocument();
+  return {
+    ...document,
+    targetContext: {
+      ...document.targetContext,
+      targetFeatureSet: 'ecosystems',
+      targetFeatureIds: ['ecosistemas'],
+      relativeTargetsByType: {
+        ecosystems: [0.17],
+        species: [],
+        strategicEcosystems: [],
+      },
+    },
+    features: {
+      ...document.features,
+      species: [],
+    },
+    summary: {
+      ...document.summary,
+      byType: {
+        ...document.summary.byType,
+        species: { metSpeciesCount: 0, totalSpeciesCount: 0, pctMet: 0 },
+      },
+    },
+    rollups: {
+      ...document.rollups,
+      species: {
+        ...document.rollups.species,
+        metSpeciesCount: 0,
+        totalSpeciesCount: 0,
+        byTaxa: {},
+      },
+    },
+  };
+}
+
+function buildUntargetedSpeciesGoalsRecords(): HydratedSpeciesGoalsRecord[] {
+  const template = {
+    iucn_status: null,
+    range_area_km2: 10,
+    range_in_aoi_area_km2: 10,
+    range_in_aoi_pct: 100,
+    solution_covered_in_aoi_area_km2: 2,
+    pre_existing_covered_in_aoi_area_km2: 0,
+    pre_existing_covered_in_aoi_pct: 0,
+    new_covered_in_aoi_area_km2: 2,
+    availability: 'available' as const,
+    no_range_in_scope: false,
+    configured_target_percent: null,
+    configured_target_met: null,
+  };
+  return [
+    {
+      ...template,
+      id: 'species-17-30-a',
+      scientific_name: 'Species 17 30 a',
+      group: 'mammals',
+      solution_covered_in_aoi_pct: 40,
+      new_covered_in_aoi_pct: 40,
+      met_17_percent: true,
+      met_30_percent: true,
+    },
+    {
+      ...template,
+      id: 'species-17-30-b',
+      scientific_name: 'Species 17 30 b',
+      group: 'birds',
+      solution_covered_in_aoi_pct: 35,
+      new_covered_in_aoi_pct: 35,
+      met_17_percent: true,
+      met_30_percent: true,
+    },
+    {
+      ...template,
+      id: 'species-17-a',
+      scientific_name: 'Species 17 a',
+      group: 'amphibians',
+      solution_covered_in_aoi_pct: 20,
+      new_covered_in_aoi_pct: 20,
+      met_17_percent: true,
+      met_30_percent: false,
+    },
+    {
+      ...template,
+      id: 'species-17-b',
+      scientific_name: 'Species 17 b',
+      group: 'reptiles',
+      solution_covered_in_aoi_pct: 18,
+      new_covered_in_aoi_pct: 18,
+      met_17_percent: true,
+      met_30_percent: false,
+    },
+    {
+      ...template,
+      id: 'species-17-c',
+      scientific_name: 'Species 17 c',
+      group: 'plants',
+      solution_covered_in_aoi_pct: 17,
+      new_covered_in_aoi_pct: 17,
+      met_17_percent: true,
+      met_30_percent: false,
+    },
+    {
+      ...template,
+      id: 'species-below',
+      scientific_name: 'Species below',
+      group: 'mammals',
+      solution_covered_in_aoi_pct: 10,
+      new_covered_in_aoi_pct: 10,
+      met_17_percent: false,
+      met_30_percent: false,
+    },
+  ];
 }
 
 function buildGoalsDocument(): SolutionGoalsDocument {
@@ -6723,6 +7622,8 @@ function buildCachedDepartmentMetricsDocument(
 function buildCachedSirapMetricsDocument(
   solutionId: string,
   metrics: MetricValue[],
+  scopeId = 'territorial_territorial_amazonia_3',
+  name = 'Territorial Amazonia',
 ): CachedSolutionMetricsDocument {
   return {
     solutionId,
@@ -6730,8 +7631,8 @@ function buildCachedSirapMetricsDocument(
     geographies: {
       national: { colombia: { metrics: [] } },
       siraps: {
-        territorial_territorial_amazonia_3: {
-          name: 'Territorial Amazonia',
+        [scopeId]: {
+          name,
           metrics,
         },
       },
@@ -6794,7 +7695,7 @@ function buildRegionalSirapMetricsDocument(
 
 function buildUnavailableMetric(
   metricId: string,
-  status: Extract<MetricValue['status'], 'blocked' | 'pending'>,
+  status: Extract<MetricValue['status'], 'blocked' | 'pending' | 'derivation_needed'>,
 ): MetricValue {
   return {
     ...buildMetric(metricId, 0, 'km²', 'number'),
@@ -6994,6 +7895,94 @@ function buildTargetlessSpeciesMetricsDocument(solutionId: string): CachedSoluti
       },
     },
   };
+}
+
+function buildSkipSpeciesDepartmentMetricsDocument(
+  solutionId: string,
+): CachedSolutionMetricsDocument {
+  return {
+    solutionId,
+    generatedAt: '2026-08-05T00:00:00.000Z',
+    geographies: {
+      departments: {
+        '50': {
+          name: 'Meta',
+          metrics: [
+            buildMetric('priority_area_in_region', 18_003, 'km²', 'number'),
+            {
+              ...buildUnavailableMetric('species_richness_mammals', 'derivation_needed'),
+              unit: 'count',
+            },
+            {
+              ...buildUnavailableMetric('species_richness_birds', 'derivation_needed'),
+              unit: 'count',
+            },
+            {
+              ...buildUnavailableMetric('species_richness_amphibians', 'derivation_needed'),
+              unit: 'count',
+            },
+            {
+              ...buildUnavailableMetric('species_richness_reptiles', 'derivation_needed'),
+              unit: 'count',
+            },
+            {
+              ...buildUnavailableMetric('species_richness_plants', 'derivation_needed'),
+              unit: 'count',
+            },
+            buildMetric('threatened_species_count', 89, 'count', 'number'),
+            buildMetric('threatened_species_secured', 0, 'count', 'number'),
+            buildMetric('endemic_species_count', 218, 'count', 'number'),
+            buildUnavailableMetric('species_pct_of_national', 'derivation_needed'),
+            buildUnavailableMetric('species_groups_protected', 'derivation_needed'),
+          ],
+        },
+      },
+    },
+  };
+}
+
+function buildMetaSpeciesGoalsRichnessRecords(): HydratedSpeciesGoalsRecord[] {
+  return [
+    ...buildTaxonRichnessRecords(undefined, 'mammals', 186),
+    ...buildTaxonRichnessRecords(undefined, 'birds', 1088),
+    ...buildTaxonRichnessRecords(undefined, 'amphibians', 63),
+    ...buildTaxonRichnessRecords(undefined, 'reptiles', 85),
+    ...buildTaxonRichnessRecords(undefined, 'plants', 4757),
+  ];
+}
+
+function buildTaxonRichnessRecords(
+  template: HydratedSpeciesGoalsRecord | undefined,
+  group: string,
+  count: number,
+): HydratedSpeciesGoalsRecord[] {
+  const base: HydratedSpeciesGoalsRecord = template ?? {
+    id: group,
+    scientific_name: group,
+    group,
+    iucn_status: null,
+    range_area_km2: 10,
+    range_in_aoi_area_km2: 10,
+    range_in_aoi_pct: 100,
+    solution_covered_in_aoi_area_km2: 1,
+    solution_covered_in_aoi_pct: 10,
+    pre_existing_covered_in_aoi_area_km2: 0,
+    pre_existing_covered_in_aoi_pct: 0,
+    new_covered_in_aoi_area_km2: 1,
+    new_covered_in_aoi_pct: 10,
+    availability: 'available',
+    no_range_in_scope: false,
+    configured_target_percent: null,
+    met_17_percent: false,
+    met_30_percent: false,
+    configured_target_met: null,
+  };
+  return Array.from({ length: count }, (_, index) => ({
+    ...base,
+    id: `${group}-${index}`,
+    scientific_name: `${group} ${index}`,
+    group,
+  }));
 }
 
 function buildValuelessSpeciesMetricsDocument(solutionId: string): CachedSolutionMetricsDocument {

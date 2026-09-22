@@ -160,6 +160,8 @@ def _put_blob(token: str, local_path: Path, blob_path: str) -> str | None:
             str(local_path),
             "--pathname",
             blob_path,
+            "--token",
+            token,
             "--rw-token",
             token,
             "--no-color",
@@ -170,6 +172,8 @@ def _put_blob(token: str, local_path: Path, blob_path: str) -> str | None:
     )
     output = f"{completed.stdout}\n{completed.stderr}"
     if completed.returncode != 0:
+        if "already exists" in output.lower():
+            return None
         raise RuntimeError(output.strip() or f"vercel blob put failed with code {completed.returncode}")
     return extract_first_url(output)
 

@@ -1,4 +1,9 @@
-import type { GoalFeatureRow, HydratedSpeciesGoalsRecord, MetricValue } from '@core/models';
+import {
+  reachesCoverageCheckpoint,
+  type GoalFeatureRow,
+  type HydratedSpeciesGoalsRecord,
+  type MetricValue,
+} from '@core/models';
 import {
   formatNumber,
   formatPanelMetric,
@@ -98,6 +103,103 @@ export function normalizeSpeciesGoalsTaxonId(
 }
 
 /** Roll up the species-goals catalog the breakdown modal already loads. */
+export const SPECIES_RICHNESS_METRIC_BY_TAXON: Record<SpeciesGoalsTaxonId, string> = {
+  mammals: 'species_richness_mammals',
+  birds: 'species_richness_birds',
+  amphibians: 'species_richness_amphibians',
+  reptiles: 'species_richness_reptiles',
+  plants: 'species_richness_plants',
+};
+
+const SPECIES_GOALS_RICHNESS_SOURCE = 'species-goals-compact';
+
+/** Compact richness is missing or skip-species left it as derivation_needed. */
+export function needsSpeciesGoalsRichnessBackfill(metric: MetricValue | null | undefined): boolean {
+  if (!metric) {
+    return true;
+  }
+  if (metric.status === 'derivation_needed') {
+    return true;
+  }
+  return (
+    (metric.status === 'ready' || metric.status === 'partial') &&
+    (metric.value === null || !Number.isFinite(metric.value))
+  );
+}
+
+/**
+ * Count species with modeled range inside the selected AOI, by taxon.
+ * Sparse species-goals rows are exactly those species; hydrate also keeps
+ * zero-range catalog leftovers that must not be counted.
+ */
+export function countSpeciesGoalsAoiRichness(
+  records: readonly HydratedSpeciesGoalsRecord[] | null | undefined,
+): Record<SpeciesGoalsTaxonId, number> {
+  const counts = {
+    mammals: 0,
+    birds: 0,
+    amphibians: 0,
+    reptiles: 0,
+    plants: 0,
+  };
+  if (!records?.length) {
+    return counts;
+  }
+
+  for (const record of records) {
+    if (record.availability === 'unavailable' || record.no_range_in_scope) {
+      continue;
+    }
+    if (!(record.range_in_aoi_area_km2 > 0)) {
+      continue;
+    }
+    const taxonId = normalizeSpeciesGoalsTaxonId(record.group);
+    if (!taxonId) {
+      continue;
+    }
+    counts[taxonId] += 1;
+  }
+  return counts;
+}
+
+export function backfillAoiSpeciesRichnessMetrics(
+  metrics: readonly MetricValue[],
+  records: readonly HydratedSpeciesGoalsRecord[] | null | undefined,
+): MetricValue[] {
+  if (!records?.length) {
+    return [...metrics];
+  }
+
+  const counts = countSpeciesGoalsAoiRichness(records);
+  const next = [...metrics];
+  const indexById = new Map(next.map((metric, index) => [metric.metricId, index] as const));
+
+  for (const taxonId of SPECIES_GOALS_TAXA_IDS) {
+    const metricId = SPECIES_RICHNESS_METRIC_BY_TAXON[taxonId];
+    const existing = indexById.has(metricId) ? next[indexById.get(metricId)!] : undefined;
+    if (!needsSpeciesGoalsRichnessBackfill(existing)) {
+      continue;
+    }
+    const backfilled: MetricValue = {
+      metricId,
+      value: counts[taxonId],
+      unit: existing?.unit ?? 'count',
+      status: 'ready',
+      source: SPECIES_GOALS_RICHNESS_SOURCE,
+      notes: existing?.notes ?? null,
+      labelKey: existing?.labelKey ?? `metrics.tier1.${metricId}`,
+      formatHint: existing?.formatHint ?? 'number',
+    };
+    if (existing && indexById.has(metricId)) {
+      next[indexById.get(metricId)!] = backfilled;
+    } else {
+      indexById.set(metricId, next.length);
+      next.push(backfilled);
+    }
+  }
+  return next;
+}
+
 export function rollupSpeciesGoalsTaxa(
   records: readonly HydratedSpeciesGoalsRecord[] | null | undefined,
 ): SpeciesGoalsTaxaRollup[] {
@@ -159,6 +261,39 @@ export function rollupSpeciesGoalsTaxa(
   });
 }
 
+export interface SpeciesGoalsOverview {
+  reached17Count: number;
+  reached30Count: number;
+  totalCount: number;
+}
+
+/** Domain-level 17/30 rollup for untargeted Overview species. Null when the sidecar is empty. */
+export function summarizeSpeciesGoalsRecords(
+  records: readonly HydratedSpeciesGoalsRecord[] | null | undefined,
+): SpeciesGoalsOverview | null {
+  if (!records?.length) {
+    return null;
+  }
+
+  let totalCount = 0;
+  let reached17Count = 0;
+  let reached30Count = 0;
+  for (const record of records) {
+    if (record.availability === 'unavailable') {
+      continue;
+    }
+    totalCount += 1;
+    if (record.met_17_percent) {
+      reached17Count += 1;
+    }
+    if (record.met_30_percent) {
+      reached30Count += 1;
+    }
+  }
+
+  return totalCount > 0 ? { totalCount, reached17Count, reached30Count } : null;
+}
+
 export interface EcosystemGoalsOverview {
   metCount: number;
   totalCount: number;
@@ -202,16 +337,60 @@ export function readSpeciesReferenceSummary(metric: MetricValue): SpeciesReferen
   };
 }
 
+export interface SpeciesReferenceSplit {
+  compact17: string;
+  full17: string;
+  compact30: string;
+  full30: string;
+}
+
+/** Dual 17/30 counts when the checkpoints differ. Null when they match or data is missing. */
+export function formatSpeciesReferenceSplit(
+  metric: MetricValue,
+  compactOptions: MetricFormatOptions,
+  fullOptions: MetricFormatOptions = { ...compactOptions, mode: 'full' },
+): SpeciesReferenceSplit | null {
+  const summary = readSpeciesReferenceSummary(metric);
+  if (!summary || summary.reached17Count === summary.reached30Count) {
+    return null;
+  }
+
+  return {
+    compact17: formatCount(summary.reached17Count, compactOptions),
+    full17: formatCount(summary.reached17Count, fullOptions),
+    compact30: formatCount(summary.reached30Count, compactOptions),
+    full30: formatCount(summary.reached30Count, fullOptions),
+  };
+}
+
 export function formatSpeciesReferenceValue(
   metric: MetricValue,
   options: MetricFormatOptions,
 ): string | null {
   const summary = readSpeciesReferenceSummary(metric);
   if (!summary) return null;
-  return `17%: ${formatCount(summary.reached17Count, options)} · 30%: ${formatCount(
-    summary.reached30Count,
-    options,
-  )}`;
+  // Dual checkpoints render through formatSpeciesReferenceSplit, not a middot string.
+  if (summary.reached17Count !== summary.reached30Count) return null;
+  return formatCount(summary.reached17Count, options);
+}
+
+export function formatSpeciesReferenceUnit(
+  metric: MetricValue,
+  translate?: (key: string, params: Record<string, string | number>) => string,
+): string | null {
+  const summary = readSpeciesReferenceSummary(metric);
+  if (!summary) return null;
+  if (summary.reached17Count === summary.reached30Count) {
+    const params = { percent: 17 };
+    const translated = translate?.('analysis.overview.metrics.assumedRangeTargetSingle', params);
+    return translated && translated !== 'analysis.overview.metrics.assumedRangeTargetSingle'
+      ? translated
+      : `Assuming a ${params.percent}% range target`;
+  }
+  const translated = translate?.('analysis.overview.metrics.assumedRangeTargetBoth', {});
+  return translated && translated !== 'analysis.overview.metrics.assumedRangeTargetBoth'
+    ? translated
+    : 'Assuming 17% / 30% range targets';
 }
 
 function readSpeciesSummaryRatio(
@@ -279,7 +458,9 @@ function isFiniteCount(value: unknown): value is number {
 
 function countFeaturesAtCoverage(features: readonly GoalFeatureRow[], threshold: number): number {
   return features.filter(
-    (feature) => feature.relativeHeld !== null && feature.relativeHeld >= threshold,
+    (feature) =>
+      feature.relativeHeld !== null &&
+      reachesCoverageCheckpoint(feature.relativeHeld * 100, threshold * 100),
   ).length;
 }
 

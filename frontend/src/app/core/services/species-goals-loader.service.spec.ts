@@ -329,6 +329,30 @@ describe('SpeciesGoalsLoaderService', () => {
     expect(result?.[0].new_covered_in_aoi_area_km2).toBe(0.5);
   });
 
+  it('hydrates when both completion sidecars 404 and artifacts still validate', async () => {
+    const catalogText = JSON.stringify(catalog());
+    const compactText = JSON.stringify(compact());
+    const resultPromise = firstValueFrom(service.load('fixture', 'departments', '50'));
+
+    http.expectOne(`${CATALOG_URL}.complete.json`).flush('Not Found', {
+      status: 404,
+      statusText: 'Not Found',
+    });
+    http.expectOne(`${COMPACT_URL}.complete.json`).flush('Not Found', {
+      status: 404,
+      statusText: 'Not Found',
+    });
+    http.expectOne(CATALOG_URL).flush(catalogText);
+    http.expectOne(COMPACT_URL).flush(compactText);
+
+    expect(await resultPromise).toEqual([
+      expect.objectContaining({
+        id: 'species-1',
+        solution_covered_in_aoi_pct: 40,
+      }),
+    ]);
+  });
+
   function flushCompletions(catalogSha256: string, compactSha256: string): void {
     http.expectOne(`${CATALOG_URL}.complete.json`).flush({
       format: 'species-goals-catalog-completion-v1',

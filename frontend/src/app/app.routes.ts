@@ -10,6 +10,13 @@ export const routes: Routes = [
       import('@features/about-page/about-page').then((module) => module.AboutPageComponent),
   },
   {
+    path: 'guide',
+    loadComponent: () =>
+      import('@features/user-guide-page/user-guide-page').then(
+        (module) => module.UserGuidePageComponent,
+      ),
+  },
+  {
     path: 'tier-two',
     component: TierTwoPageComponent,
     canActivate: [tierAccessGuard],

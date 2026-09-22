@@ -4,6 +4,7 @@ export * from './custom-aoi-area-profile.model';
 export * from './layer-manifest.model';
 export * from './layer.model';
 export * from './mec-compact.model';
+export * from './mesa-ecosystem-coverage.model';
 export * from './metric.model';
 export * from './metric-value.model';
 export * from './solution-identity-summary.model';

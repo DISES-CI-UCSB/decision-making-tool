@@ -314,8 +314,16 @@ def _record_species_in_chunks(
     boundary_indexes: dict[str, AnyBoundaryIndex],
 ) -> tuple[bool, bool]:
     national = np.zeros(4, dtype=np.float64)
+    national_cells = np.zeros(4, dtype=np.int64)
     has_cells = False
     per_level = {
+        level: [
+            np.zeros(index.num_boundaries, dtype=np.float64)
+            for _ in range(4)
+        ]
+        for level, index in boundary_indexes.items()
+    }
+    per_level_cells = {
         level: [
             np.zeros(index.num_boundaries, dtype=np.float64)
             for _ in range(4)
@@ -343,6 +351,21 @@ def _record_species_in_chunks(
             float(weights[pre_existing_cells].sum()),
             float(weights[new_prioritizr_cells].sum()),
         )
+        national_cells += (
+            cells.size,
+            int(np.count_nonzero(selected_cells)),
+            int(np.count_nonzero(pre_existing_cells)),
+            int(np.count_nonzero(new_prioritizr_cells)),
+        )
+        cell_weights = np.ones(cells.size, dtype=np.float64)
+        prepared_cells = prepare_sparse_boundary_weighted_channels(
+            cells,
+            cell_weights,
+            selected=selected_cells,
+            pre_existing=pre_existing_cells,
+            new_prioritizr=new_prioritizr_cells,
+            num_pixels=selected.size,
+        )
         prepared = prepare_sparse_boundary_weighted_channels(
             cells,
             weights,
@@ -366,23 +389,61 @@ def _record_species_in_chunks(
                 strict=True,
             ):
                 total += values
+            cell_channels = aggregate_prepared_sparse_boundary_weighted_sums(
+                index, prepared_cells
+            )
+            for total, values in zip(
+                per_level_cells[level],
+                (
+                    cell_channels.total,
+                    cell_channels.selected,
+                    cell_channels.pre_existing,
+                    cell_channels.new_prioritizr,
+                ),
+                strict=True,
+            ):
+                total += values
 
-    accumulator.record_species_national(
-        record,
-        national[1],
-        national[0],
-        pre_existing_range_area_m2=national[2],
-        new_prioritizr_range_area_m2=national[3],
-    )
-    for level, (total, selected_area, pre_existing_area, new_area) in per_level.items():
-        accumulator.record_species_sub_level(
+    sink = accumulator.detail_sink
+    accumulator.detail_sink = None
+    try:
+        accumulator.record_species_national(
             record,
-            level,
-            selected_area,
-            total,
-            pre_existing_per_boundary=pre_existing_area,
-            new_prioritizr_per_boundary=new_area,
+            national[1],
+            national[0],
+            pre_existing_range_area_m2=national[2],
+            new_prioritizr_range_area_m2=national[3],
         )
+        for level, (total, selected_area, pre_existing_area, new_area) in per_level.items():
+            accumulator.record_species_sub_level(
+                record,
+                level,
+                selected_area,
+                total,
+                pre_existing_per_boundary=pre_existing_area,
+                new_prioritizr_per_boundary=new_area,
+            )
+    finally:
+        accumulator.detail_sink = sink
+    if sink is not None:
+        sink.record_national(
+            record,
+            float(national_cells[1]),
+            float(national_cells[0]),
+            pre_existing_area_m2=float(national_cells[2]),
+            new_prioritizr_area_m2=float(national_cells[3]),
+            display_range_km2=float(national[0]) / 1_000_000.0,
+        )
+        for level, (total, selected_cells, pre_cells, new_cells) in per_level_cells.items():
+            sink.record_sub_level(
+                record,
+                level,
+                selected_cells,
+                total,
+                pre_existing_per_boundary=pre_cells,
+                new_prioritizr_per_boundary=new_cells,
+                display_range_km2_per_boundary=per_level[level][0] / 1_000_000.0,
+            )
     return has_cells, bool(has_cells and national[0] > 0 and national[1] + 1e-9 >= national[0])
 
 

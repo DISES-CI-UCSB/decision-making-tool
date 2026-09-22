@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type {
   GeographyLevel,
@@ -14,7 +14,17 @@ import {
   isSpeciesTargetOverlaysDocument,
   selectSpeciesTargetOverlay,
 } from '@core/models';
-import { Observable, catchError, forkJoin, from, map, of, shareReplay, switchMap } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  forkJoin,
+  from,
+  map,
+  of,
+  shareReplay,
+  switchMap,
+  throwError,
+} from 'rxjs';
 
 import { SolutionCatalogService } from './solution-catalog.service';
 
@@ -46,11 +56,13 @@ export class SpeciesGoalsLoaderService {
     }
 
     return forkJoin({
-      catalogCompletion: this.http.get<Record<string, unknown>>(`${catalogUrl}.complete.json`),
-      compactCompletion: this.http.get<Record<string, unknown>>(`${partitionUrl}.complete.json`),
+      catalogCompletion: this.loadOptionalCompletion(`${catalogUrl}.complete.json`),
+      compactCompletion: this.loadOptionalCompletion(`${partitionUrl}.complete.json`),
     }).pipe(
       switchMap(({ catalogCompletion, compactCompletion }) => {
+        const sidecarsMissing = catalogCompletion === null && compactCompletion === null;
         if (
+          !sidecarsMissing &&
           !isValidCompletionPair(
             catalogCompletion,
             compactCompletion,
@@ -93,23 +105,27 @@ export class SpeciesGoalsLoaderService {
           catalogCompletion,
           compactCompletion,
         }) => {
+          const sidecarsMissing = catalogCompletion === null && compactCompletion === null;
           if (
             !isSpeciesGoalsCatalog(catalog) ||
             !isSpeciesGoalsCompactDocument(compact) ||
             compact.solutionId !== solutionId ||
             compact.geographyLevel !== geographyLevel ||
             compact.provenance.releaseId !== releaseId ||
-            catalogCompletion['format'] !== 'species-goals-catalog-completion-v1' ||
-            catalogCompletion['status'] !== 'complete' ||
-            catalogCompletion['releaseId'] !== releaseId ||
-            catalogCompletion['catalogSha256'] !== catalog.catalogSha256 ||
-            catalogCompletion['artifactSha256'] !== catalogArtifactSha256 ||
-            compactCompletion['format'] !== 'species-goals-completion-v1' ||
-            compactCompletion['status'] !== 'complete' ||
-            compactCompletion['solutionId'] !== solutionId ||
-            compactCompletion['geographyLevel'] !== geographyLevel ||
-            compactCompletion['catalogSha256'] !== catalog.catalogSha256 ||
-            compactCompletion['artifactSha256'] !== compactArtifactSha256 ||
+            (!sidecarsMissing &&
+              (catalogCompletion === null ||
+                compactCompletion === null ||
+                catalogCompletion['format'] !== 'species-goals-catalog-completion-v1' ||
+                catalogCompletion['status'] !== 'complete' ||
+                catalogCompletion['releaseId'] !== releaseId ||
+                catalogCompletion['catalogSha256'] !== catalog.catalogSha256 ||
+                catalogCompletion['artifactSha256'] !== catalogArtifactSha256 ||
+                compactCompletion['format'] !== 'species-goals-completion-v1' ||
+                compactCompletion['status'] !== 'complete' ||
+                compactCompletion['solutionId'] !== solutionId ||
+                compactCompletion['geographyLevel'] !== geographyLevel ||
+                compactCompletion['catalogSha256'] !== catalog.catalogSha256 ||
+                compactCompletion['artifactSha256'] !== compactArtifactSha256)) ||
             (targetOverlay !== undefined &&
               (targetOverlay.releaseId !== releaseId ||
                 targetOverlay.catalogSha256 !== catalog.catalogSha256))
@@ -124,6 +140,17 @@ export class SpeciesGoalsLoaderService {
         },
       ),
       catchError(() => of(null)),
+    );
+  }
+
+  private loadOptionalCompletion(url: string): Observable<Record<string, unknown> | null> {
+    return this.http.get<Record<string, unknown>>(url).pipe(
+      catchError((error: unknown) => {
+        if (error instanceof HttpErrorResponse && error.status === 404) {
+          return of(null);
+        }
+        return throwError(() => error);
+      }),
     );
   }
 
@@ -155,12 +182,15 @@ function releaseIdFromUrl(value: string): string | null {
 }
 
 function isValidCompletionPair(
-  catalog: Record<string, unknown>,
-  compact: Record<string, unknown>,
+  catalog: Record<string, unknown> | null,
+  compact: Record<string, unknown> | null,
   releaseId: string,
   solutionId: string,
   geographyLevel: GeographyLevel,
 ): boolean {
+  if (!catalog || !compact) {
+    return false;
+  }
   const compactProvenance = compact['provenance'];
   const sha256Pattern = /^[0-9a-f]{64}$/;
   return (

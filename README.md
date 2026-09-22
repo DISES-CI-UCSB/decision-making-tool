@@ -23,6 +23,23 @@ Each process opens **one URL you configured**.
 | `development-artifacts/` | Experiments and mockups |
 | `legacy-r-shiny-app/` | Archived Shiny app |
 
+## Frontend architecture
+
+The frontend (`frontend/`) is an Angular single-page app (SPA — the whole UI runs as one page that swaps content in and out, no full reloads). It has three moving parts:
+
+- **App shell** (`app.html`, `app-shell.ts`) — a resizable three-column layout: left sidebar, center map, right sidebar. One root component (`App`) assembles it and owns modals (welcome screen, Solution Finder).
+- **Feature areas**, each its own folder under `features/`:
+  - `solution-finder/` — the guided questionnaire that matches user answers to one of ~170 pre-built conservation scenarios.
+  - `left-sidebar/` — toggles for reference layers (ecosystems, species, costs, boundaries).
+  - `map/` — the ArcGIS map itself: rendering solution rasters, drawing custom AOIs, admin boundary clicks.
+  - `analysis/` — the right sidebar's Overview / AOI / Comparison tabs and their metrics.
+  - `auth/` — Firebase login, tier gating, SIRAP (Sistema Regional de Áreas Protegidas) access requests.
+- **Shared state** — one injectable service, `AppStateService` (`core/services/app-state.service.ts`), holds cross-cutting state (active solution, selected AOI, right-sidebar mode) using Angular signals (a reactive value container, similar to an Observable but simpler to read). Every panel reads from and writes to this one service instead of talking to each other directly — that's what keeps three independent UI panels in sync.
+
+**Data flow mirrors the precomputed-vs-live split above:** known-AOI numbers and layer definitions come from versioned JSON manifests on Vercel Blob (see "What 'the catalog' is"); solution rasters are ArcGIS `ImageryTileLayer`s built from GeoTIFF (Cloud Optimized GeoTIFF) files; custom-polygon metrics go through the FastAPI backend described below.
+
+Stack: Angular (standalone components, no legacy NgModules), Tailwind CSS, ArcGIS Maps SDK for JavaScript, ngx-translate for English/Spanish i18n, Firebase Auth.
+
 ## 1. Spin up the app
 
 You need Docker Desktop, outbound HTTPS to public Blob, and a copy of `.env.example` → `.env`. Root Compose loads `.env` and `backend/.env` (it ignores `.env.local`). Fill Firebase in `.env` if you need login.

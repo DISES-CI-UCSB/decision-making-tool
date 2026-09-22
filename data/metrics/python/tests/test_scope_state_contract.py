@@ -15,6 +15,7 @@ from metrics_contract import (
     build_metrics_provenance,
     regular_artifact_completeness_issues,
 )
+from species_target_policy import TARGET_POLICY_SOURCE
 from raster_metrics import RasterError
 
 
@@ -360,6 +361,114 @@ def test_generator_emits_empty_null_before_layer_calculators():
         )
         assert metric["status"] == expected
         assert metric["value"] is None
+
+
+def _apply_skip_species_dual_reference_secured(document, *, extra_details=None):
+    details = {
+        "thresholdOutcomes": [
+            {"targetPercent": 17.0, "value": 2},
+            {"targetPercent": 30.0, "value": 1},
+        ]
+    }
+    if extra_details:
+        details.update(extra_details)
+    for scopes in document["geographies"].values():
+        for scope in scopes.values():
+            if scope["scopeState"]["classification"] == "empty":
+                continue
+            for metric in scope["metrics"]:
+                if metric["metricId"] == "threatened_species_secured":
+                    metric.update(
+                        status="partial",
+                        value=None,
+                        source=TARGET_POLICY_SOURCE,
+                        details=details,
+                    )
+
+
+def test_skip_species_accepts_per_metric_dual_reference_without_global_policy():
+    document = _document(domain="land")
+    document[PROVENANCE_KEY] = build_metrics_provenance("land", skip_species=True)
+    _apply_skip_species_dual_reference_secured(document)
+
+    assert "speciesTargetPolicy" not in document[PROVENANCE_KEY]
+    assert document[PROVENANCE_KEY]["generationConfig"]["speciesException"] is None
+    groups = next(
+        metric
+        for metric in document["geographies"]["national"]["colombia"]["metrics"]
+        if metric["metricId"] == "species_groups_protected"
+    )
+    assert groups["status"] == "ready"
+    assert groups["value"] == 0.0
+    assert regular_artifact_completeness_issues(
+        document,
+        national_only=False,
+        domain="land",
+        skip_species=True,
+    ) == []
+
+
+def test_skip_species_species_exception_mismatch_is_still_invalid():
+    document = _document(domain="land")
+    document[PROVENANCE_KEY] = build_metrics_provenance("land", skip_species=True)
+    _apply_skip_species_dual_reference_secured(
+        document,
+        extra_details={"speciesException": {"policyId": "demo"}},
+    )
+
+    issues = regular_artifact_completeness_issues(
+        document,
+        national_only=False,
+        domain="land",
+        skip_species=True,
+    )
+    assert any(
+        "threatened_species_secured has invalid partial-value provenance" in issue
+        for issue in issues
+    )
+
+
+def test_skip_species_invalid_threshold_outcomes_are_still_rejected():
+    document = _document(domain="land")
+    document[PROVENANCE_KEY] = build_metrics_provenance("land", skip_species=True)
+    _apply_skip_species_dual_reference_secured(document)
+    for metric in document["geographies"]["national"]["colombia"]["metrics"]:
+        if metric["metricId"] == "threatened_species_secured":
+            metric["details"] = {"thresholdOutcomes": [{"targetPercent": 17.0, "value": 2}]}
+
+    issues = regular_artifact_completeness_issues(
+        document,
+        national_only=False,
+        domain="land",
+        skip_species=True,
+    )
+    assert any(
+        "threatened_species_secured has invalid dual-reference threshold outcomes" in issue
+        or "threatened_species_secured has invalid dual-reference metric contract" in issue
+        for issue in issues
+    )
+
+
+def test_global_dual_reference_still_requires_species_groups_protected():
+    document = _document(domain="land")
+    document[PROVENANCE_KEY] = build_metrics_provenance("land", skip_species=True)
+    document[PROVENANCE_KEY]["speciesTargetPolicy"] = {"kind": "dual_reference"}
+    _apply_skip_species_dual_reference_secured(document)
+
+    issues = regular_artifact_completeness_issues(
+        document,
+        national_only=False,
+        domain="land",
+        skip_species=True,
+    )
+    assert any(
+        "species_groups_protected has invalid dual-reference metric contract" in issue
+        for issue in issues
+    )
+    assert not any(
+        "threatened_species_secured has invalid dual-reference metric contract" in issue
+        for issue in issues
+    )
 
 
 def test_generator_rejects_national_zero_support_before_metric_work(

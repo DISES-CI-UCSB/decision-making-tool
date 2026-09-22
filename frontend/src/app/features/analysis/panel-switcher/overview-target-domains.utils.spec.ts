@@ -68,4 +68,80 @@ describe('classifyOverviewTargetDomains', () => {
       'species',
     ]);
   });
+
+  it('falls back to catalog finderInputs when goals targetContext is blank', () => {
+    expect(
+      classifyOverviewTargetDomains(
+        {
+          targetFeatureSet: null,
+          targetFeatureIds: [],
+        },
+        {
+          targetFeatureSet: 'ecosystems',
+          targetFeatureIds: ['ecosystems'],
+        },
+      ),
+    ).toEqual(new Set(['ecosystems']));
+  });
+
+  it('falls back to relativeTargetsByType when goals tokens and catalog are blank', () => {
+    expect(
+      classifyOverviewTargetDomains({
+        targetFeatureSet: null,
+        targetFeatureIds: [],
+        relativeTargetsByType: {
+          ecosystems: [0.17],
+        },
+      }),
+    ).toEqual(new Set(['ecosystems']));
+  });
+
+  it('falls back to structuredTargets when goals tokens and catalog are blank', () => {
+    expect(
+      classifyOverviewTargetDomains({
+        targetFeatureSet: null,
+        targetFeatureIds: [],
+        structuredTargets: {
+          ecosystems: [{ targetPercent: 17 }],
+        },
+      }),
+    ).toEqual(new Set(['ecosystems']));
+  });
+
+  it('keeps the empty-target path when there is no catalog or goals evidence', () => {
+    expect(
+      classifyOverviewTargetDomains({
+        targetFeatureSet: null,
+        targetFeatureIds: [],
+        relativeTargetsByType: {
+          ecosystems: [],
+          species: [0],
+        },
+        structuredTargets: {
+          ecosystems: [],
+          strategicEcosystems: [{ targetPercent: 0 }],
+        },
+      }),
+    ).toEqual(new Set());
+  });
+
+  it('does not let blank-context fallbacks override an explicit goals target set', () => {
+    expect(
+      classifyOverviewTargetDomains(
+        {
+          targetFeatureSet: 'strategic_ecosystems',
+          targetFeatureIds: ['strategic_ecosystems'],
+          relativeTargetsByType: {
+            ecosystems: [0.17],
+            species: [0.3],
+            strategicEcosystems: [0.17],
+          },
+        },
+        {
+          targetFeatureSet: 'ecosystems',
+          targetFeatureIds: ['ecosystems'],
+        },
+      ),
+    ).toEqual(new Set(['strategicEcosystems']));
+  });
 });

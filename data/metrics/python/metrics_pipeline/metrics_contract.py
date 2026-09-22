@@ -726,6 +726,43 @@ def provenance_issues(
     return issues
 
 
+_DUAL_REFERENCE_METRIC_KINDS = frozenset(
+    {"species_group_coverage", "species_threatened_secured"}
+)
+
+
+def _metric_has_threshold_outcomes(metric: dict[str, Any]) -> bool:
+    details = metric.get("details")
+    return isinstance(details, dict) and "thresholdOutcomes" in details
+
+
+def _is_dual_reference_metric(
+    *,
+    definition: MetricDefinition,
+    metric: dict[str, Any],
+    target_policy: Any,
+    target_policy_kind: str,
+    status: str,
+) -> bool:
+    """Recognize global dual-reference policy or a per-metric skip-species payload.
+
+    ``--skip-species`` releases omit ``metricsProvenance.speciesTargetPolicy``.
+    Those documents may still carry contract-valid 17/30 ``thresholdOutcomes``
+    on one target-dependent metric without requiring the sibling metric to
+    become dual-reference.
+    """
+
+    if definition.kind not in _DUAL_REFERENCE_METRIC_KINDS:
+        return False
+    if target_policy_kind == "dual_reference":
+        return True
+    return (
+        target_policy is None
+        and status == "partial"
+        and _metric_has_threshold_outcomes(metric)
+    )
+
+
 def _valid_dual_threshold_outcomes(
     metric: dict[str, Any],
     definition: MetricDefinition,
@@ -945,10 +982,12 @@ def regular_artifact_completeness_issues(
                     )
                     continue
                 value = metric.get("value")
-                dual_reference_metric = (
-                    target_policy_kind == "dual_reference"
-                    and definition.kind
-                    in {"species_group_coverage", "species_threatened_secured"}
+                dual_reference_metric = _is_dual_reference_metric(
+                    definition=definition,
+                    metric=metric,
+                    target_policy=target_policy,
+                    target_policy_kind=target_policy_kind,
+                    status=status,
                 )
                 if (
                     status == "partial"
@@ -1026,11 +1065,7 @@ def regular_artifact_completeness_issues(
                     expected_status = "not_applicable"
                 elif skip_species and is_species_metric_kind(definition.kind):
                     expected_status = None
-                elif (
-                    target_policy_kind == "dual_reference"
-                    and definition.kind
-                    in {"species_group_coverage", "species_threatened_secured"}
-                ) or (
+                elif dual_reference_metric or (
                     species_exception_binding is not None
                     and is_species_metric_kind(definition.kind)
                 ):

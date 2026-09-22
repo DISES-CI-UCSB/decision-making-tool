@@ -16,6 +16,7 @@ const routeUrl = await transpileRouteToTempFile(
 const requireRoute = createRequire(import.meta.url);
 const handler = requireRoute(routeUrl);
 
+// GET is rejected (SEC-07). Pass --post to exercise the authenticated publish path.
 const method = process.argv.includes('--post') ? 'POST' : 'GET';
 const requestId = readArgValue('--request-id');
 const idToken = process.env.FIREBASE_ID_TOKEN?.trim() ?? '';

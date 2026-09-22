@@ -5,6 +5,8 @@ import {
   formatMetricDelta,
   formatMetricValue,
   formatNumber,
+  formatSirapCompactArea,
+  formatSirapProgressPercent,
   formatSpeciesCoveragePercent,
   isDisplayableMetricValue,
   metricAvailabilityNote,
@@ -59,6 +61,37 @@ describe('metric presentation utilities', () => {
     expect(formatNumber(2_300, { locale: 'es', mode: 'compact' }, 0, 1)).toBe('2,3 mil');
     expect(formatNumber(2_300, { locale: 'en', mode: 'compact' }, 0, 1)).toBe('2.3K');
     expect(formatAreaValue(2.5, options)).toBe('2,5 km²');
+    expect(formatAreaValue(1736.75, { areaUnit: 'km2', locale: 'en', mode: 'compact' })).toBe(
+      '1.7K km²',
+    );
+    expect(formatAreaValue(20455.75, { areaUnit: 'km2', locale: 'en', mode: 'compact' })).toBe(
+      '20.5K km²',
+    );
+    expect(formatAreaValue(25021, { areaUnit: 'km2', locale: 'en', mode: 'compact' })).toBe(
+      '25K km²',
+    );
+    expect(formatAreaValue(515, { areaUnit: 'km2', locale: 'en', mode: 'compact' })).toBe(
+      '515 km²',
+    );
+  });
+
+  it('ceils SIRAP card percents and compact areas to whole numbers', () => {
+    const compactEn = { areaUnit: 'km2', locale: 'en', mode: 'compact' } as const;
+    const compactEs = { areaUnit: 'km2', locale: 'es', mode: 'compact' } as const;
+
+    expect(formatSirapProgressPercent(74.8, { locale: 'en' })).toBe('75%');
+    expect(formatSirapProgressPercent(42.1, { locale: 'en' })).toBe('43%');
+    expect(formatSirapProgressPercent(17, { locale: 'en' })).toBe('17%');
+    expect(formatSirapProgressPercent(51.6, { locale: 'es' })).toBe('52%');
+
+    expect(formatSirapCompactArea(1736.75, compactEn)).toBe('2K km²');
+    expect(formatSirapCompactArea(20455.75, compactEn)).toBe('21K km²');
+    expect(formatSirapCompactArea(25021, compactEn)).toBe('25K km²');
+    expect(formatSirapCompactArea(515, compactEn)).toBe('515 km²');
+    expect(formatSirapCompactArea(155, compactEn)).toBe('155 km²');
+    expect(formatSirapCompactArea(1736.75, compactEs)).toBe('2 mil km²');
+    expect(formatSirapCompactArea(1736.75, compactEn)).not.toContain('1.7');
+    expect(formatSirapCompactArea(20455.75, compactEn)).not.toContain('20.5');
   });
 
   it('displays partial values with an explicit source warning', () => {
@@ -112,6 +145,21 @@ describe('metric presentation utilities', () => {
     expect(displayableMetricValue(marine)).toBeNull();
     expect(metricAvailabilityNote(complete)).toBeNull();
     expect(metricAvailabilityNote(marine)).toBeNull();
+  });
+
+  it('does not treat threshold-only SIRAP reference cards as missing source inputs', () => {
+    const metric: MetricValue = {
+      ...buildMetric('species_groups_protected', null, 'count'),
+      status: 'partial',
+      details: {
+        thresholdOutcomes: [
+          { targetPercent: 17, value: 6347 },
+          { targetPercent: 30, value: 6347 },
+        ],
+      },
+    };
+
+    expect(metricAvailabilityNote(metric)).toBeNull();
   });
 });
 

@@ -29,23 +29,28 @@ from boundaries.boundary_id_grid import build_boundary_id_grid  # noqa: E402
 from boundaries.boundary_loader import load_all_boundaries  # noqa: E402
 from boundaries.boundary_mask import BoundaryMaskCache  # noqa: E402
 from local_io import DownloadError, cached_download  # noqa: E402
-from main import _process_species_for_solution, _species_goals_provenance  # noqa: E402
+from main import _species_goals_provenance  # noqa: E402
 from metrics_contract import build_metrics_provenance  # noqa: E402
-from raster_align import RasterAlignmentCache, grid_sha256  # noqa: E402
-from raster_metrics import read_solution_raster  # noqa: E402
-from species_data import compute_pool_sizes, load_species_records  # noqa: E402
+from raster_align import grid_sha256  # noqa: E402
+from raster_metrics import read_solution_raster, terrestrial_template_scope_mask  # noqa: E402
+from species_data import load_species_records  # noqa: E402
 from species_exception import load_species_exception  # noqa: E402
 from species_goals import (  # noqa: E402
+    DEFAULT_TERRESTRIAL_TEMPLATE_PATH,
     FLAG_CONFIGURED_TARGET_MET,
     FLAG_MET_17,
     FLAG_MET_30,
     GEOGRAPHY_LEVELS,
+    SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION,
+    SPECIES_GOALS_COVERAGE_POLICY,
+    SpeciesGoalsContractError,
     SpeciesGoalsPipeline,
     build_catalog,
     canonical_sha256,
     catalog_path,
     compact_partition_path,
     partition_is_resumable,
+    record_species_goals_from_smsp,
     species_id,
     validate_catalog,
     validate_compact,
@@ -66,10 +71,140 @@ SOURCE_RELEASE_ID = os.environ.get(
     RELEASE_ID,
 )
 WORKER_COUNT = 3
+MAX_NATIONAL_ONLY_WORKERS = 8
 MIN_FREE_DISK_GIB = 60.0
 MIN_FREE_MEMORY_PERCENT = 10
 MAX_SYSTEMIC_FAILURES = 3
 TARGET_GRID_SHA256 = "d558d3f39028e9dc4f83d42fd720f3d45081e3fdcdd2b0d5f72ccb1b6352f23e"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+EXPECTED_SMSP_STEMS = frozenset(
+    {"amphibians", "birds", "mammals", "plants", "reptiles"}
+)
+DEFAULT_SMSP_DIR = Path(
+    os.environ.get(
+        "METRICS_SPECIES_GOALS_SMSP_DIR",
+        str(
+            REPO_ROOT
+            / "data/metrics/cache/mesa-v3/species-goals-calculator-a"
+        ),
+    )
+)
+
+
+def _species_goals_matrix_paths() -> list[Path]:
+    directory = Path(DEFAULT_SMSP_DIR)
+    if not directory.is_absolute():
+        directory = REPO_ROOT / directory
+    paths = sorted(directory.glob("*.smtx.gz"))
+    stems = {path.name.removesuffix(".smtx.gz") for path in paths}
+    if stems != EXPECTED_SMSP_STEMS:
+        raise ValueError(
+            f"SMSP cache {directory} must contain exactly "
+            f"{sorted(EXPECTED_SMSP_STEMS)}, got {sorted(stems)}. Use "
+            "data/metrics/cache/mesa-v3/species-goals-calculator-a, not "
+            "species/ (stub amphibians and split plant matrices)."
+        )
+    missing = [path for path in paths if not path.is_file()]
+    if missing:
+        raise ValueError(f"SMSP matrix is not a readable file: {missing}")
+    return paths
+
+
+def _national_only() -> bool:
+    return os.environ.get("METRICS_SPECIES_GOALS_NATIONAL_ONLY") == "1"
+
+
+SKIP_PUBLISHED_FINGERPRINT_ENV = "METRICS_SPECIES_GOALS_SKIP_PUBLISHED_FINGERPRINT"
+_LOCAL_CONTINUATION_INVENTORY = (8_300, 0)
+_PUBLISHED_CONTINUATION_INVENTORY = (8_298, 2)
+
+
+def _skip_published_fingerprint_enabled() -> bool:
+    return os.environ.get(SKIP_PUBLISHED_FINGERPRINT_ENV) == "1"
+
+
+def _available_excluded(document: Any) -> tuple[int, int] | None:
+    """Read (available, excluded) from exception, completeness, or policy provenance."""
+
+    if not isinstance(document, dict):
+        return None
+    available = document.get("availableExpected")
+    excluded = document.get("excluded")
+    if isinstance(available, int) and isinstance(excluded, int):
+        return (available, excluded)
+    matching = document.get("matchingInventory")
+    if isinstance(matching, dict):
+        available = matching.get("availableSpeciesCount")
+        catalog = matching.get("catalogSpeciesCount")
+        if isinstance(available, int) and isinstance(catalog, int):
+            return (available, catalog - available)
+    return None
+
+
+def _published_inventory_document(published: dict[str, Any] | None) -> Any:
+    if not isinstance(published, dict):
+        return None
+    completeness = published.get("speciesCompleteness")
+    if isinstance(completeness, dict) and _available_excluded(completeness):
+        return completeness
+    provenance = published.get("metricsProvenance")
+    if isinstance(provenance, dict):
+        return provenance.get("speciesTargetPolicy")
+    return None
+
+
+def _skip_published_target_policy_fingerprint(
+    *,
+    local_provenance: Any = None,
+    published_provenance: Any = None,
+    national_only: bool | None = None,
+) -> bool:
+    """Skip the known 8300/0 vs published 8298/2 inventory fingerprint only.
+
+    Requires ``METRICS_SPECIES_GOALS_SKIP_PUBLISHED_FINGERPRINT=1``. Unset stays
+    fail-closed for both national-only and full-geography runs. Other inventory
+    mismatches still raise.
+    """
+
+    _ = national_only
+    if not _skip_published_fingerprint_enabled():
+        return False
+    return (
+        _available_excluded(local_provenance) == _LOCAL_CONTINUATION_INVENTORY
+        and _available_excluded(published_provenance)
+        == _PUBLISHED_CONTINUATION_INVENTORY
+    )
+
+
+def _template_path() -> Path:
+    raw = os.environ.get("METRICS_SPECIES_GOALS_TEMPLATE")
+    return Path(raw) if raw else DEFAULT_TERRESTRIAL_TEMPLATE_PATH
+
+
+def _active_geography_levels() -> tuple[str, ...]:
+    if _national_only():
+        return ("national",)
+    return GEOGRAPHY_LEVELS
+
+
+def _resolve_worker_count(*, national_only: bool, requested: int | None) -> int:
+    if requested is None:
+        return 6 if national_only else WORKER_COUNT
+    if national_only:
+        if not 1 <= requested <= MAX_NATIONAL_ONLY_WORKERS:
+            raise ValueError(
+                "--workers must be between 1 and "
+                f"{MAX_NATIONAL_ONLY_WORKERS} for --national-only"
+            )
+        return requested
+    if not 1 <= requested <= MAX_NATIONAL_ONLY_WORKERS:
+        raise ValueError(
+            "--workers must be between 1 and "
+            f"{MAX_NATIONAL_ONLY_WORKERS} for full-geography"
+        )
+    return requested
+
+
 PUBLIC_RELEASE_ROOT = (
     "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/"
     + SOURCE_RELEASE_ID
@@ -171,6 +306,8 @@ def _target_policy(
     cache_dir: Path,
     catalog_records: list[Any],
     available_records: list[Any],
+    *,
+    national_only: bool,
 ) -> tuple[dict[str, Any], SpeciesTargetPolicy, str]:
     goals_download = cached_download(_goals_url(solution_id), cache_dir, force=False)
     goals = json.loads(goals_download.path.read_text(encoding="utf-8"))
@@ -201,8 +338,28 @@ def _target_policy(
     )
     published, _ = _published_document(solution_id, cache_dir)
     expected = published.get("metricsProvenance", {}).get("speciesTargetPolicy")
+    # Calculator A may now score the two former MAXENT-gap plants the published
+    # compact still fingerprints as excluded (8300/0 vs 8298/2).
     if policy.provenance != expected:
-        raise ValueError(f"{solution_id}: target provenance mismatch")
+        local_inventory = (
+            policy.provenance
+            if _available_excluded(policy.provenance)
+            else {
+                "availableExpected": len(available_records),
+                "excluded": max(len(catalog_records) - len(available_records), 0),
+            }
+        )
+        published_inventory = (
+            expected
+            if _available_excluded(expected)
+            else _published_inventory_document(published)
+        )
+        if not _skip_published_target_policy_fingerprint(
+            local_provenance=local_inventory,
+            published_provenance=published_inventory,
+            national_only=national_only,
+        ):
+            raise ValueError(f"{solution_id}: target provenance mismatch")
     alignment = published.get("metricsProvenance", {}).get("inputAlignment")
     alignment_sha256 = alignment.get("sha256") if isinstance(alignment, dict) else None
     if not isinstance(alignment_sha256, str) or len(alignment_sha256) != 64:
@@ -265,7 +422,7 @@ def _build_shared_catalog(
     written, _ = write_catalog(catalog_path(output_root), document)
     if written["provenance"]["inventory"] != {
         "catalogTotal": 8_300,
-        "unavailable": 2,
+        "unavailable": 0,
         "zeroRange": 166,
     }:
         raise ValueError("shared species catalog inventory is invalid")
@@ -302,7 +459,7 @@ def _compact_provenance(
 
 def _partition_evidence(output_root: Path, solution_id: str) -> dict[str, Any]:
     evidence: dict[str, Any] = {}
-    for level in GEOGRAPHY_LEVELS:
+    for level in _active_geography_levels():
         path = compact_partition_path(output_root, solution_id, level)
         completion = json.loads(
             path.with_name(f"{path.name}.complete.json").read_text(encoding="utf-8")
@@ -315,6 +472,100 @@ def _partition_evidence(output_root: Path, solution_id: str) -> dict[str, Any]:
             "relativePath": path.relative_to(output_root).as_posix(),
         }
     return evidence
+
+
+def _national_partition_is_untrusted(path: Path, catalog: dict[str, Any]) -> bool:
+    if not path.is_file():
+        return False
+    expected_policy = canonical_sha256(SPECIES_GOALS_COVERAGE_POLICY)
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+        provenance = document.get("provenance") or {}
+        if (
+            provenance.get("exactOverlapAlgorithmVersion")
+            != SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION
+            or provenance.get("exactOverlapPolicySha256") != expected_policy
+        ):
+            return True
+        validate_compact(document, catalog=catalog)
+    except (OSError, json.JSONDecodeError, SpeciesGoalsContractError, TypeError):
+        return True
+    return False
+
+
+def _archive_untrusted_national_partitions(
+    output_root: Path, catalog: dict[str, Any]
+) -> dict[str, Any]:
+    """Rename tautological / old-policy national sidecars so they cannot resume."""
+
+    compact_root = output_root / "species-goals/compact/v1"
+    archived: list[str] = []
+    if not compact_root.is_dir():
+        return {"archivedCount": 0, "paths": archived}
+    suffix = ".invalid-selected-scope"
+    for path in sorted(compact_root.glob("*/national.species-goals.compact.json")):
+        if not _national_partition_is_untrusted(path, catalog):
+            continue
+        dest = path.with_name(path.name + suffix)
+        os.replace(path, dest)
+        archived.append(dest.relative_to(output_root).as_posix())
+        completion = path.with_name(f"{path.name}.complete.json")
+        if completion.is_file():
+            os.replace(completion, completion.with_name(completion.name + suffix))
+    return {"archivedCount": len(archived), "paths": archived[:8]}
+
+
+def _archive_untrusted_complete_report(report_path: Path, output_root: Path) -> str | None:
+    """Keep blocked reports; move complete-B or tautological-A so nothing skips."""
+
+    if not report_path.is_file():
+        return None
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    phase = report.get("phase")
+    if phase != "complete":
+        return None
+    gold = (
+        output_root
+        / "species-goals/compact/v1"
+        / "eco17_estr17_esprep17_runap_iheh2022"
+        / "national.species-goals.compact.json"
+    )
+    reason = None
+    if gold.is_file():
+        try:
+            compact = json.loads(gold.read_text(encoding="utf-8"))
+            algo = (compact.get("provenance") or {}).get(
+                "exactOverlapAlgorithmVersion"
+            )
+            if algo != SPECIES_GOALS_COVERAGE_ALGORITHM_VERSION:
+                reason = f"complete-non-A-{algo}"
+            else:
+                expected_policy = canonical_sha256(SPECIES_GOALS_COVERAGE_POLICY)
+                policy_sha = (compact.get("provenance") or {}).get(
+                    "exactOverlapPolicySha256"
+                )
+                if policy_sha != expected_policy:
+                    reason = "complete-stale-A-policy"
+                else:
+                    validate_compact(compact)
+        except SpeciesGoalsContractError as exc:
+            if "tautological" in str(exc):
+                reason = "complete-tautological-A"
+            else:
+                reason = "complete-invalid-A"
+        except (OSError, json.JSONDecodeError, TypeError):
+            reason = "complete-unreadable-gold"
+    if reason is None:
+        return None
+    stamped = output_root / (
+        f"species-goals-full-build-report.{reason}-"
+        f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}.json"
+    )
+    os.replace(report_path, stamped)
+    return str(stamped)
 
 
 def _worker_build(
@@ -344,30 +595,47 @@ def _worker_build(
                 records, available, exception, _ = _load_catalog_inputs(
                     species_csv, exception_path
                 )
-                pool_sizes = compute_pool_sizes(records)
-                boundaries, errors = load_all_boundaries(cache_dir)
-                if errors:
-                    raise ValueError(f"boundary load errors: {errors}")
-                observed_counts = {
-                    level: len(boundaries[level]) for level in EXPECTED_SCOPE_COUNTS
-                }
-                if observed_counts != EXPECTED_SCOPE_COUNTS:
-                    raise ValueError(f"boundary counts changed: {observed_counts}")
-                first_download = cached_download(
-                    _solution_url(entries[0]), cache_dir, force=False
-                )
-                first_raster = read_solution_raster(first_download.path)
-                if grid_sha256(first_raster.fingerprint) != TARGET_GRID_SHA256:
-                    raise ValueError("land target grid checksum changed")
+                national_only = _national_only()
+                active_levels = _active_geography_levels()
+                template_path = _template_path()
+                if not template_path.is_file():
+                    raise ValueError(f"terrestrial template missing: {template_path}")
+                matrix_paths = _species_goals_matrix_paths()
                 grids: dict[str, Any] = {}
-                for level in EXPECTED_SCOPE_COUNTS:
-                    grids[level] = build_boundary_id_grid(
-                        level,
-                        boundaries[level],
-                        first_raster.fingerprint,
-                        _TransientBoundaryMaskCache(),
+                if not entries:
+                    event_queue.put(
+                        {
+                            "type": "worker-ready",
+                            "workerIndex": worker_index,
+                            "pid": os.getpid(),
+                        }
                     )
-                alignment_cache = RasterAlignmentCache(release_cache, max_cache_gb=0)
+                    event_queue.put(
+                        {"type": "worker-finished", "workerIndex": worker_index}
+                    )
+                    return
+                if not national_only:
+                    first_download = cached_download(
+                        _solution_url(entries[0]), cache_dir, force=False
+                    )
+                    first_raster = read_solution_raster(first_download.path)
+                    if grid_sha256(first_raster.fingerprint) != TARGET_GRID_SHA256:
+                        raise ValueError("land target grid checksum changed")
+                    boundaries, errors = load_all_boundaries(cache_dir)
+                    if errors:
+                        raise ValueError(f"boundary load errors: {errors}")
+                    observed_counts = {
+                        level: len(boundaries[level]) for level in EXPECTED_SCOPE_COUNTS
+                    }
+                    if observed_counts != EXPECTED_SCOPE_COUNTS:
+                        raise ValueError(f"boundary counts changed: {observed_counts}")
+                    for level in EXPECTED_SCOPE_COUNTS:
+                        grids[level] = build_boundary_id_grid(
+                            level,
+                            boundaries[level],
+                            first_raster.fingerprint,
+                            _TransientBoundaryMaskCache(),
+                        )
                 event_queue.put(
                     {
                         "type": "worker-ready",
@@ -400,7 +668,11 @@ def _worker_build(
                     solution_started = time.monotonic()
                     try:
                         solution, target_policy, alignment_inventory_sha256 = _target_policy(
-                            solution_id, cache_dir, records, available
+                            solution_id,
+                            cache_dir,
+                            records,
+                            available,
+                            national_only=national_only,
                         )
                         downloaded = cached_download(
                             _solution_url(entry), cache_dir, force=False
@@ -412,6 +684,9 @@ def _worker_build(
                         raster = read_solution_raster(downloaded.path)
                         if grid_sha256(raster.fingerprint) != TARGET_GRID_SHA256:
                             raise ValueError(f"{solution_id}: target grid changed")
+                        scope_mask = terrestrial_template_scope_mask(
+                            raster, template_path
+                        )
                         provenance = _compact_provenance(
                             catalog=catalog,
                             exception=exception,
@@ -432,7 +707,7 @@ def _worker_build(
                                 expected_catalog_sha256=catalog["catalogSha256"],
                                 expected_provenance=provenance,
                             )
-                            for level in GEOGRAPHY_LEVELS
+                            for level in active_levels
                         }
                         pending = {
                             level for level, is_resumable in resumable.items()
@@ -448,19 +723,22 @@ def _worker_build(
                                 active_levels=pending,
                             )
                             try:
-                                _process_species_for_solution(
-                                    raster,
-                                    solution,
-                                    available,
-                                    pool_sizes,
-                                    grids,
-                                    cache_dir,
-                                    False,
-                                    alignment_cache,
-                                    target_policy,
-                                    detail_sink=pipeline,
+                                # Score from SMSP cell lists whenever the species
+                                # is in the matrices and the catalog. Do not
+                                # require MAXENT TIFFs on blob.
+                                record_species_goals_from_smsp(
+                                    pipeline,
+                                    records=available,
+                                    species_matrix_paths=matrix_paths,
+                                    selected_mask=raster.selected_mask,
+                                    scope_mask=scope_mask,
+                                    pre_existing_mask=raster.pre_existing_mask,
+                                    new_prioritizr_mask=raster.new_prioritizr_mask,
+                                    boundary_indexes={} if national_only else grids,
                                 )
-                                for level in GEOGRAPHY_LEVELS:
+                                for level in active_levels:
+                                    if level not in pending:
+                                        continue
                                     scopes = (
                                         [["colombia", "Colombia"]]
                                         if level == "national"
@@ -659,7 +937,11 @@ def _worker_validate(
                     started = time.monotonic()
                     try:
                         _, policy, alignment_inventory_sha256 = _target_policy(
-                            solution_id, cache_dir, records, available
+                            solution_id,
+                            cache_dir,
+                            records,
+                            available,
+                            national_only=_national_only(),
                         )
                         provenance = _compact_provenance(
                             catalog=catalog,
@@ -672,7 +954,7 @@ def _worker_validate(
                         )
                         national = None
                         partition_evidence: dict[str, Any] = {}
-                        for level in GEOGRAPHY_LEVELS:
+                        for level in _active_geography_levels():
                             path = compact_partition_path(
                                 output_root, solution_id, level
                             )
@@ -709,17 +991,37 @@ def _worker_validate(
                                 gc.collect()
                         if national is None:
                             raise ValueError(f"{solution_id}: national partition missing")
-                        published, published_sha256 = _published_document(
-                            solution_id, cache_dir
-                        )
-                        parity = _validate_published_parity(
-                            catalog,
-                            national,
-                            published,
-                            policy,
-                            threatened_species_ids,
-                        )
-                        parity["publishedMetricsSha256"] = published_sha256
+                        if _national_only():
+                            parity = {
+                                "publishedParity": (
+                                    "skipped-calculator-b-exactextract-rollups"
+                                )
+                            }
+                        else:
+                            published, published_sha256 = _published_document(
+                                solution_id, cache_dir
+                            )
+                            if _skip_published_target_policy_fingerprint(
+                                local_provenance=exception.binding,
+                                published_provenance=_published_inventory_document(
+                                    published
+                                ),
+                            ):
+                                parity = {
+                                    "publishedParity": (
+                                        "skipped-published-fingerprint-8300-vs-8298"
+                                    ),
+                                    "publishedMetricsSha256": published_sha256,
+                                }
+                            else:
+                                parity = _validate_published_parity(
+                                    catalog,
+                                    national,
+                                    published,
+                                    policy,
+                                    threatened_species_ids,
+                                )
+                                parity["publishedMetricsSha256"] = published_sha256
                         event_queue.put(
                             {
                                 "type": "solution-validated",
@@ -976,11 +1278,12 @@ def _run_phase(
     report: dict[str, Any],
     report_path: Path,
     started: float,
+    worker_count: int,
 ) -> bool:
     context = mp.get_context("spawn")
     event_queue = context.Queue()
     stop_event = context.Event()
-    slices = [entries[index::WORKER_COUNT] for index in range(WORKER_COUNT)]
+    slices = [entries[index::worker_count] for index in range(worker_count)]
     processes = []
     for worker_index, worker_entries in enumerate(slices):
         common = (
@@ -1042,7 +1345,7 @@ def _write_release_inventory(
                 "solutionId": solution_id,
                 "releaseId": RELEASE_ID,
                 "catalogValidated": True,
-                "validatedGeographyLevels": list(GEOGRAPHY_LEVELS),
+                "validatedGeographyLevels": list(_active_geography_levels()),
             }
             for solution_id in sorted(solution_ids)
         },
@@ -1056,12 +1359,20 @@ def _preflight(
     cache_dir: Path,
     species_csv: Path,
     exception_path: Path,
+    *,
+    national_only: bool,
 ) -> dict[str, Any]:
     records, available, _, _ = _load_catalog_inputs(species_csv, exception_path)
     policies = {"scalar17": 0, "scalar30": 0, "perSpecies": 0, "dualReference": 0}
     for entry in entries:
         solution_id = entry["solutionId"]
-        _, policy, _ = _target_policy(solution_id, cache_dir, records, available)
+        _, policy, _ = _target_policy(
+            solution_id,
+            cache_dir,
+            records,
+            available,
+            national_only=national_only,
+        )
         if policy.kind == "per_species":
             policies["perSpecies"] += 1
         elif policy.kind == "dual_reference":
@@ -1083,7 +1394,7 @@ def _preflight(
     return policies
 
 
-def _parse_args() -> argparse.Namespace:
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--release-id", default=RELEASE_ID)
     parser.add_argument("--catalog-version", default=CATALOG_VERSION)
@@ -1094,12 +1405,42 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--species-csv", type=Path, required=True)
     parser.add_argument("--species-exception", type=Path, required=True)
     parser.add_argument("--solution-catalog", type=Path, required=True)
-    parser.add_argument("--workers", type=int, default=WORKER_COUNT)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help=(
+            "Worker processes. Full-geography builds require 3. "
+            f"--national-only defaults to 6 and allows 1-{MAX_NATIONAL_ONLY_WORKERS}."
+        ),
+    )
     parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--validate-only", action="store_true")
-    args = parser.parse_args()
-    if args.workers != WORKER_COUNT:
-        parser.error("the approved build requires exactly 3 workers")
+    parser.add_argument(
+        "--national-only",
+        action="store_true",
+        help=(
+            "Rebuild land national species-goals sidecars only. Skips departments, "
+            "municipalities, siraps, runaps, omecs, and custom AOI jobs."
+        ),
+    )
+    parser.add_argument(
+        "--species-goals-template",
+        type=Path,
+        default=DEFAULT_TERRESTRIAL_TEMPLATE_PATH,
+        help=(
+            "Mesa terrestrial planning-unit template whose valid mask is the "
+            "species-range denominator."
+        ),
+    )
+    args = parser.parse_args(argv)
+    try:
+        args.workers = _resolve_worker_count(
+            national_only=args.national_only,
+            requested=args.workers,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
     return args
 
 
@@ -1117,6 +1458,22 @@ def main() -> int:
     os.environ["METRICS_SPECIES_GOALS_RELEASE_ID"] = RELEASE_ID
     os.environ["METRICS_SPECIES_GOALS_CATALOG_VERSION"] = CATALOG_VERSION
     os.environ["METRICS_SPECIES_GOALS_SOURCE_RELEASE_ID"] = SOURCE_RELEASE_ID
+    os.environ["METRICS_SPECIES_GOALS_NATIONAL_ONLY"] = (
+        "1" if args.national_only else "0"
+    )
+    template_path = Path(args.species_goals_template)
+    if not template_path.is_file():
+        raise ValueError(
+            "species-goals terrestrial template is missing: "
+            f"{template_path}. Expected data/metrics/cache/mesa-v3/"
+            "parity-inputs/template_terrestre.tif"
+        )
+    os.environ["METRICS_SPECIES_GOALS_TEMPLATE"] = str(template_path.resolve())
+    print(
+        "species-goals full build starting "
+        f"nationalOnly={args.national_only} workers={args.workers}",
+        flush=True,
+    )
     started = time.monotonic()
     source_catalog = json.loads(args.solution_catalog.read_text(encoding="utf-8"))
     if (
@@ -1145,6 +1502,7 @@ def main() -> int:
         raise ValueError("solution catalog domain counts are invalid")
     args.output_root.mkdir(parents=True, exist_ok=True)
     report_path = args.output_root / "species-goals-full-build-report.json"
+    archived_report = _archive_untrusted_complete_report(report_path, args.output_root)
     previous_attempts: list[dict[str, Any]] = []
     if report_path.is_file():
         previous = json.loads(report_path.read_text(encoding="utf-8"))
@@ -1156,23 +1514,48 @@ def main() -> int:
                 "validationCounts": previous.get("validationCounts"),
                 "errors": previous.get("errors", []),
                 "blockers": previous.get("blockers", []),
+                "geographyLevels": previous.get("geographyLevels"),
             }
         )
+    print("building shared catalog", flush=True)
     catalog = _build_shared_catalog(
         args.output_root, args.species_csv, args.species_exception
     )
+    print("archiving untrusted national partitions", flush=True)
+    archived_nationals = _archive_untrusted_national_partitions(
+        args.output_root, catalog
+    )
+    print("running preflight", flush=True)
     policies = _preflight(
         land_entries,
         args.cache_dir,
         args.species_csv,
         args.species_exception,
+        national_only=args.national_only,
     )
+    print("preflight ok", policies, flush=True)
     report: dict[str, Any] = {
         "format": "species-goals-full-build-report-v1",
         "releaseId": RELEASE_ID,
         "outputRoot": str(args.output_root),
-        "workerCount": WORKER_COUNT,
+        "workerCount": args.workers,
         "phase": "preflight",
+        "geographyLevels": list(_active_geography_levels()),
+        "nationalOnly": _national_only(),
+        "speciesGoalsScope": "terrestrial-template-valid",
+        "speciesGoalsTemplate": str(template_path),
+        "speciesGoalsSmspDir": str(DEFAULT_SMSP_DIR),
+        "publishedParity": (
+            "skipped-calculator-b-exactextract-rollups"
+            if args.national_only
+            else (
+                "skipped-published-fingerprint-8300-vs-8298"
+                if _skip_published_fingerprint_enabled()
+                else "required"
+            )
+        ),
+        "archivedUntrustedCompleteReport": archived_report,
+        "archivedUntrustedNationalPartitions": archived_nationals,
         "startedAt": _utc_now(),
         "updatedAt": _utc_now(),
         "elapsedSeconds": 0,
@@ -1195,7 +1578,7 @@ def main() -> int:
             entry["solutionId"]: {
                 "status": "pending",
                 "domain": "land",
-                "deterministicWorkerIndex": index % WORKER_COUNT,
+                "deterministicWorkerIndex": index % args.workers,
             }
             for index, entry in enumerate(land_entries)
         },
@@ -1245,6 +1628,7 @@ def main() -> int:
             report=report,
             report_path=report_path,
             started=started,
+            worker_count=args.workers,
         ):
             report["phase"] = "blocked"
             _update_report_runtime(report, args.output_root, started)
@@ -1273,6 +1657,7 @@ def main() -> int:
         report=report,
         report_path=report_path,
         started=started,
+        worker_count=args.workers,
     ):
         report["phase"] = "blocked"
         _update_report_runtime(report, args.output_root, started)

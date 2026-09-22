@@ -248,7 +248,18 @@ def structured_finder_inputs(
                 else True
             )
         )
-        if dimension is not None and relative_target is not None and include_target:
+        total_amount = _number(row.get("total_amount"))
+        leftover_zero_species = (
+            dimension in {"speciesRepresentation", "espRn"}
+            and total_amount is not None
+            and total_amount == 0
+        )
+        if (
+            dimension is not None
+            and relative_target is not None
+            and include_target
+            and not leftover_zero_species
+        ):
             dimensions[dimension].append(
                 {
                     "featureId": _slug(coverage_row["feature"]),

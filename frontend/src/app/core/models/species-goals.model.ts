@@ -156,6 +156,16 @@ const COMPACT_LAYOUT = [
 ];
 const TARGET_OVERLAY_LAYOUT = ['speciesIndex', 'targetPercent'];
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+export const COVERAGE_FLOAT_TOLERANCE = 1e-6;
+
+/** Treat 16.9999999% as reaching a 17% coverage checkpoint. */
+export function reachesCoverageCheckpoint(
+  coveragePercent: number,
+  targetPercent: number,
+  tolerance = COVERAGE_FLOAT_TOLERANCE,
+): boolean {
+  return coveragePercent + tolerance >= targetPercent;
+}
 
 export function isSpeciesGoalsCatalog(value: unknown): value is SpeciesGoalsCatalog {
   if (!isRecord(value) || value['format'] !== 'species-goals-catalog-v1') return false;
@@ -408,7 +418,8 @@ export function hydrateSpeciesGoals(
           : null
         : configuredTarget === null
           ? null
-          : range > 0 && percent(selected, range) + 1e-9 >= configuredTarget;
+          : configuredTarget === 0 ||
+            (range > 0 && percent(selected, range) + COVERAGE_FLOAT_TOLERANCE >= configuredTarget);
     return [
       {
         id,
@@ -485,12 +496,29 @@ function isValidCompactRow(
     return false;
   }
   const coverage = range > 0 ? (selected / range) * 100 : 0;
+  const meetsConfiguredTarget = range > 0 && target !== null && coverage >= target;
+  const almostMeetsConfiguredTarget =
+    range > 0 && target !== null && coverage + COVERAGE_FLOAT_TOLERANCE >= target;
+  const configuredTargetMet = Boolean(flags & SPECIES_GOALS_FLAGS.configuredTargetMet);
   return (
-    Boolean(flags & SPECIES_GOALS_FLAGS.met17) === (range > 0 && coverage >= 17) &&
-    Boolean(flags & SPECIES_GOALS_FLAGS.met30) === (range > 0 && coverage >= 30) &&
-    Boolean(flags & SPECIES_GOALS_FLAGS.configuredTargetMet) ===
-      (range > 0 && target !== null && coverage >= target)
+    thresholdFlagMatches(Boolean(flags & SPECIES_GOALS_FLAGS.met17), selected, range, 17) &&
+    thresholdFlagMatches(Boolean(flags & SPECIES_GOALS_FLAGS.met30), selected, range, 30) &&
+    (configuredTargetMet ? almostMeetsConfiguredTarget : !meetsConfiguredTarget)
   );
+}
+
+/** Match publisher km² flags. Percent comparison invents float crossings at 17/30. */
+function thresholdFlagMatches(
+  flagSet: boolean,
+  selected: number,
+  total: number,
+  threshold: number,
+): boolean {
+  if (total <= 0) return !flagSet;
+  const targetArea = total * (threshold / 100);
+  if (flagSet === selected >= targetArea) return true;
+  const delta = Math.abs(selected - targetArea);
+  return delta > 0 && delta <= COVERAGE_FLOAT_TOLERANCE;
 }
 
 function isSpeciesTargetOverlayMap(value: unknown): value is SpeciesTargetOverlayMap {

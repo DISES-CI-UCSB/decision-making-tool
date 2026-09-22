@@ -269,8 +269,13 @@ def load_solution_catalog(path: Path) -> SolutionCatalog:
                 str(species_exception_binding.get("policySha256", ""))
             )
             or species_exception_binding.get("catalogTotal") != 8300
-            or species_exception_binding.get("availableExpected") != 8298
-            or species_exception_binding.get("excluded") != 2
+            or not isinstance(species_exception_binding.get("availableExpected"), int)
+            or not isinstance(species_exception_binding.get("excluded"), int)
+            or (
+                species_exception_binding["availableExpected"]
+                + species_exception_binding["excluded"]
+                != 8300
+            )
         ):
             raise SolutionCatalogError(
                 "catalog speciesException binding is missing or invalid."
