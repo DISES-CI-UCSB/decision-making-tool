@@ -40,6 +40,20 @@ El frontend (`frontend/`) es una SPA (Single Page Application / Aplicación de P
 
 Stack: Angular (componentes standalone, sin NgModules heredados), Tailwind CSS, ArcGIS Maps SDK for JavaScript (kit de desarrollo de software), ngx-translate para i18n en inglés/español, Firebase Auth.
 
+## Arquitectura del backend
+
+El backend (`backend/`) es un servicio de FastAPI (framework web de Python) con una sola tarea: calcular métricas de conservación para un **polígono personalizado** que alguien dibujó en el mapa.
+
+- **`manifest.json` — el registro de una versión del catálogo.** Este es el archivo que lee hydrate. Enumera cada ráster de rasgos (cobertura de suelo, áreas protegidas, carbono, agua, etc.), las matrices de especies, la grilla de referencia, y checksums para **una versión específica del catálogo** — hoy esa versión es **3.7.0** (`releases/catalog-v3-7-0/manifest.json` en Vercel Blob). Si sube la versión del catálogo, este es el archivo que cambia: apunta a hydrate hacia un conjunto distinto de capas para descargar. `DMT_MANIFEST_URL` (con `MANIFEST_BLOB_URL` como respaldo — ver "Los dos punteros" arriba) es la variable de entorno que le dice al backend de qué versión debe hidratar el manifiesto. No incluye los rásteres de Colombia (varios GB) dentro de la imagen de Docker — eso es lo que hydrate descarga hacia un volumen montado (`runtime-artifacts/`), usando este manifiesto como su lista de compras.
+- **Endpoints de AOI (Area of Interest / Área de Interés) en vivo — lo que corre realmente al hacer clic.** Una vez que hydrate llenó el volumen a partir de ese manifiesto, la API puede responder:
+  - `POST /metrics/custom-polygon` — recibe un polígono GeoJSON, lo rasteriza sobre la grilla de referencia, y devuelve valores de métricas (área, cobertura de suelo, áreas protegidas, carbono, agua, ecosistemas, y más) calculados **en vivo**, en esa misma solicitud.
+  - `POST /area-profile/custom-polygon` más un par de rutas `species-coverage/jobs` — desgloses más detallados de especies/ecosistemas, ejecutados como trabajos en segundo plano (una cola en SQLite en disco) porque son más lentos de lo que debería ser un ciclo de solicitud-respuesta único.
+  - `GET /health` — el proceso está activo. `GET /ready` — el manifiesto cargado (y el worker de trabajos de especies) son realmente utilizables; devuelve `503` si hydrate todavía no se ha ejecutado para el manifiesto configurado.
+- **Punto de entrada:** `backend/app/main.py`. Un lifespan hook (función que corre al iniciar/apagar el proceso) llama a `warmup_artifacts()` al arrancar, cargando los rásteres y matrices de especies ya hidratados en una caché en memoria (`app/artifacts.py`) para que las solicitudes en vivo no toquen disco.
+- **Calculadoras compartidas, sin lógica duplicada:** el backend importa sus fórmulas de métricas desde `data/metrics/python/metrics_pipeline`, el mismo paquete que usa el pipeline offline (sección 2) para precalcular los números de AOI conocidas. Un solo código base calcula tanto los números "ya conocidos" (precalculados, desde los archivos de lote del manifiesto) como los "recién dibujados" (en vivo, desde `/metrics/custom-polygon`).
+
+Stack: FastAPI, Pydantic, rasterio (entrada/salida de rásteres), NumPy, Shapely/PyProj (geometría) a través del pipeline de métricas compartido.
+
 ## 1. Levantar la app
 
 Necesitas Docker Desktop, salida HTTPS hacia Blob público, y una copia de `.env.example` → `.env`. El Compose raíz carga `.env` y `backend/.env` (ignora `.env.local`). Completa Firebase en `.env` si necesitas login.
