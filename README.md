@@ -130,38 +130,70 @@ Plain `yarn start` reads `environment.ts`. Keep that file in sync with the offic
 
 ## 2. Publish new metrics
 
-**This is many scripts, not one script, and two different languages.** Steps 1–7 below are Python, living in `data/metrics/python/metrics_pipeline/` (venv in `data/metrics/python/.venv`) unless noted — this is where numbers actually get calculated. "Update the manifests," at the end, is Node.js instead: `frontend/layer-manifest/*.mjs` scripts (`generate-manifest.mjs`, `validate-manifest.mjs`, `publish-manifest.mjs`) that assemble, validate, and publish the JSON index pointing at the metric files Python already computed — they calculate nothing themselves.
+The metrics release is a sequence of related artifact builders, not one script. Python calculates the data. Node.js manifest scripts only point the app at data that has already been calculated.
 
-**National and SIRAP (regional) solutions run through the same scripts**. Every script below branches internally on `solution.scope == "sirap"` — SIRAP solutions read different regional-packet rasters and a different land-cover encoding, but it's the same Python file and the same command. The two catalogs (national ~172 solutions, SIRAP ~56 solutions) are published as two separate **batch manifests** at the end, which is where "national" and "SIRAP" become visibly different files.
+### Mental model
 
-**High-level sequence:**
+- The unit of work is **one solution**. Unless a diagnostic flag narrows the run, each national solution output contains `national`, `departments`, `municipalities`, `siraps`, `runaps`, and `omecs`.
+- A **summary metric** is one value shown on an Overview or Area of Interest panel, such as Species Groups Protected.
+- **Species Coverage Breakdowns** are the per-species records shown in species popup modals.
+- **Ecosystem Coverage Breakdowns** are the per-ecosystem records shown in ecosystem popup modals.
+- Summary metrics and coverage breakdowns are separate artifacts. Producing a breakdown does not automatically populate its related summary metric.
 
-- **Step 1 — Calculate general metrics.** Area, land cover, carbon, water, protected areas, marine ecosystems, species summary counts. Does **not** include ecosystem coverage, conservation goals, or per-species breakdowns — those are separate steps below.
-- **Step 2 — Validate and upload step 1's output.** Nothing new computed here, just checked and pushed to Blob.
-- **Step 3 — Shrink step 1's output into the compact format.** This compact file, not the verbose one, is what the dashboards actually load.
-- **Step 4 — Validate and upload step 3's compact output.** Same check-and-push as step 2, on the smaller files.
-- **Step 5 — Calculate ecosystem coverage (MEC).** A separate, land-only calculation; uploaded by hand, not by the publish script.
-- **Step 6 — Calculate conservation goal rollups.** Target/held/shortfall numbers from Prioritizr summaries; also uploaded by hand.
-- **Step 7 — Calculate per-species coverage breakdowns.** The slowest step, which is why it's often split off and run separately (see `--skip-species` below).
-- **Update the manifests.** Point the app's manifests at everything steps 1–7 produced. Nothing is calculated here — this is the "make it visible" step.
-- **Rehydrate**, only if custom-AOI inputs changed.
+National and SIRAP (Sistema Regional de Áreas Protegidas, regional) solutions use the same Python pipeline, with solution-domain and regional-packet branches inside the scripts. They are published as separate batch manifests.
 
-| Step | Script | What it computes | Category it owns |
-|------|--------|-------------------|-------------------|
-| 1 | `main.py` | Per-solution, per-geography metrics: area, land cover, carbon, water, protected areas, marine ecosystems, species summary counts. This is the core calculator — the one people mean when they say "run the pipeline." | General dashboard metrics |
-| 2 | `inspect_metrics.py` → `publish.py` (`--dry-run` first) → `verify_artifacts.py` | Validate the local output against a contract, upload it to Blob, then verify the uploaded bytes match. Publishing needs a Blob write token in `.env.local`. | Upload/verify step for step 1's output |
-| 3 | `compact_metrics.py` | Converts step 1's verbose output into the smaller "compact" format — **this is what the dashboards actually load**, not the verbose files. | Compact wire format |
-| 4 | Same inspect → publish → verify pass, run again on the compact files from step 3. | | |
-| 5 | `mec_compact.py` | MEC (Mapa de Ecosistemas de Colombia — Colombia's ecosystem map) coverage shards, per solution per geography level. Land solutions only; writes local files, **uploaded by hand**, no auto-publish. | Ecosystem coverage |
-| 6 | `conservation_goals.py` | Reads each solution's Prioritizr summary CSV and rolls it up into target/held/shortfall numbers. Writes local files, **uploaded by hand**. | Conservation goals |
-| 7 | `species_goals.py` (used via `main.py --species-goals-*` flags, or standalone through `run_species_goals_full_build.py`) | Per-species coverage breakdowns, per solution per geography. | Species breakdowns |
+### Production sequence
 
-**Why it's split this way:** each of these is a genuinely different, expensive computation (species coverage in particular is slow), so splitting them lets you re-run just the piece that changed instead of recomputing everything. `data/metrics/generated/releases/catalog-v3-7-0/_notes/skip_species_regular_main.py` is a real example of that from the 3.7.0 release — a wrapper that ran `main.py` with `--skip-species` overnight to get regular metrics out fast, with species backfilled separately afterward.
+| Step | Script | Output and metric ownership |
+|------|--------|-----------------------------|
+| 1. Calculate regular detailed metrics | `main.py` | Writes one detailed metrics document per solution with general summary metrics: area and priority, land use, carbon, water, protected-area overlaps, social/governance areas, marine summaries, regular ecosystem summaries, `conservation_goals_met`, and the ten land-species summaries listed below. Passing `--skip-species` leaves those ten species summaries unfinished with `derivation_needed`. |
+| 2. Calculate Species Coverage Breakdowns | `run_species_goals_full_build.py` using `species_goals.py` | Uses Calculator A sparse matrices to write per-species coverage records for each solution and geography. These records power species popup modals. This step does **not** write the ten regular species summary metrics. |
+| 3. Reconcile deferred species summaries | Complete reconciliation command does not exist yet | Required after `main.py --skip-species`. It must derive all ten summaries from validated Species Coverage Breakdowns, update detailed and compact regular outputs, and leave non-species metrics unchanged. Existing backfills restore only selected metrics and do not complete this stage. A production release must not treat skipped species as complete until this stage succeeds. |
+| 4. Calculate Ecosystem Coverage Breakdowns | `mec_compact.py` | Writes land-only MEC (Mapa de Ecosistemas de Colombia, Colombia's ecosystem map) shards per solution and geography. These power ecosystem popup modals and are separate from the regular ecosystem summary metrics written by `main.py`. |
+| 5. Build conservation-goal breakdowns | `conservation_goals.py` | Reshapes Prioritizr summary CSV files into per-feature target, held, shortfall, and met records. It calculates display rollups such as met count, total count, percent met, feature-type groups, and species taxonomic groups; it does **not** independently recalculate held coverage from rasters. The app uses this sidecar in the Overview **Conservation target progress** widget and its breakdown modal. The separate **Targets Achieved** Overview card reads the regular `conservation_goals_met` summary written by `main.py`, which also comes from Prioritizr-derived summary values. |
+| 6. Create compact regular metrics | `compact_metrics.py` | Converts the detailed regular metrics into the smaller format loaded by the dashboards. It changes format only; it does not calculate or repair metrics. |
+| 7. Inspect, assemble, publish, and verify | `inspect_metrics.py`, `assemble_solution_release.py`, `publish.py`, `verify_artifacts.py` | Validates completed artifacts, assembles the release, uploads it to Blob, and verifies the uploaded bytes. Use `publish.py --dry-run` first. Publication requires `BLOB_READ_WRITE_TOKEN` in `.env.local`. |
+| 8. Update app manifests | `frontend/layer-manifest/*.mjs` | Points the app at the published regular, Species Coverage Breakdown, Ecosystem Coverage Breakdown, and conservation-goal artifacts. These scripts calculate no metrics. |
 
-**Incremental / backfill flags** (this is what most of the "am I missing a step" confusion comes from): `main.py`, `compact_metrics.py`, and `mec_compact.py` all accept `--solution-id` (repeatable, run just one or a few solutions), `--cache-policy use-cache` (default — skip anything already computed) vs `--cache-policy recompute-all` (force everything), and `--chunk-count`/`--chunk-index` to split a run across workers. There are also standalone `backfill_*.py` scripts (e.g. `backfill_endemic_species_count.py`, `backfill_threatened_species_secured.py`) that patch **one specific metric** across existing output without re-running the full pipeline — reach for these instead of a full re-run when only one number is wrong.
+Rehydrate only when custom-AOI inputs changed.
+
+### The ten land-species summary metrics
+
+`main.py` calculates these during its regular species pass. They are the complete set that a future skip-species reconciliation command must restore:
+
+| Metric ID | Metric key |
+|-----------|------------|
+| 2 | `species_groups_protected` |
+| 3 | `threatened_species_secured` |
+| 21 | `species_richness_mammals` |
+| 22 | `species_richness_birds` |
+| 23 | `species_richness_amphibians` |
+| 24 | `species_richness_reptiles` |
+| 25 | `species_richness_plants` |
+| 26 | `threatened_species_count` |
+| 27 | `endemic_species_count` |
+| 28 | `species_pct_of_national` |
+
+The machine-readable registry remains `data/metrics/python/metrics_pipeline/metric_definitions.py`. Keep documentation and validation synchronized with `species_metric_ids()` instead of creating an independent metric list in new code.
+
+### Calculator and backfill boundaries
+
+- The regular species pass in `main.py` uses the GeoTIFF overlap calculator and writes all ten summaries directly.
+- Calculator A in `species_goals.py` uses sparse matrices and writes Species Coverage Breakdowns. Catalog 3.7.0 used this path after running `main.py --skip-species`.
+- `backfill_endemic_species_count.py` restores metric 27 only.
+- `backfill_threatened_species_secured.py` restores metric 3 by default. Its broader option also restores metrics 26 and 27; it still omits metric 2, metrics 21–25, and metric 28.
+- No current script reconciles all ten summaries. A skipped-species output is a partial product, even if its existing inspections pass.
+
+### Incremental runs
+
+- `main.py` can select solutions and split solution work across chunks. Each selected solution still contains all enabled geography levels.
+- `--national-only`, `--skip-species`, and `--skip-species-boundary-level` create intentionally partial or diagnostic outputs. Do not publish those outputs as complete releases without the required follow-up calculation and reconciliation.
+- `compact_metrics.py` converts the selected detailed publish report; it does not independently select or calculate metrics.
+- `mec_compact.py` supports solution and geography-level selection for Ecosystem Coverage Breakdowns.
+- Metric-specific `backfill_*.py` scripts are repair tools, not a substitute for production completeness validation.
 
 **Update the manifests** (two separate surfaces, both need updating):
-- **SPA / known-AOI numbers:** publish fat national and SIRAP **batch** manifests whose `precomputedMetricUrls` point at the new files from steps 3–7. For a new catalog version, also publish a **new tiny index** at `catalog-releases/<version>/catalog-release-index.json`. Point `CATALOG_RELEASE_INDEX_BLOB_URL` and, for an official release, `environment.ts` at it. Rebuild the frontend.
+- **SPA / known-AOI numbers:** publish fat national and SIRAP **batch** manifests whose `precomputedMetricUrls` point at the published regular and breakdown artifacts from steps 1–6. For a new catalog version, also publish a **new tiny index** at `catalog-releases/<version>/catalog-release-index.json`. Point `CATALOG_RELEASE_INDEX_BLOB_URL` and, for an official release, `environment.ts` at it. Rebuild the frontend.
 - **Custom polygons:** `yarn --cwd frontend generate:layer-manifest` refreshes `hydrationPackage` from `frontend/shared/hydration-package.json`. `publish:layer-manifest` updates live `manifest/manifest.json` — the file hydrate reads.
 
 **Known exception:** if a release introduces a layer ID the left sidebar hasn't seen before (a new SIRAP packet's naming, for example), updating manifests alone isn't enough — the sidebar's `LAYER_ID_SYNONYM_GROUPS` (`frontend/src/app/features/left-sidebar/map-layers-panel/map-layers-panel.utils.ts`) is a hardcoded alias table, not manifest-driven, and needs a matching code change. This is a known inconsistency (the same layer gets different ID tokens from different pipeline producers) rather than intended behavior.
