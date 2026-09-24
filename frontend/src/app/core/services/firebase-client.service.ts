@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  reauthenticateWithPopup,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -67,6 +68,10 @@ export class FirebaseClientService {
 
   async signInWithGooglePopup(): Promise<UserCredential> {
     return signInWithPopup(this.requireAuth(), new GoogleAuthProvider());
+  }
+
+  async reauthenticateWithGooglePopup(user: User): Promise<UserCredential> {
+    return reauthenticateWithPopup(user, new GoogleAuthProvider());
   }
 
   async signInWithEmail(email: string, password: string): Promise<User> {

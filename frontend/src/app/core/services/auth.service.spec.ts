@@ -53,6 +53,7 @@ class FirebaseClientServiceStub {
 class TotpMfaServiceStub {
   enrolled = true;
   readonly hasEnrolledTotp = vi.fn(() => this.enrolled);
+  readonly userHasEnrolledTotp = vi.fn(async () => this.enrolled);
 }
 
 describe('AuthService', () => {
@@ -159,7 +160,7 @@ describe('AuthService', () => {
     expect(appState.accessibleSirapIds()).toEqual(['orinoquia', 'eje-cafetero']);
   });
 
-  it('reacts to SIRAP grants without requiring another login', () => {
+  it('reacts to SIRAP grants without requiring another login', async () => {
     firebase.auth.currentUser = { uid: 'viewer-uid' };
     firebase.userDocs.set('viewer-uid', {
       status: 'active',
@@ -176,6 +177,9 @@ describe('AuthService', () => {
       tier: UserTier.DecisionMaker,
       allowedSirapIds: ['eje-cafetero'],
     });
+    for (let step = 0; step < 8; step += 1) {
+      await Promise.resolve();
+    }
 
     expect(appState.allowedSirapIds$()).toEqual(['eje-cafetero']);
     expect(appState.canAccessSirapScope()).toBe(true);
@@ -275,5 +279,186 @@ describe('AuthService', () => {
     expect(appState.allowedSirapIds$()).toEqual([]);
     expect(appState.administeredSirapIds$()).toEqual([]);
     expect(authService.mfaEnrollmentRequired$()).toBe(false);
+  });
+
+  it('withholds access when a stale local TOTP factor is gone after refresh', async () => {
+    totpMfa.hasEnrolledTotp.mockReturnValue(true);
+    totpMfa.userHasEnrolledTotp.mockResolvedValue(false);
+    firebase.auth.currentUser = { uid: 'stale-factor-uid' };
+    firebase.userDocs.set('stale-factor-uid', {
+      status: 'active',
+      role: 'admin',
+      tier: UserTier.Manager,
+      allowedSirapIds: ['orinoquia'],
+      administeredSirapIds: ['orinoquia'],
+    });
+    const authService = TestBed.inject(AuthService);
+    const appState = TestBed.inject(AppStateService);
+
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Public);
+    expect(totpMfa.userHasEnrolledTotp).toHaveBeenCalled();
+    expect(authService.mfaEnrollmentRequired$()).toBe(true);
+    expect(authService.isAuthenticated()).toBe(false);
+    expect(appState.userIsAdmin$()).toBe(false);
+    expect(appState.userIsSuperAdmin$()).toBe(false);
+    expect(appState.allowedSirapIds$()).toEqual([]);
+    expect(appState.administeredSirapIds$()).toEqual([]);
+    expect(appState.canAccessSirapScope()).toBe(false);
+    expect(scenarios.startSyncForUser).not.toHaveBeenCalled();
+    expect(scenarios.stopSync).toHaveBeenCalled();
+
+    const refreshCalls = totpMfa.userHasEnrolledTotp.mock.calls.length;
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Public);
+    expect(totpMfa.userHasEnrolledTotp.mock.calls.length).toBeGreaterThan(refreshCalls);
+    expect(authService.mfaEnrollmentRequired$()).toBe(true);
+    expect(authService.isAuthenticated()).toBe(false);
+    expect(appState.userIsAdmin$()).toBe(false);
+    expect(appState.userIsSuperAdmin$()).toBe(false);
+    expect(appState.allowedSirapIds$()).toEqual([]);
+    expect(appState.administeredSirapIds$()).toEqual([]);
+    expect(scenarios.startSyncForUser).not.toHaveBeenCalled();
+  });
+
+  it('grants access from the refreshed factor list when the cached list is still empty', async () => {
+    totpMfa.hasEnrolledTotp.mockReturnValue(false);
+    totpMfa.userHasEnrolledTotp.mockResolvedValue(true);
+    firebase.auth.currentUser = { uid: 'active-uid' };
+    firebase.userDocs.set('active-uid', {
+      status: 'active',
+      role: 'admin',
+      allowedSirapIds: ['orinoquia'],
+    });
+    const authService = TestBed.inject(AuthService);
+    const appState = TestBed.inject(AppStateService);
+
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Manager);
+    expect(totpMfa.userHasEnrolledTotp).toHaveBeenCalled();
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
+    expect(authService.isAuthenticated()).toBe(true);
+    expect(appState.userIsAdmin$()).toBe(true);
+    expect(appState.allowedSirapIds$()).toEqual(['orinoquia']);
+  });
+
+  it('withholds access without opening setup when the factor refresh fails', async () => {
+    totpMfa.enrolled = false;
+    totpMfa.userHasEnrolledTotp.mockRejectedValue(new Error('reload failed'));
+    firebase.auth.currentUser = { uid: 'active-uid' };
+    firebase.userDocs.set('active-uid', {
+      status: 'active',
+      role: 'admin',
+    });
+    const authService = TestBed.inject(AuthService);
+
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Public);
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
+    expect(authService.isAuthenticated()).toBe(false);
+    expect(scenarios.startSyncForUser).not.toHaveBeenCalled();
+    expect(scenarios.stopSync).toHaveBeenCalled();
+  });
+
+  it('does not reopen authenticator setup when a factor refresh finishes after logout', async () => {
+    totpMfa.enrolled = false;
+    let resolveEnrolled: (value: boolean) => void = () => undefined;
+    totpMfa.userHasEnrolledTotp.mockReturnValue(
+      new Promise((resolve) => {
+        resolveEnrolled = resolve;
+      }),
+    );
+    firebase.auth.currentUser = { uid: 'active-uid' };
+    firebase.userDocs.set('active-uid', {
+      status: 'active',
+      role: 'admin',
+    });
+    const authService = TestBed.inject(AuthService);
+
+    const logoutDone = authService.logout();
+    resolveEnrolled(false);
+    await logoutDone;
+    for (let step = 0; step < 6; step += 1) {
+      await Promise.resolve();
+    }
+
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
+    expect(authService.hasFirebaseIdentity()).toBe(false);
+    expect(authService.isAuthenticated()).toBe(false);
+  });
+
+  it('checks authenticator enrollment once when auth state repeats for the same user', async () => {
+    totpMfa.enrolled = false;
+    let resolveEnrolled: (value: boolean) => void = () => undefined;
+    totpMfa.userHasEnrolledTotp.mockReturnValue(
+      new Promise((resolve) => {
+        resolveEnrolled = resolve;
+      }),
+    );
+    firebase.auth.currentUser = { uid: 'active-uid' };
+    firebase.userDocs.set('active-uid', {
+      status: 'active',
+      role: 'admin',
+    });
+    const authService = TestBed.inject(AuthService);
+    const appState = TestBed.inject(AppStateService);
+
+    firebase.authStateCallbacks[0]?.({ uid: 'active-uid' });
+
+    expect(totpMfa.userHasEnrolledTotp).toHaveBeenCalledTimes(1);
+    resolveEnrolled(true);
+    for (let step = 0; step < 6; step += 1) {
+      await Promise.resolve();
+    }
+
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
+    expect(authService.isAuthenticated()).toBe(true);
+    expect(appState.userIsAdmin$()).toBe(true);
+    expect(totpMfa.userHasEnrolledTotp).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let a stale empty factor read reopen setup after confirmation', async () => {
+    totpMfa.enrolled = false;
+    totpMfa.hasEnrolledTotp.mockReturnValue(false);
+    let resolveStale: (value: boolean) => void = () => undefined;
+    let factorReads = 0;
+    totpMfa.userHasEnrolledTotp.mockImplementation(() => {
+      factorReads += 1;
+      if (factorReads === 1) {
+        return new Promise((resolve) => {
+          resolveStale = resolve;
+        });
+      }
+      return Promise.resolve(true);
+    });
+    firebase.auth.currentUser = { uid: 'active-uid' };
+    firebase.userDocs.set('active-uid', {
+      status: 'active',
+      role: 'admin',
+      allowedSirapIds: ['orinoquia'],
+    });
+    const authService = TestBed.inject(AuthService);
+    const appState = TestBed.inject(AppStateService);
+
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Manager);
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
+    expect(authService.isAuthenticated()).toBe(true);
+    expect(appState.userIsAdmin$()).toBe(true);
+
+    resolveStale(false);
+    for (let step = 0; step < 8; step += 1) {
+      await Promise.resolve();
+    }
+    firebase.emitUserDocument('active-uid', {
+      status: 'active',
+      role: 'admin',
+      allowedSirapIds: ['orinoquia'],
+    });
+    for (let step = 0; step < 4; step += 1) {
+      await Promise.resolve();
+    }
+
+    expect(authService.mfaEnrollmentRequired$()).toBe(false);
+    expect(authService.isAuthenticated()).toBe(true);
+    expect(appState.userIsAdmin$()).toBe(true);
+    expect(appState.allowedSirapIds$()).toEqual(['orinoquia']);
+    expect(scenarios.startSyncForUser).toHaveBeenCalledWith('active-uid');
+    expect(factorReads).toBe(2);
   });
 });
