@@ -15,6 +15,7 @@ USER_INSTRUCTIONS_DRAFT.md
 USER_INSTRUCTIONS_SPANISH.md
 ADMIN_FEATURES_GUIDE.md
 ADMIN_FEATURES_GUID E_SPANISH.md
+branch-3-decision-making-tool.code-workspace
 
 # Cambio_Global data files in the legacy R/Shiny app; keep scripts and docs.
 legacy-r-shiny-app/Cambio_Global/*.Rproj
@@ -109,6 +110,7 @@ __pycache__/
 
 # Large species lookup CSV — kept in Vercel Blob at inputs/metadata/biomod_spp_ranges_updatedIUCN.csv
 data/biomod_spp_ranges_updatedIUCN.csv
+branch-*-decision-making-tool.code-workspace
 
 # Backend API local/runtime artifacts
 /backend/.venv/
