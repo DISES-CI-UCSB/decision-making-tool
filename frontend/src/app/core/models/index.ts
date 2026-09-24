@@ -1,4 +1,5 @@
 export * from './aoi.model';
+export * from './app-role.model';
 export * from './chart-palette.model';
 export * from './custom-aoi-area-profile.model';
 export * from './layer-manifest.model';

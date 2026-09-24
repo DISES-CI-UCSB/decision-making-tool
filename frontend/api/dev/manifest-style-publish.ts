@@ -475,16 +475,15 @@ function readServiceAccountProjectId(serviceAccount: Record<string, unknown>): s
   return typeof projectId === 'string' && projectId.trim() ? projectId.trim() : null;
 }
 
-function hasManifestStylePublishAccess(userData: DocumentData | undefined): boolean {
+export function hasManifestStylePublishAccess(userData: DocumentData | undefined): boolean {
   if (!userData || userData['status'] !== 'active') {
     return false;
   }
-
-  const tier = userData['tier'];
+  const role = userData['role'];
   return (
-    (typeof tier === 'number' && tier >= 3) ||
-    userData['role'] === 'science_publisher' ||
-    userData['role'] === 'admin' ||
+    role === 'super-admin' ||
+    role === 'admin' ||
+    userData['isSuperAdmin'] === true ||
     userData['isAdmin'] === true
   );
 }

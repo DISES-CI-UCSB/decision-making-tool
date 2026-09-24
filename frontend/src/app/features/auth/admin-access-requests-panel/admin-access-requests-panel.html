@@ -84,7 +84,7 @@
           id="admin-access-panel-refresh-button"
           type="button"
           class="inline-flex min-h-9 items-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          [disabled]="isLoading() || !!approvingUid() || !!updatingUserUid()"
+          [disabled]="isLoading() || !!updatingUserUid() || !!decidingSirapRequestId()"
           (click)="refreshRequests()"
         >
           Refresh
@@ -94,7 +94,7 @@
           type="button"
           aria-label="Close access requests panel"
           class="flex h-9 w-9 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-          [disabled]="!!approvingUid() || !!updatingUserUid()"
+          [disabled]="!!updatingUserUid() || !!decidingSirapRequestId()"
           (click)="requestClose()"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4" aria-hidden="true">
@@ -129,7 +129,7 @@
             class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
             aria-hidden="true"
           ></span>
-          Loading pending requests...
+          Loading access management...
         </div>
       } @else {
         <nav
@@ -180,655 +180,6 @@
             Active Users
           </button>
         </nav>
-        @if (activeTab() === 'requests') {
-          <section
-            id="admin-access-panel-pending-section"
-            class="overflow-hidden rounded-2xl border-2 border-slate-300 bg-white shadow-sm"
-          >
-            <div id="admin-access-panel-pending-section-header" class="bg-slate-100 px-5 py-3">
-              <div
-                id="admin-access-panel-pending-section-header-layout"
-                class="grid grid-cols-[minmax(0,1fr)_2.75rem] items-start gap-x-3 gap-y-2 lg:grid-cols-[minmax(0,1fr)_18rem_2.75rem] lg:gap-x-4 lg:gap-y-0"
-              >
-                <div
-                  id="admin-access-panel-pending-heading-row"
-                  class="min-w-0 lg:col-start-1 lg:row-start-1"
-                >
-                  <h3
-                    id="admin-access-panel-pending-title"
-                    class="text-base font-semibold text-slate-900"
-                  >
-                    Pending Firebase accounts
-                  </h3>
-                  @if (pendingSectionExpanded()) {
-                    <p id="admin-access-panel-pending-copy" class="mt-1 text-sm text-slate-500">
-                      Review what the user requested, then choose the access that will actually be
-                      granted.
-                    </p>
-                  } @else {
-                    <p
-                      id="admin-access-panel-pending-section-summary"
-                      class="mt-1 text-sm font-medium text-slate-600"
-                    >
-                      {{ pendingRequests().length }} pending account{{
-                        pendingRequests().length === 1 ? '' : 's'
-                      }}
-                      @if (pendingDraftCount() > 0) {
-                        · {{ pendingDraftCount() }} draft{{ pendingDraftCount() === 1 ? '' : 's' }}
-                      }
-                    </p>
-                  }
-                </div>
-
-                <button
-                  id="admin-access-panel-pending-section-toggle"
-                  type="button"
-                  class="col-start-2 row-start-1 flex h-11 w-11 shrink-0 items-center justify-center self-start rounded-md text-slate-600 transition hover:bg-slate-200 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:col-start-3 lg:row-start-1"
-                  [attr.aria-expanded]="pendingSectionExpanded()"
-                  [attr.aria-label]="
-                    pendingSectionExpanded()
-                      ? 'Collapse Pending Firebase accounts'
-                      : 'Expand Pending Firebase accounts'
-                  "
-                  aria-controls="admin-access-panel-pending-section-content"
-                  (click)="togglePendingSection()"
-                >
-                  <svg
-                    id="admin-access-panel-pending-section-chevron"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    class="h-5 w-5 transition-transform"
-                    [class.rotate-180]="pendingSectionExpanded()"
-                    aria-hidden="true"
-                  >
-                    <path
-                      id="admin-access-panel-pending-section-chevron-path"
-                      fill-rule="evenodd"
-                      d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </button>
-
-                @if (pendingSectionExpanded() && pendingRequests().length > 0) {
-                  <div
-                    id="admin-access-panel-pending-search-row"
-                    class="col-span-2 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-1"
-                  >
-                    <div id="admin-access-panel-pending-search-field" class="w-full">
-                      <label
-                        id="admin-access-panel-pending-search-label"
-                        for="admin-access-panel-pending-search-input"
-                        class="block text-xs font-semibold text-slate-600"
-                      >
-                        Search by name
-                        <input
-                          id="admin-access-panel-pending-search-input"
-                          type="search"
-                          class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                          placeholder="Name or email"
-                          [value]="pendingSearchQuery()"
-                          (input)="onPendingSearchChange($event)"
-                          (click)="$event.stopPropagation()"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-
-            @if (pendingSectionExpanded()) {
-              <div
-                id="admin-access-panel-pending-section-content"
-                role="region"
-                aria-labelledby="admin-access-panel-pending-section-toggle"
-                class="space-y-4 border-t border-slate-300 bg-white px-5 py-4"
-              >
-                @if (pendingRequests().length === 0) {
-                  <section
-                    id="admin-access-panel-empty-state"
-                    class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
-                  >
-                    <h4
-                      id="admin-access-panel-empty-title"
-                      class="text-sm font-semibold text-slate-900"
-                    >
-                      No pending accounts
-                    </h4>
-                    <p id="admin-access-panel-empty-copy" class="mt-1 text-sm text-slate-500">
-                      New Google access requests will appear here after users submit the request
-                      form.
-                    </p>
-                  </section>
-                } @else {
-                  @if (filteredPendingRequests().length === 0) {
-                    <section
-                      id="admin-access-panel-pending-no-results"
-                      class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center"
-                    >
-                      <h4
-                        id="admin-access-panel-pending-no-results-title"
-                        class="text-sm font-semibold text-slate-900"
-                      >
-                        No matching pending accounts
-                      </h4>
-                      <p
-                        id="admin-access-panel-pending-no-results-copy"
-                        class="mt-1 text-sm text-slate-500"
-                      >
-                        Try a different name or email.
-                      </p>
-                    </section>
-                  } @else {
-                    <section id="admin-access-panel-request-list" class="space-y-2">
-                      @for (request of pagedPendingRequests(); track request.uid) {
-                        <article
-                          [id]="'admin-access-panel-request-card-' + request.uid"
-                          class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
-                        >
-                          <button
-                            [id]="'admin-access-panel-request-toggle-' + request.uid"
-                            type="button"
-                            class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-600 lg:grid-cols-[minmax(180px,1.2fr)_minmax(110px,0.55fr)_minmax(180px,0.9fr)_220px_2rem]"
-                            [attr.aria-expanded]="expandedRequestUid() === request.uid"
-                            [attr.aria-controls]="
-                              'admin-access-panel-request-review-' + request.uid
-                            "
-                            (click)="toggleRequest(request)"
-                            (keydown)="onRequestHeaderKeydown($event, request)"
-                          >
-                            <span
-                              [id]="'admin-access-panel-request-identity-' + request.uid"
-                              class="min-w-0 lg:col-start-1 lg:row-start-1"
-                            >
-                              <span
-                                [id]="'admin-access-panel-request-name-' + request.uid"
-                                class="block truncate text-sm font-semibold text-slate-950"
-                              >
-                                {{ request.displayName }}
-                              </span>
-                              <span
-                                [id]="'admin-access-panel-request-email-' + request.uid"
-                                class="block truncate text-xs text-slate-500"
-                              >
-                                {{ request.email }}
-                              </span>
-                            </span>
-                            <span
-                              [id]="'admin-access-panel-request-sirap-count-' + request.uid"
-                              class="col-start-1 row-start-2 min-w-0 truncate text-xs font-medium text-slate-600 lg:col-start-2 lg:row-start-1"
-                            >
-                              {{ pendingSirapRequestsFor(request.uid).length }}
-                              requested SIRAP{{
-                                pendingSirapRequestsFor(request.uid).length === 1 ? '' : 's'
-                              }}
-                            </span>
-                            <span
-                              [id]="'admin-access-panel-request-context-' + request.uid"
-                              class="col-span-2 row-start-3 min-w-0 lg:col-start-3 lg:col-span-1 lg:row-start-1"
-                            >
-                              <span
-                                [id]="'admin-access-panel-request-time-summary-' + request.uid"
-                                class="block truncate text-xs text-slate-600"
-                              >
-                                {{ formatRequestedAt(request) }}
-                              </span>
-                              <span
-                                [id]="'admin-access-panel-request-org-summary-' + request.uid"
-                                class="block truncate text-xs text-slate-400"
-                              >
-                                {{ formatOptional(request.organization) }}
-                              </span>
-                            </span>
-                            <span
-                              [id]="'admin-access-panel-request-header-actions-' + request.uid"
-                              class="col-start-2 row-span-2 row-start-1 flex items-center justify-end gap-2 lg:contents"
-                            >
-                              <span
-                                [id]="'admin-access-panel-request-status-area-' + request.uid"
-                                class="flex min-w-0 flex-wrap items-center justify-end gap-2 lg:col-start-4 lg:row-start-1"
-                              >
-                                <span
-                                  [id]="'admin-access-panel-request-status-' + request.uid"
-                                  class="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800"
-                                >
-                                  Pending
-                                </span>
-                                @if (isFakePendingAccount(request.uid)) {
-                                  <span
-                                    [id]="'admin-access-panel-request-demo-badge-' + request.uid"
-                                    class="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-800"
-                                  >
-                                    Demo data
-                                  </span>
-                                }
-                                @if (hasRequestChanges(request)) {
-                                  <span
-                                    [id]="'admin-access-panel-request-draft-' + request.uid"
-                                    class="shrink-0 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-800"
-                                  >
-                                    Draft
-                                  </span>
-                                }
-                              </span>
-                              <svg
-                                [id]="'admin-access-panel-request-chevron-' + request.uid"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                                class="h-4 w-4 shrink-0 text-slate-500 transition-transform lg:col-start-5 lg:row-start-1"
-                                [class.rotate-180]="expandedRequestUid() === request.uid"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  [id]="'admin-access-panel-request-chevron-path-' + request.uid"
-                                  fill-rule="evenodd"
-                                  d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z"
-                                  clip-rule="evenodd"
-                                />
-                              </svg>
-                            </span>
-                          </button>
-
-                          <div
-                            [id]="'admin-access-panel-request-review-' + request.uid"
-                            role="region"
-                            [attr.aria-labelledby]="
-                              'admin-access-panel-request-toggle-' + request.uid
-                            "
-                            [hidden]="expandedRequestUid() !== request.uid"
-                          >
-                            <div
-                              [id]="'admin-access-panel-request-review-content-' + request.uid"
-                              class="space-y-5 border-t border-slate-200 p-5"
-                            >
-                              <section
-                                [id]="'admin-access-panel-request-evidence-' + request.uid"
-                                class="rounded-xl border border-sky-200 bg-sky-50/60 p-4"
-                              >
-                                <h5
-                                  [id]="'admin-access-panel-request-evidence-title-' + request.uid"
-                                  class="text-sm font-semibold text-slate-900"
-                                >
-                                  Requested by user
-                                </h5>
-                                @if (pendingSirapRequestsFor(request.uid).length === 0) {
-                                  <p
-                                    [id]="
-                                      'admin-access-panel-request-evidence-empty-' + request.uid
-                                    "
-                                    class="mt-2 text-sm text-slate-500"
-                                  >
-                                    No SIRAP data access requested.
-                                  </p>
-                                } @else {
-                                  <div
-                                    [id]="
-                                      'admin-access-panel-request-evidence-chips-' + request.uid
-                                    "
-                                    class="mt-3 flex flex-wrap gap-2"
-                                  >
-                                    @for (
-                                      sirapRequest of pendingSirapRequestsFor(request.uid);
-                                      track sirapRequest.id
-                                    ) {
-                                      <span
-                                        [id]="
-                                          'admin-access-panel-request-evidence-chip-' +
-                                          sirapRequest.id
-                                        "
-                                        class="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-900"
-                                      >
-                                        {{ sirapLabel(sirapRequest.sirapId) }}
-                                      </span>
-                                    }
-                                  </div>
-                                }
-                              </section>
-
-                              <div
-                                [id]="'admin-access-panel-request-grant-regions-' + request.uid"
-                                class="grid gap-4 lg:grid-cols-2"
-                              >
-                                <fieldset
-                                  [id]="'admin-access-panel-request-allowed-siraps-' + request.uid"
-                                  class="rounded-xl border border-slate-200 p-4"
-                                >
-                                  <legend
-                                    [id]="
-                                      'admin-access-panel-request-allowed-siraps-legend-' +
-                                      request.uid
-                                    "
-                                    class="px-1 text-sm font-semibold text-slate-800"
-                                  >
-                                    Data access to grant
-                                  </legend>
-                                  <div
-                                    [id]="
-                                      'admin-access-panel-request-allowed-siraps-options-' +
-                                      request.uid
-                                    "
-                                    class="mt-2 grid gap-2 sm:grid-cols-2"
-                                  >
-                                    @for (region of sirapRegions; track region.id) {
-                                      <label
-                                        [id]="
-                                          'admin-access-panel-request-allowed-sirap-label-' +
-                                          request.uid +
-                                          '-' +
-                                          region.id
-                                        "
-                                        class="flex items-center gap-2 text-xs text-slate-700"
-                                      >
-                                        <input
-                                          [id]="
-                                            'admin-access-panel-request-allowed-sirap-checkbox-' +
-                                            request.uid +
-                                            '-' +
-                                            region.id
-                                          "
-                                          type="checkbox"
-                                          class="h-4 w-4 rounded border-slate-300 text-sky-600"
-                                          [checked]="
-                                            requestGrantFor(request).allowedSirapIds.includes(
-                                              region.id
-                                            )
-                                          "
-                                          [disabled]="!!approvingUid()"
-                                          (change)="toggleRequestAllowedSirap(request, region.id)"
-                                        />
-                                        {{ region.label }}
-                                      </label>
-                                    }
-                                  </div>
-                                </fieldset>
-
-                                <fieldset
-                                  [id]="
-                                    'admin-access-panel-request-administered-siraps-' + request.uid
-                                  "
-                                  class="rounded-xl border border-slate-200 p-4"
-                                >
-                                  <legend
-                                    [id]="
-                                      'admin-access-panel-request-administered-siraps-legend-' +
-                                      request.uid
-                                    "
-                                    class="px-1 text-sm font-semibold text-slate-800"
-                                  >
-                                    Regional administrator permissions
-                                  </legend>
-                                  <div
-                                    [id]="
-                                      'admin-access-panel-request-administered-siraps-options-' +
-                                      request.uid
-                                    "
-                                    class="mt-2 grid gap-2 sm:grid-cols-2"
-                                  >
-                                    @for (region of sirapRegions; track region.id) {
-                                      <label
-                                        [id]="
-                                          'admin-access-panel-request-administered-sirap-label-' +
-                                          request.uid +
-                                          '-' +
-                                          region.id
-                                        "
-                                        class="flex items-center gap-2 text-xs text-slate-700"
-                                      >
-                                        <input
-                                          [id]="
-                                            'admin-access-panel-request-administered-sirap-checkbox-' +
-                                            request.uid +
-                                            '-' +
-                                            region.id
-                                          "
-                                          type="checkbox"
-                                          class="h-4 w-4 rounded border-slate-300 text-sky-600"
-                                          [checked]="
-                                            requestGrantFor(request).administeredSirapIds.includes(
-                                              region.id
-                                            )
-                                          "
-                                          [disabled]="!!approvingUid()"
-                                          (change)="
-                                            toggleRequestAdministeredSirap(request, region.id)
-                                          "
-                                        />
-                                        {{ region.label }}
-                                      </label>
-                                    }
-                                  </div>
-                                </fieldset>
-                              </div>
-
-                              <fieldset
-                                [id]="'admin-access-panel-request-approval-settings-' + request.uid"
-                                class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-                              >
-                                <legend
-                                  [id]="
-                                    'admin-access-panel-request-approval-settings-legend-' +
-                                    request.uid
-                                  "
-                                  class="px-1 text-sm font-semibold text-slate-800"
-                                >
-                                  Approval settings
-                                </legend>
-                                <div
-                                  [id]="
-                                    'admin-access-panel-request-approval-settings-controls-' +
-                                    request.uid
-                                  "
-                                  class="mt-2 grid gap-3 sm:grid-cols-[minmax(240px,1fr)_auto] sm:items-end"
-                                >
-                                  <label
-                                    [id]="'admin-access-panel-request-tier-label-' + request.uid"
-                                    [attr.for]="
-                                      'admin-access-panel-request-tier-select-' + request.uid
-                                    "
-                                    class="block text-xs font-semibold text-slate-600"
-                                  >
-                                    App tier
-                                    <select
-                                      [id]="'admin-access-panel-request-tier-select-' + request.uid"
-                                      class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                                      [value]="requestGrantFor(request).tier.toString()"
-                                      [disabled]="!!approvingUid()"
-                                      (change)="onRequestTierChange(request, $event)"
-                                    >
-                                      <option
-                                        [id]="
-                                          'admin-access-panel-request-tier-option-approved-' +
-                                          request.uid
-                                        "
-                                        value="2"
-                                      >
-                                        Tier 2 - Approved user
-                                      </option>
-                                      <option
-                                        [id]="
-                                          'admin-access-panel-request-tier-option-manager-' +
-                                          request.uid
-                                        "
-                                        value="3"
-                                      >
-                                        Tier 3 - Publisher / scientist
-                                      </option>
-                                    </select>
-                                  </label>
-                                  <label
-                                    [id]="'admin-access-panel-request-admin-label-' + request.uid"
-                                    class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm"
-                                  >
-                                    <input
-                                      [id]="
-                                        'admin-access-panel-request-admin-checkbox-' + request.uid
-                                      "
-                                      type="checkbox"
-                                      class="h-4 w-4 rounded border-slate-300 text-slate-900"
-                                      [checked]="requestGrantFor(request).isAdmin"
-                                      [disabled]="!!approvingUid()"
-                                      (change)="onRequestAdminChange(request, $event)"
-                                    />
-                                    Super admin
-                                  </label>
-                                </div>
-                              </fieldset>
-
-                              <dl
-                                [id]="'admin-access-panel-request-meta-' + request.uid"
-                                class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3"
-                              >
-                                <div [id]="'admin-access-panel-request-org-' + request.uid">
-                                  <dt
-                                    [id]="'admin-access-panel-request-org-label-' + request.uid"
-                                    class="text-xs font-semibold uppercase tracking-wide text-slate-400"
-                                  >
-                                    Organization
-                                  </dt>
-                                  <dd
-                                    [id]="'admin-access-panel-request-org-value-' + request.uid"
-                                    class="mt-0.5 text-slate-700"
-                                  >
-                                    {{ formatOptional(request.organization) }}
-                                  </dd>
-                                </div>
-                                <div [id]="'admin-access-panel-request-provider-' + request.uid">
-                                  <dt
-                                    [id]="
-                                      'admin-access-panel-request-provider-label-' + request.uid
-                                    "
-                                    class="text-xs font-semibold uppercase tracking-wide text-slate-400"
-                                  >
-                                    Provider
-                                  </dt>
-                                  <dd
-                                    [id]="
-                                      'admin-access-panel-request-provider-value-' + request.uid
-                                    "
-                                    class="mt-0.5 text-slate-700"
-                                  >
-                                    {{ request.provider }}
-                                  </dd>
-                                </div>
-                                <div [id]="'admin-access-panel-request-time-' + request.uid">
-                                  <dt
-                                    [id]="'admin-access-panel-request-time-label-' + request.uid"
-                                    class="text-xs font-semibold uppercase tracking-wide text-slate-400"
-                                  >
-                                    Requested
-                                  </dt>
-                                  <dd
-                                    [id]="'admin-access-panel-request-time-value-' + request.uid"
-                                    class="mt-0.5 text-slate-700"
-                                  >
-                                    {{ formatRequestedAt(request) }}
-                                  </dd>
-                                </div>
-                              </dl>
-                            </div>
-
-                            <footer
-                              [id]="'admin-access-panel-request-footer-' + request.uid"
-                              class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <p
-                                [id]="'admin-access-panel-request-grant-summary-' + request.uid"
-                                class="text-xs text-slate-600"
-                              >
-                                {{ grantSummary(request) }}
-                              </p>
-                              <div
-                                [id]="'admin-access-panel-request-footer-actions-' + request.uid"
-                                class="flex items-center justify-end gap-2"
-                              >
-                                <button
-                                  [id]="'admin-access-panel-reset-button-' + request.uid"
-                                  type="button"
-                                  class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                  [disabled]="!!approvingUid() || !hasRequestChanges(request)"
-                                  (click)="resetRequestChanges(request)"
-                                >
-                                  Reset changes
-                                </button>
-                                <button
-                                  [id]="'admin-access-panel-approve-button-' + request.uid"
-                                  type="button"
-                                  class="inline-flex h-10 min-w-32 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                                  [disabled]="!!approvingUid()"
-                                  (click)="approveRequest(request)"
-                                >
-                                  {{
-                                    approvingUid() === request.uid
-                                      ? 'Approving…'
-                                      : 'Approve account'
-                                  }}
-                                </button>
-                              </div>
-                            </footer>
-                          </div>
-                        </article>
-                      }
-                    </section>
-                    @if (filteredPendingRequests().length > 5) {
-                      <nav
-                        id="admin-access-panel-pending-pagination"
-                        class="flex flex-col gap-3 border-t border-slate-200 pt-3 sm:flex-row sm:items-center sm:justify-between"
-                        aria-label="Pending Firebase accounts pagination"
-                      >
-                        <p
-                          id="admin-access-panel-pending-range"
-                          class="text-xs font-medium text-slate-500"
-                        >
-                          Showing {{ pendingRangeStart() }}–{{ pendingRangeEnd() }} of
-                          {{ filteredPendingRequests().length }}
-                        </p>
-                        <div
-                          id="admin-access-panel-pending-pagination-controls"
-                          class="flex items-center justify-between gap-3 sm:justify-end"
-                        >
-                          <button
-                            id="admin-access-panel-pending-previous-button"
-                            type="button"
-                            class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            [disabled]="pendingPage() === 1"
-                            (click)="goToPendingPage(pendingPage() - 1)"
-                          >
-                            Previous
-                          </button>
-                          <span
-                            id="admin-access-panel-pending-page-status"
-                            class="text-xs font-medium text-slate-600"
-                          >
-                            Page {{ pendingPage() }} of {{ pendingPageCount() }}
-                          </span>
-                          <button
-                            id="admin-access-panel-pending-next-button"
-                            type="button"
-                            class="min-h-9 rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            [disabled]="pendingPage() === pendingPageCount()"
-                            (click)="goToPendingPage(pendingPage() + 1)"
-                          >
-                            Next
-                          </button>
-                        </div>
-                      </nav>
-                    }
-                    <p
-                      id="admin-access-panel-pending-live-status"
-                      class="sr-only"
-                      aria-live="polite"
-                      aria-atomic="true"
-                    >
-                      {{ pendingStatusMessage() }}
-                    </p>
-                  }
-                }
-              </div>
-            }
-          </section>
-        }
-
         @if (activeTab() === 'requests') {
           <section
             id="admin-access-panel-sirap-requests-section"
@@ -1203,7 +554,8 @@
                       id="admin-access-panel-approved-sirap-copy"
                       class="mt-1 text-sm text-slate-500"
                     >
-                      Revoke access one region at a time without deleting the user account.
+                      Revoke saved SIRAP read access one region at a time, including direct grants
+                      that never had a request. The same account record is editable in Active Users.
                     </p>
                   } @else {
                     <p
@@ -1578,7 +930,8 @@
                   </h3>
                   @if (activeUsersSectionExpanded()) {
                     <p id="admin-access-panel-users-copy" class="mt-1 text-sm text-slate-500">
-                      Search existing users and update their tier or admin access.
+                      Update roles and SIRAP read access on the saved account. Revoke a direct grant
+                      here or on Current SIRAP Access; request history is not required.
                     </p>
                   } @else {
                     <p
@@ -1674,7 +1027,7 @@
                       No active users
                     </h4>
                     <p id="admin-access-panel-users-empty-copy" class="mt-1 text-sm text-slate-500">
-                      Approved users will appear here after their access requests are accepted.
+                      Google-authorized users appear here as soon as they sign in.
                     </p>
                   </section>
                 } @else if (filteredUsers().length === 0) {
@@ -1786,40 +1139,51 @@
                         >
                           <div
                             [id]="'admin-access-panel-user-row-' + user.uid"
-                            class="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_minmax(240px,0.85fr)_auto_auto] lg:items-end"
+                            class="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_auto] lg:items-end"
                           >
                             @if (isSuperAdmin()) {
                               <label
-                                [id]="'admin-access-panel-user-tier-label-' + user.uid"
-                                [attr.for]="'admin-access-panel-user-tier-select-' + user.uid"
+                                [id]="'admin-access-panel-user-role-label-' + user.uid"
+                                [attr.for]="'admin-access-panel-user-role-select-' + user.uid"
                                 class="block text-xs font-semibold text-slate-600"
                               >
-                                App tier
+                                Role
                                 <select
-                                  [id]="'admin-access-panel-user-tier-select-' + user.uid"
+                                  [id]="'admin-access-panel-user-role-select-' + user.uid"
                                   class="mt-1 block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-800 shadow-sm"
-                                  [value]="userGrantFor(user).tier.toString()"
+                                  [value]="userGrantFor(user).role"
                                   [disabled]="!!updatingUserUid()"
-                                  (change)="onUserTierChange(user, $event)"
+                                  (change)="onUserRoleChange(user, $event)"
                                 >
-                                  <option value="2">Tier 2 - Approved user</option>
-                                  <option value="3">Tier 3 - Publisher / scientist</option>
+                                  <option
+                                    [id]="'admin-access-panel-user-role-option-user-' + user.uid"
+                                    value="user"
+                                  >
+                                    Standard user
+                                  </option>
+                                  <option
+                                    [id]="'admin-access-panel-user-role-option-sirap-user-' + user.uid"
+                                    value="sirap-user"
+                                  >
+                                    SIRAP user
+                                  </option>
+                                  <option
+                                    [id]="
+                                      'admin-access-panel-user-role-option-sirap-admin-' + user.uid
+                                    "
+                                    value="sirap-admin"
+                                  >
+                                    SIRAP administrator
+                                  </option>
+                                  <option
+                                    [id]="
+                                      'admin-access-panel-user-role-option-super-admin-' + user.uid
+                                    "
+                                    value="super-admin"
+                                  >
+                                    Super admin
+                                  </option>
                                 </select>
-                              </label>
-
-                              <label
-                                [id]="'admin-access-panel-user-admin-label-' + user.uid"
-                                class="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm"
-                              >
-                                <input
-                                  [id]="'admin-access-panel-user-admin-checkbox-' + user.uid"
-                                  type="checkbox"
-                                  class="h-4 w-4 rounded border-slate-300 text-slate-900"
-                                  [checked]="userGrantFor(user).isAdmin"
-                                  [disabled]="!!updatingUserUid()"
-                                  (change)="onUserAdminChange(user, $event)"
-                                />
-                                Super admin
                               </label>
                             }
 

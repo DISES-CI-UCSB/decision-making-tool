@@ -10,10 +10,9 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { SIRAP_ACCESS_REGIONS, sirapRegionLabel, type SirapRegionId, UserTier } from '@core/models';
+import { SIRAP_ACCESS_REGIONS, grantAfterAdministeredToggle, grantAfterAllowedToggle, isAppRole, normalizeGrantScopes, roleToUserTier, sirapRegionLabel, type SirapRegionId, UserTier } from '@core/models';
 import {
   AdminAccessRequestsService,
-  type AccessRequestRecord,
   type AdminManagedUserRecord,
   type UserAccessGrant,
 } from '../services/admin-access-requests.service';
@@ -26,7 +25,6 @@ import { FirebaseClientService } from '@core/services/firebase-client.service';
 import {
   appendDevelopmentFakeDemoData,
   isFakeActiveUser,
-  isFakePendingAccount,
   isFakeSirapRequest,
   isFakeSirapRequester,
   shouldAppendFakeDemoData,
@@ -71,67 +69,30 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   @ViewChild('panelCard', { static: false })
   private readonly panelCardRef?: ElementRef<HTMLElement>;
 
-  protected readonly pendingRequests = signal<AccessRequestRecord[]>([]);
   protected readonly activeUsers = signal<AdminManagedUserRecord[]>([]);
   protected readonly sirapRequests = signal<SirapAccessRequestRecord[]>([]);
   protected readonly administrator = signal<CurrentSirapAdministrator | null>(null);
-  protected readonly requestGrants = signal<Record<string, UserAccessGrant>>({});
-  private readonly requestGrantBaselines = signal<Record<string, UserAccessGrant>>({});
   protected readonly userGrants = signal<Record<string, UserAccessGrant>>({});
-  protected readonly pendingSearchQuery = signal('');
   protected readonly sirapSearchQuery = signal('');
   protected readonly currentSirapSearchQuery = signal('');
   protected readonly userSearchQuery = signal('');
   protected readonly activeTab = signal<AccessManagementTab>('requests');
-  protected readonly expandedRequestUid = signal<string | null>(null);
   protected readonly expandedSirapGroupUid = signal<string | null>(null);
   protected readonly expandedCurrentSirapUid = signal<string | null>(null);
   protected readonly expandedActiveUserUid = signal<string | null>(null);
-  protected readonly pendingSectionExpanded = signal(true);
   protected readonly sirapRequestsSectionExpanded = signal(true);
   protected readonly currentSirapSectionExpanded = signal(false);
   protected readonly activeUsersSectionExpanded = signal(false);
-  protected readonly pendingPage = signal(1);
   protected readonly sirapPage = signal(1);
   protected readonly currentSirapPage = signal(1);
   protected readonly activeUsersPage = signal(1);
-  protected readonly pendingStatusMessage = signal('');
   protected readonly sirapStatusMessage = signal('');
   protected readonly currentSirapStatusMessage = signal('');
   protected readonly activeUsersStatusMessage = signal('');
   protected readonly isLoading = signal(true);
   protected readonly loadingError = signal<string | null>(null);
-  protected readonly approvingUid = signal<string | null>(null);
   protected readonly updatingUserUid = signal<string | null>(null);
   protected readonly decidingSirapRequestId = signal<string | null>(null);
-  protected readonly filteredPendingRequests = computed(() => {
-    const query = this.pendingSearchQuery().trim().toLowerCase();
-    const requests = this.pendingRequests();
-    if (!query) {
-      return requests;
-    }
-    return requests.filter((request) =>
-      this.matchesNameOrEmail(query, request.displayName, request.email),
-    );
-  });
-  protected readonly pendingPageCount = computed(() =>
-    Math.max(1, Math.ceil(this.filteredPendingRequests().length / this.groupPageSize)),
-  );
-  protected readonly pagedPendingRequests = computed(() => {
-    const start = (this.pendingPage() - 1) * this.groupPageSize;
-    return this.filteredPendingRequests().slice(start, start + this.groupPageSize);
-  });
-  protected readonly pendingRangeStart = computed(() =>
-    this.filteredPendingRequests().length === 0
-      ? 0
-      : (this.pendingPage() - 1) * this.groupPageSize + 1,
-  );
-  protected readonly pendingRangeEnd = computed(() =>
-    Math.min(this.pendingPage() * this.groupPageSize, this.filteredPendingRequests().length),
-  );
-  protected readonly pendingDraftCount = computed(
-    () => this.pendingRequests().filter((request) => this.hasRequestChanges(request)).length,
-  );
   protected readonly filteredSirapRequestGroups = computed(() => {
     const query = this.sirapSearchQuery().trim().toLowerCase();
     const groups = this.sirapRequestGroups();
@@ -200,10 +161,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     () => this.activeUsers().filter((user) => this.hasUserChanges(user)).length,
   );
   protected readonly sirapRequestGroups = computed<SirapRequestGroup[]>(() =>
-    this.groupSirapRequests(
-      'pending',
-      new Set(this.pendingRequests().map((request) => request.uid)),
-    ),
+    this.groupSirapRequests('pending'),
   );
   protected readonly currentSirapAccessGroups = computed<CurrentSirapAccessGroup[]>(() =>
     this.currentSirapAccessUsers()
@@ -261,15 +219,11 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   protected async refreshRequests(): Promise<void> {
     if (
       this.hasPendingWrite() ||
-      !this.confirmDraftDiscard('refresh and discard your pending-account changes')
+      !this.confirmDraftDiscard('refresh and discard unsaved user changes')
     ) {
       return;
     }
     await this.loadRequests();
-  }
-
-  protected togglePendingSection(): void {
-    this.pendingSectionExpanded.update((expanded) => !expanded);
   }
 
   protected toggleSirapRequestsSection(): void {
@@ -320,10 +274,6 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     window.setTimeout(() => document.getElementById(`admin-access-panel-${nextTab}-tab`)?.focus());
   }
 
-  protected toggleRequest(request: AccessRequestRecord): void {
-    this.expandedRequestUid.update((uid) => (uid === request.uid ? null : request.uid));
-  }
-
   protected toggleSirapGroup(group: SirapRequestGroup): void {
     this.expandedSirapGroupUid.update((uid) => (uid === group.uid ? null : group.uid));
   }
@@ -334,16 +284,6 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
 
   protected toggleActiveUser(user: AdminManagedUserRecord): void {
     this.expandedActiveUserUid.update((uid) => (uid === user.uid ? null : user.uid));
-  }
-
-  protected onRequestHeaderKeydown(event: KeyboardEvent, request: AccessRequestRecord): void {
-    this.onAccordionHeaderKeydown(
-      event,
-      this.pagedPendingRequests(),
-      request.uid,
-      (item) => item.uid,
-      (uid) => this.focusRequestHeader(uid),
-    );
   }
 
   protected onSirapGroupHeaderKeydown(event: KeyboardEvent, group: SirapRequestGroup): void {
@@ -376,18 +316,6 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
       user.uid,
       (item) => item.uid,
       (uid) => this.focusActiveUserHeader(uid),
-    );
-  }
-
-  protected goToPendingPage(page: number): void {
-    const nextPage = Math.min(Math.max(page, 1), this.pendingPageCount());
-    if (nextPage === this.pendingPage()) {
-      return;
-    }
-    this.pendingPage.set(nextPage);
-    this.expandedRequestUid.set(null);
-    this.pendingStatusMessage.set(
-      `Showing pending account page ${nextPage} of ${this.pendingPageCount()}.`,
     );
   }
 
@@ -427,70 +355,6 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     );
   }
 
-  protected onRequestTierChange(request: AccessRequestRecord, event: Event): void {
-    this.updateRequestGrant(request.uid, {
-      tier: this.readTierFromSelect(event),
-    });
-  }
-
-  protected onRequestAdminChange(request: AccessRequestRecord, event: Event): void {
-    this.updateRequestGrant(request.uid, {
-      isAdmin: this.readChecked(event),
-    });
-  }
-
-  protected toggleRequestAdministeredSirap(
-    request: AccessRequestRecord,
-    sirapId: SirapRegionId,
-  ): void {
-    const grant = this.requestGrantFor(request);
-    this.updateRequestGrant(request.uid, {
-      administeredSirapIds: this.toggleSirapId(grant.administeredSirapIds, sirapId),
-    });
-  }
-
-  protected toggleRequestAllowedSirap(request: AccessRequestRecord, sirapId: SirapRegionId): void {
-    const grant = this.requestGrantFor(request);
-    this.updateRequestGrant(request.uid, {
-      allowedSirapIds: this.toggleSirapId(grant.allowedSirapIds, sirapId),
-    });
-  }
-
-  protected async approveRequest(request: AccessRequestRecord): Promise<void> {
-    if (this.approvingUid()) {
-      return;
-    }
-
-    this.loadingError.set(null);
-    this.approvingUid.set(request.uid);
-    try {
-      if (isFakePendingAccount(request.uid)) {
-        this.removeApprovedPendingAccount(request);
-        return;
-      }
-
-      const accountSirapRequests = this.pendingSirapRequestsFor(request.uid);
-      await this.adminRequests.approveRequest(
-        request,
-        this.requestGrantFor(request),
-        accountSirapRequests,
-      );
-      this.removeApprovedPendingAccount(request);
-      await this.loadUsers();
-    } catch (error) {
-      this.loadingError.set(this.toErrorMessage(error));
-    } finally {
-      this.approvingUid.set(null);
-    }
-  }
-
-  protected onPendingSearchChange(event: Event): void {
-    this.pendingSearchQuery.set((event.target as HTMLInputElement).value);
-    this.pendingPage.set(1);
-    this.expandedRequestUid.set(null);
-    this.pendingStatusMessage.set('Pending account search updated. Showing page 1.');
-  }
-
   protected onSirapSearchChange(event: Event): void {
     this.sirapSearchQuery.set((event.target as HTMLInputElement).value);
     this.sirapPage.set(1);
@@ -512,15 +376,21 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     this.activeUsersStatusMessage.set('Active user search updated. Showing page 1.');
   }
 
-  protected onUserTierChange(user: AdminManagedUserRecord, event: Event): void {
+  protected onUserRoleChange(user: AdminManagedUserRecord, event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    const role = isAppRole(value) ? value : user.role;
+    const grant = this.userGrantFor(user);
+    const normalized = normalizeGrantScopes(
+      role,
+      grant.allowedSirapIds,
+      grant.administeredSirapIds,
+    );
     this.updateUserGrant(user.uid, {
-      tier: this.readTierFromSelect(event),
-    });
-  }
-
-  protected onUserAdminChange(user: AdminManagedUserRecord, event: Event): void {
-    this.updateUserGrant(user.uid, {
-      isAdmin: this.readChecked(event),
+      role: normalized.role,
+      tier: roleToUserTier(normalized.role),
+      isAdmin: normalized.role === 'super-admin',
+      allowedSirapIds: normalized.allowedSirapIds,
+      administeredSirapIds: normalized.administeredSirapIds,
     });
   }
 
@@ -529,16 +399,29 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     sirapId: SirapRegionId,
   ): void {
     const grant = this.userGrantFor(user);
+    const normalized = grantAfterAdministeredToggle(
+      grant.role,
+      grant.allowedSirapIds,
+      grant.administeredSirapIds,
+      sirapId,
+    );
     this.updateUserGrant(user.uid, {
-      administeredSirapIds: this.toggleSirapId(grant.administeredSirapIds, sirapId),
+      role: normalized.role,
+      tier: roleToUserTier(normalized.role),
+      isAdmin: normalized.role === 'super-admin',
+      allowedSirapIds: normalized.allowedSirapIds,
+      administeredSirapIds: normalized.administeredSirapIds,
     });
   }
 
   protected toggleUserAllowedSirap(user: AdminManagedUserRecord, sirapId: SirapRegionId): void {
     const grant = this.userGrantFor(user);
-    this.updateUserGrant(user.uid, {
-      allowedSirapIds: this.toggleSirapId(grant.allowedSirapIds, sirapId),
-    });
+    this.updateUserGrant(user.uid, this.grantFields(grantAfterAllowedToggle(
+      grant.role,
+      grant.allowedSirapIds,
+      grant.administeredSirapIds,
+      sirapId,
+    )));
   }
 
   protected async decideSirapRequest(
@@ -598,16 +481,18 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     this.loadingError.set(null);
     this.updatingUserUid.set(user.uid);
     try {
-      const grant = this.userGrantFor(user);
+      const rawGrant = this.userGrantFor(user);
+      const normalized = normalizeGrantScopes(
+        rawGrant.role,
+        rawGrant.allowedSirapIds,
+        rawGrant.administeredSirapIds,
+      );
+      const grant = this.grantFields(normalized);
       if (!isFakeActiveUser(user.uid)) {
         if (this.isSuperAdmin()) {
           await this.adminRequests.updateUserAccess(user.uid, grant);
         } else {
-          await this.adminRequests.updateRegionalUserAccess(
-            user.uid,
-            user.allowedSirapIds,
-            grant.allowedSirapIds,
-          );
+          await this.adminRequests.updateRegionalUserAccess(user.uid, grant.allowedSirapIds);
         }
       }
       this.activeUsers.update((users) =>
@@ -616,12 +501,12 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
             ? {
                 ...candidate,
                 ...grant,
-                role: this.roleLabelForTier(grant.tier),
                 updatedAt: new Date(),
               }
             : candidate,
         ),
       );
+      this.updateUserGrant(user.uid, grant);
     } catch (error) {
       this.loadingError.set(this.toErrorMessage(error));
     } finally {
@@ -629,36 +514,10 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     }
   }
 
-  protected requestGrantFor(request: AccessRequestRecord): UserAccessGrant {
-    return this.requestGrants()[request.uid] ?? this.defaultGrant();
-  }
-
-  protected hasRequestChanges(request: AccessRequestRecord): boolean {
-    const grant = this.requestGrantFor(request);
-    const baseline = this.requestGrantBaselines()[request.uid] ?? this.defaultGrant();
-    return (
-      grant.tier !== baseline.tier ||
-      grant.isAdmin !== baseline.isAdmin ||
-      !this.sameSirapIds(grant.administeredSirapIds, baseline.administeredSirapIds) ||
-      !this.sameSirapIds(grant.allowedSirapIds, baseline.allowedSirapIds)
-    );
-  }
-
-  protected resetRequestChanges(request: AccessRequestRecord): void {
-    const baseline = this.requestGrantBaselines()[request.uid];
-    if (!baseline) {
-      return;
-    }
-    this.requestGrants.update((grants) => ({
-      ...grants,
-      [request.uid]: this.copyGrant(baseline),
-    }));
-    this.pendingStatusMessage.set(`Reset changes for ${request.displayName}.`);
-  }
-
   protected userGrantFor(user: AdminManagedUserRecord): UserAccessGrant {
     return (
       this.userGrants()[user.uid] ?? {
+        role: user.role,
         tier: user.tier,
         isAdmin: user.isAdmin,
         administeredSirapIds: user.administeredSirapIds,
@@ -670,6 +529,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   protected hasUserChanges(user: AdminManagedUserRecord): boolean {
     const grant = this.userGrantFor(user);
     return (
+      grant.role !== user.role ||
       grant.tier !== user.tier ||
       grant.isAdmin !== user.isAdmin ||
       !this.sameSirapIds(grant.administeredSirapIds, user.administeredSirapIds) ||
@@ -685,25 +545,6 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     return isAdmin ? 'Super admin' : 'Not a super admin';
   }
 
-  protected pendingSirapRequestsFor(uid: string): SirapAccessRequestRecord[] {
-    return this.sirapRequests().filter(
-      (request) => request.uid === uid && request.status === 'pending',
-    );
-  }
-
-  protected grantSummary(request: AccessRequestRecord): string {
-    const grant = this.requestGrantFor(request);
-    const dataAccess =
-      grant.allowedSirapIds.length === 0
-        ? 'No SIRAP data access'
-        : `${grant.allowedSirapIds.length} SIRAP data grant${grant.allowedSirapIds.length === 1 ? '' : 's'}`;
-    const administratorAccess =
-      grant.administeredSirapIds.length === 0
-        ? 'no regional administrator permissions'
-        : `${grant.administeredSirapIds.length} regional administrator assignment${grant.administeredSirapIds.length === 1 ? '' : 's'}`;
-    return `${this.tierLabel(grant.tier)} · ${dataAccess} · ${administratorAccess}`;
-  }
-
   protected sirapLabel(sirapId: SirapRegionId): string {
     return sirapRegionLabel(sirapId);
   }
@@ -712,18 +553,6 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     return sirapIds.length
       ? sirapIds.map((sirapId) => this.sirapLabel(sirapId)).join(', ')
       : 'None';
-  }
-
-  protected formatRequestedAt(request: AccessRequestRecord): string {
-    const date =
-      request.requestedAt ?? (request.submittedAt ? new Date(request.submittedAt) : null);
-    if (!date) {
-      return 'Not recorded';
-    }
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(date);
   }
 
   protected formatSirapRequestedAt(request: SirapAccessRequestRecord): string {
@@ -738,10 +567,6 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
 
   protected formatOptional(value: string | null): string {
     return value || 'Not provided';
-  }
-
-  protected isFakePendingAccount(uid: string): boolean {
-    return isFakePendingAccount(uid);
   }
 
   protected isFakeSirapRequester(uid: string): boolean {
@@ -819,13 +644,11 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     try {
       const administrator = await this.sirapAccess.getCurrentAdministrator();
       this.administrator.set(administrator);
-      const [pendingResult, sirapResult, usersResult] = await Promise.allSettled([
-        this.adminRequests.listPendingRequests(),
+      const [sirapResult, usersResult] = await Promise.allSettled([
         this.sirapAccess.listRequestsForAdministrator(),
         this.adminRequests.listActiveUsers(),
       ]);
       const failedSections = [
-        pendingResult.status === 'rejected' ? 'pending requests' : null,
         sirapResult.status === 'rejected' ? 'SIRAP requests' : null,
         usersResult.status === 'rejected' ? 'active users' : null,
       ].filter((section): section is string => section !== null);
@@ -834,46 +657,18 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
           `Could not load ${failedSections.join(', ')}. Your administrator status is shown above; refresh after confirming Firestore permissions.`,
         );
       }
-      const realPendingRequests = pendingResult.status === 'fulfilled' ? pendingResult.value : [];
       const realSirapRequests = sirapResult.status === 'fulfilled' ? sirapResult.value : [];
       const realActiveUsers = usersResult.status === 'fulfilled' ? usersResult.value : [];
-      const { pendingRequests, sirapRequests, activeUsers } = appendDevelopmentFakeDemoData(
-        realPendingRequests,
+      const { sirapRequests, activeUsers } = appendDevelopmentFakeDemoData(
         realSirapRequests,
         realActiveUsers,
         shouldAppendFakeDemoData(),
       );
-      this.pendingRequests.set(pendingRequests);
       this.sirapRequests.set(sirapRequests);
       this.setActiveUsers(activeUsers);
-      const initialGrants = Object.fromEntries(
-        pendingRequests.map((request) => [
-          request.uid,
-          {
-            ...this.defaultGrant(),
-            allowedSirapIds: [
-              ...new Set(
-                sirapRequests
-                  .filter(
-                    (sirapRequest) =>
-                      sirapRequest.uid === request.uid && sirapRequest.status === 'pending',
-                  )
-                  .map((sirapRequest) => sirapRequest.sirapId),
-              ),
-            ],
-          },
-        ]),
-      );
-      this.requestGrants.set(initialGrants);
-      this.requestGrantBaselines.set(
-        Object.fromEntries(
-          Object.entries(initialGrants).map(([uid, grant]) => [uid, this.copyGrant(grant)]),
-        ),
-      );
       this.resetSectionPaginationState();
     } catch (error) {
       this.loadingError.set(this.toErrorMessage(error));
-      this.pendingRequests.set([]);
       this.sirapRequests.set([]);
       this.activeUsers.set([]);
     } finally {
@@ -883,12 +678,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
 
   private async loadUsers(): Promise<void> {
     const realActiveUsers = await this.adminRequests.listActiveUsers();
-    const { activeUsers } = appendDevelopmentFakeDemoData(
-      [],
-      [],
-      realActiveUsers,
-      shouldAppendFakeDemoData(),
-    );
+    const { activeUsers } = appendDevelopmentFakeDemoData([], realActiveUsers, shouldAppendFakeDemoData());
     this.setActiveUsers(activeUsers);
     this.syncActiveUsersPagination();
   }
@@ -900,6 +690,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
         users.map((user) => [
           user.uid,
           {
+            role: user.role,
             tier: user.tier,
             isAdmin: user.isAdmin,
             administeredSirapIds: user.administeredSirapIds,
@@ -911,25 +702,18 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   }
 
   private resetSectionPaginationState(): void {
-    this.pendingSectionExpanded.set(true);
     this.sirapRequestsSectionExpanded.set(true);
     this.currentSirapSectionExpanded.set(false);
     this.activeUsersSectionExpanded.set(false);
-    this.pendingSearchQuery.set('');
     this.sirapSearchQuery.set('');
     this.currentSirapSearchQuery.set('');
     this.userSearchQuery.set('');
-    this.pendingPage.set(1);
     this.sirapPage.set(1);
     this.currentSirapPage.set(1);
     this.activeUsersPage.set(1);
-    this.pendingStatusMessage.set('');
     this.sirapStatusMessage.set('');
     this.currentSirapStatusMessage.set('');
     this.activeUsersStatusMessage.set('');
-    this.expandedRequestUid.set(
-      this.pendingRequests().length === 1 ? this.pendingRequests()[0].uid : null,
-    );
     this.expandedSirapGroupUid.set(
       this.sirapRequestGroups().length === 1 ? this.sirapRequestGroups()[0].uid : null,
     );
@@ -953,6 +737,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
 
   private defaultGrant(): UserAccessGrant {
     return {
+      role: 'user',
       tier: UserTier.DecisionMaker,
       isAdmin: false,
       administeredSirapIds: [],
@@ -968,14 +753,18 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     };
   }
 
-  private updateRequestGrant(uid: string, patch: Partial<UserAccessGrant>): void {
-    this.requestGrants.update((grants) => ({
-      ...grants,
-      [uid]: {
-        ...(grants[uid] ?? this.defaultGrant()),
-        ...patch,
-      },
-    }));
+  private grantFields(normalized: {
+    role: UserAccessGrant['role'];
+    allowedSirapIds: readonly SirapRegionId[];
+    administeredSirapIds: readonly SirapRegionId[];
+  }): UserAccessGrant {
+    return {
+      role: normalized.role,
+      tier: roleToUserTier(normalized.role),
+      isAdmin: normalized.role === 'super-admin',
+      allowedSirapIds: [...normalized.allowedSirapIds],
+      administeredSirapIds: [...normalized.administeredSirapIds],
+    };
   }
 
   private updateUserGrant(uid: string, patch: Partial<UserAccessGrant>): void {
@@ -988,30 +777,8 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     }));
   }
 
-  private withoutGrant(
-    grants: Record<string, UserAccessGrant>,
-    uid: string,
-  ): Record<string, UserAccessGrant> {
-    const remaining = { ...grants };
-    delete remaining[uid];
-    return remaining;
-  }
-
-  private readTierFromSelect(event: Event): UserAccessGrant['tier'] {
-    const value = Number((event.target as HTMLSelectElement).value);
-    return value === UserTier.Manager ? UserTier.Manager : UserTier.DecisionMaker;
-  }
-
-  private readChecked(event: Event): boolean {
-    return (event.target as HTMLInputElement).checked;
-  }
-
   private hasPendingWrite(): boolean {
-    return !!this.approvingUid() || !!this.updatingUserUid() || !!this.decidingSirapRequestId();
-  }
-
-  private hasDirtyRequestDrafts(): boolean {
-    return this.pendingRequests().some((request) => this.hasRequestChanges(request));
+    return !!this.updatingUserUid() || !!this.decidingSirapRequestId();
   }
 
   private hasDirtyUserDrafts(): boolean {
@@ -1019,21 +786,10 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   }
 
   private confirmDraftDiscard(action: string): boolean {
-    const draftSections: string[] = [];
-    if (this.hasDirtyRequestDrafts()) {
-      draftSections.push('pending-account');
-    }
-    if (this.hasDirtyUserDrafts()) {
-      draftSections.push('active-user');
-    }
-    if (draftSections.length === 0) {
+    if (!this.hasDirtyUserDrafts()) {
       return true;
     }
-    const label =
-      draftSections.length === 2
-        ? 'pending-account and active-user changes'
-        : `${draftSections[0]} changes`;
-    return window.confirm(`You have unsaved ${label}. ${action}?`);
+    return window.confirm(`You have unsaved active-user changes. ${action}?`);
   }
 
   private applyLocalSirapDecision(
@@ -1050,28 +806,28 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   }
 
   private applyLocalSirapRevoke(uid: string, sirapId: SirapRegionId): void {
+    const user = this.activeUsers().find((candidate) => candidate.uid === uid);
+    const grant = this.userGrants()[uid];
+    const normalized = grantAfterAllowedToggle(
+      grant?.role ?? user?.role ?? 'user',
+      grant?.allowedSirapIds ?? user?.allowedSirapIds ?? [],
+      grant?.administeredSirapIds ?? user?.administeredSirapIds ?? [],
+      sirapId,
+    );
+    const nextGrant = this.grantFields(normalized);
     this.activeUsers.update((users) =>
       users.map((candidate) =>
         candidate.uid === uid
           ? {
               ...candidate,
-              allowedSirapIds: candidate.allowedSirapIds.filter((id) => id !== sirapId),
+              ...nextGrant,
             }
           : candidate,
       ),
     );
-    this.userGrants.update((grants) => {
-      const grant = grants[uid];
-      return grant
-        ? {
-            ...grants,
-            [uid]: {
-              ...grant,
-              allowedSirapIds: grant.allowedSirapIds.filter((id) => id !== sirapId),
-            },
-          }
-        : grants;
-    });
+    if (grant || user) {
+      this.updateUserGrant(uid, nextGrant);
+    }
     this.sirapRequests.update((requests) =>
       requests.map((request) =>
         request.uid === uid && request.sirapId === sirapId && request.status === 'approved'
@@ -1112,45 +868,6 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     focusHeader(readUid(items[nextIndex]));
   }
 
-  private removeApprovedPendingAccount(request: AccessRequestRecord): void {
-    this.pendingRequests.update((requests) =>
-      requests.filter((candidate) => candidate.uid !== request.uid),
-    );
-    const grantedIds = this.requestGrantFor(request).allowedSirapIds;
-    this.sirapRequests.update((requests) =>
-      requests.map((candidate) =>
-        candidate.uid === request.uid &&
-        candidate.status === 'pending' &&
-        grantedIds.includes(candidate.sirapId)
-          ? { ...candidate, status: 'approved' }
-          : candidate,
-      ),
-    );
-    this.requestGrants.update((grants) => this.withoutGrant(grants, request.uid));
-    this.requestGrantBaselines.update((grants) => this.withoutGrant(grants, request.uid));
-    this.adjustPendingPageAfterApproval();
-  }
-
-  private adjustPendingPageAfterApproval(): void {
-    const page = Math.min(this.pendingPage(), this.pendingPageCount());
-    this.pendingPage.set(page);
-    const visibleRequests = this.pagedPendingRequests();
-    const remainingRequests = this.pendingRequests();
-    const nextRequest = visibleRequests[0] ?? null;
-    this.expandedRequestUid.set(remainingRequests.length === 1 ? remainingRequests[0].uid : null);
-    this.pendingStatusMessage.set('Account approved and removed from the pending queue.');
-
-    if (nextRequest) {
-      window.setTimeout(() => this.focusRequestHeader(nextRequest.uid));
-    } else if (remainingRequests.length === 0) {
-      window.setTimeout(() => this.focusElementById('admin-access-panel-refresh-button'));
-    }
-  }
-
-  private focusRequestHeader(uid: string): void {
-    this.focusElementById(`admin-access-panel-request-toggle-${uid}`);
-  }
-
   private focusSirapGroupHeader(uid: string): void {
     this.focusElementById(`admin-access-panel-sirap-user-toggle-${uid}`);
   }
@@ -1165,10 +882,6 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
 
   private focusElementById(id: string): void {
     document.getElementById(id)?.focus();
-  }
-
-  private roleLabelForTier(tier: UserAccessGrant['tier']): string {
-    return tier >= UserTier.Manager ? 'science_publisher' : 'authorized_viewer';
   }
 
   private toggleSirapId(ids: readonly SirapRegionId[], sirapId: SirapRegionId): SirapRegionId[] {
@@ -1188,33 +901,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   }
 
   private currentSirapAccessUsers(): AdminManagedUserRecord[] {
-    if (this.isSuperAdmin()) {
-      return this.activeUsers();
-    }
-
-    const users = new Map<string, AdminManagedUserRecord>();
-    for (const request of this.sirapRequests()) {
-      if (request.status !== 'approved') {
-        continue;
-      }
-      const user = users.get(request.uid) ?? {
-        uid: request.uid,
-        email: request.email,
-        displayName: request.displayName,
-        status: 'active' as const,
-        role: 'authorized_viewer',
-        tier: UserTier.DecisionMaker,
-        isAdmin: false,
-        administeredSirapIds: [],
-        allowedSirapIds: [],
-        updatedAt: null,
-      };
-      if (!user.allowedSirapIds.includes(request.sirapId)) {
-        user.allowedSirapIds.push(request.sirapId);
-      }
-      users.set(request.uid, user);
-    }
-    return [...users.values()];
+    return this.activeUsers();
   }
 
   private matchesNameOrEmail(normalizedQuery: string, displayName: string, email: string): boolean {

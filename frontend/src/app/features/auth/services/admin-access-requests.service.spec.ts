@@ -1,4 +1,9 @@
-import { hasSirapGrantOverlap, parseAdminManagedUserRecord } from './admin-access-requests.service';
+import { UserTier } from '@core/models';
+import {
+  hasSirapGrantOverlap,
+  nextRegionalReadGrant,
+  parseAdminManagedUserRecord,
+} from './admin-access-requests.service';
 
 describe('AdminAccessRequestsService user grants', () => {
   it('parses a direct grant without relying on SIRAP request history', () => {
@@ -12,6 +17,7 @@ describe('AdminAccessRequestsService user grants', () => {
       allowedSirapIds: ['eje-cafetero'],
     });
 
+    expect(user.role).toBe('sirap-user');
     expect(user.allowedSirapIds).toEqual(['eje-cafetero']);
   });
 
@@ -32,6 +38,37 @@ describe('AdminAccessRequestsService user grants', () => {
       administeredSirapIds: [],
     });
 
+    expect(user.role).toBe('super-admin');
     expect(user.isAdmin).toBe(true);
+    expect(user.tier).toBe(UserTier.Manager);
+  });
+
+  it('preserves another SIRAP and syncs role when a regional admin adds or removes access', () => {
+    expect(
+      nextRegionalReadGrant(['eje-cafetero'], ['orinoquia'], ['orinoquia'], 'sirap-user', []),
+    ).toEqual({
+      allowedSirapIds: ['eje-cafetero', 'orinoquia'],
+      role: 'sirap-user',
+    });
+    expect(
+      nextRegionalReadGrant(
+        ['eje-cafetero', 'orinoquia'],
+        [],
+        ['orinoquia'],
+        'sirap-user',
+        [],
+      ),
+    ).toEqual({
+      allowedSirapIds: ['eje-cafetero'],
+      role: 'sirap-user',
+    });
+    expect(nextRegionalReadGrant(['orinoquia'], [], ['orinoquia'], 'sirap-user', [])).toEqual({
+      allowedSirapIds: [],
+      role: 'user',
+    });
+    expect(nextRegionalReadGrant([], ['eje-cafetero'], ['orinoquia'], 'user', [])).toEqual({
+      allowedSirapIds: [],
+      role: 'user',
+    });
   });
 });

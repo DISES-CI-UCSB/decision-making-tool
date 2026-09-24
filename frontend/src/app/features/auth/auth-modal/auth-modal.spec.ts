@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthService } from '@core/services/auth.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
-import { ACCESS_DENIED_MESSAGE, AuthRequestService } from '../services/auth-request.service';
+import { ACCOUNT_NOT_ACTIVE_MESSAGE } from './auth-modal';
 import { GoogleIdentityService } from '../services/google-identity.service';
 import {
   AUTH_ERROR_CODE_EXPIRED,
@@ -56,16 +56,6 @@ describe('AuthModalComponent launch authentication', () => {
     logout: vi.fn().mockResolvedValue(undefined),
     mfaEnrollmentRequired$: signal(false),
   };
-  const authRequest = {
-    pendingRequest$: signal(null),
-    attemptLogin: vi.fn().mockResolvedValue('pending'),
-    submitEmailRequest: vi.fn(),
-    submitGoogleRequest: vi.fn(),
-    hasPendingRequest: vi.fn().mockReturnValue(false),
-    getNudgeCooldownRemainingMs: vi.fn().mockReturnValue(0),
-    canNudgeAdmins: vi.fn().mockReturnValue(true),
-    sendAdminNudge: vi.fn(),
-  };
   const googleIdentity = {
     signIn: vi.fn().mockResolvedValue({ kind: 'completed', profile }),
     profileFromCredential: vi.fn().mockResolvedValue(profile),
@@ -88,6 +78,7 @@ describe('AuthModalComponent launch authentication', () => {
   const firebase = {
     currentUser: firebaseUser,
     reauthenticateWithGooglePopup: vi.fn().mockResolvedValue({ user: firebaseUser }),
+    ensureSelfUserRecord: vi.fn().mockResolvedValue({ created: true, status: 'active' }),
   };
 
   let fixture: ComponentFixture<AuthModalComponent>;
@@ -97,7 +88,6 @@ describe('AuthModalComponent launch authentication', () => {
     firebase.currentUser = firebaseUser;
     googleIdentity.signIn.mockResolvedValue({ kind: 'completed', profile });
     googleIdentity.profileFromCredential.mockResolvedValue(profile);
-    authRequest.attemptLogin.mockResolvedValue('pending');
     totpMfa.hasEnrolledTotp.mockReturnValue(false);
     totpMfa.userHasEnrolledTotp.mockImplementation(async () => totpMfa.hasEnrolledTotp());
     unconfirmedEnrollmentUid = null;
@@ -115,11 +105,11 @@ describe('AuthModalComponent launch authentication', () => {
     authService.logout.mockResolvedValue(undefined);
     authService.mfaEnrollmentRequired$.set(false);
     firebase.reauthenticateWithGooglePopup.mockResolvedValue({ user: firebaseUser });
+    firebase.ensureSelfUserRecord.mockResolvedValue({ created: true, status: 'active' });
     await TestBed.configureTestingModule({
       imports: [AuthModalComponent],
       providers: [
         { provide: AuthService, useValue: authService },
-        { provide: AuthRequestService, useValue: authRequest },
         { provide: GoogleIdentityService, useValue: googleIdentity },
         { provide: TotpMfaService, useValue: totpMfa },
         { provide: FirebaseClientService, useValue: firebase },
@@ -150,9 +140,9 @@ describe('AuthModalComponent launch authentication', () => {
     await flush();
   }
 
-  it('offers Google sign-in and Google-based access requests without email forms', () => {
+  it('offers Google sign-in without an account-approval request', () => {
     expect(element().querySelector('#auth-modal-entry-google-btn')).not.toBeNull();
-    expect(element().querySelector('#auth-modal-entry-request-btn')).not.toBeNull();
+    expect(element().querySelector('#auth-modal-entry-request-btn')).toBeNull();
     expect(element().querySelector('#auth-modal-entry-email-btn')).toBeNull();
     expect(element().querySelector('#auth-modal-email-login-form')).toBeNull();
     expect(element().querySelector('#auth-modal-email-request-form')).toBeNull();
@@ -160,11 +150,10 @@ describe('AuthModalComponent launch authentication', () => {
       'A Google account is required',
     );
     expect(element().querySelector('#auth-modal-entry-req-authenticator')?.textContent).toContain(
-      'authenticator app',
+      'creates your account',
     );
-    expect(element().querySelector('#auth-modal-entry-request-sub')?.textContent).toContain(
-      'Uses Google',
-    );
+    expect(element().textContent).not.toContain('admin review');
+    expect(element().textContent).not.toContain('After approval');
   });
 
   it('shows a visible error when Google sign-in fails', async () => {
@@ -178,31 +167,31 @@ describe('AuthModalComponent launch authentication', () => {
     );
   });
 
-  it('shows pending review after a pending Google login and never starts enrollment', async () => {
+  it('creates an account and starts authenticator setup after Google sign-in', async () => {
     click('#auth-modal-entry-google-btn');
     await flush();
 
-    expect(element().querySelector('#auth-modal-pending-review')).not.toBeNull();
-    expect(element().querySelector('#auth-modal-mfa-enroll')).toBeNull();
-    expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
+    expect(firebase.ensureSelfUserRecord).toHaveBeenCalledOnce();
+    expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
+    expect(element().querySelector('#auth-modal-pending-review')).toBeNull();
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledOnce();
     expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
   });
 
-  it('sends a pending Google request to the SIRAP form instead of pending review', async () => {
-    click('#auth-modal-entry-request-btn');
+  it('starts authenticator setup from the Google access button without an approval form', async () => {
+    click('#auth-modal-entry-google-btn');
     await flush();
 
-    expect(authRequest.attemptLogin).toHaveBeenCalledOnce();
-    expect(element().querySelector('#auth-modal-post-google')).not.toBeNull();
-    expect(element().querySelector('#auth-modal-post-google-sirap-fieldset')).not.toBeNull();
+    expect(firebase.ensureSelfUserRecord).toHaveBeenCalledOnce();
+    expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
+    expect(element().querySelector('#auth-modal-post-google')).toBeNull();
     expect(element().querySelector('#auth-modal-pending-review')).toBeNull();
-    expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledOnce();
   });
 
   it('starts required enrollment when a request-intent Google user is already active', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
 
-    click('#auth-modal-entry-request-btn');
+    click('#auth-modal-entry-google-btn');
     await flush();
 
     expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
@@ -212,12 +201,11 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('closes after a request-intent Google sign-in when the active user already has TOTP', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.hasEnrolledTotp.mockReturnValueOnce(true);
     const closed = vi.fn();
     fixture.componentInstance.closeRequested.subscribe(closed);
 
-    click('#auth-modal-entry-request-btn');
+    click('#auth-modal-entry-google-btn');
     await flush();
 
     expect(element().querySelector('#auth-modal-post-google')).toBeNull();
@@ -227,21 +215,20 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('signs out a denied Google request and returns to entry', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('invalid');
+    firebase.ensureSelfUserRecord.mockResolvedValueOnce({ created: false, status: 'denied' });
 
-    click('#auth-modal-entry-request-btn');
+    click('#auth-modal-entry-google-btn');
     await flush();
 
     expect(authService.logout).toHaveBeenCalledOnce();
     expect(element().querySelector('#auth-modal-entry-error')?.textContent).toContain(
-      ACCESS_DENIED_MESSAGE,
+      ACCOUNT_NOT_ACTIVE_MESSAGE,
     );
     expect(element().querySelector('#auth-modal-post-google')).toBeNull();
     expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
   });
 
   it('shows enrollment QR and manual key for an active user without TOTP', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
 
     click('#auth-modal-entry-google-btn');
     await flush();
@@ -267,7 +254,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('closes immediately when an active user already has TOTP enrolled', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.hasEnrolledTotp.mockReturnValueOnce(true);
     const closed = vi.fn();
     fixture.componentInstance.closeRequested.subscribe(closed);
@@ -281,7 +267,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('reaches a stable signed-in state after the authenticator code is confirmed', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     const closed = vi.fn();
     fixture.componentInstance.closeRequested.subscribe(closed);
 
@@ -301,7 +286,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('keeps an invalid enrollment code visible and retryable', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment
       .mockRejectedValueOnce(
         new TotpMfaError('retry', 'auth/invalid-verification-code', TOTP_RETRY_MESSAGE),
@@ -355,7 +339,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('shows a sanitized enrollment support code and hides secret-like codes', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment
       .mockRejectedValueOnce(
         new TotpMfaError('retry', 'auth/invalid-verification-code', TOTP_RETRY_MESSAGE),
@@ -397,14 +380,14 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('signs out a denied Google login and shows the existing denial', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('invalid');
+    firebase.ensureSelfUserRecord.mockResolvedValueOnce({ created: false, status: 'denied' });
 
     click('#auth-modal-entry-google-btn');
     await flush();
 
     expect(authService.logout).toHaveBeenCalledOnce();
     expect(element().querySelector('#auth-modal-entry-error')?.textContent).toContain(
-      ACCESS_DENIED_MESSAGE,
+      ACCOUNT_NOT_ACTIVE_MESSAGE,
     );
     expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
   });
@@ -419,7 +402,6 @@ describe('AuthModalComponent launch authentication', () => {
         new TotpMfaError('retry', 'auth/invalid-verification-code', TOTP_RETRY_MESSAGE),
       )
       .mockResolvedValueOnce({ user: firebaseUser });
-    authRequest.attemptLogin.mockResolvedValueOnce('pending');
 
     click('#auth-modal-entry-google-btn');
     await flush();
@@ -457,14 +439,13 @@ describe('AuthModalComponent launch authentication', () => {
     expect(totpMfa.completeChallenge).toHaveBeenNthCalledWith(1, challengeSession, '111111');
     expect(totpMfa.completeChallenge).toHaveBeenNthCalledWith(2, challengeSession, '222222');
     expect(googleIdentity.profileFromCredential).toHaveBeenCalledWith({ user: firebaseUser });
-    expect(element().querySelector('#auth-modal-pending-review')).not.toBeNull();
-    expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
-    expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-pending-review')).toBeNull();
+    expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
+    expect(totpMfa.beginEnrollment).toHaveBeenCalled();
     expect(authService.logout).not.toHaveBeenCalled();
   });
 
   it('does not open setup again when a challenge user looks unenrolled until factor refresh', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     googleIdentity.signIn.mockResolvedValueOnce({
       kind: 'totp-assertion-required',
       assertion: challengeSession,
@@ -493,7 +474,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('keeps the same QR when setup is still required after the code is accepted', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     authService.refreshCurrentUserTier.mockImplementation(async () => {
       authService.mfaEnrollmentRequired$.set(true);
     });
@@ -543,7 +523,6 @@ describe('AuthModalComponent launch authentication', () => {
       secretKey: 'REPLACEMENTSECRET',
     };
     totpMfa.beginEnrollment.mockResolvedValue(expiredEnrollment);
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment.mockRejectedValueOnce(
       new TotpMfaError(
         'recover',
@@ -597,7 +576,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('keeps the same enrollment session when the code is not confirmed', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment
       .mockRejectedValueOnce({ code: TOTP_ENROLLMENT_UNCONFIRMED_CODE })
       .mockResolvedValueOnce(undefined);
@@ -641,7 +619,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('creates a new QR only after the explicit replace action warns about Duo', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment.mockRejectedValueOnce({ code: TOTP_ENROLLMENT_UNCONFIRMED_CODE });
     const replacement = {
       ...enrollment,
@@ -684,7 +661,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('keeps a dead enrollment on the same QR until the user creates a new one', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment
       .mockRejectedValueOnce({ code: AUTH_ERROR_INVALID_VERIFICATION_ID })
       .mockRejectedValueOnce(
@@ -745,7 +721,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('reauthenticates with Google and keeps the same QR when login is no longer recent', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment
       .mockRejectedValueOnce({ code: AUTH_ERROR_REQUIRES_RECENT_LOGIN })
       .mockResolvedValueOnce(undefined);
@@ -782,7 +757,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('keeps the same QR when Google reauthentication is cancelled', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment.mockRejectedValueOnce({ code: AUTH_ERROR_REQUIRES_RECENT_LOGIN });
     firebase.reauthenticateWithGooglePopup.mockRejectedValueOnce(new Error('popup-closed'));
 
@@ -803,7 +777,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('keeps the same QR and secret when enroll fails before it resolves', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment
       .mockRejectedValueOnce({ code: AUTH_ERROR_REQUIRES_RECENT_LOGIN })
       .mockRejectedValueOnce({ code: AUTH_ERROR_INVALID_VERIFICATION_ID })
@@ -897,26 +870,28 @@ describe('AuthModalComponent launch authentication', () => {
     expect(closed).toHaveBeenCalled();
   });
 
-  it('resumes the SIRAP request form after a successful request-intent challenge', async () => {
+  it('closes into the app after a successful challenge instead of opening a SIRAP form', async () => {
     googleIdentity.signIn.mockResolvedValueOnce({
       kind: 'totp-assertion-required',
       assertion: challengeSession,
     });
+    totpMfa.userHasEnrolledTotp.mockResolvedValue(true);
+    const closed = vi.fn();
+    fixture.componentInstance.closeRequested.subscribe(closed);
 
-    click('#auth-modal-entry-request-btn');
+    click('#auth-modal-entry-google-btn');
     await flush();
     await typeCode('#auth-modal-mfa-challenge-code-input', '333333');
     click('#auth-modal-mfa-challenge-submit-btn');
     await flush();
 
-    expect(element().querySelector('#auth-modal-post-google')).not.toBeNull();
-    expect(authRequest.attemptLogin).toHaveBeenCalledOnce();
+    expect(element().querySelector('#auth-modal-post-google')).toBeNull();
     expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
-    expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
+    expect(authService.refreshCurrentUserTier).toHaveBeenCalled();
+    expect(closed).toHaveBeenCalled();
   });
 
-  it('signs out and closes when enrollment is cancelled', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
+  it('keeps the account signed in when enrollment is cancelled', async () => {
     const closed = vi.fn();
     fixture.componentInstance.closeRequested.subscribe(closed);
 
@@ -925,7 +900,7 @@ describe('AuthModalComponent launch authentication', () => {
     click('#auth-modal-mfa-enroll-cancel-btn');
     await flush();
 
-    expect(authService.logout).toHaveBeenCalledOnce();
+    expect(authService.logout).not.toHaveBeenCalled();
     expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
     expect(closed).toHaveBeenCalledOnce();
   });
@@ -967,7 +942,6 @@ describe('AuthModalComponent launch authentication', () => {
     await Promise.resolve();
     await flush();
 
-    expect(authRequest.attemptLogin).not.toHaveBeenCalled();
     expect(totpMfa.beginEnrollment).toHaveBeenCalledWith(firebaseUser, 'google@example.com');
     expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
     expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(
@@ -993,11 +967,9 @@ describe('AuthModalComponent launch authentication', () => {
       TOTP_RESTART_MESSAGE,
     );
     expect(authService.logout).toHaveBeenCalled();
-    expect(authRequest.attemptLogin).not.toHaveBeenCalled();
   });
 
   it('keeps an expired displayed enrollment in the warned replacement state', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment.mockRejectedValueOnce(
       new TotpMfaError('restart', TOTP_ENROLLMENT_EXPIRED_CODE, TOTP_RESTART_MESSAGE),
     );
@@ -1027,8 +999,7 @@ describe('AuthModalComponent launch authentication', () => {
     expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
   });
 
-  it('signs out and closes when Escape is pressed during enrollment', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
+  it('keeps the account signed in when Escape is pressed during enrollment', async () => {
     const closed = vi.fn();
     fixture.componentInstance.closeRequested.subscribe(closed);
 
@@ -1037,13 +1008,12 @@ describe('AuthModalComponent launch authentication', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await flush();
 
-    expect(authService.logout).toHaveBeenCalledOnce();
+    expect(authService.logout).not.toHaveBeenCalled();
     expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
     expect(closed).toHaveBeenCalledOnce();
   });
 
-  it('signs out and closes when the scrim is clicked during enrollment', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
+  it('keeps the account signed in when the scrim is clicked during enrollment', async () => {
     const closed = vi.fn();
     fixture.componentInstance.closeRequested.subscribe(closed);
 
@@ -1054,7 +1024,7 @@ describe('AuthModalComponent launch authentication', () => {
       ?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     await flush();
 
-    expect(authService.logout).toHaveBeenCalledOnce();
+    expect(authService.logout).not.toHaveBeenCalled();
     expect(closed).toHaveBeenCalledOnce();
   });
 
@@ -1078,7 +1048,6 @@ describe('AuthModalComponent launch authentication', () => {
   });
 
   it('focuses the enrollment code field on enter and after a retryable error', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment.mockRejectedValueOnce(
       new TotpMfaError('retry', 'auth/invalid-verification-code', TOTP_RETRY_MESSAGE),
     );
@@ -1110,13 +1079,15 @@ describe('AuthModalComponent launch authentication', () => {
     fixture.componentInstance.closeRequested.subscribe(closed);
     fixture.detectChanges();
 
-    expect(authRequest.attemptLogin).not.toHaveBeenCalled();
     expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
     expect(element().querySelector('#auth-modal-mfa-enroll-qr-placeholder')).not.toBeNull();
     expect(element().querySelector('#auth-modal-mfa-enroll-submit-spinner')).not.toBeNull();
     expect(
       element().querySelector<HTMLButtonElement>('#auth-modal-mfa-enroll-cancel-btn')?.disabled,
     ).toBe(true);
+    expect(element().querySelector<HTMLButtonElement>('#auth-modal-close-button')?.disabled).toBe(
+      true,
+    );
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     fixture.detectChanges();
@@ -1134,25 +1105,140 @@ describe('AuthModalComponent launch authentication', () => {
     expect(
       element().querySelector<HTMLButtonElement>('#auth-modal-mfa-enroll-cancel-btn')?.disabled,
     ).toBe(false);
+    expect(element().querySelector<HTMLButtonElement>('#auth-modal-close-button')?.disabled).toBe(
+      false,
+    );
   });
 
-  it('logs out and returns to entry when a post-Google submit is denied', async () => {
-    authRequest.submitGoogleRequest.mockRejectedValueOnce(new Error(ACCESS_DENIED_MESSAGE));
+  it('moves initial focus to Continue with Google', async () => {
+    await flush();
 
-    click('#auth-modal-entry-request-btn');
+    expect(document.activeElement?.id).toBe('auth-modal-entry-google-btn');
+  });
+
+  it('closes the entry dialog from the visible close button', () => {
+    const closeButton = element().querySelector<HTMLButtonElement>('#auth-modal-close-button');
+    const closed = vi.fn();
+    fixture.componentInstance.closeRequested.subscribe(closed);
+
+    expect(closeButton?.getAttribute('aria-label')).toBe('Close sign-in dialog');
+    expect(closeButton?.disabled).toBe(false);
+    closeButton?.click();
+
+    expect(closed).toHaveBeenCalledOnce();
+    expect(authService.logout).not.toHaveBeenCalled();
+  });
+
+  it('keeps the account signed in when the close button is used during enrollment', async () => {
+    const closed = vi.fn();
+    fixture.componentInstance.closeRequested.subscribe(closed);
+
+    click('#auth-modal-entry-google-btn');
     await flush();
-    element()
-      .querySelector<HTMLInputElement>('#auth-modal-post-google-sirap-checkbox-orinoquia')
-      ?.dispatchEvent(new Event('change'));
+    click('#auth-modal-close-button');
     await flush();
-    click('#auth-modal-post-google-submit-btn');
+
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(closed).toHaveBeenCalledOnce();
+  });
+
+  it('signs out and closes when the close button is used during a TOTP challenge', async () => {
+    googleIdentity.signIn.mockResolvedValueOnce({
+      kind: 'totp-assertion-required',
+      assertion: challengeSession,
+    });
+    const closed = vi.fn();
+    fixture.componentInstance.closeRequested.subscribe(closed);
+
+    click('#auth-modal-entry-google-btn');
+    await flush();
+    click('#auth-modal-close-button');
+    await flush();
+
+    expect(authService.logout).toHaveBeenCalledOnce();
+    expect(closed).toHaveBeenCalledOnce();
+  });
+
+  it('keeps Tab and Shift+Tab inside the dialog', async () => {
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(120);
+    const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(40);
+    fixture.destroy();
+    fixture = TestBed.createComponent(AuthModalComponent);
+    fixture.detectChanges();
+    await flush();
+
+    const overlay = element().querySelector('#auth-modal-overlay');
+    const startAnchor = overlay?.previousElementSibling;
+    const endAnchor = overlay?.nextElementSibling;
+    expect(startAnchor?.classList.contains('cdk-focus-trap-anchor')).toBe(true);
+    expect(endAnchor?.classList.contains('cdk-focus-trap-anchor')).toBe(true);
+
+    (endAnchor as HTMLElement).focus();
+    expect(document.activeElement?.id).toBe('auth-modal-close-button');
+
+    (startAnchor as HTMLElement).focus();
+    expect(document.activeElement?.id).toBe('auth-modal-entry-google-btn');
+
+    width.mockRestore();
+    height.mockRestore();
+  });
+
+  it('hides background content from assistive tech and restores it on close', async () => {
+    const outside = document.createElement('button');
+    outside.id = 'auth-modal-spec-outside-control';
+    const alreadyHidden = document.createElement('button');
+    alreadyHidden.id = 'auth-modal-spec-already-inert';
+    alreadyHidden.setAttribute('inert', '');
+    document.body.append(outside, alreadyHidden);
+    fixture.destroy();
+    fixture = TestBed.createComponent(AuthModalComponent);
+    fixture.detectChanges();
+    await flush();
+
+    const dialog = element().querySelector('#auth-modal-overlay');
+    expect(dialog?.hasAttribute('inert')).toBe(false);
+    expect(dialog?.getAttribute('aria-hidden')).not.toBe('true');
+    expect(outside.hasAttribute('inert')).toBe(true);
+    expect(alreadyHidden.getAttribute('data-auth-modal-background-inert')).toBeNull();
+
+    fixture.destroy();
+
+    expect(outside.hasAttribute('inert')).toBe(false);
+    expect(alreadyHidden.hasAttribute('inert')).toBe(true);
+    outside.remove();
+    alreadyHidden.remove();
+  });
+
+  it('restores focus to the opener when the dialog closes', async () => {
+    const opener = document.createElement('button');
+    opener.id = 'auth-modal-spec-opener';
+    document.body.appendChild(opener);
+    fixture.destroy();
+    opener.focus();
+    fixture = TestBed.createComponent(AuthModalComponent);
+    fixture.detectChanges();
+    await flush();
+
+    expect(document.activeElement?.id).toBe('auth-modal-entry-google-btn');
+
+    fixture.destroy();
+
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
+
+  it('signs out when Google created a denied account record', async () => {
+    firebase.ensureSelfUserRecord.mockResolvedValueOnce({ created: false, status: 'denied' });
+
+    click('#auth-modal-entry-google-btn');
     await flush();
 
     expect(authService.logout).toHaveBeenCalledOnce();
     expect(element().querySelector('#auth-modal-entry')).not.toBeNull();
     expect(element().querySelector('#auth-modal-post-google')).toBeNull();
     expect(element().querySelector('#auth-modal-entry-error')?.textContent).toContain(
-      ACCESS_DENIED_MESSAGE,
+      ACCOUNT_NOT_ACTIVE_MESSAGE,
     );
+    expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
   });
 });

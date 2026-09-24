@@ -1,11 +1,16 @@
 import { Injectable, inject } from '@angular/core';
 import {
   isSirapAccessRegionId,
+  readAppRole,
   readSirapAccessRegionIds,
+  roleAfterAccessChange,
+  roleToUserTier,
+  scopesMatchRole,
   type SirapAccessRequestStatus,
   type SirapRegionId,
 } from '@core/models';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
+import { TotpMfaService } from './totp-mfa.service';
 import {
   collection,
   deleteField,
@@ -67,6 +72,7 @@ export function repairedAllowedSirapIds(
 @Injectable({ providedIn: 'root' })
 export class SirapAccessService {
   private readonly firebase = inject(FirebaseClientService);
+  private readonly totpMfa = inject(TotpMfaService);
 
   async listOwnRequests(): Promise<SirapAccessRequestRecord[]> {
     const firestore = this.requireFirestore();
@@ -83,6 +89,9 @@ export class SirapAccessService {
     const currentUser = this.firebase.auth?.currentUser;
     if (!currentUser) {
       throw new Error('Sign in before requesting SIRAP access.');
+    }
+    if (!(await this.totpMfa.userHasEnrolledTotp(currentUser))) {
+      throw new Error('Set up your authenticator before requesting SIRAP access.');
     }
     await this.submitRequestsForIdentity(
       currentUser.uid,
@@ -133,13 +142,18 @@ export class SirapAccessService {
     const uid = this.requireCurrentUid();
     const snapshot = await getDoc(doc(firestore, 'users', uid));
     const data = snapshot.exists() ? snapshot.data() : null;
-    const isSuperAdmin =
-      data?.['status'] === 'active' &&
-      (data['isSuperAdmin'] === true || data['isAdmin'] === true || data['role'] === 'admin');
-    const administeredSirapIds =
-      data?.['status'] === 'active' ? readSirapAccessRegionIds(data['administeredSirapIds']) : [];
     const allowedSirapIds =
       data?.['status'] === 'active' ? readSirapAccessRegionIds(data['allowedSirapIds']) : [];
+    const administeredSirapIds =
+      data?.['status'] === 'active' ? readSirapAccessRegionIds(data['administeredSirapIds']) : [];
+    const isSuperAdmin =
+      data?.['status'] === 'active' &&
+      readAppRole(
+        data['role'],
+        allowedSirapIds,
+        administeredSirapIds,
+        data['isAdmin'] === true || data['isSuperAdmin'] === true,
+      ) === 'super-admin';
     if (!isSuperAdmin && administeredSirapIds.length === 0) {
       throw new Error('You do not administer any SIRAPs.');
     }
@@ -208,8 +222,15 @@ export class SirapAccessService {
     await runTransaction(firestore, async (transaction) => {
       const userSnapshot = await transaction.get(userRef);
       if (!userSnapshot.exists() || userSnapshot.data()['status'] !== 'active') {
-        throw new Error('A super admin must approve this Firebase account before SIRAP access.');
+        throw new Error('That person does not have an active account.');
       }
+      const userData = userSnapshot.data();
+      const nextAllowedSirapIds = repairedAllowedSirapIds(
+        userData['allowedSirapIds'],
+        request.sirapId,
+        decision,
+      );
+      const nextRole = this.roleForSirapWrite(userData, nextAllowedSirapIds);
 
       transaction.update(requestRef, {
         status: decision,
@@ -218,11 +239,9 @@ export class SirapAccessService {
         updatedAt: serverTimestamp(),
       });
       transaction.update(userRef, {
-        allowedSirapIds: repairedAllowedSirapIds(
-          userSnapshot.data()['allowedSirapIds'],
-          request.sirapId,
-          decision,
-        ),
+        allowedSirapIds: nextAllowedSirapIds,
+        role: nextRole,
+        tier: roleToUserTier(nextRole),
         updatedAt: serverTimestamp(),
         updatedBy: administrator.uid,
       });
@@ -240,12 +259,17 @@ export class SirapAccessService {
     await runTransaction(firestore, async (transaction) => {
       const userSnapshot = await transaction.get(userRef);
       const requestSnapshot = await transaction.get(requestRef);
+      const userData = userSnapshot.exists() ? userSnapshot.data() : {};
+      const nextAllowedSirapIds = repairedAllowedSirapIds(
+        userSnapshot.exists() ? userSnapshot.data()['allowedSirapIds'] : [],
+        sirapId,
+        'denied',
+      );
+      const nextRole = this.roleForSirapWrite(userData, nextAllowedSirapIds);
       transaction.update(userRef, {
-        allowedSirapIds: repairedAllowedSirapIds(
-          userSnapshot.exists() ? userSnapshot.data()['allowedSirapIds'] : [],
-          sirapId,
-          'denied',
-        ),
+        allowedSirapIds: nextAllowedSirapIds,
+        role: nextRole,
+        tier: roleToUserTier(nextRole),
         updatedAt: serverTimestamp(),
         updatedBy: administrator.uid,
       });
@@ -260,6 +284,23 @@ export class SirapAccessService {
         });
       }
     });
+  }
+
+  private roleForSirapWrite(userData: DocumentData, nextAllowedSirapIds: readonly SirapRegionId[]) {
+    const administeredSirapIds = readSirapAccessRegionIds(userData['administeredSirapIds']);
+    const currentRole = readAppRole(
+      userData['role'],
+      readSirapAccessRegionIds(userData['allowedSirapIds']),
+      administeredSirapIds,
+      userData['isAdmin'] === true || userData['isSuperAdmin'] === true,
+    );
+    const nextRole = roleAfterAccessChange(currentRole, nextAllowedSirapIds, administeredSirapIds);
+    if (!scopesMatchRole(nextRole, nextAllowedSirapIds, administeredSirapIds)) {
+      throw new Error(
+        'SIRAP administrators keep read access to every SIRAP they administer. Change that role before removing it.',
+      );
+    }
+    return nextRole;
   }
 
   private requireFirestore() {

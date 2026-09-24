@@ -41,7 +41,7 @@ describe('HeaderComponent auth state', () => {
         appTitle: 'Prioritizing Nature',
         logout: 'Logout',
         loginRegister: 'Login / Register',
-        pendingAccess: 'Signed in · Access pending',
+        pendingAccess: 'Signed in · Account is not active',
         tierChip: 'Tier {{tier}}',
       },
     });
@@ -163,7 +163,7 @@ describe('HeaderComponent auth state', () => {
 
     const header = fixture.nativeElement as HTMLElement;
     expect(header.querySelector('#foundation-header-pending-status')?.textContent).toContain(
-      'Signed in · Access pending',
+      'Signed in · Account is not active',
     );
     expect(header.querySelector('#foundation-header-mfa-setup-button')).toBeNull();
     expect(header.querySelector('#foundation-header-logout-button')).not.toBeNull();
@@ -258,5 +258,29 @@ describe('HeaderComponent auth state', () => {
     expect(header.querySelector('#foundation-header-admin-access-button')).not.toBeNull();
     expect(header.querySelector('#foundation-header-logout-button')).not.toBeNull();
     expect(header.querySelector('#foundation-header-pending-status')).toBeNull();
+  });
+
+  it('returns focus to the login button after the auth modal closes', () => {
+    const fixture = TestBed.createComponent(HeaderComponent);
+    fixture.detectChanges();
+    const loginButton = fixture.nativeElement.querySelector(
+      '#foundation-header-auth-toggle-button',
+    ) as HTMLButtonElement;
+
+    loginButton.focus();
+    loginButton.click();
+    fixture.detectChanges();
+
+    expect(document.activeElement?.id).toBe('auth-modal-entry-google-btn');
+
+    const closeButton = fixture.nativeElement.querySelector('#auth-modal-close-button');
+    if (!(closeButton instanceof HTMLButtonElement)) {
+      throw new Error('Auth modal close button was not rendered.');
+    }
+    closeButton.click();
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.directive(AuthModalComponent))).toBeNull();
+    expect(document.activeElement).toBe(loginButton);
   });
 });

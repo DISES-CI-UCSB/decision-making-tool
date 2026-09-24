@@ -43,7 +43,7 @@
     "logout": "Logout",
     "loginRegister": "Login / Register",
     "tierChip": "Tier {{tier}}",
-    "pendingAccess": "Signed in · Access pending"
+    "pendingAccess": "Signed in · Account is not active"
   },
   "about": {
     "kicker": "About the collaboration",

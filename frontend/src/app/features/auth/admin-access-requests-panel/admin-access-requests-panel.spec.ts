@@ -12,17 +12,15 @@ describe('AdminAccessRequestsPanelComponent', () => {
     email: 'user@example.com',
     displayName: 'User One',
     status: 'active' as const,
-    role: 'authorized_viewer',
+    role: 'user',
     tier: UserTier.DecisionMaker,
     isAdmin: false,
     administeredSirapIds: [],
-    allowedSirapIds: [],
+    allowedSirapIds: ['orinoquia'],
     updatedAt: null,
   };
   const adminRequests = {
-    listPendingRequests: vi.fn().mockResolvedValue([]),
     listActiveUsers: vi.fn().mockResolvedValue([activeUser]),
-    approveRequest: vi.fn(),
     updateUserAccess: vi.fn(),
     updateRegionalUserAccess: vi.fn(),
   };
@@ -62,9 +60,7 @@ describe('AdminAccessRequestsPanelComponent', () => {
     expect(
       fixture.nativeElement.querySelector('#admin-access-panel-sirap-requests-section'),
     ).not.toBeNull();
-    expect(
-      fixture.nativeElement.querySelector('#admin-access-panel-pending-section'),
-    ).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#admin-access-panel-pending-section')).toBeNull();
 
     fixture.nativeElement.querySelector('#admin-access-panel-access-tab').click();
     fixture.detectChanges();
@@ -77,8 +73,9 @@ describe('AdminAccessRequestsPanelComponent', () => {
     fixture.nativeElement.querySelector('#admin-access-panel-requests-tab').click();
     fixture.detectChanges();
     expect(
-      fixture.nativeElement.querySelector('#admin-access-panel-pending-section'),
+      fixture.nativeElement.querySelector('#admin-access-panel-sirap-requests-section'),
     ).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#admin-access-panel-pending-section')).toBeNull();
   });
 
   it('switches to the active-user directory', () => {
@@ -101,26 +98,132 @@ describe('AdminAccessRequestsPanelComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('SIRAP Amazonía');
   });
 
-  it('shows a regional admin active grants from approved SIRAP request history', async () => {
+  it('normalizes the draft role when administered SIRAP access changes', () => {
+    fixture.nativeElement.querySelector('#admin-access-panel-users-tab').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('#admin-access-panel-user-toggle-user-1').click();
+    fixture.detectChanges();
+
+    fixture.nativeElement
+      .querySelector('#admin-access-panel-user-administered-sirap-checkbox-user-1-orinoquia')
+      .dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('#admin-access-panel-user-role-select-user-1').value,
+    ).toBe('sirap-admin');
+
+    fixture.nativeElement
+      .querySelector('#admin-access-panel-user-administered-sirap-checkbox-user-1-orinoquia')
+      .dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('#admin-access-panel-user-role-select-user-1').value,
+    ).toBe('sirap-user');
+  });
+
+  it('saves the recomputed role when data access is toggled', async () => {
+    adminRequests.listActiveUsers.mockResolvedValueOnce([
+      {
+        ...activeUser,
+        uid: 'user-plain',
+        displayName: 'Plain User',
+        role: 'user',
+        allowedSirapIds: [],
+      },
+    ]);
+    await fixture.componentInstance.ngOnInit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('#admin-access-panel-users-tab').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('#admin-access-panel-user-toggle-user-plain').click();
+    fixture.detectChanges();
+
+    fixture.nativeElement
+      .querySelector('#admin-access-panel-user-allowed-sirap-checkbox-user-plain-orinoquia')
+      .dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('#admin-access-panel-user-role-select-user-plain').value,
+    ).toBe('sirap-user');
+
+    fixture.nativeElement.querySelector('#admin-access-panel-user-save-button-user-plain').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(adminRequests.updateUserAccess).toHaveBeenCalledWith(
+      'user-plain',
+      expect.objectContaining({ role: 'sirap-user', allowedSirapIds: ['orinoquia'] }),
+    );
+
+    fixture.nativeElement
+      .querySelector('#admin-access-panel-user-allowed-sirap-checkbox-user-plain-orinoquia')
+      .dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('#admin-access-panel-user-role-select-user-plain').value,
+    ).toBe('user');
+    fixture.nativeElement.querySelector('#admin-access-panel-user-save-button-user-plain').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(adminRequests.updateUserAccess).toHaveBeenLastCalledWith(
+      'user-plain',
+      expect.objectContaining({ role: 'user', allowedSirapIds: [] }),
+    );
+  });
+
+  it('shows user role immediately after the last SIRAP grant is revoked', async () => {
+    adminRequests.listActiveUsers.mockResolvedValueOnce([
+      { ...activeUser, role: 'sirap-user', allowedSirapIds: ['orinoquia'] },
+    ]);
+    await fixture.componentInstance.ngOnInit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('#admin-access-panel-access-tab').click();
+    fixture.detectChanges();
+    fixture.nativeElement
+      .querySelector('#admin-access-panel-current-sirap-revoke-user-1-orinoquia')
+      .click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('#admin-access-panel-users-tab').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('#admin-access-panel-user-toggle-user-1').click();
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('#admin-access-panel-user-role-select-user-1').value,
+    ).toBe('user');
+  });
+
+  it('says Google sign-in fills the directory when no users are loaded', async () => {
+    adminRequests.listActiveUsers.mockResolvedValueOnce([]);
+    await fixture.componentInstance.ngOnInit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('#admin-access-panel-users-tab').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#admin-access-panel-users-empty-copy')?.textContent).toContain(
+      'as soon as they sign in',
+    );
+    expect(fixture.nativeElement.textContent).not.toContain('access requests are accepted');
+  });
+
+  it('shows a direct SIRAP grant for revocation without request history', async () => {
     sirapAccess.getCurrentAdministrator.mockResolvedValueOnce({
       uid: 'regional-admin-1',
       isSuperAdmin: false,
       administeredSirapIds: ['orinoquia'],
     });
-    sirapAccess.listRequestsForAdministrator.mockResolvedValueOnce([
-      {
-        id: 'user-1_orinoquia',
-        uid: 'user-1',
-        email: 'user@example.com',
-        displayName: 'User One',
-        sirapId: 'orinoquia',
-        status: 'approved',
-        reason: null,
-        requestedAt: null,
-        decidedAt: null,
-        decidedBy: 'regional-admin-1',
-      },
-    ]);
+    sirapAccess.listRequestsForAdministrator.mockResolvedValueOnce([]);
 
     await fixture.componentInstance.ngOnInit();
     fixture.detectChanges();
@@ -129,7 +232,7 @@ describe('AdminAccessRequestsPanelComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('User One');
-    expect(fixture.nativeElement.querySelector('#admin-access-panel-pending-section')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('direct grants');
     expect(
       fixture.nativeElement.querySelector(
         '#admin-access-panel-current-sirap-revoke-user-1-orinoquia',

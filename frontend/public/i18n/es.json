@@ -43,7 +43,7 @@
     "logout": "Cerrar sesión",
     "loginRegister": "Iniciar sesión / Registrarse",
     "tierChip": "Nivel {{tier}}",
-    "pendingAccess": "Sesión iniciada · Acceso pendiente"
+    "pendingAccess": "Sesión iniciada · La cuenta no está activa"
   },
   "about": {
     "kicker": "Sobre la colaboración",

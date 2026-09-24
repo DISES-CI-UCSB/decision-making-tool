@@ -108,7 +108,7 @@ describe('AuthService', () => {
     expect(localStorage.getItem('dmt.auth.session')).toBeNull();
   });
 
-  it('derives tier from an active Firestore tier field', async () => {
+  it('derives DecisionMaker access from a legacy publisher role', async () => {
     firebase.auth.currentUser = { uid: 'scientist-uid' };
     firebase.userDocs.set('scientist-uid', {
       status: 'active',
@@ -118,7 +118,7 @@ describe('AuthService', () => {
     const authService = TestBed.inject(AuthService);
     const appState = TestBed.inject(AppStateService);
 
-    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.Manager);
+    await expect(authService.refreshCurrentUserTier()).resolves.toBe(UserTier.DecisionMaker);
     expect(authService.isAuthenticated()).toBe(true);
     expect(appState.userIsAdmin$()).toBe(false);
   });

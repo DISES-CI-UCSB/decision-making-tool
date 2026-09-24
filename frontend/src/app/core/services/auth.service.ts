@@ -3,12 +3,17 @@ import { AppStateService } from '@core/services/app-state.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
 import { TotpMfaService } from '@features/auth/services/totp-mfa.service';
-import { readSirapAccessRegionIds, type SirapRegionId, UserTier } from '@core/models';
+import {
+  readAppRole,
+  readSirapAccessRegionIds,
+  roleToUserTier,
+  type SirapRegionId,
+  UserTier,
+} from '@core/models';
 import { type Unsubscribe, type User } from 'firebase/auth';
 import { type DocumentData } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
 
-type ApprovedUserRole = 'authorized_viewer' | 'science_publisher' | 'admin';
 type FactorGate = 'enrolled' | 'needs-enrollment' | 'unknown';
 
 interface UserAccess {
@@ -247,16 +252,30 @@ export class AuthService implements OnDestroy {
       };
     }
 
-    const isActive = userData['status'] === 'active';
-    const isSuperAdmin = isActive && this.readIsSuperAdmin(userData);
-    const administeredSirapIds = isActive
-      ? readSirapAccessRegionIds(userData['administeredSirapIds'])
-      : [];
+    if (userData['status'] !== 'active') {
+      return {
+        tier: UserTier.Public,
+        isAdmin: false,
+        isSuperAdmin: false,
+        allowedSirapIds: [],
+        administeredSirapIds: [],
+      };
+    }
+
+    const allowedSirapIds = readSirapAccessRegionIds(userData['allowedSirapIds']);
+    const administeredSirapIds = readSirapAccessRegionIds(userData['administeredSirapIds']);
+    const role = readAppRole(
+      userData['role'],
+      allowedSirapIds,
+      administeredSirapIds,
+      userData['isAdmin'] === true || userData['isSuperAdmin'] === true,
+    );
+    const isSuperAdmin = role === 'super-admin';
     return {
-      tier: this.readUserTier(userData),
-      isAdmin: isSuperAdmin || administeredSirapIds.length > 0,
+      tier: roleToUserTier(role),
+      isAdmin: isSuperAdmin || role === 'sirap-admin',
       isSuperAdmin,
-      allowedSirapIds: isActive ? readSirapAccessRegionIds(userData['allowedSirapIds']) : [],
+      allowedSirapIds,
       administeredSirapIds,
     };
   }
@@ -265,42 +284,6 @@ export class AuthService implements OnDestroy {
     return environment.bypassLoginForDevelopment && !this.explicitlyLoggedOut
       ? UserTier.DecisionMaker
       : UserTier.Public;
-  }
-
-  private readUserTier(data: DocumentData): UserTier {
-    if (data['status'] !== 'active') {
-      return UserTier.Public;
-    }
-
-    const tier = data['tier'];
-    if (tier === UserTier.Public || tier === UserTier.DecisionMaker || tier === UserTier.Manager) {
-      return tier;
-    }
-
-    const legacyRole = this.readApprovedRole(data);
-    return legacyRole ? this.roleToTier(legacyRole) : UserTier.Public;
-  }
-
-  private readIsSuperAdmin(data: DocumentData): boolean {
-    return data['isSuperAdmin'] === true || data['role'] === 'admin' || data['isAdmin'] === true;
-  }
-
-  private readApprovedRole(data: DocumentData): ApprovedUserRole | null {
-    if (data['status'] !== 'active') {
-      return null;
-    }
-    const role = data['role'];
-    if (role === 'authorized_viewer' || role === 'science_publisher' || role === 'admin') {
-      return role;
-    }
-    return null;
-  }
-
-  private roleToTier(role: ApprovedUserRole): UserTier {
-    if (role === 'admin' || role === 'science_publisher') {
-      return UserTier.Manager;
-    }
-    return UserTier.DecisionMaker;
   }
 
   private clearSirapAccess(): void {

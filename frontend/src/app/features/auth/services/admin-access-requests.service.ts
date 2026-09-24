@@ -1,35 +1,33 @@
 import { Injectable, inject } from '@angular/core';
-import { readSirapAccessRegionIds, type SirapRegionId, UserTier } from '@core/models';
+import {
+  currentSirapIds,
+  normalizeGrantScopes,
+  readAppRole,
+  readSirapAccessRegionIds,
+  roleAfterAccessChange,
+  roleToUserTier,
+  scopesMatchRole,
+  type AppRole,
+  type SirapRegionId,
+  UserTier,
+} from '@core/models';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import {
-  arrayRemove,
-  arrayUnion,
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
   query,
   serverTimestamp,
+  updateDoc,
   where,
   writeBatch,
   type DocumentData,
 } from 'firebase/firestore';
 
-export type AccessRequestStatus = 'pending' | 'approved' | 'denied';
-
-export interface AccessRequestRecord {
-  uid: string;
-  email: string;
-  displayName: string;
-  organization: string | null;
-  reason: string | null;
-  provider: string;
-  status: AccessRequestStatus;
-  requestedAt: Date | null;
-  submittedAt: number | null;
-}
-
 export interface UserAccessGrant {
+  role: AppRole;
   tier: UserTier.DecisionMaker | UserTier.Manager;
   isAdmin: boolean;
   administeredSirapIds: SirapRegionId[];
@@ -41,31 +39,31 @@ export interface AdminManagedUserRecord extends UserAccessGrant {
   email: string;
   displayName: string;
   status: 'active';
-  role: string;
   updatedAt: Date | null;
-}
-
-export interface PendingSirapGrantRequest {
-  id: string;
-  sirapId: SirapRegionId;
-  status: 'pending' | 'approved' | 'denied';
 }
 
 export function parseAdminManagedUserRecord(
   uid: string,
   data: DocumentData,
 ): AdminManagedUserRecord {
-  const tier = readManagedUserTier(data);
+  const allowedSirapIds = readSirapAccessRegionIds(data['allowedSirapIds']);
+  const administeredSirapIds = readSirapAccessRegionIds(data['administeredSirapIds']);
+  const role = readAppRole(
+    data['role'],
+    allowedSirapIds,
+    administeredSirapIds,
+    data['isAdmin'] === true || data['isSuperAdmin'] === true,
+  );
   return {
     uid,
     email: readDocumentString(data, 'email'),
     displayName: readDocumentString(data, 'displayName') || readDocumentString(data, 'email'),
     status: 'active',
-    role: readDocumentString(data, 'role') || roleForManagedUserTier(tier),
-    tier,
-    isAdmin: data['role'] === 'admin' || data['isAdmin'] === true || data['isSuperAdmin'] === true,
-    administeredSirapIds: readSirapAccessRegionIds(data['administeredSirapIds']),
-    allowedSirapIds: readSirapAccessRegionIds(data['allowedSirapIds']),
+    role,
+    tier: roleToUserTier(role),
+    isAdmin: role === 'super-admin',
+    administeredSirapIds,
+    allowedSirapIds,
     updatedAt: readDocumentDate(data, 'updatedAt'),
   };
 }
@@ -77,25 +75,34 @@ export function hasSirapGrantOverlap(
   return allowedSirapIds.some((sirapId) => administeredSirapIds.includes(sirapId));
 }
 
+/**
+ * Regional read updates keep every SIRAP outside the acting admin's scope.
+ * Requested ids are applied only when that admin administers them.
+ */
+export function nextRegionalReadGrant(
+  canonicalAllowedSirapIds: readonly string[],
+  requestedAllowedSirapIds: readonly string[],
+  actorAdministeredSirapIds: readonly string[],
+  currentRole: AppRole,
+  targetAdministeredSirapIds: readonly string[],
+): { allowedSirapIds: SirapRegionId[]; role: AppRole } {
+  const actorScope = new Set(currentSirapIds(actorAdministeredSirapIds));
+  const canonical = currentSirapIds(canonicalAllowedSirapIds);
+  const requested = currentSirapIds(requestedAllowedSirapIds);
+  const allowedSirapIds = [
+    ...canonical.filter((sirapId) => !actorScope.has(sirapId)),
+    ...requested.filter((sirapId) => actorScope.has(sirapId)),
+  ];
+  const uniqueAllowed = [...new Set(allowedSirapIds)];
+  return {
+    allowedSirapIds: uniqueAllowed,
+    role: roleAfterAccessChange(currentRole, uniqueAllowed, targetAdministeredSirapIds),
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminAccessRequestsService {
   private readonly firebase = inject(FirebaseClientService);
-
-  async listPendingRequests(): Promise<AccessRequestRecord[]> {
-    const firestore = this.requireFirestore();
-    const administrator = await this.requireCurrentActiveAdmin();
-    if (!administrator.isSuperAdmin) {
-      return [];
-    }
-
-    const snapshot = await getDocs(
-      query(collection(firestore, 'accessRequests'), where('status', '==', 'pending')),
-    );
-
-    return snapshot.docs
-      .map((requestDoc) => this.parseAccessRequest(requestDoc.id, requestDoc.data()))
-      .sort((a, b) => this.requestTimeMs(b) - this.requestTimeMs(a));
-  }
 
   async listActiveUsers(): Promise<AdminManagedUserRecord[]> {
     const firestore = this.requireFirestore();
@@ -111,16 +118,15 @@ export class AdminAccessRequestsService {
     }
 
     return (
-      await getDocs(query(collection(firestore, 'userDirectory'), where('status', '==', 'active')))
+      await getDocs(query(collection(firestore, 'users'), where('status', '==', 'active')))
     ).docs
-      .map((directoryDoc) => this.parseDirectoryUser(directoryDoc.id, directoryDoc.data()))
-      .filter((user) => user !== null)
+      .map((userDoc) => parseAdminManagedUserRecord(userDoc.id, userDoc.data()))
+      .filter((user) => user.role !== 'super-admin')
       .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
   }
 
   async updateRegionalUserAccess(
     uid: string,
-    previousAllowedSirapIds: readonly SirapRegionId[],
     nextAllowedSirapIds: readonly SirapRegionId[],
   ): Promise<void> {
     const firestore = this.requireFirestore();
@@ -129,38 +135,41 @@ export class AdminAccessRequestsService {
       throw new Error('Use the super-admin access update path for global permissions.');
     }
 
-    const previous = new Set(previousAllowedSirapIds);
-    const next = new Set(nextAllowedSirapIds);
-    const batch = writeBatch(firestore);
-    for (const sirapId of administrator.administeredSirapIds) {
-      if (previous.has(sirapId) === next.has(sirapId)) {
-        continue;
-      }
-      batch.update(doc(firestore, 'users', uid), {
-        allowedSirapIds: next.has(sirapId) ? arrayUnion(sirapId) : arrayRemove(sirapId),
-        updatedAt: serverTimestamp(),
-        updatedBy: administrator.uid,
-      });
+    const userSnapshot = await getDoc(doc(firestore, 'users', uid));
+    const userData = userSnapshot.exists() ? userSnapshot.data() : null;
+    if (userData?.['status'] !== 'active') {
+      throw new Error('That user does not have an active account.');
     }
-    await batch.commit();
-  }
+    const administeredSirapIds = readSirapAccessRegionIds(userData['administeredSirapIds']);
+    const currentRole = readAppRole(
+      userData['role'],
+      readSirapAccessRegionIds(userData['allowedSirapIds']),
+      administeredSirapIds,
+      userData['isAdmin'] === true || userData['isSuperAdmin'] === true,
+    );
+    if (currentRole === 'super-admin') {
+      throw new Error('Only a super admin can change that account.');
+    }
 
-  private parseDirectoryUser(uid: string, data: DocumentData): AdminManagedUserRecord | null {
-    if (data['status'] !== 'active') {
-      return null;
+    const allowedSirapIds = readSirapAccessRegionIds(userData['allowedSirapIds']);
+    const nextGrant = nextRegionalReadGrant(
+      allowedSirapIds,
+      nextAllowedSirapIds,
+      administrator.administeredSirapIds,
+      currentRole,
+      administeredSirapIds,
+    );
+    if (!scopesMatchRole(nextGrant.role, nextGrant.allowedSirapIds, administeredSirapIds)) {
+      throw new Error('SIRAP administrators keep read access to every SIRAP they administer.');
     }
-    return {
-      uid,
-      email: readDocumentString(data, 'email'),
-      displayName: readDocumentString(data, 'displayName') || readDocumentString(data, 'email'),
-      status: 'active',
-      role: 'authorized_viewer',
-      tier: UserTier.DecisionMaker,
-      isAdmin: false,
-      administeredSirapIds: [],
-      allowedSirapIds: [],
-      updatedAt: readDocumentDate(data, 'updatedAt'),
-    };
+
+    await updateDoc(doc(firestore, 'users', uid), {
+      allowedSirapIds: nextGrant.allowedSirapIds,
+      role: nextGrant.role,
+      tier: roleToUserTier(nextGrant.role),
+      updatedAt: serverTimestamp(),
+      updatedBy: administrator.uid,
+    });
   }
 
   private async backfillUserDirectory(
@@ -188,64 +197,6 @@ export class AdminAccessRequestsService {
     await batch.commit();
   }
 
-  async approveRequest(
-    request: AccessRequestRecord,
-    grant: UserAccessGrant,
-    sirapRequests: readonly PendingSirapGrantRequest[] = [],
-  ): Promise<void> {
-    const firestore = this.requireFirestore();
-    const administrator = await this.requireCurrentActiveAdmin();
-    if (!administrator.isSuperAdmin) {
-      throw new Error('Only super admins can approve new accounts.');
-    }
-    const approvedBy = administrator.uid;
-    const batch = writeBatch(firestore);
-
-    batch.set(
-      doc(firestore, 'users', request.uid),
-      {
-        email: request.email,
-        displayName: request.displayName,
-        status: 'active',
-        role: this.roleForTier(grant.tier),
-        tier: grant.tier,
-        isAdmin: grant.isAdmin,
-        isSuperAdmin: grant.isAdmin,
-        administeredSirapIds: grant.administeredSirapIds,
-        allowedSirapIds: grant.allowedSirapIds,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
-
-    batch.set(
-      doc(firestore, 'accessRequests', request.uid),
-      {
-        status: 'approved',
-        approvedAt: serverTimestamp(),
-        approvedBy,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
-
-    for (const sirapRequest of sirapRequests) {
-      if (
-        sirapRequest.status === 'pending' &&
-        grant.allowedSirapIds.includes(sirapRequest.sirapId)
-      ) {
-        batch.update(doc(firestore, 'sirapAccessRequests', sirapRequest.id), {
-          status: 'approved',
-          decidedAt: serverTimestamp(),
-          decidedBy: approvedBy,
-          updatedAt: serverTimestamp(),
-        });
-      }
-    }
-
-    await batch.commit();
-  }
-
   async updateUserAccess(uid: string, grant: UserAccessGrant): Promise<void> {
     const firestore = this.requireFirestore();
     const administrator = await this.requireCurrentActiveAdmin();
@@ -253,23 +204,46 @@ export class AdminAccessRequestsService {
       throw new Error('Only super admins can assign roles.');
     }
     const updatedBy = administrator.uid;
+    const normalized = this.normalizedGrant(grant);
 
     await writeBatch(firestore)
       .set(
         doc(firestore, 'users', uid),
         {
-          role: this.roleForTier(grant.tier),
-          tier: grant.tier,
-          isAdmin: grant.isAdmin,
-          isSuperAdmin: grant.isAdmin,
-          administeredSirapIds: grant.administeredSirapIds,
-          allowedSirapIds: grant.allowedSirapIds,
+          role: normalized.role,
+          tier: roleToUserTier(normalized.role),
+          isAdmin: deleteField(),
+          isSuperAdmin: deleteField(),
+          administeredSirapIds: normalized.administeredSirapIds,
+          allowedSirapIds: normalized.allowedSirapIds,
           updatedAt: serverTimestamp(),
           updatedBy,
         },
         { merge: true },
       )
       .commit();
+  }
+
+  private normalizedGrant(grant: UserAccessGrant): {
+    role: AppRole;
+    allowedSirapIds: SirapRegionId[];
+    administeredSirapIds: SirapRegionId[];
+  } {
+    const normalized = normalizeGrantScopes(
+      grant.role,
+      grant.allowedSirapIds,
+      grant.administeredSirapIds,
+    );
+    if (normalized.role === 'sirap-user' && normalized.allowedSirapIds.length === 0) {
+      throw new Error('A SIRAP user needs at least one SIRAP.');
+    }
+    if (normalized.role === 'sirap-admin' && normalized.administeredSirapIds.length === 0) {
+      throw new Error('A SIRAP administrator needs at least one administered SIRAP.');
+    }
+    if (!scopesMatchRole(normalized.role, normalized.allowedSirapIds, normalized.administeredSirapIds)) {
+      throw new Error('That role does not match the selected SIRAP access.');
+    }
+    return normalized;
   }
 
   private requireFirestore() {
@@ -293,76 +267,19 @@ export class AdminAccessRequestsService {
 
     const adminSnapshot = await getDoc(doc(firestore, 'users', uid));
     const adminData = adminSnapshot.exists() ? adminSnapshot.data() : null;
-    const isSuperAdmin =
-      adminData?.['role'] === 'admin' ||
-      adminData?.['isAdmin'] === true ||
-      adminData?.['isSuperAdmin'] === true;
     const administeredSirapIds = readSirapAccessRegionIds(adminData?.['administeredSirapIds']);
-    if (
-      adminData?.['status'] !== 'active' ||
-      (!isSuperAdmin && administeredSirapIds.length === 0)
-    ) {
+    const role = readAppRole(
+      adminData?.['role'],
+      readSirapAccessRegionIds(adminData?.['allowedSirapIds']),
+      administeredSirapIds,
+      adminData?.['isAdmin'] === true || adminData?.['isSuperAdmin'] === true,
+    );
+    const isSuperAdmin = role === 'super-admin';
+    if (adminData?.['status'] !== 'active' || (!isSuperAdmin && administeredSirapIds.length === 0)) {
       throw new Error('Only active admins can review access requests.');
     }
 
     return { uid, isSuperAdmin, administeredSirapIds };
-  }
-
-  private parseAccessRequest(uid: string, data: DocumentData): AccessRequestRecord {
-    return {
-      uid,
-      email: this.readString(data, 'email'),
-      displayName: this.readString(data, 'displayName') || this.readString(data, 'email'),
-      organization: this.readOptionalString(data, 'organization'),
-      reason: this.readOptionalString(data, 'reason'),
-      provider: this.readString(data, 'provider') || 'unknown',
-      status: this.readStatus(data),
-      requestedAt: this.readDate(data, 'requestedAt'),
-      submittedAt: this.readNumber(data, 'submittedAt'),
-    };
-  }
-
-  private readStatus(data: DocumentData): AccessRequestStatus {
-    const status = this.readString(data, 'status');
-    if (status === 'approved' || status === 'denied') {
-      return status;
-    }
-    return 'pending';
-  }
-
-  private readString(data: DocumentData, key: string): string {
-    const value = data[key];
-    return typeof value === 'string' ? value : '';
-  }
-
-  private readOptionalString(data: DocumentData, key: string): string | null {
-    const value = this.readString(data, key).trim();
-    return value || null;
-  }
-
-  private readNumber(data: DocumentData, key: string): number | null {
-    const value = data[key];
-    return typeof value === 'number' ? value : null;
-  }
-
-  private readDate(data: DocumentData, key: string): Date | null {
-    const value = data[key] as unknown;
-    if (typeof value === 'number') {
-      return new Date(value);
-    }
-    if (value && typeof value === 'object' && 'toDate' in value) {
-      const timestamp = value as { toDate: () => Date };
-      return timestamp.toDate();
-    }
-    return null;
-  }
-
-  private requestTimeMs(request: AccessRequestRecord): number {
-    return request.requestedAt?.getTime() ?? request.submittedAt ?? 0;
-  }
-
-  private roleForTier(tier: UserAccessGrant['tier']): 'authorized_viewer' | 'science_publisher' {
-    return tier >= UserTier.Manager ? 'science_publisher' : 'authorized_viewer';
   }
 
   private userDisplayLabel(user: AdminManagedUserRecord): string {
@@ -384,20 +301,3 @@ function readDocumentDate(data: DocumentData, key: string): Date | null {
     : null;
 }
 
-function readManagedUserTier(data: DocumentData): UserAccessGrant['tier'] {
-  if (data['tier'] === UserTier.Manager) {
-    return UserTier.Manager;
-  }
-  if (data['tier'] === UserTier.DecisionMaker) {
-    return UserTier.DecisionMaker;
-  }
-  return data['role'] === 'science_publisher' || data['role'] === 'admin'
-    ? UserTier.Manager
-    : UserTier.DecisionMaker;
-}
-
-function roleForManagedUserTier(
-  tier: UserAccessGrant['tier'],
-): 'authorized_viewer' | 'science_publisher' {
-  return tier >= UserTier.Manager ? 'science_publisher' : 'authorized_viewer';
-}
