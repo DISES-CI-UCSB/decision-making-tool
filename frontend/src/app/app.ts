@@ -13,8 +13,12 @@ import { SidebarContainerComponent } from '@features/left-sidebar/sidebar-contai
 import { MapViewComponent } from '@features/map/map-view/map-view';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { FinderModalComponent } from '@features/solution-finder/finder-modal/finder-modal';
+import { resolveUserGuideAssets, type UserGuideLocaleAssets } from '@core/config/user-guide-assets';
 import { FEATURE_FLAGS } from '@feature-flags';
 import { TranslatePipe } from '@ngx-translate/core';
+
+type LandingWelcomeStep = 'video' | 'getting-started';
+type LandingWelcomeVideoStatus = 'loading' | 'ready' | 'error';
 
 @Component({
   selector: 'app-root',
@@ -49,6 +53,8 @@ export class App implements OnInit {
   private readonly debugMarker = 'UCS-39-map-debug-v1';
   protected perspectiveModalOpen = false;
   protected landingWelcomeModalOpen = true;
+  protected landingWelcomeStep: LandingWelcomeStep = 'video';
+  protected landingWelcomeVideoStatus: LandingWelcomeVideoStatus = 'loading';
   protected coordinateToolEnabled = false;
   protected readonly solutionFinderModalOpen = this.appState.solutionFinderModalOpen$;
   protected readonly solutionFinderContext = this.appState.solutionFinderContext$;
@@ -76,12 +82,37 @@ export class App implements OnInit {
     );
   }
 
+  protected get landingWelcomeVideoAssets(): UserGuideLocaleAssets {
+    return resolveUserGuideAssets(this.activeLanguage);
+  }
+
   protected openSolutionFinderModal(): void {
     this.appState.openSolutionFinder();
   }
 
   protected closeLandingWelcomeModal(): void {
     this.landingWelcomeModalOpen = false;
+  }
+
+  protected skipLandingWelcomeVideo(): void {
+    this.landingWelcomeStep = 'getting-started';
+  }
+
+  protected showLandingWelcomeVideo(): void {
+    this.landingWelcomeVideoStatus = 'loading';
+    this.landingWelcomeStep = 'video';
+  }
+
+  protected onLandingWelcomeVideoLoadStart(): void {
+    this.landingWelcomeVideoStatus = 'loading';
+  }
+
+  protected onLandingWelcomeVideoReady(): void {
+    this.landingWelcomeVideoStatus = 'ready';
+  }
+
+  protected onLandingWelcomeVideoError(): void {
+    this.landingWelcomeVideoStatus = 'error';
   }
 
   protected startFromLandingWelcome(): void {
@@ -103,6 +134,7 @@ export class App implements OnInit {
   }
 
   protected setLanguage(language: LayerLocale): void {
+    this.landingWelcomeVideoStatus = 'loading';
     this.translate.use(language).subscribe(() => {
       this.appLocaleService.setLocale(language);
     });

@@ -7,6 +7,9 @@
     "title": "Explora opciones de planificación para la conservación en Colombia.",
     "description": "Esta herramienta de apoyo a la toma de decisiones cartografía áreas candidatas para acciones de conservación en Colombia.",
     "decisionSupportNote": "Disclaimer: Esta herramienta tiene como finalidad fundamentar el debate y la planificación. No sustituye el conocimiento especializado a nivel local ni la normativa oficial. Las áreas candidatas han sido calculadas previamente. La información sobre las fuentes de datos está disponible a lo largo de la herramienta.",
+    "videoTitle": "Vea el recorrido",
+    "videoLoading": "Cargando el video…",
+    "videoError": "No se pudo cargar el video. Aún puede continuar.",
     "quickStartTitle": "Cómo empezar",
     "steps": {
       "selectSolution": "Establecer objetivos: Establecer objetivos para la conservación de especies, ecosistemas y más.",
@@ -18,7 +21,9 @@
       "exploreFirst": "Explorar mapa primero",
       "howToGuide": "Guía de uso",
       "about": "Acerca de",
-      "selectSolution": "Empezar"
+      "selectSolution": "Empezar",
+      "skipVideo": "Omitir video",
+      "back": "Volver"
     }
   },
   "header": {
@@ -34,6 +39,7 @@
     "languageEnglish": "inglés",
     "languageSpanish": "español",
     "adminAccess": "Consola de administración",
+    "sirapAccess": "Acceso SIRAP",
     "logout": "Cerrar sesión",
     "loginRegister": "Iniciar sesión / Registrarse",
     "tierChip": "Nivel {{tier}}",

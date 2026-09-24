@@ -9,6 +9,7 @@ import {
   TranslateNoOpLoader,
 } from '@ngx-translate/core';
 import Point from '@arcgis/core/geometry/Point';
+import { USER_GUIDE_ASSETS } from '@core/config/user-guide-assets';
 import { AppStateService } from '@core/services/app-state.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
@@ -30,6 +31,16 @@ class AboutRouteStubComponent {}
   template: '',
 })
 class GuideRouteStubComponent {}
+
+function skipLandingWelcomeVideo(fixture: {
+  nativeElement: HTMLElement;
+  detectChanges(): void;
+}): void {
+  fixture.nativeElement
+    .querySelector<HTMLButtonElement>('#landing-welcome-modal-skip-video-button')
+    ?.click();
+  fixture.detectChanges();
+}
 
 describe('App', () => {
   beforeEach(async () => {
@@ -68,11 +79,35 @@ describe('App', () => {
     expect(compiled.querySelector('#map-panel-title')?.textContent).toContain('app.mapTitle');
   });
 
-  it('renders the landing welcome modal on initial load', () => {
+  it('renders the walkthrough video before the welcome copy', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    const video = compiled.querySelector('#landing-welcome-modal-video-player') as HTMLVideoElement;
+
+    expect(compiled.querySelector('#landing-welcome-modal-title')?.textContent).toContain(
+      'landingWelcome.videoTitle',
+    );
+    expect(video.getAttribute('src')).toBe(USER_GUIDE_ASSETS.es.videoUrl);
+    expect(video.getAttribute('poster')).toBe(USER_GUIDE_ASSETS.es.posterUrl);
+    expect(video.autoplay).toBe(false);
+    expect(
+      compiled.querySelector('#landing-welcome-modal-skip-video-button')?.textContent,
+    ).toContain('landingWelcome.actions.skipVideo');
+    expect(compiled.querySelector('#landing-welcome-modal-quick-start-list')).toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-select-solution-button')).toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-video-caption')).toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-back-button')).toBeNull();
+  });
+
+  it('shows the existing welcome copy after the video is skipped', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    skipLandingWelcomeVideo(fixture);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#landing-welcome-modal-video-player')).toBeNull();
     expect(compiled.querySelector('#landing-welcome-modal-title')?.textContent).toContain(
       'landingWelcome.title',
     );
@@ -90,16 +125,71 @@ describe('App', () => {
       'landingWelcome.actions.about',
     );
     expect(compiled.querySelector('#landing-welcome-modal-login-button')).not.toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-back-button')?.textContent).toContain(
+      'landingWelcome.actions.back',
+    );
+    expect(
+      (fixture.componentInstance as unknown as { landingWelcomeModalOpen: boolean })
+        .landingWelcomeModalOpen,
+    ).toBe(true);
   });
 
-  it('closes the landing welcome modal when Guide is chosen', async () => {
+  it('returns to the walkthrough from the welcome copy', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    skipLandingWelcomeVideo(fixture);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    compiled.querySelector<HTMLButtonElement>('#landing-welcome-modal-back-button')?.click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#landing-welcome-modal-video-player')).not.toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-quick-start-list')).toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-title')?.textContent).toContain(
+      'landingWelcome.videoTitle',
+    );
+  });
+
+  it('swaps the welcome video when the language changes', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    compiled
+      .querySelector<HTMLButtonElement>('#landing-welcome-modal-language-toggle-link-en')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(
+      compiled.querySelector('#landing-welcome-modal-video-player')?.getAttribute('src'),
+    ).toBe(USER_GUIDE_ASSETS.en.videoUrl);
+  });
+
+  it('keeps skip available when the welcome video fails to load', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    compiled
+      .querySelector('#landing-welcome-modal-video-player')
+      ?.dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#landing-welcome-modal-video-player')).toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-video-error-copy')?.textContent).toContain(
+      'landingWelcome.videoError',
+    );
+    expect(compiled.querySelector('#landing-welcome-modal-skip-video-button')).not.toBeNull();
+  });
+
+  it('closes the landing welcome modal when Guide is chosen', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    skipLandingWelcomeVideo(fixture);
+
+    const compiled = fixture.nativeElement as HTMLElement;
     compiled.querySelector<HTMLAnchorElement>('#landing-welcome-modal-guide-link')?.click();
     fixture.detectChanges();
-    await fixture.whenStable();
 
     expect(
       (fixture.componentInstance as unknown as { landingWelcomeModalOpen: boolean })
@@ -107,14 +197,14 @@ describe('App', () => {
     ).toBe(false);
   });
 
-  it('closes the landing welcome modal when About is chosen', async () => {
+  it('closes the landing welcome modal when About is chosen', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    skipLandingWelcomeVideo(fixture);
 
     const compiled = fixture.nativeElement as HTMLElement;
     compiled.querySelector<HTMLAnchorElement>('#landing-welcome-modal-about-link')?.click();
     fixture.detectChanges();
-    await fixture.whenStable();
 
     expect(
       (fixture.componentInstance as unknown as { landingWelcomeModalOpen: boolean })
@@ -125,6 +215,7 @@ describe('App', () => {
   it('opens login from the landing welcome modal', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    skipLandingWelcomeVideo(fixture);
 
     const compiled = fixture.nativeElement as HTMLElement;
     compiled.querySelector<HTMLButtonElement>('#landing-welcome-modal-login-button')?.click();
@@ -143,6 +234,7 @@ describe('App', () => {
     fixture.detectChanges();
 
     appState.userIsSignedIn$.set(true);
+    skipLandingWelcomeVideo(fixture);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -159,6 +251,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const appState = TestBed.inject(AppStateService);
     fixture.detectChanges();
+    skipLandingWelcomeVideo(fixture);
 
     const compiled = fixture.nativeElement as HTMLElement;
     compiled
