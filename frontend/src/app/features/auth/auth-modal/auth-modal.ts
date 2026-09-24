@@ -23,14 +23,27 @@ import {
 } from '../services/auth-request.service';
 import { GoogleIdentityService, type GoogleProfile } from '../services/google-identity.service';
 import {
+  AUTH_ERROR_CODE_EXPIRED,
+  AUTH_ERROR_INVALID_OTP,
+  AUTH_ERROR_REQUIRES_RECENT_LOGIN,
+  TOTP_ALREADY_ENROLLED_CODE,
+  TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
+  TOTP_ENROLLMENT_REPLACE_WARNING,
+  TOTP_ENROLLMENT_UNCONFIRMED_CODE,
+  TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
+  TOTP_INVALID_FORMAT_CODE,
   TOTP_ISSUER,
+  TOTP_RECENT_LOGIN_FAILED_MESSAGE,
+  TOTP_RECENT_LOGIN_MESSAGE,
   TOTP_RESTART_MESSAGE,
   TotpMfaService,
   isTotpMfaError,
+  totpSupportCode,
   toTotpMfaError,
   type TotpChallengeSession,
   type TotpEnrollmentSession,
   type TotpErrorKind,
+  type TotpMfaError,
 } from '../services/totp-mfa.service';
 
 export type AuthModalState =
@@ -66,8 +79,6 @@ interface PostGoogleForm {
 }
 
 const SUBMIT_MIN_DELAY_MS = 300;
-export const TOTP_ENROLLMENT_COMPLETE_MESSAGE =
-  'Authenticator setup complete. Sign in with Google again to verify it.';
 
 @Component({
   selector: 'app-auth-modal',
@@ -116,9 +127,11 @@ export class AuthModalComponent {
   protected readonly confirmedRequest = signal<StoredPendingRequest | null>(null);
   protected readonly googleIntent = signal<GoogleIntent>('login');
   protected readonly totpIssuer = TOTP_ISSUER;
+  protected readonly enrollmentReplaceWarning = TOTP_ENROLLMENT_REPLACE_WARNING;
   protected readonly totpCode = signal('');
   protected readonly totpError = signal<string | null>(null);
   protected readonly totpErrorKind = signal<TotpErrorKind | null>(null);
+  protected readonly enrollmentSupportCode = signal<string | null>(null);
   protected readonly mfaEnrollment = signal<TotpEnrollmentSession | null>(null);
   protected readonly totpChallenge = signal<TotpChallengeSession | null>(null);
 
@@ -441,6 +454,7 @@ export class AuthModalComponent {
     this.totpCode.set(value.replace(/\D/g, '').slice(0, 6));
     this.totpError.set(null);
     this.totpErrorKind.set(null);
+    this.enrollmentSupportCode.set(null);
   }
 
   protected async submitTotpEnrollment(): Promise<void> {
@@ -455,11 +469,17 @@ export class AuthModalComponent {
     }
     this.isSubmitting.set(true);
     this.totpError.set(null);
+    this.enrollmentSupportCode.set(null);
     try {
       await this.totpMfa.completeEnrollment(user, session, this.totpCode());
-      await this.finishEnrollmentAndReturnToSignIn();
+      await this.finishVerifiedEnrollment();
     } catch (error) {
-      this.applyTotpError(error);
+      const mapped = isTotpMfaError(error) ? error : toTotpMfaError(error);
+      if (mapped.code === AUTH_ERROR_REQUIRES_RECENT_LOGIN) {
+        await this.reconfirmGoogleAndKeepQr(user);
+        return;
+      }
+      this.applyTotpError(mapped);
     } finally {
       this.isSubmitting.set(false);
     }
@@ -476,6 +496,7 @@ export class AuthModalComponent {
     }
     this.isSubmitting.set(true);
     this.totpError.set(null);
+    this.enrollmentSupportCode.set(null);
     try {
       const credential = await this.totpMfa.completeChallenge(session, this.totpCode());
       const profile = await this.googleIdentity.profileFromCredential(credential);
@@ -489,6 +510,46 @@ export class AuthModalComponent {
 
   protected cancelMfa(): void {
     void this.requestClose();
+  }
+
+  protected async replaceUnconfirmedAuthenticator(): Promise<void> {
+    if (this.isSubmitting() || this.totpErrorKind() !== 'recover') {
+      return;
+    }
+    const user = this.firebase.currentUser;
+    const previous = this.mfaEnrollment();
+    if (!user || !previous) {
+      this.applyRestartError(TOTP_RESTART_MESSAGE);
+      return;
+    }
+    this.isSubmitting.set(true);
+    this.totpMfa.forgetOpenEnrollment(user.uid);
+    try {
+      const enrollment = await this.totpMfa.beginEnrollment(
+        user,
+        user.email || user.displayName || '',
+      );
+      this.mfaEnrollment.set(enrollment);
+      this.clearTotpFields();
+    } catch (error) {
+      this.mfaEnrollment.set(previous);
+      this.totpMfa.rememberOpenEnrollment(user, previous);
+      this.totpMfa.markEnrollmentUnconfirmed(user.uid);
+      if (isTotpMfaError(error) && error.code === TOTP_ALREADY_ENROLLED_CODE) {
+        await this.finishVerifiedEnrollment();
+        return;
+      }
+      if (isTotpMfaError(error)) {
+        this.applyTotpError(error);
+        return;
+      }
+      this.holdEnrollmentForRecovery(
+        TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
+        TOTP_ENROLLMENT_UNCONFIRMED_CODE,
+      );
+    } finally {
+      this.isSubmitting.set(false);
+    }
   }
 
   protected async returnToGoogleSignIn(): Promise<void> {
@@ -567,12 +628,12 @@ export class AuthModalComponent {
     }
 
     const user = this.firebase.currentUser;
-    if (user && !this.totpMfa.hasEnrolledTotp(user)) {
+    if (user && !(await this.totpMfa.userHasEnrolledTotp(user))) {
       await this.enterEnrollment(user, user.email || profile.email || profile.name);
       return;
     }
 
-    await this.syncSessionAndClose();
+    await this.finishVerifiedEnrollment();
   }
 
   private async resumeRequiredEnrollment(): Promise<void> {
@@ -592,13 +653,38 @@ export class AuthModalComponent {
   }
 
   private async enterEnrollment(user: User, accountName: string): Promise<void> {
+    const existing = this.totpMfa.openEnrollmentFor(user);
     this.clearTotpFields();
-    this.mfaEnrollment.set(null);
     this.state.set('mfaEnroll');
+    if (existing) {
+      this.mfaEnrollment.set(existing);
+      this.isSubmitting.set(false);
+      if (this.totpMfa.enrollmentNeedsRecovery(user.uid)) {
+        this.holdEnrollmentForRecovery(
+          TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
+          TOTP_ENROLLMENT_UNCONFIRMED_CODE,
+        );
+      }
+      return;
+    }
+    this.mfaEnrollment.set(null);
     try {
+      if (await this.totpMfa.userHasEnrolledTotp(user)) {
+        await this.finishVerifiedEnrollment();
+        return;
+      }
       const enrollment = await this.totpMfa.beginEnrollment(user, accountName);
       this.mfaEnrollment.set(enrollment);
-    } catch {
+      this.isSubmitting.set(false);
+    } catch (error) {
+      if (isTotpMfaError(error) && error.code === TOTP_ALREADY_ENROLLED_CODE) {
+        await this.finishVerifiedEnrollment();
+        return;
+      }
+      if (isTotpMfaError(error)) {
+        this.applyTotpError(error);
+        return;
+      }
       this.applyRestartError(TOTP_RESTART_MESSAGE);
     }
   }
@@ -622,14 +708,81 @@ export class AuthModalComponent {
 
   private applyTotpError(error: unknown): void {
     const mapped = isTotpMfaError(error) ? error : toTotpMfaError(error);
+    if (this.mfaEnrollment()) {
+      this.applyDisplayedEnrollmentError(mapped);
+      return;
+    }
+    if (mapped.kind === 'recover' || mapped.code === TOTP_ENROLLMENT_UNCONFIRMED_CODE) {
+      this.holdEnrollmentForRecovery(mapped.message, mapped.code);
+      return;
+    }
     this.totpErrorKind.set(mapped.kind);
     this.totpError.set(mapped.message);
+    this.enrollmentSupportCode.set(
+      this.state() === 'mfaEnroll' ? totpSupportCode(mapped.code) : null,
+    );
     if (mapped.kind === 'retry') {
       this.totpCode.set('');
       this.requestTotpFocus();
       return;
     }
     this.signOutForRestart();
+  }
+
+  private applyDisplayedEnrollmentError(error: TotpMfaError): void {
+    if (this.isRetryableEnrollmentCode(error)) {
+      this.holdEnrollmentForRetry(error.message, error.code);
+      return;
+    }
+    if (error.code === AUTH_ERROR_REQUIRES_RECENT_LOGIN) {
+      this.holdEnrollmentForRetry(TOTP_RECENT_LOGIN_FAILED_MESSAGE, error.code);
+      return;
+    }
+    const message =
+      error.kind === 'recover' || error.code === TOTP_ENROLLMENT_UNCONFIRMED_CODE
+        ? error.message
+        : TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE;
+    this.holdEnrollmentForRecovery(message, error.code);
+  }
+
+  private isRetryableEnrollmentCode(error: TotpMfaError): boolean {
+    return (
+      error.code === AUTH_ERROR_INVALID_OTP ||
+      error.code === AUTH_ERROR_CODE_EXPIRED ||
+      error.code === TOTP_INVALID_FORMAT_CODE
+    );
+  }
+
+  private holdEnrollmentForRetry(message: string, code?: string): void {
+    this.totpErrorKind.set('retry');
+    this.totpError.set(message);
+    this.enrollmentSupportCode.set(totpSupportCode(code));
+    this.totpCode.set('');
+    this.requestTotpFocus();
+  }
+
+  private holdEnrollmentForRecovery(message: string, code?: string): void {
+    const uid = this.firebase.currentUser?.uid;
+    if (uid) {
+      this.totpMfa.markEnrollmentUnconfirmed(uid);
+    }
+    this.totpErrorKind.set('recover');
+    this.totpError.set(message);
+    this.enrollmentSupportCode.set(totpSupportCode(code));
+    this.totpCode.set('');
+    this.requestTotpFocus();
+  }
+
+  private async reconfirmGoogleAndKeepQr(user: User): Promise<void> {
+    try {
+      await this.firebase.reauthenticateWithGooglePopup(user);
+      this.holdEnrollmentForRetry(TOTP_RECENT_LOGIN_MESSAGE);
+    } catch {
+      this.holdEnrollmentForRetry(
+        TOTP_RECENT_LOGIN_FAILED_MESSAGE,
+        AUTH_ERROR_REQUIRES_RECENT_LOGIN,
+      );
+    }
   }
 
   private requestTotpFocus(): void {
@@ -641,6 +794,7 @@ export class AuthModalComponent {
   private applyRestartError(message: string): void {
     this.totpErrorKind.set('restart');
     this.totpError.set(message);
+    this.enrollmentSupportCode.set(null);
     this.signOutForRestart();
   }
 
@@ -654,6 +808,7 @@ export class AuthModalComponent {
     this.totpCode.set('');
     this.totpError.set(null);
     this.totpErrorKind.set(null);
+    this.enrollmentSupportCode.set(null);
   }
 
   private clearMfaSessions(): void {
@@ -662,12 +817,27 @@ export class AuthModalComponent {
     this.clearTotpFields();
   }
 
-  private async finishEnrollmentAndReturnToSignIn(): Promise<void> {
-    this.clearMfaSessions();
-    await this.authService.logout();
+  private async finishVerifiedEnrollment(): Promise<void> {
+    try {
+      await this.authService.refreshCurrentUserTier();
+    } catch {
+      this.holdEnrollmentForRecovery(
+        TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
+        TOTP_ENROLLMENT_UNCONFIRMED_CODE,
+      );
+      return;
+    }
+    if (this.authService.mfaEnrollmentRequired$()) {
+      this.holdEnrollmentForRecovery(
+        TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
+        TOTP_ENROLLMENT_UNCONFIRMED_CODE,
+      );
+      return;
+    }
+    this.totpMfa.forgetOpenEnrollment(this.firebase.currentUser?.uid);
     this.resetForms();
-    this.loginStatus.set(TOTP_ENROLLMENT_COMPLETE_MESSAGE);
     this.state.set('entry');
+    this.closeRequested.emit();
   }
 
   private async syncSessionAndClose(): Promise<void> {

@@ -5,12 +5,21 @@ import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { ACCESS_DENIED_MESSAGE, AuthRequestService } from '../services/auth-request.service';
 import { GoogleIdentityService } from '../services/google-identity.service';
 import {
+  AUTH_ERROR_CODE_EXPIRED,
+  AUTH_ERROR_INVALID_VERIFICATION_ID,
+  AUTH_ERROR_REQUIRES_RECENT_LOGIN,
+  TOTP_ENROLLMENT_EXPIRED_CODE,
+  TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
+  TOTP_ENROLLMENT_UNCONFIRMED_CODE,
+  TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
+  TOTP_RECENT_LOGIN_FAILED_MESSAGE,
+  TOTP_RECENT_LOGIN_MESSAGE,
   TOTP_RESTART_MESSAGE,
   TOTP_RETRY_MESSAGE,
   TotpMfaError,
   TotpMfaService,
 } from '../services/totp-mfa.service';
-import { AuthModalComponent, TOTP_ENROLLMENT_COMPLETE_MESSAGE } from './auth-modal';
+import { AuthModalComponent } from './auth-modal';
 
 describe('AuthModalComponent launch authentication', () => {
   const profile = {
@@ -61,14 +70,24 @@ describe('AuthModalComponent launch authentication', () => {
     signIn: vi.fn().mockResolvedValue({ kind: 'completed', profile }),
     profileFromCredential: vi.fn().mockResolvedValue(profile),
   };
+  let unconfirmedEnrollmentUid: string | null = null;
   const totpMfa = {
     hasEnrolledTotp: vi.fn().mockReturnValue(false),
+    userHasEnrolledTotp: vi.fn(async () => false),
+    openEnrollmentFor: vi.fn().mockReturnValue(null),
+    forgetOpenEnrollment: vi.fn(),
+    rememberOpenEnrollment: vi.fn(),
+    markEnrollmentUnconfirmed: vi.fn((uid: string) => {
+      unconfirmedEnrollmentUid = uid;
+    }),
+    enrollmentNeedsRecovery: vi.fn((uid: string) => unconfirmedEnrollmentUid === uid),
     beginEnrollment: vi.fn().mockResolvedValue(enrollment),
     completeEnrollment: vi.fn().mockResolvedValue(undefined),
     completeChallenge: vi.fn(),
   };
   const firebase = {
     currentUser: firebaseUser,
+    reauthenticateWithGooglePopup: vi.fn().mockResolvedValue({ user: firebaseUser }),
   };
 
   let fixture: ComponentFixture<AuthModalComponent>;
@@ -80,12 +99,22 @@ describe('AuthModalComponent launch authentication', () => {
     googleIdentity.profileFromCredential.mockResolvedValue(profile);
     authRequest.attemptLogin.mockResolvedValue('pending');
     totpMfa.hasEnrolledTotp.mockReturnValue(false);
+    totpMfa.userHasEnrolledTotp.mockImplementation(async () => totpMfa.hasEnrolledTotp());
+    unconfirmedEnrollmentUid = null;
+    totpMfa.openEnrollmentFor.mockReturnValue(null);
+    totpMfa.forgetOpenEnrollment.mockReset();
+    totpMfa.forgetOpenEnrollment.mockImplementation((uid?: string) => {
+      if (!uid || unconfirmedEnrollmentUid === uid) {
+        unconfirmedEnrollmentUid = null;
+      }
+    });
     totpMfa.beginEnrollment.mockResolvedValue(enrollment);
     totpMfa.completeEnrollment.mockResolvedValue(undefined);
     totpMfa.completeChallenge.mockResolvedValue({ user: firebaseUser });
     authService.refreshCurrentUserTier.mockResolvedValue(undefined);
     authService.logout.mockResolvedValue(undefined);
     authService.mfaEnrollmentRequired$.set(false);
+    firebase.reauthenticateWithGooglePopup.mockResolvedValue({ user: firebaseUser });
     await TestBed.configureTestingModule({
       imports: [AuthModalComponent],
       providers: [
@@ -251,7 +280,7 @@ describe('AuthModalComponent launch authentication', () => {
     expect(closed).toHaveBeenCalledOnce();
   });
 
-  it('signs out after successful enrollment and asks the user to sign in again', async () => {
+  it('reaches a stable signed-in state after the authenticator code is confirmed', async () => {
     authRequest.attemptLogin.mockResolvedValueOnce('active');
     const closed = vi.fn();
     fixture.componentInstance.closeRequested.subscribe(closed);
@@ -263,15 +292,12 @@ describe('AuthModalComponent launch authentication', () => {
     await flush();
 
     expect(totpMfa.completeEnrollment).toHaveBeenCalledWith(firebaseUser, enrollment, '123456');
-    expect(authService.logout).toHaveBeenCalledOnce();
-    expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
-    expect(closed).not.toHaveBeenCalled();
-    expect(element().querySelector('#auth-modal-entry')).not.toBeNull();
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(authService.refreshCurrentUserTier).toHaveBeenCalledOnce();
+    expect(closed).toHaveBeenCalledOnce();
     expect(element().querySelector('#auth-modal-mfa-enroll')).toBeNull();
-    expect(element().querySelector('#auth-modal-entry-status')?.textContent).toContain(
-      TOTP_ENROLLMENT_COMPLETE_MESSAGE,
-    );
-    expect(element().querySelector('#auth-modal-entry-error')).toBeNull();
+    expect(element().querySelector('#auth-modal-entry-status')).toBeNull();
   });
 
   it('keeps an invalid enrollment code visible and retryable', async () => {
@@ -280,6 +306,7 @@ describe('AuthModalComponent launch authentication', () => {
       .mockRejectedValueOnce(
         new TotpMfaError('retry', 'auth/invalid-verification-code', TOTP_RETRY_MESSAGE),
       )
+      .mockRejectedValueOnce({ code: AUTH_ERROR_CODE_EXPIRED })
       .mockResolvedValueOnce(undefined);
 
     click('#auth-modal-entry-google-btn');
@@ -292,21 +319,81 @@ describe('AuthModalComponent launch authentication', () => {
     expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
       TOTP_RETRY_MESSAGE,
     );
+    expect(element().querySelector('#auth-modal-mfa-enroll-error-code')?.textContent).toContain(
+      'auth/invalid-verification-code',
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).not.toContain(
+      'MFASECRETKEY',
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-replace-btn')).toBeNull();
+    expect(element().querySelector('#auth-modal-mfa-enroll-replace-warning')).toBeNull();
     expect(
       element().querySelector<HTMLInputElement>('#auth-modal-mfa-enroll-code-input')?.value,
     ).toBe('');
+    expect(authService.logout).not.toHaveBeenCalled();
+
+    await typeCode('#auth-modal-mfa-enroll-code-input', '111111');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
+      TOTP_RETRY_MESSAGE,
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-replace-btn')).toBeNull();
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
     expect(authService.logout).not.toHaveBeenCalled();
 
     await typeCode('#auth-modal-mfa-enroll-code-input', '654321');
     click('#auth-modal-mfa-enroll-submit-btn');
     await flush();
 
-    expect(totpMfa.completeEnrollment).toHaveBeenCalledTimes(2);
-    expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
-    expect(authService.logout).toHaveBeenCalledOnce();
-    expect(element().querySelector('#auth-modal-entry-status')?.textContent).toContain(
-      TOTP_ENROLLMENT_COMPLETE_MESSAGE,
+    expect(totpMfa.completeEnrollment).toHaveBeenCalledTimes(3);
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.refreshCurrentUserTier).toHaveBeenCalledOnce();
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll')).toBeNull();
+  });
+
+  it('shows a sanitized enrollment support code and hides secret-like codes', async () => {
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    totpMfa.completeEnrollment
+      .mockRejectedValueOnce(
+        new TotpMfaError('retry', 'auth/invalid-verification-code', TOTP_RETRY_MESSAGE),
+      )
+      .mockRejectedValueOnce(
+        new TotpMfaError(
+          'retry',
+          'sessionInfo=abc secretKey=MFASECRETKEY otp=123456',
+          TOTP_RETRY_MESSAGE,
+        ),
+      );
+
+    click('#auth-modal-entry-google-btn');
+    await flush();
+    await typeCode('#auth-modal-mfa-enroll-code-input', '000000');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    const banner = element().querySelector('#auth-modal-mfa-enroll-error');
+    expect(banner?.textContent).toContain(TOTP_RETRY_MESSAGE);
+    expect(element().querySelector('#auth-modal-mfa-enroll-error-code')?.textContent).toContain(
+      'Support code: auth/invalid-verification-code',
     );
+    expect(banner?.textContent).not.toContain('sessionInfo');
+    expect(banner?.textContent).not.toContain('secretKey');
+    expect(banner?.textContent).not.toContain('otp=');
+
+    await typeCode('#auth-modal-mfa-enroll-code-input', '111111');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    const hidden = element().querySelector('#auth-modal-mfa-enroll-error');
+    expect(element().querySelector('#auth-modal-mfa-enroll-error-code')).toBeNull();
+    expect(hidden?.textContent).not.toContain('sessionInfo');
+    expect(hidden?.textContent).not.toContain('MFASECRETKEY');
+    expect(hidden?.textContent).not.toContain('otp=123456');
+    expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
+    expect(authService.logout).not.toHaveBeenCalled();
   });
 
   it('signs out a denied Google login and shows the existing denial', async () => {
@@ -376,17 +463,191 @@ describe('AuthModalComponent launch authentication', () => {
     expect(authService.logout).not.toHaveBeenCalled();
   });
 
-  it('refreshes and closes only after a completed TOTP challenge on an active account', async () => {
-    authRequest.attemptLogin.mockResolvedValueOnce('active').mockResolvedValueOnce('active');
-    googleIdentity.signIn
-      .mockResolvedValueOnce({ kind: 'completed', profile })
-      .mockResolvedValueOnce({
-        kind: 'totp-assertion-required',
-        assertion: challengeSession,
-      });
-    totpMfa.hasEnrolledTotp.mockReturnValueOnce(false).mockReturnValue(true);
+  it('does not open setup again when a challenge user looks unenrolled until factor refresh', async () => {
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    googleIdentity.signIn.mockResolvedValueOnce({
+      kind: 'totp-assertion-required',
+      assertion: challengeSession,
+    });
+    totpMfa.hasEnrolledTotp.mockReturnValue(false);
+    totpMfa.userHasEnrolledTotp.mockResolvedValue(true);
+    totpMfa.completeChallenge.mockResolvedValue({ user: firebaseUser });
     const closed = vi.fn();
     fixture.componentInstance.closeRequested.subscribe(closed);
+
+    click('#auth-modal-entry-google-btn');
+    await flush();
+    expect(element().querySelector('#auth-modal-mfa-challenge')).not.toBeNull();
+    expect(element().querySelector('#auth-modal-mfa-enroll')).toBeNull();
+
+    await typeCode('#auth-modal-mfa-challenge-code-input', '654321');
+    click('#auth-modal-mfa-challenge-submit-btn');
+    await flush();
+
+    expect(totpMfa.completeChallenge).toHaveBeenCalledWith(challengeSession, '654321');
+    expect(totpMfa.userHasEnrolledTotp).toHaveBeenCalledWith(firebaseUser);
+    expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
+    expect(authService.refreshCurrentUserTier).toHaveBeenCalledOnce();
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(closed).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the same QR when setup is still required after the code is accepted', async () => {
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    authService.refreshCurrentUserTier.mockImplementation(async () => {
+      authService.mfaEnrollmentRequired$.set(true);
+    });
+    const closed = vi.fn();
+    fixture.componentInstance.closeRequested.subscribe(closed);
+
+    click('#auth-modal-entry-google-btn');
+    await flush();
+    const qrSrc = element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src');
+    await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    expect(qrSrc).toBe(enrollment.qrCodeDataUrl);
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(closed).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
+      TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
+    );
+    expect(
+      element().querySelector('#auth-modal-mfa-enroll-replace-warning')?.textContent,
+    ).toContain('stops the Eco Plan Tool entry already in Duo Mobile from working');
+    expect(totpMfa.forgetOpenEnrollment).not.toHaveBeenCalled();
+
+    fixture.destroy();
+    authService.mfaEnrollmentRequired$.set(true);
+    totpMfa.openEnrollmentFor.mockReturnValue(enrollment);
+    fixture = TestBed.createComponent(AuthModalComponent);
+    fixture.detectChanges();
+    await flush();
+
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+  });
+
+  it('reuses an expired enrollment after remount until a new QR is created', async () => {
+    const expiredEnrollment = {
+      ...enrollment,
+      enrollmentCompletionDeadline: '2020-01-01T00:00:00.000Z',
+    };
+    const replacement = {
+      ...expiredEnrollment,
+      qrCodeDataUrl: 'data:image/png;base64,replacement',
+      secretKey: 'REPLACEMENTSECRET',
+    };
+    totpMfa.beginEnrollment.mockResolvedValue(expiredEnrollment);
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    totpMfa.completeEnrollment.mockRejectedValueOnce(
+      new TotpMfaError(
+        'recover',
+        TOTP_ENROLLMENT_EXPIRED_CODE,
+        TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
+      ),
+    );
+
+    click('#auth-modal-entry-google-btn');
+    await flush();
+    const qrSrc = element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src');
+    await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    expect(qrSrc).toBe(expiredEnrollment.qrCodeDataUrl);
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(totpMfa.forgetOpenEnrollment).not.toHaveBeenCalled();
+    expect(authService.logout).not.toHaveBeenCalled();
+
+    fixture.destroy();
+    authService.mfaEnrollmentRequired$.set(true);
+    totpMfa.openEnrollmentFor.mockReturnValue(expiredEnrollment);
+    fixture = TestBed.createComponent(AuthModalComponent);
+    fixture.detectChanges();
+    await flush();
+
+    expect(totpMfa.openEnrollmentFor).toHaveBeenCalledWith(firebaseUser);
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(totpMfa.forgetOpenEnrollment).not.toHaveBeenCalled();
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+    expect(element().querySelector('#auth-modal-mfa-enroll-secret-value')?.textContent).toContain(
+      'MFASECRETKEY',
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-replace-btn')).not.toBeNull();
+
+    totpMfa.beginEnrollment.mockResolvedValueOnce(replacement);
+    click('#auth-modal-mfa-enroll-replace-btn');
+    await flush();
+
+    const forgetOrder = totpMfa.forgetOpenEnrollment.mock.invocationCallOrder[0];
+    const replacementBeginOrder = totpMfa.beginEnrollment.mock.invocationCallOrder[1];
+    expect(forgetOrder).toBeLessThan(replacementBeginOrder);
+    expect(totpMfa.forgetOpenEnrollment).toHaveBeenCalledWith('google-user');
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(2);
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(
+      replacement.qrCodeDataUrl,
+    );
+    expect(authService.logout).not.toHaveBeenCalled();
+  });
+
+  it('keeps the same enrollment session when the code is not confirmed', async () => {
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    totpMfa.completeEnrollment
+      .mockRejectedValueOnce({ code: TOTP_ENROLLMENT_UNCONFIRMED_CODE })
+      .mockResolvedValueOnce(undefined);
+
+    click('#auth-modal-entry-google-btn');
+    await flush();
+    const qrSrc = element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src');
+    await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+    expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
+      TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-error-code')?.textContent).toContain(
+      'totp/enrollment-unconfirmed',
+    );
+    expect(
+      element().querySelector('#auth-modal-mfa-enroll-replace-warning')?.textContent,
+    ).toContain('Duo Mobile');
+    expect(element().querySelector('#auth-modal-mfa-enroll-replace-btn')).not.toBeNull();
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(totpMfa.forgetOpenEnrollment).not.toHaveBeenCalled();
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
+
+    await typeCode('#auth-modal-mfa-enroll-code-input', '654321');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    expect(totpMfa.completeEnrollment).toHaveBeenNthCalledWith(
+      2,
+      firebaseUser,
+      enrollment,
+      '654321',
+    );
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll')).toBeNull();
+  });
+
+  it('creates a new QR only after the explicit replace action warns about Duo', async () => {
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    totpMfa.completeEnrollment.mockRejectedValueOnce({ code: TOTP_ENROLLMENT_UNCONFIRMED_CODE });
+    const replacement = {
+      ...enrollment,
+      qrCodeDataUrl: 'data:image/png;base64,replacement',
+      secretKey: 'REPLACEMENTSECRET',
+    };
 
     click('#auth-modal-entry-google-btn');
     await flush();
@@ -394,22 +655,246 @@ describe('AuthModalComponent launch authentication', () => {
     click('#auth-modal-mfa-enroll-submit-btn');
     await flush();
 
-    expect(closed).not.toHaveBeenCalled();
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(element().querySelector('#auth-modal-mfa-enroll-secret-value')?.textContent).toContain(
+      'MFASECRETKEY',
+    );
+    expect(
+      element().querySelector('#auth-modal-mfa-enroll-replace-warning')?.textContent,
+    ).toContain('stops the Eco Plan Tool entry already in Duo Mobile from working');
+
+    totpMfa.beginEnrollment.mockResolvedValueOnce(replacement);
+    click('#auth-modal-mfa-enroll-replace-btn');
+    await flush();
+
+    const forgetOrder = totpMfa.forgetOpenEnrollment.mock.invocationCallOrder[0];
+    const replacementBeginOrder = totpMfa.beginEnrollment.mock.invocationCallOrder[1];
+    expect(forgetOrder).toBeLessThan(replacementBeginOrder);
+    expect(totpMfa.forgetOpenEnrollment).toHaveBeenCalledWith('google-user');
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(2);
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(
+      replacement.qrCodeDataUrl,
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-secret-value')?.textContent).toContain(
+      'REPLACEMENTSECRET',
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-replace-btn')).toBeNull();
+    expect(authService.logout).not.toHaveBeenCalled();
     expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
-    expect(element().querySelector('#auth-modal-entry-status')).not.toBeNull();
+  });
+
+  it('keeps a dead enrollment on the same QR until the user creates a new one', async () => {
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    totpMfa.completeEnrollment
+      .mockRejectedValueOnce({ code: AUTH_ERROR_INVALID_VERIFICATION_ID })
+      .mockRejectedValueOnce(
+        new TotpMfaError(
+          'recover',
+          TOTP_ENROLLMENT_EXPIRED_CODE,
+          TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
+        ),
+      )
+      .mockRejectedValueOnce(new Error('finalize-failed'));
+    const replacement = {
+      ...enrollment,
+      qrCodeDataUrl: 'data:image/png;base64,replacement',
+      secretKey: 'REPLACEMENTSECRET',
+    };
 
     click('#auth-modal-entry-google-btn');
     await flush();
+    const qrSrc = element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src');
 
-    expect(element().querySelector('#auth-modal-mfa-challenge')).not.toBeNull();
-    await typeCode('#auth-modal-mfa-challenge-code-input', '654321');
-    click('#auth-modal-mfa-challenge-submit-btn');
+    for (const code of ['111111', '222222', '333333']) {
+      await typeCode('#auth-modal-mfa-enroll-code-input', code);
+      click('#auth-modal-mfa-enroll-submit-btn');
+      await flush();
+
+      expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
+      expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+      expect(element().querySelector('#auth-modal-mfa-enroll-secret-value')?.textContent).toContain(
+        'MFASECRETKEY',
+      );
+      expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
+        TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
+      );
+      expect(
+        element().querySelector('#auth-modal-mfa-enroll-replace-warning')?.textContent,
+      ).toContain('stops the Eco Plan Tool entry already in Duo Mobile from working');
+      expect(element().querySelector('#auth-modal-mfa-enroll-replace-btn')).not.toBeNull();
+      expect(element().querySelector('#auth-modal-mfa-enroll-restart-btn')).toBeNull();
+      expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+      expect(totpMfa.forgetOpenEnrollment).not.toHaveBeenCalled();
+      expect(authService.logout).not.toHaveBeenCalled();
+      expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
+    }
+
+    totpMfa.beginEnrollment.mockResolvedValueOnce(replacement);
+    click('#auth-modal-mfa-enroll-replace-btn');
     await flush();
 
-    expect(totpMfa.completeChallenge).toHaveBeenCalledWith(challengeSession, '654321');
-    expect(authService.refreshCurrentUserTier).toHaveBeenCalledOnce();
-    expect(closed).toHaveBeenCalledOnce();
-    expect(element().querySelector('#auth-modal-entry-status')).toBeNull();
+    expect(totpMfa.forgetOpenEnrollment).toHaveBeenCalledWith('google-user');
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(2);
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(
+      replacement.qrCodeDataUrl,
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-secret-value')?.textContent).toContain(
+      'REPLACEMENTSECRET',
+    );
+    expect(authService.logout).not.toHaveBeenCalled();
+  });
+
+  it('reauthenticates with Google and keeps the same QR when login is no longer recent', async () => {
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    totpMfa.completeEnrollment
+      .mockRejectedValueOnce({ code: AUTH_ERROR_REQUIRES_RECENT_LOGIN })
+      .mockResolvedValueOnce(undefined);
+
+    click('#auth-modal-entry-google-btn');
+    await flush();
+    const qrSrc = element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src');
+    await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    expect(firebase.reauthenticateWithGooglePopup).toHaveBeenCalledWith(firebaseUser);
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+    expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
+      TOTP_RECENT_LOGIN_MESSAGE,
+    );
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
+
+    await typeCode('#auth-modal-mfa-enroll-code-input', '654321');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    expect(totpMfa.completeEnrollment).toHaveBeenNthCalledWith(
+      2,
+      firebaseUser,
+      enrollment,
+      '654321',
+    );
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(firebase.reauthenticateWithGooglePopup).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll')).toBeNull();
+  });
+
+  it('keeps the same QR when Google reauthentication is cancelled', async () => {
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    totpMfa.completeEnrollment.mockRejectedValueOnce({ code: AUTH_ERROR_REQUIRES_RECENT_LOGIN });
+    firebase.reauthenticateWithGooglePopup.mockRejectedValueOnce(new Error('popup-closed'));
+
+    click('#auth-modal-entry-google-btn');
+    await flush();
+    const qrSrc = element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src');
+    await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+    expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
+      TOTP_RECENT_LOGIN_FAILED_MESSAGE,
+    );
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll-restart-btn')).toBeNull();
+  });
+
+  it('keeps the same QR and secret when enroll fails before it resolves', async () => {
+    authRequest.attemptLogin.mockResolvedValueOnce('active');
+    totpMfa.completeEnrollment
+      .mockRejectedValueOnce({ code: AUTH_ERROR_REQUIRES_RECENT_LOGIN })
+      .mockRejectedValueOnce({ code: AUTH_ERROR_INVALID_VERIFICATION_ID })
+      .mockResolvedValueOnce(undefined);
+
+    click('#auth-modal-entry-google-btn');
+    await flush();
+    const qrSrc = element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src');
+
+    await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+    fixture.detectChanges();
+
+    expect(firebase.reauthenticateWithGooglePopup).toHaveBeenCalledTimes(1);
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(totpMfa.forgetOpenEnrollment).not.toHaveBeenCalled();
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+    expect(element().querySelector('#auth-modal-mfa-enroll-secret-value')?.textContent).toContain(
+      'MFASECRETKEY',
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-replace-btn')).toBeNull();
+    expect(element().querySelector('#auth-modal-mfa-enroll-restart-btn')).toBeNull();
+
+    await typeCode('#auth-modal-mfa-enroll-code-input', '000000');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+    fixture.detectChanges();
+
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+    expect(element().querySelector('#auth-modal-mfa-enroll-secret-value')?.textContent).toContain(
+      'MFASECRETKEY',
+    );
+    expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
+      TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
+    );
+    expect(
+      element().querySelector('#auth-modal-mfa-enroll-replace-warning')?.textContent,
+    ).toContain('stops the Eco Plan Tool entry already in Duo Mobile from working');
+    expect(element().querySelector('#auth-modal-mfa-enroll-replace-btn')).not.toBeNull();
+    expect(element().querySelector('#auth-modal-mfa-enroll-restart-btn')).toBeNull();
+
+    fixture.destroy();
+    authService.mfaEnrollmentRequired$.set(true);
+    totpMfa.openEnrollmentFor.mockReturnValue(enrollment);
+    fixture = TestBed.createComponent(AuthModalComponent);
+    fixture.detectChanges();
+    await flush();
+
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+    expect(element().querySelector('#auth-modal-mfa-enroll-secret-value')?.textContent).toContain(
+      'MFASECRETKEY',
+    );
+
+    authService.mfaEnrollmentRequired$.set(false);
+    await typeCode('#auth-modal-mfa-enroll-code-input', '654321');
+    click('#auth-modal-mfa-enroll-submit-btn');
+    await flush();
+
+    expect(totpMfa.completeEnrollment).toHaveBeenNthCalledWith(
+      3,
+      firebaseUser,
+      enrollment,
+      '654321',
+    );
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
+  });
+
+  it('closes into the signed-in state when restored setup finds an authenticator after refresh', async () => {
+    fixture.destroy();
+    authService.mfaEnrollmentRequired$.set(true);
+    totpMfa.hasEnrolledTotp.mockReturnValue(false);
+    totpMfa.userHasEnrolledTotp.mockResolvedValue(true);
+    authService.refreshCurrentUserTier.mockImplementation(async () => {
+      authService.mfaEnrollmentRequired$.set(false);
+    });
+    const closed = vi.fn();
+    fixture = TestBed.createComponent(AuthModalComponent);
+    fixture.componentInstance.closeRequested.subscribe(closed);
+    fixture.detectChanges();
+    await flush();
+
+    expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
+    expect(authService.refreshCurrentUserTier).toHaveBeenCalled();
+    expect(authService.logout).not.toHaveBeenCalled();
+    expect(closed).toHaveBeenCalled();
   });
 
   it('resumes the SIRAP request form after a successful request-intent challenge', async () => {
@@ -511,24 +996,34 @@ describe('AuthModalComponent launch authentication', () => {
     expect(authRequest.attemptLogin).not.toHaveBeenCalled();
   });
 
-  it('signs out promptly when enrollment returns a restart error', async () => {
+  it('keeps an expired displayed enrollment in the warned replacement state', async () => {
     authRequest.attemptLogin.mockResolvedValueOnce('active');
     totpMfa.completeEnrollment.mockRejectedValueOnce(
-      new TotpMfaError('restart', 'totp/enrollment-expired', TOTP_RESTART_MESSAGE),
+      new TotpMfaError('restart', TOTP_ENROLLMENT_EXPIRED_CODE, TOTP_RESTART_MESSAGE),
     );
 
     click('#auth-modal-entry-google-btn');
     await flush();
+    const qrSrc = element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src');
     await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
     click('#auth-modal-mfa-enroll-submit-btn');
     await flush();
 
     expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
-    expect(element().querySelector('#auth-modal-mfa-enroll-restart-btn')).not.toBeNull();
-    expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
-      TOTP_RESTART_MESSAGE,
+    expect(element().querySelector('#auth-modal-mfa-enroll-qr')?.getAttribute('src')).toBe(qrSrc);
+    expect(element().querySelector('#auth-modal-mfa-enroll-secret-value')?.textContent).toContain(
+      'MFASECRETKEY',
     );
-    expect(authService.logout).toHaveBeenCalled();
+    expect(element().querySelector('#auth-modal-mfa-enroll-restart-btn')).toBeNull();
+    expect(element().querySelector('#auth-modal-mfa-enroll-replace-btn')).not.toBeNull();
+    expect(
+      element().querySelector('#auth-modal-mfa-enroll-replace-warning')?.textContent,
+    ).toContain('stops the Eco Plan Tool entry already in Duo Mobile from working');
+    expect(element().querySelector('#auth-modal-mfa-enroll-error')?.textContent).toContain(
+      TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
+    );
+    expect(totpMfa.beginEnrollment).toHaveBeenCalledTimes(1);
+    expect(authService.logout).not.toHaveBeenCalled();
     expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
   });
 

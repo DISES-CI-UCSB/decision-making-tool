@@ -62,7 +62,23 @@ describe('AdminAccessRequestsPanelComponent', () => {
     expect(
       fixture.nativeElement.querySelector('#admin-access-panel-sirap-requests-section'),
     ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#admin-access-panel-pending-section'),
+    ).not.toBeNull();
+
+    fixture.nativeElement.querySelector('#admin-access-panel-access-tab').click();
+    fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#admin-access-panel-pending-section')).toBeNull();
+
+    fixture.nativeElement.querySelector('#admin-access-panel-users-tab').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#admin-access-panel-pending-section')).toBeNull();
+
+    fixture.nativeElement.querySelector('#admin-access-panel-requests-tab').click();
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('#admin-access-panel-pending-section'),
+    ).not.toBeNull();
   });
 
   it('switches to the active-user directory', () => {
@@ -70,6 +86,7 @@ describe('AdminAccessRequestsPanelComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('#admin-access-panel-users-section')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#admin-access-panel-pending-section')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('User One');
   });
 
@@ -112,6 +129,7 @@ describe('AdminAccessRequestsPanelComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('User One');
+    expect(fixture.nativeElement.querySelector('#admin-access-panel-pending-section')).toBeNull();
     expect(
       fixture.nativeElement.querySelector(
         '#admin-access-panel-current-sirap-revoke-user-1-orinoquia',

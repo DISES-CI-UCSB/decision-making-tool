@@ -21,6 +21,7 @@ import {
   isFakePendingAccount,
   isFakeSirapRequest,
   isFakeSirapRequester,
+  setForceAppendFakeDemoDataForTests,
   shouldAppendFakeDemoData,
   shouldAppendFakePendingAccounts,
 } from './admin-access-requests-panel.fake-demo-data';
@@ -51,10 +52,15 @@ const realActiveUser: AdminManagedUserRecord = {
 };
 
 describe('admin-access-requests-panel.fake-demo-data', () => {
-  it('gates fake demo data behind non-production builds', () => {
-    expect(shouldAppendFakeDemoData(true)).toBe(false);
-    expect(shouldAppendFakeDemoData(false)).toBe(true);
+  afterEach(() => setForceAppendFakeDemoDataForTests(null));
+
+  it('keeps fake demo data off in every environment unless a test forces it on', () => {
+    expect(shouldAppendFakeDemoData()).toBe(false);
     expect(shouldAppendFakePendingAccounts(true)).toBe(false);
+    expect(shouldAppendFakePendingAccounts(false)).toBe(false);
+
+    setForceAppendFakeDemoDataForTests(true);
+    expect(shouldAppendFakeDemoData()).toBe(true);
     expect(shouldAppendFakePendingAccounts(false)).toBe(true);
   });
 

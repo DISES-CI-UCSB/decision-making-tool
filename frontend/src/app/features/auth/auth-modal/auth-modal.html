@@ -691,8 +691,9 @@
             </p>
             <p id="auth-modal-mfa-enroll-duo-hint" class="mt-1 text-xs text-slate-500">
               Duo Mobile lists this as a Third Party account named
-              <span id="auth-modal-mfa-enroll-issuer" class="font-semibold text-slate-700"
-                >{{ totpIssuer }}</span
+              <span id="auth-modal-mfa-enroll-issuer" class="font-semibold text-slate-700">{{
+                totpIssuer
+              }}</span
               >.
             </p>
           </header>
@@ -760,12 +761,26 @@
             />
 
             @if (totpError()) {
-              <p
+              <div
                 id="auth-modal-mfa-enroll-error"
                 class="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
                 role="alert"
               >
-                {{ totpError() }}
+                <p id="auth-modal-mfa-enroll-error-message">{{ totpError() }}</p>
+                @if (enrollmentSupportCode()) {
+                  <p id="auth-modal-mfa-enroll-error-code" class="mt-1 font-mono text-rose-800">
+                    Support code: {{ enrollmentSupportCode() }}
+                  </p>
+                }
+              </div>
+            }
+
+            @if (totpErrorKind() === 'recover') {
+              <p
+                id="auth-modal-mfa-enroll-replace-warning"
+                class="mb-3 text-xs leading-5 text-slate-600"
+              >
+                {{ enrollmentReplaceWarning }}
               </p>
             }
 
@@ -801,6 +816,17 @@
                   Verify and continue
                 }
               </button>
+              @if (totpErrorKind() === 'recover') {
+                <button
+                  id="auth-modal-mfa-enroll-replace-btn"
+                  type="button"
+                  class="mb-2 flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  [disabled]="isSubmitting()"
+                  (click)="replaceUnconfirmedAuthenticator()"
+                >
+                  Create a new QR code
+                </button>
+              }
             }
 
             <button
@@ -830,8 +856,9 @@
             </p>
             <p id="auth-modal-mfa-challenge-apps" class="mt-1 text-xs text-slate-500">
               In Duo Mobile this is a Third Party account named
-              <span id="auth-modal-mfa-challenge-issuer" class="font-semibold text-slate-700"
-                >{{ totpIssuer }}</span
+              <span id="auth-modal-mfa-challenge-issuer" class="font-semibold text-slate-700">{{
+                totpIssuer
+              }}</span
               >. Use that entry &mdash; not a text message.
             </p>
             <p id="auth-modal-mfa-challenge-lost" class="mt-2 text-xs text-slate-500">

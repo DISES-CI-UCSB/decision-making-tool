@@ -35,16 +35,18 @@ export function setForceAppendFakePendingAccountsForTests(value: boolean | null)
   setForceAppendFakeDemoDataForTests(value);
 }
 
-export function shouldAppendFakeDemoData(isProduction: boolean): boolean {
+/** Fake records stay off in every environment. Tests opt in with the setter above. */
+export function shouldAppendFakeDemoData(): boolean {
   if (forceAppendFakeDemoDataForTests !== null) {
     return forceAppendFakeDemoDataForTests;
   }
-  return !isProduction;
+  return false;
 }
 
-/** @deprecated Use shouldAppendFakeDemoData */
+/** @deprecated Use shouldAppendFakeDemoData. The production flag is ignored. */
 export function shouldAppendFakePendingAccounts(isProduction: boolean): boolean {
-  return shouldAppendFakeDemoData(isProduction);
+  void isProduction;
+  return shouldAppendFakeDemoData();
 }
 
 export function isFakePendingAccount(uid: string): boolean {
