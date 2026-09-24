@@ -194,7 +194,7 @@
             [attr.aria-expanded]="sirapAccessPanelOpen()"
             (click)="openSirapAccessPanel()"
           >
-            SIRAP access
+            {{ 'header.sirapAccess' | translate }}
           </button>
           @if (isAdmin()) {
             <button

@@ -34,6 +34,7 @@
     "languageEnglish": "English",
     "languageSpanish": "Spanish",
     "adminAccess": "Admin console",
+    "sirapAccess": "SIRAP access",
     "logout": "Logout",
     "loginRegister": "Login / Register",
     "tierChip": "Tier {{tier}}",
