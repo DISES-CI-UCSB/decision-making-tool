@@ -278,7 +278,13 @@ describe('reconcileMapLayersManifest', () => {
     );
   });
 
-  it('binds display-only GeoJSON references to existing sidebar categories', () => {
+  it('moves conservation reference layers under OMECs in Conservation Areas', () => {
+    const existingRamsar = row({
+      id: 'layer-ramsar',
+      selected: true,
+      visible: true,
+      opacity: 40,
+    });
     const result = reconcileMapLayersManifest({
       manifestGroups: [
         manifestGroup('cultural_and_ethnic_territories', [
@@ -288,6 +294,7 @@ describe('reconcileMapLayersManifest', () => {
           }),
         ]),
         manifestGroup('ecosystems', [
+          manifestRow('paramos', 'ecosystems'),
           manifestRow('ramsar', 'ecosystems', {
             dataRole: 'reference_layer',
             displayUrl: '/inputs/reference/ramsar/ramsar.geojson',
@@ -302,6 +309,10 @@ describe('reconcileMapLayersManifest', () => {
               '/inputs/reference/reservas_forestales_ley_2_1959/reservas_forestales_ley_2_1959.geojson',
           }),
         ]),
+        manifestGroup('management_figures', [
+          manifestRow('runap', 'management_figures'),
+          manifestRow('omecs', 'management_figures', { name: 'OMECs (raster)' }),
+        ]),
         manifestGroup('species_and_biodiversity', [
           manifestRow('kba_aica', 'species_and_biodiversity', {
             dataRole: 'reference_layer',
@@ -314,29 +325,75 @@ describe('reconcileMapLayersManifest', () => {
         group('group-ecosystems', []),
         group('group-species-biodiversity', []),
       ],
-      overlays: [],
+      overlays: [
+        row({ id: RUNAP_OVERLAY_LAYER_ID }),
+        row({ id: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID }),
+        row({ id: OMEC_OVERLAY_LAYER_ID }),
+        existingRamsar,
+      ],
       ports,
     });
 
     expect(result.groups.map(({ id, rows }) => [id, rows.map(({ id }) => id)])).toEqual([
       ['group-cultural-ethnic', ['layer-zonas_reserva_campesina_constituida']],
-      [
-        'group-ecosystems',
-        ['layer-ramsar', 'layer-biosphere_reserves', 'layer-reservas_forestales_ley_2_1959'],
-      ],
+      ['group-ecosystems', ['layer-paramos']],
       ['group-species-biodiversity', ['layer-kba_aica']],
     ]);
-    expect(result.groups.flatMap(({ rows }) => rows)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: 'layer-ramsar',
-          mapUnavailable: false,
-          mapSync: expect.objectContaining({
-            type: 'manifest-raster',
-            displayUrl: '/inputs/reference/ramsar/ramsar.geojson',
+    expect(result.overlays.map((overlay) => overlay.id)).toEqual([
+      RUNAP_OVERLAY_LAYER_ID,
+      RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
+      OMEC_OVERLAY_LAYER_ID,
+      'layer-ramsar',
+      'layer-biosphere_reserves',
+      'layer-reservas_forestales_ley_2_1959',
+    ]);
+    expect(result.overlays.find((overlay) => overlay.id === 'layer-ramsar')).toMatchObject({
+      selected: true,
+      visible: true,
+      opacity: 40,
+      mapUnavailable: false,
+      mapSync: {
+        type: 'manifest-raster',
+        layerId: 'layer-ramsar',
+        displayUrl: '/inputs/reference/ramsar/ramsar.geojson',
+      },
+    });
+  });
+
+  it('keeps conservation reference layers under OMECs when the catalog already files them there', () => {
+    const result = reconcileMapLayersManifest({
+      manifestGroups: [
+        manifestGroup('management_figures', [
+          manifestRow('runap', 'management_figures'),
+          manifestRow('omecs', 'management_figures'),
+          manifestRow('ramsar', 'management_figures', {
+            dataRole: 'reference_layer',
+            rendering: { ...gradientRendering, renderMode: 'mask', valueType: 'binary' },
           }),
-        }),
-      ]),
+          manifestRow('biosphere_reserves', 'management_figures', { dataRole: 'reference_layer' }),
+          manifestRow('reservas_forestales_ley_2_1959', 'management_figures', {
+            dataRole: 'reference_layer',
+          }),
+        ]),
+      ],
+      groups: [group('group-ecosystems', [])],
+      overlays: [
+        row({ id: RUNAP_OVERLAY_LAYER_ID }),
+        row({ id: OMEC_OVERLAY_LAYER_ID }),
+      ],
+      ports,
+    });
+
+    expect(result.groups[0]?.rows).toEqual([]);
+    expect(result.overlays.map((overlay) => overlay.id)).toEqual([
+      RUNAP_OVERLAY_LAYER_ID,
+      OMEC_OVERLAY_LAYER_ID,
+      'layer-ramsar',
+      'layer-biosphere_reserves',
+      'layer-reservas_forestales_ley_2_1959',
+    ]);
+    expect(result.overlays.find((overlay) => overlay.id === 'layer-ramsar')?.mapUnavailable).toBe(
+      false,
     );
   });
 

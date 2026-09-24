@@ -12,6 +12,7 @@ import {
 import {
   BASELINE_SOLUTION_OVERLAY_ID,
   CANDIDATE_SOLUTION_OVERLAY_ID,
+  CONSERVATION_AREA_REFERENCE_LAYER_IDS,
   DEFAULT_DATA_LAYER_OPACITY,
   isAdminBoundaryLayerEnabled,
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
@@ -103,6 +104,9 @@ const BINDING_BY_GROUP_ID = new Map<string, (typeof SIDEBAR_MANIFEST_CATEGORY_BI
 const BINDING_BY_MANIFEST_ID = new Map<string, (typeof SIDEBAR_MANIFEST_CATEGORY_BINDINGS)[number]>(
   SIDEBAR_MANIFEST_CATEGORY_BINDINGS.map((binding) => [binding.manifestCategoryId, binding]),
 );
+const CONSERVATION_AREA_REFERENCE_LAYER_ID_SET = new Set<string>(
+  CONSERVATION_AREA_REFERENCE_LAYER_IDS,
+);
 
 export function reconcileMapLayersManifest({
   manifestGroups,
@@ -112,7 +116,7 @@ export function reconcileMapLayersManifest({
 }: ManifestReconcileInput): ManifestReconcileResult {
   const reconciledGroups = reconcileGenericGroups(manifestGroups, groups, ports);
   const adminResult = reconcileAdminBoundaries(manifestGroups, reconciledGroups, ports);
-  const overlayResult = reconcileOverlays(manifestGroups, overlays);
+  const overlayResult = reconcileOverlays(manifestGroups, overlays, ports);
 
   return {
     groups: adminResult,
@@ -173,7 +177,11 @@ function manifestRowsForGroup(
   groupId: string,
   rows: readonly ManifestSidebarLayerRow[],
 ): ManifestSidebarLayerRow[] {
-  const visibleRows = rows.filter((row) => !LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS.has(row.id));
+  const visibleRows = rows.filter(
+    (row) =>
+      !LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS.has(row.id) &&
+      !CONSERVATION_AREA_REFERENCE_LAYER_ID_SET.has(row.id),
+  );
   if (groupId === MARINE_ECOSYSTEMS_GROUP_ID) {
     return visibleRows.filter((row) => `layer-${row.id}` === MARINE_ECOSYSTEMS_LAYER_ID);
   }
@@ -328,12 +336,23 @@ function groupStrategicEcosystemRows(
 function reconcileOverlays(
   manifestGroups: readonly ManifestSidebarLayerGroup[],
   overlays: readonly LayerControlRow[],
+  ports: ManifestReconcilePorts,
 ): { rows: LayerControlRow[]; hasManifestGroup: boolean } {
   const managementGroup = manifestGroups.find(
     (group) => group.sidebarCategoryId === 'management_figures',
   );
-  if (!managementGroup) {
+  const referenceRows = buildConservationAreaReferenceRows(manifestGroups, overlays, ports);
+  if (!managementGroup && referenceRows.length === 0) {
     return { rows: [...overlays], hasManifestGroup: false };
+  }
+  if (!managementGroup) {
+    return {
+      rows: [
+        ...overlays.filter((row) => !isConservationAreaReferenceControlRow(row.id)),
+        ...referenceRows,
+      ],
+      hasManifestGroup: true,
+    };
   }
 
   const rowById = new Map(overlays.map((row) => [row.id, row]));
@@ -374,9 +393,36 @@ function reconcileOverlays(
         return row ? [row] : [];
       }),
       ...reconciledManagementRows,
+      ...referenceRows,
     ],
     hasManifestGroup: true,
   };
+}
+
+function buildConservationAreaReferenceRows(
+  manifestGroups: readonly ManifestSidebarLayerGroup[],
+  overlays: readonly LayerControlRow[],
+  ports: ManifestReconcilePorts,
+): LayerControlRow[] {
+  const rowsById = new Map<string, ManifestSidebarLayerRow>();
+  for (const group of manifestGroups) {
+    for (const row of group.rows) {
+      if (CONSERVATION_AREA_REFERENCE_LAYER_ID_SET.has(row.id) && !rowsById.has(row.id)) {
+        rowsById.set(row.id, row);
+      }
+    }
+  }
+
+  return CONSERVATION_AREA_REFERENCE_LAYER_IDS.flatMap((layerId, index) => {
+    const manifestRow = rowsById.get(layerId);
+    return manifestRow
+      ? [buildManifestRow('conservation-area-references', manifestRow, index, overlays, ports)]
+      : [];
+  });
+}
+
+function isConservationAreaReferenceControlRow(rowId: string): boolean {
+  return CONSERVATION_AREA_REFERENCE_LAYER_IDS.some((layerId) => rowId === `layer-${layerId}`);
 }
 
 function applyManifestToManagementOverlay(
@@ -544,7 +590,8 @@ function isManifestRowLiveRenderable(row: ManifestSidebarLayerRow): boolean {
   const displayUrl = row.displayCogUrl ?? row.displayUrl;
   return (
     !row.isSpeciesCollection &&
-    BINDING_BY_MANIFEST_ID.get(row.sidebarCategoryId)?.supportsLiveRendering === true &&
+    (BINDING_BY_MANIFEST_ID.get(row.sidebarCategoryId)?.supportsLiveRendering === true ||
+      CONSERVATION_AREA_REFERENCE_LAYER_ID_SET.has(row.id)) &&
     isManifestRenderingSupported(row.rendering) &&
     typeof displayUrl === 'string' &&
     displayUrl.length > 0

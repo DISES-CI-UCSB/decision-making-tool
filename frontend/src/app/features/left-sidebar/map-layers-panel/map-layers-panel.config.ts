@@ -204,6 +204,15 @@ export const MANIFEST_OVERLAY_ROW_BY_LAYER_ID: Record<string, string> = {
   runap_national_parks: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
   omecs: OMEC_OVERLAY_LAYER_ID,
 };
+/**
+ * Conservation designations shown under OMECs in Conservation Areas (UCS-193).
+ * Order is the sidebar order, regardless of which manifest category currently lists them.
+ */
+export const CONSERVATION_AREA_REFERENCE_LAYER_IDS = [
+  'ramsar',
+  'biosphere_reserves',
+  'reservas_forestales_ley_2_1959',
+] as const;
 export const MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID = Object.fromEntries(
   Object.entries(MANIFEST_OVERLAY_ROW_BY_LAYER_ID).map(([layerId, rowId]) => [rowId, layerId]),
 ) as Record<string, string>;

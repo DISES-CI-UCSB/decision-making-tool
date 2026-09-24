@@ -449,9 +449,9 @@ const proposedManifestCategories = {
 
 const proposedLayerCategoryOverrides = {
   zonas_reserva_campesina_constituida: 'cultural_and_ethnic_territories',
-  ramsar: 'ecosystems',
-  biosphere_reserves: 'ecosystems',
-  reservas_forestales_ley_2_1959: 'ecosystems',
+  ramsar: 'management_figures',
+  biosphere_reserves: 'management_figures',
+  reservas_forestales_ley_2_1959: 'management_figures',
   kba_aica: 'species_and_biodiversity',
   marine_ecosystems: 'ecosystems',
   runap: 'management_figures',
@@ -513,7 +513,8 @@ const categoryMappingRules = {
   management_figures: {
     frontendCategoryIds: ['management-figures'],
     status: 'maps_cleanly',
-    notes: 'RUNAP and OMEC layers map to the existing Conservation Areas overlay group.',
+    notes:
+      'RUNAP, OMECs, and conservation reference layers map to the existing Conservation Areas overlay group.',
   },
   administrative_boundaries: {
     frontendCategoryIds: ['group-admin-boundaries'],
