@@ -251,6 +251,9 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
+    // Existing allowedSirapIds must already be current-region ids. A regional
+    // admin therefore cannot strip retired ids or grant a SIRAP they do not
+    // administer.
     function validSirapAdminUserUpdate() {
       return isSirapAdministrator()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -268,6 +271,22 @@ service cloud.firestore {
           .toSet()
           .difference(request.resource.data.allowedSirapIds.toSet())
           .hasOnly(currentUserData().administeredSirapIds)
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // Super-admin SIRAP decisions replace allowedSirapIds with a current-region
+    // list. Retired ids already stored on the user do not have to pass
+    // validSirapIdList first. Role, tier, and admin flags stay unchanged.
+    function validSuperAdminSirapAccessUpdate() {
+      return isSuperAdmin()
+        && resource.data.status == 'active'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'allowedSirapIds',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && validSirapIdList(request.resource.data.allowedSirapIds)
         && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.updatedAt == request.time;
     }
@@ -418,6 +437,7 @@ service cloud.firestore {
       // write accessRequests/{uid} as pending and wait for admin approval.
       allow create: if isSuperAdmin() && validUserRecord(uid);
       allow update: if (isSuperAdmin() && validUserRecord(uid))
+        || validSuperAdminSirapAccessUpdate()
         || validSirapAdminUserUpdate();
       allow delete: if false;
 

@@ -23,7 +23,6 @@ import {
   type SirapAccessRequestRecord,
 } from '../services/sirap-access.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
-import { environment } from '../../../../environments/environment';
 import {
   appendDevelopmentFakeDemoData,
   isFakeActiveUser,
@@ -842,7 +841,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
         realPendingRequests,
         realSirapRequests,
         realActiveUsers,
-        shouldAppendFakeDemoData(environment.production),
+        shouldAppendFakeDemoData(),
       );
       this.pendingRequests.set(pendingRequests);
       this.sirapRequests.set(sirapRequests);
@@ -888,7 +887,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
       [],
       [],
       realActiveUsers,
-      shouldAppendFakeDemoData(environment.production),
+      shouldAppendFakeDemoData(),
     );
     this.setActiveUsers(activeUsers);
     this.syncActiveUsersPagination();

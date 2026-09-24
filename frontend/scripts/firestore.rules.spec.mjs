@@ -18,6 +18,8 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  arrayRemove,
+  arrayUnion,
   updateDoc,
   where,
   writeBatch,
@@ -539,6 +541,168 @@ describe('TOTP SIRAP admin', () => {
       }),
     );
     await assertFails(getDoc(doc(db, 'users', ACTORS.foreign.uid)));
+  });
+});
+
+describe('legacy allowedSirapIds', () => {
+  const dispatch = {
+    uid: 'legacy-dispatch',
+    email: 'dispatch@example.com',
+    name: 'Dispatch',
+  };
+
+  async function seedDispatch(allowedSirapIds) {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(
+        doc(db, 'users', dispatch.uid),
+        userRecord(dispatch, {
+          allowedSirapIds,
+          administeredSirapIds: ['caribe', 'pacifico'],
+        }),
+      );
+      await setDoc(
+        doc(db, 'sirapAccessRequests', sirapRequestId(dispatch.uid, 'eje-cafetero')),
+        pendingSirapRequest(dispatch, 'eje-cafetero'),
+      );
+      await setDoc(
+        doc(db, 'sirapAccessRequests', sirapRequestId(dispatch.uid, 'orinoquia')),
+        pendingSirapRequest(dispatch, 'orinoquia'),
+      );
+    });
+  }
+
+  function decideLegacyRequest(db, actor, sirapId, decision, allowedSirapIds) {
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'sirapAccessRequests', sirapRequestId(dispatch.uid, sirapId)), {
+      status: decision,
+      decidedAt: serverTimestamp(),
+      decidedBy: actor.uid,
+      updatedAt: serverTimestamp(),
+    });
+    batch.update(doc(db, 'users', dispatch.uid), {
+      allowedSirapIds,
+      updatedAt: serverTimestamp(),
+      updatedBy: actor.uid,
+    });
+    return batch.commit();
+  }
+
+  it('lets a super admin approve a current SIRAP and repair retired ids', async () => {
+    await seedDispatch(['caribe', 'pacifico', 'orinoquia']);
+    const db = totpDb(ACTORS.superAdmin);
+
+    await assertSucceeds(
+      decideLegacyRequest(db, ACTORS.superAdmin, 'eje-cafetero', 'approved', [
+        'orinoquia',
+        'eje-cafetero',
+      ]),
+    );
+
+    const savedUser = await getDoc(doc(db, 'users', dispatch.uid));
+    const savedRequest = await getDoc(
+      doc(db, 'sirapAccessRequests', sirapRequestId(dispatch.uid, 'eje-cafetero')),
+    );
+    assert.deepEqual(savedUser.data().allowedSirapIds, ['orinoquia', 'eje-cafetero']);
+    assert.equal(savedRequest.data().status, 'approved');
+    assert.equal(savedRequest.data().decidedBy, ACTORS.superAdmin.uid);
+  });
+
+  it('lets a super admin deny a current SIRAP and repair retired ids', async () => {
+    await seedDispatch(['caribe', 'pacifico', 'orinoquia', 'eje-cafetero']);
+    const db = totpDb(ACTORS.superAdmin);
+
+    await assertSucceeds(
+      decideLegacyRequest(db, ACTORS.superAdmin, 'orinoquia', 'denied', ['eje-cafetero']),
+    );
+
+    const savedUser = await getDoc(doc(db, 'users', dispatch.uid));
+    const savedRequest = await getDoc(
+      doc(db, 'sirapAccessRequests', sirapRequestId(dispatch.uid, 'orinoquia')),
+    );
+    assert.deepEqual(savedUser.data().allowedSirapIds, ['eje-cafetero']);
+    assert.equal(savedRequest.data().status, 'denied');
+  });
+
+  it('rejects a super admin decision that keeps or adds retired ids', async () => {
+    await seedDispatch(['caribe', 'pacifico', 'orinoquia']);
+    const db = totpDb(ACTORS.superAdmin);
+    const userRef = doc(db, 'users', dispatch.uid);
+
+    await assertFails(
+      updateDoc(userRef, {
+        allowedSirapIds: arrayUnion('eje-cafetero'),
+        updatedAt: serverTimestamp(),
+        updatedBy: ACTORS.superAdmin.uid,
+      }),
+    );
+    await assertFails(
+      updateDoc(userRef, {
+        allowedSirapIds: arrayRemove('orinoquia'),
+        updatedAt: serverTimestamp(),
+        updatedBy: ACTORS.superAdmin.uid,
+      }),
+    );
+    await assertFails(
+      updateDoc(userRef, {
+        allowedSirapIds: ['caribe', 'eje-cafetero'],
+        updatedAt: serverTimestamp(),
+        updatedBy: ACTORS.superAdmin.uid,
+      }),
+    );
+    await assertFails(
+      updateDoc(userRef, {
+        allowedSirapIds: ['eje-cafetero'],
+        organization: 'not-a-user-field',
+        updatedAt: serverTimestamp(),
+        updatedBy: ACTORS.superAdmin.uid,
+      }),
+    );
+  });
+
+  it('rejects a first-factor super admin repair', async () => {
+    await seedDispatch(['caribe', 'pacifico']);
+    await assertFails(
+      decideLegacyRequest(
+        firstFactorDb(ACTORS.superAdmin),
+        ACTORS.superAdmin,
+        'eje-cafetero',
+        'approved',
+        ['eje-cafetero'],
+      ),
+    );
+  });
+
+  it('stops a regional admin from repairing legacy ids or granting another SIRAP', async () => {
+    await seedDispatch(['caribe', 'pacifico']);
+    const db = totpDb(ACTORS.sirapAdmin);
+
+    await assertFails(
+      decideLegacyRequest(db, ACTORS.sirapAdmin, 'orinoquia', 'approved', ['orinoquia']),
+    );
+    await assertFails(
+      decideLegacyRequest(db, ACTORS.sirapAdmin, 'eje-cafetero', 'approved', [
+        'orinoquia',
+        'eje-cafetero',
+      ]),
+    );
+    await assertFails(
+      updateDoc(doc(db, 'users', dispatch.uid), {
+        allowedSirapIds: arrayUnion('orinoquia'),
+        updatedAt: serverTimestamp(),
+        updatedBy: ACTORS.sirapAdmin.uid,
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(db, 'users', dispatch.uid), {
+        allowedSirapIds: ['orinoquia'],
+        role: 'admin',
+        isAdmin: true,
+        isSuperAdmin: true,
+        updatedAt: serverTimestamp(),
+        updatedBy: ACTORS.sirapAdmin.uid,
+      }),
+    );
   });
 });
 

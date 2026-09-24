@@ -7,14 +7,13 @@ import {
 } from '@core/models';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import {
-  arrayRemove,
-  arrayUnion,
   collection,
   deleteField,
   doc,
   getDoc,
   getDocs,
   query,
+  runTransaction,
   serverTimestamp,
   where,
   writeBatch,
@@ -45,6 +44,24 @@ export function shouldDenyRequestHistoryOnRevoke(
   requestData: DocumentData | null | undefined,
 ): boolean {
   return requestData?.['status'] === 'approved';
+}
+
+/**
+ * Current-region ids to store after a SIRAP decision.
+ * Retired ids such as caribe and pacifico are dropped, because security rules
+ * only accept orinoquia and eje-cafetero. arrayUnion and arrayRemove would keep
+ * those retired ids and the whole decision batch would be denied.
+ */
+export function repairedAllowedSirapIds(
+  currentAllowedSirapIds: unknown,
+  sirapId: SirapRegionId,
+  decision: 'approved' | 'denied',
+): SirapRegionId[] {
+  const current = readSirapAccessRegionIds(currentAllowedSirapIds);
+  if (decision === 'denied' || !isSirapAccessRegionId(sirapId)) {
+    return current.filter((id) => id !== sirapId);
+  }
+  return current.includes(sirapId) ? current : [...current, sirapId];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -186,25 +203,30 @@ export class SirapAccessService {
       throw new Error('You cannot administer this SIRAP.');
     }
 
-    const userSnapshot = await getDoc(doc(firestore, 'users', request.uid));
-    if (!userSnapshot.exists() || userSnapshot.data()['status'] !== 'active') {
-      throw new Error('A super admin must approve this Firebase account before SIRAP access.');
-    }
+    const userRef = doc(firestore, 'users', request.uid);
+    const requestRef = doc(firestore, 'sirapAccessRequests', request.id);
+    await runTransaction(firestore, async (transaction) => {
+      const userSnapshot = await transaction.get(userRef);
+      if (!userSnapshot.exists() || userSnapshot.data()['status'] !== 'active') {
+        throw new Error('A super admin must approve this Firebase account before SIRAP access.');
+      }
 
-    const batch = writeBatch(firestore);
-    batch.update(doc(firestore, 'sirapAccessRequests', request.id), {
-      status: decision,
-      decidedAt: serverTimestamp(),
-      decidedBy: administrator.uid,
-      updatedAt: serverTimestamp(),
+      transaction.update(requestRef, {
+        status: decision,
+        decidedAt: serverTimestamp(),
+        decidedBy: administrator.uid,
+        updatedAt: serverTimestamp(),
+      });
+      transaction.update(userRef, {
+        allowedSirapIds: repairedAllowedSirapIds(
+          userSnapshot.data()['allowedSirapIds'],
+          request.sirapId,
+          decision,
+        ),
+        updatedAt: serverTimestamp(),
+        updatedBy: administrator.uid,
+      });
     });
-    batch.update(doc(firestore, 'users', request.uid), {
-      allowedSirapIds:
-        decision === 'approved' ? arrayUnion(request.sirapId) : arrayRemove(request.sirapId),
-      updatedAt: serverTimestamp(),
-      updatedBy: administrator.uid,
-    });
-    await batch.commit();
   }
 
   async revokeUserAccess(uid: string, sirapId: SirapRegionId): Promise<void> {
@@ -213,25 +235,31 @@ export class SirapAccessService {
     if (!administrator.isSuperAdmin && !administrator.administeredSirapIds.includes(sirapId)) {
       throw new Error('You cannot administer this SIRAP.');
     }
+    const userRef = doc(firestore, 'users', uid);
     const requestRef = doc(firestore, 'sirapAccessRequests', this.requestId(uid, sirapId));
-    const requestSnapshot = await getDoc(requestRef);
-    const batch = writeBatch(firestore);
-    batch.update(doc(firestore, 'users', uid), {
-      allowedSirapIds: arrayRemove(sirapId),
-      updatedAt: serverTimestamp(),
-      updatedBy: administrator.uid,
-    });
-    if (
-      shouldDenyRequestHistoryOnRevoke(requestSnapshot.exists() ? requestSnapshot.data() : null)
-    ) {
-      batch.update(requestRef, {
-        status: 'denied',
-        decidedAt: serverTimestamp(),
-        decidedBy: administrator.uid,
+    await runTransaction(firestore, async (transaction) => {
+      const userSnapshot = await transaction.get(userRef);
+      const requestSnapshot = await transaction.get(requestRef);
+      transaction.update(userRef, {
+        allowedSirapIds: repairedAllowedSirapIds(
+          userSnapshot.exists() ? userSnapshot.data()['allowedSirapIds'] : [],
+          sirapId,
+          'denied',
+        ),
         updatedAt: serverTimestamp(),
+        updatedBy: administrator.uid,
       });
-    }
-    await batch.commit();
+      if (
+        shouldDenyRequestHistoryOnRevoke(requestSnapshot.exists() ? requestSnapshot.data() : null)
+      ) {
+        transaction.update(requestRef, {
+          status: 'denied',
+          decidedAt: serverTimestamp(),
+          decidedBy: administrator.uid,
+          updatedAt: serverTimestamp(),
+        });
+      }
+    });
   }
 
   private requireFirestore() {

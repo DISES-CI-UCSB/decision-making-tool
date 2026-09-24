@@ -18,9 +18,10 @@ Este es el paquete de entrega técnica de Decision Making Tool, preparado para e
 | [`cybersecurity.md`](./cybersecurity.md)                         | Límites de confianza, controles actuales, hallazgos y registro de riesgos                                                                      |
 | [`usability-testing.md`](./usability-testing.md)                 | Plan de pruebas de usabilidad y de aceptación de usuario, aplazado hasta que el candidato de versión sea estable                              |
 | [`performance-testing.md`](./performance-testing.md)             | Plan y evidencia actual de pruebas de carga, estrés, saturación y resistencia                                                                  |
+| [`reception/`](../english/reception/)                            | Manuales de recepción E3-FO-35 en inglés (instalación, requisitos, administración, usuarios, modelo de datos, FAQ)                             |
 | [`requirements-traceability.md`](./requirements-traceability.md) | Cada requisito de GTIC y de julio de 2026 relacionado con su evidencia y estado                                                               |
 
-Las pestañas **Identidad visual** y **Soluciones regionales SIRAP** viven en el documento de Google en inglés; esta carpeta en español no las duplica.
+Las pestañas **Identidad visual** y **Soluciones regionales SIRAP** viven en el documento de Google en inglés; esta carpeta en español no las duplica. Los **manuales de recepción E3-FO-35** están en inglés en [`reception/`](../english/reception/).
 
 Quien disponga de solo diez minutos debe leer este README junto con la tabla de **Principales decisiones** que aparece a continuación y luego ir directamente al documento temático más pertinente para su función.
 

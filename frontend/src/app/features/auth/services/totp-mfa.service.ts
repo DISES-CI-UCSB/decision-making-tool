@@ -13,11 +13,16 @@ import {
   type User,
   type UserCredential,
 } from 'firebase/auth';
+import { environment } from '../../../../environments/environment';
+import { shouldRunTotpEnrollmentDiagnostic } from './totp-enrollment-diagnostic';
+import { TotpEnrollmentDiagnosticService } from './totp-enrollment-diagnostic.service';
 import { QrCodeService } from './qr-code.service';
 
 export const AUTH_ERROR_MFA_REQUIRED = 'auth/multi-factor-auth-required';
 export const AUTH_ERROR_INVALID_OTP = 'auth/invalid-verification-code';
+export const AUTH_ERROR_INVALID_VERIFICATION_ID = 'auth/invalid-verification-id';
 export const AUTH_ERROR_CODE_EXPIRED = 'auth/code-expired';
+export const AUTH_ERROR_REQUIRES_RECENT_LOGIN = 'auth/requires-recent-login';
 export const AUTH_ERROR_MISSING_MFA_INFO = 'auth/missing-multi-factor-info';
 export const AUTH_ERROR_SECOND_FACTOR_ALREADY_ENROLLED = 'auth/second-factor-already-in-use';
 export const TOTP_ENROLLMENT_EXPIRED_CODE = 'totp/enrollment-expired';
@@ -34,14 +39,74 @@ export function totpAccountLabel(accountName: string, issuer = TOTP_ISSUER): str
   return `${issuer} (${trimmed})`;
 }
 
+export interface TotpOtpauthInput {
+  issuer: string;
+  accountName: string;
+  secretKey: string;
+  algorithm: string;
+  digits: number;
+  periodSeconds: number;
+}
+
+export function buildTotpOtpauthUri(input: TotpOtpauthInput): string {
+  const issuer = input.issuer.trim() || TOTP_ISSUER;
+  const accountName = input.accountName.trim() || 'unknownuser';
+  // Duo Mobile splits a path on ":" and then drops a percent-encoded issuer
+  // prefix, so "Issuer:email" shows only the email. The visible label is
+  // "Eco Plan Tool (email)" with no colon. The issuer query still names the
+  // product for other authenticator apps. otpauth has no logo Duo will use.
+  const label = totpAccountLabel(accountName, issuer);
+  const query = [
+    ['secret', input.secretKey],
+    ['issuer', issuer],
+    ['algorithm', (input.algorithm || 'SHA1').toUpperCase()],
+    ['digits', String(input.digits || 6)],
+    ['period', String(input.periodSeconds || 30)],
+  ]
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
+  return `otpauth://totp/${encodeURIComponent(label)}?${query}`;
+}
+
+/**
+ * Reuse the in-memory enrollment for this uid, including after
+ * `enrollmentCompletionDeadline`. Submit still rejects an expired secret and
+ * moves the modal into recovery; only `forgetOpenEnrollment` drops the cache
+ * so a replacement QR can be minted. A different uid never receives another
+ * user's session. A full page reload drops this cache. The secret is not persisted.
+ */
+export function reuseOpenEnrollment<T>(
+  cached: { uid: string; session: T } | null,
+  uid: string,
+): T | null {
+  if (!cached || cached.uid !== uid) {
+    return null;
+  }
+  return cached.session;
+}
+
 export const TOTP_RETRY_MESSAGE =
   'That code was incorrect or expired. Try the current 6-digit code.';
 export const TOTP_FORMAT_MESSAGE = 'Enter the 6-digit code from your authenticator app.';
 export const TOTP_NO_HINT_MESSAGE =
   'This account needs an authenticator app. SMS is not supported.';
 export const TOTP_RESTART_MESSAGE = 'This sign-in challenge expired. Sign in with Google again.';
+export const TOTP_ENROLLMENT_UNCONFIRMED_CODE = 'totp/enrollment-unconfirmed';
+export const TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE =
+  'The authenticator code was not confirmed yet. Keep this QR code and enter the current 6-digit code again.';
+export const TOTP_ENROLLMENT_REPLACE_WARNING =
+  'Creating a new QR code stops the Eco Plan Tool entry already in Duo Mobile from working.';
+export const TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE =
+  'This authenticator setup can no longer be confirmed. Create a new QR code to replace it.';
+export const TOTP_RECENT_LOGIN_MESSAGE =
+  'Google confirmed this sign-in. The same QR code is still valid. Enter the current 6-digit code.';
+export const TOTP_RECENT_LOGIN_FAILED_MESSAGE =
+  'Google needs a fresh sign-in before this authenticator can be saved. The same QR code is still valid. Try again, then enter the current code.';
+export const TOTP_ALREADY_ENROLLED_CODE = 'totp/already-enrolled';
+export const TOTP_ALREADY_ENROLLED_MESSAGE =
+  'This account already has an authenticator app. Continue signing in.';
 
-export type TotpErrorKind = 'retry' | 'restart';
+export type TotpErrorKind = 'retry' | 'restart' | 'recover';
 
 export class TotpMfaError extends Error {
   readonly kind: TotpErrorKind;
@@ -91,6 +156,16 @@ export function isTotpMfaError(error: unknown): error is TotpMfaError {
   return error instanceof TotpMfaError;
 }
 
+const TOTP_SUPPORT_CODE_PATTERN = /^(auth|totp)\/[a-z0-9-]+$/;
+
+/** Firebase or app error code safe to show in the enrollment banner. */
+export function totpSupportCode(code: string | null | undefined): string | null {
+  if (!code || !TOTP_SUPPORT_CODE_PATTERN.test(code)) {
+    return null;
+  }
+  return code;
+}
+
 export function normalizeTotpCode(otp: string): string {
   return otp.replace(/\s+/g, '');
 }
@@ -116,14 +191,35 @@ export function selectTotpHint(hints: readonly MultiFactorInfo[]): MultiFactorIn
 }
 
 export function classifyTotpErrorCode(code: string): TotpErrorKind {
+  if (code === TOTP_ENROLLMENT_UNCONFIRMED_CODE || code === TOTP_ENROLLMENT_EXPIRED_CODE) {
+    return 'recover';
+  }
   if (
     code === AUTH_ERROR_INVALID_OTP ||
+    code === AUTH_ERROR_INVALID_VERIFICATION_ID ||
     code === AUTH_ERROR_CODE_EXPIRED ||
+    code === AUTH_ERROR_REQUIRES_RECENT_LOGIN ||
     code === TOTP_INVALID_FORMAT_CODE
   ) {
     return 'retry';
   }
   return 'restart';
+}
+
+export function totpErrorMessage(code: string, kind: TotpErrorKind): string {
+  if (code === AUTH_ERROR_REQUIRES_RECENT_LOGIN) {
+    return TOTP_RECENT_LOGIN_FAILED_MESSAGE;
+  }
+  if (code === TOTP_ENROLLMENT_UNCONFIRMED_CODE) {
+    return TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE;
+  }
+  if (code === TOTP_ENROLLMENT_EXPIRED_CODE) {
+    return TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE;
+  }
+  if (code === TOTP_INVALID_FORMAT_CODE) {
+    return TOTP_FORMAT_MESSAGE;
+  }
+  return kind === 'retry' ? TOTP_RETRY_MESSAGE : TOTP_RESTART_MESSAGE;
 }
 
 export function toTotpMfaError(error: unknown): TotpMfaError {
@@ -132,7 +228,7 @@ export function toTotpMfaError(error: unknown): TotpMfaError {
   }
   const code = isAuthError(error) ? error.code : 'auth/internal-error';
   const kind = classifyTotpErrorCode(code);
-  return new TotpMfaError(kind, code, kind === 'retry' ? TOTP_RETRY_MESSAGE : TOTP_RESTART_MESSAGE);
+  return new TotpMfaError(kind, code, totpErrorMessage(code, kind));
 }
 
 export function readEnrollmentDeadlineMs(deadline: string): number | null {
@@ -143,14 +239,55 @@ export function readEnrollmentDeadlineMs(deadline: string): number | null {
 export function requireOpenEnrollmentDeadline(deadline: string, nowMs = Date.now()): void {
   const expiresAt = readEnrollmentDeadlineMs(deadline);
   if (expiresAt !== null && nowMs >= expiresAt) {
-    throw new TotpMfaError('restart', TOTP_ENROLLMENT_EXPIRED_CODE, TOTP_RESTART_MESSAGE);
+    throw new TotpMfaError(
+      'recover',
+      TOTP_ENROLLMENT_EXPIRED_CODE,
+      TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
+    );
   }
 }
 
-export async function hasEnrolledTotpAfterReload(
+export function canBeginTotpEnrollment(enrolledAfterRefresh: boolean): boolean {
+  return !enrolledAfterRefresh;
+}
+
+export function requireVisibleTotpEnrollment(enrolledAfterRefresh: boolean): void {
+  if (!enrolledAfterRefresh) {
+    throw new TotpMfaError(
+      'recover',
+      TOTP_ENROLLMENT_UNCONFIRMED_CODE,
+      TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
+    );
+  }
+}
+
+/**
+ * Confirmed enrollment clears the open session. Unconfirmed enrollment stays
+ * locked. A development diagnostic cannot change either result.
+ */
+export async function applyTotpEnrollmentResult(input: {
+  production: boolean;
+  enrolledAfterRefresh: boolean;
+  diagnoseUnconfirmed: () => Promise<void>;
+  forgetEnrollment: () => void;
+}): Promise<void> {
+  if (shouldRunTotpEnrollmentDiagnostic(input.production, input.enrolledAfterRefresh)) {
+    try {
+      await input.diagnoseUnconfirmed();
+    } catch {
+      // A diagnostic failure must not change the locked enrollment result.
+    }
+  }
+  requireVisibleTotpEnrollment(input.enrolledAfterRefresh);
+  input.forgetEnrollment();
+}
+
+export async function hasEnrolledTotpAfterFactorRefresh(
+  forceRefreshIdToken: () => Promise<void>,
   reload: () => Promise<void>,
   hasEnrolledTotp: () => boolean,
 ): Promise<boolean> {
+  await forceRefreshIdToken();
   await reload();
   return hasEnrolledTotp();
 }
@@ -174,9 +311,29 @@ export function createTotpChallengeSession(
 @Injectable({ providedIn: 'root' })
 export class TotpMfaService {
   private readonly qrCode = inject(QrCodeService);
+  private readonly enrollmentDiagnostic = inject(TotpEnrollmentDiagnosticService);
+  /**
+   * In-memory open enrollment for this app session. Deadline expiry does not
+   * clear it. A full page reload does, and the secret is never persisted.
+   */
+  private openEnrollment: { uid: string; session: TotpEnrollmentSession } | null = null;
+  private unconfirmedEnrollmentUid: string | null = null;
 
   hasEnrolledTotp(user: User | null): boolean {
     return user !== null && hasTotpFactor(multiFactor(user).enrolledFactors);
+  }
+
+  async userHasEnrolledTotp(user: User): Promise<boolean> {
+    // Firebase can leave enrolledFactors empty until reload runs with a fresh ID
+    // token, and it can also leave a removed factor in that local list. Never
+    // trust the pre-reload list. Force a token refresh, reload, then read.
+    return hasEnrolledTotpAfterFactorRefresh(
+      async () => {
+        await user.getIdToken(true);
+      },
+      () => user.reload(),
+      () => this.hasEnrolledTotp(user),
+    );
   }
 
   createAssertionSession(auth: Auth, error: MultiFactorError): TotpChallengeSession {
@@ -194,23 +351,65 @@ export class TotpMfaService {
     }
   }
 
+  openEnrollmentFor(user: User): TotpEnrollmentSession | null {
+    return reuseOpenEnrollment(this.openEnrollment, user.uid);
+  }
+
+  forgetOpenEnrollment(uid?: string): void {
+    if (!uid || this.openEnrollment?.uid === uid) {
+      this.openEnrollment = null;
+    }
+    if (!uid || this.unconfirmedEnrollmentUid === uid) {
+      this.unconfirmedEnrollmentUid = null;
+    }
+  }
+
+  rememberOpenEnrollment(user: User, session: TotpEnrollmentSession): void {
+    this.openEnrollment = { uid: user.uid, session };
+  }
+
+  markEnrollmentUnconfirmed(uid: string): void {
+    this.unconfirmedEnrollmentUid = uid;
+  }
+
+  enrollmentNeedsRecovery(uid: string): boolean {
+    return this.unconfirmedEnrollmentUid === uid;
+  }
+
   async beginEnrollment(user: User, accountName: string): Promise<TotpEnrollmentSession> {
-    const labeledAccount = totpAccountLabel(accountName);
+    if (!canBeginTotpEnrollment(await this.userHasEnrolledTotp(user))) {
+      this.forgetOpenEnrollment(user.uid);
+      throw new TotpMfaError('restart', TOTP_ALREADY_ENROLLED_CODE, TOTP_ALREADY_ENROLLED_MESSAGE);
+    }
+    const existing = this.openEnrollmentFor(user);
+    if (existing) {
+      return existing;
+    }
+    const rawAccount = accountName.trim();
     const secret = await TotpMultiFactorGenerator.generateSecret(
       await multiFactor(user).getSession(),
     );
-    const qrCodeUrl = secret.generateQrCodeUrl(labeledAccount, TOTP_ISSUER);
-    return {
+    const qrCodeUrl = buildTotpOtpauthUri({
+      issuer: TOTP_ISSUER,
+      accountName: rawAccount,
+      secretKey: secret.secretKey,
+      algorithm: secret.hashingAlgorithm,
+      digits: secret.codeLength,
+      periodSeconds: secret.codeIntervalSeconds,
+    });
+    const session: TotpEnrollmentSession = {
       secret,
       qrCodeUrl,
       qrCodeDataUrl: this.qrCode.toDataUrl(qrCodeUrl),
       secretKey: secret.secretKey,
-      accountName: labeledAccount,
+      accountName: rawAccount,
       issuer: TOTP_ISSUER,
       enrollmentCompletionDeadline: secret.enrollmentCompletionDeadline,
       codeLength: secret.codeLength,
       codeIntervalSeconds: secret.codeIntervalSeconds,
     };
+    this.openEnrollment = { uid: user.uid, session };
+    return session;
   }
 
   async completeEnrollment(user: User, session: TotpEnrollmentSession, otp: string): Promise<void> {
@@ -223,15 +422,18 @@ export class TotpMfaService {
       );
     } catch (error) {
       if (isAuthError(error) && error.code === AUTH_ERROR_SECOND_FACTOR_ALREADY_ENROLLED) {
-        const enrolled = await hasEnrolledTotpAfterReload(
-          () => user.reload(),
-          () => this.hasEnrolledTotp(user),
-        );
-        if (enrolled) {
+        if (await this.userHasEnrolledTotp(user)) {
+          this.forgetOpenEnrollment(user.uid);
           return;
         }
       }
       throw toTotpMfaError(error);
     }
+    await applyTotpEnrollmentResult({
+      production: environment.production,
+      enrolledAfterRefresh: await this.userHasEnrolledTotp(user),
+      diagnoseUnconfirmed: () => this.enrollmentDiagnostic.reportUnconfirmed(user),
+      forgetEnrollment: () => this.forgetOpenEnrollment(user.uid),
+    });
   }
 }

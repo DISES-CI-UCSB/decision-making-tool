@@ -144,18 +144,28 @@ National and SIRAP (Sistema Regional de Áreas Protegidas, regional) solutions u
 
 ### Production sequence
 
-| Step | Script | Output and metric ownership |
-|------|--------|-----------------------------|
-| 1. Calculate regular detailed metrics | `main.py` | Writes one detailed metrics document per solution with general summary metrics: area and priority, land use, carbon, water, protected-area overlaps, social/governance areas, marine summaries, regular ecosystem summaries, `conservation_goals_met`, and the ten land-species summaries listed below. Passing `--skip-species` leaves those ten species summaries unfinished with `derivation_needed`. |
-| 2. Calculate Species Coverage Breakdowns | `run_species_goals_full_build.py` using `species_goals.py` | Uses Calculator A sparse matrices to write per-species coverage records for each solution and geography. These records power species popup modals. This step does **not** write the ten regular species summary metrics. |
-| 3. Reconcile deferred species summaries | Complete reconciliation command does not exist yet | Required after `main.py --skip-species`. It must derive all ten summaries from validated Species Coverage Breakdowns, update detailed and compact regular outputs, and leave non-species metrics unchanged. Existing backfills restore only selected metrics and do not complete this stage. A production release must not treat skipped species as complete until this stage succeeds. |
-| 4. Calculate Ecosystem Coverage Breakdowns | `mec_compact.py` | Writes land-only MEC (Mapa de Ecosistemas de Colombia, Colombia's ecosystem map) shards per solution and geography. These power ecosystem popup modals and are separate from the regular ecosystem summary metrics written by `main.py`. |
-| 5. Build conservation-goal breakdowns | `conservation_goals.py` | Reshapes Prioritizr summary CSV files into per-feature target, held, shortfall, and met records. It calculates display rollups such as met count, total count, percent met, feature-type groups, and species taxonomic groups; it does **not** independently recalculate held coverage from rasters. The app uses this sidecar in the Overview **Conservation target progress** widget and its breakdown modal. The separate **Targets Achieved** Overview card reads the regular `conservation_goals_met` summary written by `main.py`, which also comes from Prioritizr-derived summary values. |
-| 6. Create compact regular metrics | `compact_metrics.py` | Converts the detailed regular metrics into the smaller format loaded by the dashboards. It changes format only; it does not calculate or repair metrics. |
-| 7. Inspect, assemble, publish, and verify | `inspect_metrics.py`, `assemble_solution_release.py`, `publish.py`, `verify_artifacts.py` | Validates completed artifacts, assembles the release, uploads it to Blob, and verifies the uploaded bytes. Use `publish.py --dry-run` first. Publication requires `BLOB_READ_WRITE_TOKEN` in `.env.local`. |
-| 8. Update app manifests | `frontend/layer-manifest/*.mjs` | Points the app at the published regular, Species Coverage Breakdown, Ecosystem Coverage Breakdown, and conservation-goal artifacts. These scripts calculate no metrics. |
+ | Step | Script | Output and metric ownership | Observed timing |
+|------|--------|-----------------------------|-----------------|
+| 1. Calculate regular detailed metrics | `main.py` | Writes one detailed metrics document per solution with general summary metrics: area and priority, land use, carbon, water, protected-area overlaps, social/governance areas, marine summaries, regular ecosystem summaries, `conservation_goals_met`, and the ten land-species summaries listed below. Passing `--skip-species` leaves those ten species summaries unfinished with `derivation_needed`. | One gold land solution, all six geographies, Apple M2 Max: **7 min 14 sec** with `--skip-species`. The production 8,300-species path is currently blocked; see the timing note below. |
+| 2. Calculate Species Coverage Breakdowns | `run_species_goals_full_build.py` using `species_goals.py` | Uses Calculator A sparse matrices to write per-species coverage records for each solution and geography. These records power species popup modals. This step does **not** write the ten regular species summary metrics. | Same gold solution: about **45 sec generation + 34 sec validation**. Historical 168-solution run: about **2 hours with six workers**. |
+| 3. Reconcile deferred species summaries | Complete reconciliation command does not exist yet | Required after `main.py --skip-species`. It must derive all ten summaries from validated Species Coverage Breakdowns, update detailed and compact regular outputs, and leave non-species metrics unchanged. Existing backfills restore only selected metrics and do not complete this stage. A production release must not treat skipped species as complete until this stage succeeds. | Not available until the command exists. |
+| 4. Calculate Ecosystem Coverage Breakdowns | `mec_compact.py` | Writes land-only MEC (Mapa de Ecosistemas de Colombia, Colombia's ecosystem map) shards per solution and geography. These power ecosystem popup modals and are separate from the regular ecosystem summary metrics written by `main.py`. | Not benchmarked. |
+| 5. Build conservation-goal breakdowns | `conservation_goals.py` | Reshapes Prioritizr summary CSV files into per-feature target, held, shortfall, and met records. It calculates display rollups such as met count, total count, percent met, feature-type groups, and species taxonomic groups; it does **not** independently recalculate held coverage from rasters. The app uses this sidecar in the Overview **Conservation target progress** widget and its breakdown modal. The separate **Targets Achieved** Overview card reads the regular `conservation_goals_met` summary written by `main.py`, which also comes from Prioritizr-derived summary values. | Not benchmarked. |
+| 6. Create compact regular metrics | `compact_metrics.py` | Converts the detailed regular metrics into the smaller format loaded by the dashboards. It changes format only; it does not calculate or repair metrics. | Not benchmarked. |
+| 7. Inspect, assemble, publish, and verify | `inspect_metrics.py`, `assemble_solution_release.py`, `publish.py`, `verify_artifacts.py` | Validates completed artifacts, assembles the release, uploads it to Blob, and verifies the uploaded bytes. Use `publish.py --dry-run` first. Publication requires `BLOB_READ_WRITE_TOKEN` in `.env.local`. | Depends on artifact count and network conditions; not benchmarked. |
+| 8. Update app manifests | `frontend/layer-manifest/*.mjs` | Points the app at the published regular, Species Coverage Breakdown, Ecosystem Coverage Breakdown, and conservation-goal artifacts. These scripts calculate no metrics. | Not benchmarked. |
 
 Rehydrate only when custom-AOI inputs changed.
+
+Timing note (measured 2026-09-23): the Step 1 benchmark used
+`eco17_estr17_serv17_esprep17_runap_iheh2022` across national, departments,
+municipalities, SIRAPs, RUNAPs, and OMECs. The current production 8,300-species
+path spent **2 hr 35 min** in cold input alignment, then failed before metric
+calculation because two MAXENT GeoTIFFs were missing and eight downloads timed
+out. A performance-only run excluding the two missing species completed in
+**13 min 30 sec** on a warm cache (**9 min 6 sec** per-solution, including
+**4 min 16 sec** of species work). That 8,298-species result is not valid
+catalog 3.7.0 science and must not be published.
 
 ### The ten land-species summary metrics
 
