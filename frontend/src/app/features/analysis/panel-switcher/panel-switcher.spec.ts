@@ -2958,10 +2958,7 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
-      solution_id: solution.id,
-      coverage_scope: 'full-grid',
-    });
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
     expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
 
     (
@@ -3153,10 +3150,7 @@ describe('PanelSwitcherComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
-      solution_id: solution.id,
-      coverage_scope: 'full-grid',
-    });
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
     expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'orinoquia');
     expect(component.getGoalsModalTitleKey()).toBe(
       'analysis.overview.goalsWidget.modal.sirapSpeciesTitle',
@@ -3265,7 +3259,7 @@ describe('PanelSwitcherComponent', () => {
     ).toContain('1');
   });
 
-  it('computes SIRAP overview species coverage live over the full grid', async () => {
+  it('loads SIRAP overview species coverage from the shared catalog and metric sidecar', async () => {
     const solution = buildTestSolution();
     goalsDocument = buildOrinoquiaGoalsDocument(solution.id);
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
@@ -3283,9 +3277,15 @@ describe('PanelSwitcherComponent', () => {
         },
       },
     } as CatalogSolution);
-    const liveCoverage = buildDetailedSpeciesJob('complete');
-    liveCoverage.result!.records = [buildSirapOverviewLiveCoverageRecord()];
-    vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(of(liveCoverage));
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of([
+        {
+          ...buildHydratedSpeciesRecords(buildGoalsDocument())[0],
+          scientific_name: 'Zygodontomys brevicauda',
+          solution_covered_in_aoi_pct: 14,
+        },
+      ]),
+    );
     appState.activeSolution$.set(solution);
     appState.clearAOI();
     appState.setRightSidebarMode('overview');
@@ -3302,10 +3302,7 @@ describe('PanelSwitcherComponent', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     fixture.detectChanges();
 
-    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
-      solution_id: solution.id,
-      coverage_scope: 'full-grid',
-    });
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
     expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'orinoquia');
     expect(
       fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
@@ -3329,15 +3326,12 @@ describe('PanelSwitcherComponent', () => {
     ]);
   });
 
-  it('falls back to published SIRAP compact when live overview coverage is unavailable', async () => {
+  it('does not start a live job for published SIRAP overview coverage', async () => {
     const solution = buildTestSolution();
     goalsDocument = buildSirapGoalsDocument(solution.id);
     mockSirapCatalogSolution(solution);
     vi.mocked(apiServiceSpy.getSolutionMetrics).mockReturnValue(
       of(buildRegionalSirapMetricsDocument(solution.id)),
-    );
-    vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(
-      of(buildDetailedSpeciesJob('failed')),
     );
     vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
       of([
@@ -3363,10 +3357,7 @@ describe('PanelSwitcherComponent', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     fixture.detectChanges();
 
-    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
-      solution_id: solution.id,
-      coverage_scope: 'full-grid',
-    });
+    expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
     expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
     expect(
       (
@@ -5741,7 +5732,27 @@ describe('PanelSwitcherComponent', () => {
     goalsDocument = buildSirapGoalsDocument(solution.id);
     mockSirapCatalogSolution(solution);
     const customCoverage = buildDetailedSpeciesJob('complete');
-    customCoverage.result!.records = [buildCustomSpeciesCoverageRecord()];
+    customCoverage.result!.records = [
+      {
+        ...buildCustomSpeciesCoverageRecord(),
+        range_area_km2: 40_000,
+        range_in_aoi_area_km2: 10_000,
+        range_in_aoi_pct: 25,
+        solution_covered_in_aoi_area_km2: 5_000,
+        solution_covered_in_aoi_pct: 50,
+      },
+    ];
+    vi.mocked(speciesGoalsLoaderSpy.load).mockReturnValue(
+      of([
+        {
+          ...buildHydratedSpeciesRecords(goalsDocument)[0],
+          id: 'species-1',
+          range_area_km2: 100_000,
+          range_in_aoi_area_km2: 40_000,
+          range_in_aoi_pct: 40,
+        },
+      ]),
+    );
     vi.mocked(apiServiceSpy.createDetailedSpeciesCoverageJob).mockReturnValue(of(customCoverage));
     vi.mocked(apiServiceSpy.getCustomPolygonMetrics).mockReturnValue(
       of(buildCustomPolygonResponse({ priority_area_in_region: 2.5 })),
@@ -5806,16 +5817,26 @@ describe('PanelSwitcherComponent', () => {
       fixture.componentInstance as unknown as {
         goalsModalSpeciesRows(): {
           nationalRangeKm2: number | null;
+          rangeInAoiPercent: number | null;
+          relativeHeld: number | null;
           remainingRelativeHeld: number | null;
+          rangeInSirapPercent: number | null;
         }[];
       }
     ).goalsModalSpeciesRows();
-    expect(speciesRows[0]?.nationalRangeKm2).toBe(100);
-    expect(speciesRows[0]?.remainingRelativeHeld).toBe(0.75);
+    expect(speciesRows[0]).toEqual(
+      expect.objectContaining({
+        nationalRangeKm2: 100_000,
+        rangeInAoiPercent: 0.1,
+        relativeHeld: 0.5,
+        remainingRelativeHeld: 0.5,
+        rangeInSirapPercent: 0.25,
+      }),
+    );
     expect(
       fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-0')
         ?.textContent,
-    ).toContain('25');
+    ).toContain('50');
     expect(
       fixture.nativeElement.querySelector('#conservation-goals-modal-solution-coverage-area-0')
         ?.textContent,
@@ -6656,26 +6677,6 @@ function buildSirapLiveSpeciesCoverageRecord(): DetailedSpeciesCoverageRecord {
   delete record.contribution_to_national_coverage;
   delete record.contribution_to_national_target;
   return record;
-}
-
-function buildSirapOverviewLiveCoverageRecord(): DetailedSpeciesCoverageRecord {
-  return {
-    ...buildSirapLiveSpeciesCoverageRecord(),
-    id: 'zygodontomys-brevicauda',
-    scientific_name: 'Zygodontomys brevicauda',
-    group: 'Mammals',
-    range_in_aoi_area_km2: 100,
-    range_in_aoi_pct: 10,
-    solution_covered_in_aoi_area_km2: 14,
-    solution_covered_in_aoi_pct: 14,
-    pre_existing_covered_in_aoi_area_km2: 8,
-    pre_existing_covered_in_aoi_pct: 8,
-    new_covered_in_aoi_area_km2: 6,
-    new_covered_in_aoi_pct: 6,
-    total_in_aoi: 100,
-    held_in_aoi: 14,
-    coverage_within_aoi: 0.14,
-  };
 }
 
 function buildNationalLiveSpeciesCoverageRecord(): DetailedSpeciesCoverageRecord {

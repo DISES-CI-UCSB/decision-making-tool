@@ -930,6 +930,56 @@ def test_validate_compact_rejects_selected_equals_range_tautology(tmp_path: Path
         )
 
 
+def test_validate_compact_rejects_sirap_range_equals_catalog_national_tautology(
+    tmp_path: Path,
+):
+    records = [_species(f"Bird {index}", 100.0 + index) for index in range(50)]
+    catalog = _catalog(records)
+    pipeline = _pipeline(
+        catalog,
+        tmp_path,
+        active_levels={"siraps"},
+        primary_geography_level="siraps",
+    )
+    for record in records:
+        pipeline.record_national(
+            record,
+            5,
+            10,
+            display_range_km2=record.range_km2,
+        )
+
+    with pytest.raises(SpeciesGoalsContractError) as exc_info:
+        pipeline.build_partition(
+            geography_level="siraps",
+            scope_catalog=[["scope-1", "Scope 1"]],
+        )
+    assert str(exc_info.value) == (
+        "species-goals SIRAP national-range tautology: every in-range species "
+        "has range area equal to its catalog national range."
+    )
+
+    legitimate = _pipeline(
+        catalog,
+        tmp_path / "legitimate",
+        active_levels={"siraps"},
+        primary_geography_level="siraps",
+    )
+    for index, record in enumerate(records):
+        legitimate.record_national(
+            record,
+            5,
+            10,
+            display_range_km2=(
+                record.range_km2 if index == 0 else record.range_km2 - 1.0
+            ),
+        )
+    legitimate.build_partition(
+        geography_level="siraps",
+        scope_catalog=[["scope-1", "Scope 1"]],
+    )
+
+
 def test_partition_is_resumable_rejects_tautological_national(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):

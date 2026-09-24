@@ -1101,6 +1101,7 @@ def validate_compact(
         previous_key = key
     ranged_species = 0
     fully_covered_species = 0
+    national_range_matches = 0
     for row in rows:
         total = 0.0 if row[2] is None else float(row[2])
         selected = 0.0 if row[3] is None else float(row[3])
@@ -1109,6 +1110,13 @@ def validate_compact(
         ranged_species += 1
         if selected + 1e-9 >= total:
             fully_covered_species += 1
+        if level == "siraps" and catalog is not None:
+            national_range = catalog["rows"][row[1]][4]
+            if (
+                national_range is not None
+                and abs(total - float(national_range)) <= _KM2_ROUNDING_ABS
+            ):
+                national_range_matches += 1
     if (
         ranged_species >= _SPECIES_GOALS_TAUTOLOGY_MIN_RANGED
         and fully_covered_species == ranged_species
@@ -1117,6 +1125,15 @@ def validate_compact(
             "species-goals coverage is tautological: every in-range species has "
             "selected area equal to range area. Scope must be the planning grid, "
             "not the solution-data valid mask."
+        )
+    if (
+        level == "siraps"
+        and ranged_species >= _SPECIES_GOALS_TAUTOLOGY_MIN_RANGED
+        and national_range_matches == ranged_species
+    ):
+        raise SpeciesGoalsContractError(
+            "species-goals SIRAP national-range tautology: every in-range species "
+            "has range area equal to its catalog national range."
         )
     if level == "national" and catalog_size is not None and len(rows) != catalog_size:
         raise SpeciesGoalsContractError("national partition must contain every catalog species")

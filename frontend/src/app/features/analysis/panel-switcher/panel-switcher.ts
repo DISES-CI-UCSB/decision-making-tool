@@ -217,7 +217,10 @@ import {
   type SpeciesReferenceSummary,
 } from './overview-metrics.utils';
 import { classifyOverviewTargetDomains } from './overview-target-domains.utils';
-import { CustomAoiSpeciesInventoryComponent } from '../custom-aoi-species-inventory/custom-aoi-species-inventory';
+import {
+  CustomAoiSpeciesInventoryComponent,
+  resolveCatalogNationalRange,
+} from '../custom-aoi-species-inventory/custom-aoi-species-inventory';
 
 type SidebarTab = 'overview' | 'aoi' | 'comparison';
 type AoiSectionId =
@@ -1099,10 +1102,7 @@ export class PanelSwitcherComponent {
         const relativeTarget = this.getGoalsModalEcosystemRelativeTarget();
         const rows = mecRows.map((row) => this.toGoalsModalEcosystemRow(row, relativeTarget));
         return this.goalsModalEcosystemBreakdownId() === 'iavh'
-          ? this.appendOffPlanningGridGoalRows(
-              this.applyMesaRelativeHeldToGoalRows(rows),
-              mecRows,
-            )
+          ? this.appendOffPlanningGridGoalRows(this.applyMesaRelativeHeldToGoalRows(rows), mecRows)
           : rows;
       }
     }
@@ -3093,15 +3093,13 @@ export class PanelSwitcherComponent {
   private loadGoalsModalSpecies(): void {
     const solutionId = this.resolveMetricsSolutionId(this.activeSolution());
     const useCustomCoverage = this.usesGoalsModalCustomCoverage();
-    const useSirapWideCoverage = this.isSirapPrimaryGoalsModal();
     const selectedAoi = this.selectedAoi();
     if (useCustomCoverage && (!this.customAoiGeometry() || selectedAoi?.type !== 'custom')) {
       this.goalsModalSpeciesLoading.set(false);
       return;
     }
-    const context =
-      useCustomCoverage || useSirapWideCoverage ? null : this.resolveGoalsModalSpeciesContext();
-    if ((!useCustomCoverage && !useSirapWideCoverage && !context) || !solutionId) {
+    const context = useCustomCoverage ? null : this.resolveGoalsModalSpeciesContext();
+    if ((!useCustomCoverage && !context) || !solutionId) {
       this.goalsModalSpeciesLoading.set(false);
       this.goalsModalSpeciesLoadFailed.set(true);
       return;
@@ -3112,16 +3110,12 @@ export class PanelSwitcherComponent {
     this.goalsModalSpeciesLoading.set(true);
     this.goalsModalSpeciesLoadFailed.set(false);
     const sirapId = this.findActiveCatalogSolution(this.activeSolution())?.sirapId;
-    // SIRAP overview uses live bitset coverage over the full packet grid.
-    // Published compact sidecars clip to valid_mask and report 100%.
     // Custom-AOI selected records must describe the drawn geometry. The SIRAP
     // sidecar below is only a reference denominator for the "of SIRAP range"
     // annotation; it must never replace the polygon-intersection results.
     const selected = useCustomCoverage
       ? this.loadCustomAoiDetailedSpeciesGoals(this.customAoiGeometry()!, solutionId)
-      : useSirapWideCoverage
-        ? this.loadSirapWideDetailedSpeciesGoals(solutionId)
-        : this.loadKnownAoiSpeciesGoals(solutionId, context!);
+      : this.loadKnownAoiSpeciesGoals(solutionId, context!);
     const loadSirapRangeContext =
       this.isSirapScopedSolution() &&
       this.goalsModalScope() === 'selected-aoi' &&
@@ -3144,14 +3138,27 @@ export class PanelSwitcherComponent {
         const sirapRangeBySpecies = new Map(
           (sirap ?? []).map((record) => [record.id, record.range_in_aoi_area_km2] as const),
         );
+        const nationalRangeBySpecies = new Map(
+          (sirap ?? []).map((record) => [record.id, record.range_area_km2] as const),
+        );
         const visibleRecords =
           this.isSirapScopedSolution() || useCustomCoverage
             ? selected.filter((record) => record.range_in_aoi_area_km2 > 0)
             : selected;
         this.goalsModalSpeciesRows.set(
-          visibleRecords.map((record) =>
-            this.toSpeciesGoalsModalRow(record, sirapRangeBySpecies.get(record.id) ?? null),
-          ),
+          visibleRecords.map((record) => {
+            const nationalRange = this.usesGoalsModalCustomSirapCoverage()
+              ? resolveCatalogNationalRange(
+                  record.range_in_aoi_area_km2,
+                  nationalRangeBySpecies.get(record.id),
+                )
+              : undefined;
+            return this.toSpeciesGoalsModalRow(
+              record,
+              sirapRangeBySpecies.get(record.id) ?? null,
+              nationalRange,
+            );
+          }),
         );
       }
       this.goalsModalSpeciesLoading.set(false);
@@ -3218,25 +3225,6 @@ export class PanelSwitcherComponent {
     return this.pollDetailedSpeciesCoverageJob({ geometry, solution_id: solutionId }, solutionId);
   }
 
-  private loadSirapWideDetailedSpeciesGoals(
-    solutionId: string,
-  ): Observable<HydratedSpeciesGoalsRecord[] | null> {
-    return this.pollDetailedSpeciesCoverageJob(
-      { solution_id: solutionId, coverage_scope: 'full-grid' },
-      solutionId,
-    ).pipe(
-      switchMap((records) => {
-        if (records !== null) {
-          return of(records);
-        }
-        const context = this.resolveGoalsModalSpeciesContext();
-        return context
-          ? this.speciesGoals.load(solutionId, context.geographyLevel, context.scopeId)
-          : of(null);
-      }),
-    );
-  }
-
   private pollDetailedSpeciesCoverageJob(
     request: DetailedSpeciesCoverageRequest,
     solutionId: string,
@@ -3298,6 +3286,10 @@ export class PanelSwitcherComponent {
   private toSpeciesGoalsModalRow(
     record: HydratedSpeciesGoalsRecord,
     rangeInSirapAreaKm2: number | null = null,
+    catalogNationalRange?: {
+      nationalRangeKm2: number | null;
+      rangeInAoiPercent: number | null;
+    },
   ): GoalsModalRow {
     const remainingCoverageAreaKm2 = Math.max(
       record.range_in_aoi_area_km2 - record.solution_covered_in_aoi_area_km2,
@@ -3315,9 +3307,17 @@ export class PanelSwitcherComponent {
       relativeHeld: record.solution_covered_in_aoi_pct / 100,
       preExistingRelativeHeld: record.pre_existing_covered_in_aoi_pct / 100,
       newRelativeHeld: record.new_covered_in_aoi_pct / 100,
-      nationalRangeKm2: record.range_area_km2,
+      nationalRangeKm2:
+        catalogNationalRange === undefined
+          ? record.range_area_km2
+          : catalogNationalRange.nationalRangeKm2,
       rangeInAoiAreaKm2: record.range_in_aoi_area_km2,
-      rangeInAoiPercent: record.range_in_aoi_pct / 100,
+      rangeInAoiPercent:
+        catalogNationalRange === undefined
+          ? record.range_in_aoi_pct / 100
+          : catalogNationalRange.rangeInAoiPercent === null
+            ? null
+            : catalogNationalRange.rangeInAoiPercent / 100,
       rangeInSirapPercent:
         rangeInSirapAreaKm2 !== null && rangeInSirapAreaKm2 > 0
           ? record.range_in_aoi_area_km2 / rangeInSirapAreaKm2
