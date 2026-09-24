@@ -229,6 +229,28 @@ describe('App', () => {
     expect(showSolutionSpy).toHaveBeenCalledWith(solution.id, { syncAppState: false });
   });
 
+  it('does not load a marine scenario from the finder while marine results are paused', () => {
+    const fixture = TestBed.createComponent(App);
+    const component = fixture.componentInstance;
+    const appState = TestBed.inject(AppStateService);
+    const solutionCatalog = TestBed.inject(SolutionCatalogService);
+    const solutionLayer = TestBed.inject(SolutionLayerService);
+    const solution = { ...buildManifestSolution(), domain: 'marine' as const };
+    vi.spyOn(solutionCatalog, 'getById').mockReturnValue(solution);
+    const showSolutionSpy = vi.spyOn(solutionLayer, 'showSolution').mockResolvedValue(undefined);
+
+    (
+      component as unknown as {
+        onSolutionApplied: (match: { solutionId: string }) => void;
+      }
+    ).onSolutionApplied({
+      solutionId: solution.id,
+    });
+
+    expect(appState.activeSolution$()).toBeNull();
+    expect(showSolutionSpy).not.toHaveBeenCalled();
+  });
+
   it('renders an active SIRAP boundary as non-interactive finder context', async () => {
     const fixture = TestBed.createComponent(App);
     const component = fixture.componentInstance;

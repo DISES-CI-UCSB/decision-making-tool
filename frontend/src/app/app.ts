@@ -13,6 +13,7 @@ import { SidebarContainerComponent } from '@features/left-sidebar/sidebar-contai
 import { MapViewComponent } from '@features/map/map-view/map-view';
 import { SolutionLayerService } from '@features/map/services/solution-layer.service';
 import { FinderModalComponent } from '@features/solution-finder/finder-modal/finder-modal';
+import { FEATURE_FLAGS } from '@feature-flags';
 import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
@@ -126,6 +127,11 @@ export class App implements OnInit {
   }
 
   protected onSolutionApplied(match: { solutionId: string; customLabel?: string }): void {
+    const catalogSolution = this.solutionCatalog.getById(match.solutionId);
+    if (!FEATURE_FLAGS.marineScenarios && catalogSolution?.domain === 'marine') {
+      return;
+    }
+
     const selectedSolution = this.buildManifestSolution(match);
     if (!selectedSolution) {
       return;

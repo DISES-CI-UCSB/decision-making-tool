@@ -38,6 +38,7 @@ import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 import { AppStateService } from '@core/services/app-state.service';
 import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
+import { FEATURE_FLAGS } from '@feature-flags';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 type FinderMatchState = 'empty' | 'loading' | 'ready';
@@ -207,6 +208,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   protected readonly savedSolutionScenarios = this.appState.savedSolutionScenarios$;
   protected readonly finderSelectionMemory = this.appState.finderSelectionMemory$;
   protected savedScenarioSearchQuery = '';
+  protected readonly marineScenariosPaused = !FEATURE_FLAGS.marineScenarios;
   protected selectedDomain: PlanningDomain = 'land';
   protected selectedScope: 'nacional' | 'sirap' = 'nacional';
   protected selectedSirapRegion: SirapRegionId | null = null;
@@ -756,6 +758,9 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   }
 
   protected applySelectedSolution(): void {
+    if (this.marineScenariosPaused && this.selectedDomain === 'marine') {
+      return;
+    }
     const selectedMatch = this.selectedMatch;
     if (!selectedMatch) {
       return;
@@ -801,6 +806,9 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   }
 
   protected canApplySolution(): boolean {
+    if (this.marineScenariosPaused && this.selectedDomain === 'marine') {
+      return false;
+    }
     return (
       this.matchState === 'ready' &&
       this.selectedMatchId !== null &&

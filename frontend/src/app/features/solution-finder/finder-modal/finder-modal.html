@@ -2367,10 +2367,28 @@
       </div>
     }
 
+    @if (selectedDomain === 'marine' && marineScenariosPaused) {
+      <div
+        id="solution-finder-modal-marine-coming-soon"
+        class="relative z-20 flex min-h-72 w-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-200 lg:col-span-12"
+        role="status"
+      >
+        <p
+          id="solution-finder-modal-marine-coming-soon-label"
+          class="text-lg font-bold text-slate-950"
+        >
+          {{ 'solutionControls.finder.marine.comingSoon' | translate }}
+        </p>
+      </div>
+    }
+
     @if (selectedDomain === 'marine') {
       <div
         id="solution-finder-modal-marine-steps-grid"
         class="relative z-10 grid min-h-0 w-full gap-x-4 gap-y-3 lg:col-span-12 lg:grid-cols-3 lg:grid-rows-[auto_minmax(0,1fr)]"
+        [class.hidden]="marineScenariosPaused"
+        [attr.inert]="marineScenariosPaused ? '' : null"
+        [attr.aria-hidden]="marineScenariosPaused"
       >
         <div
           id="solution-finder-modal-marine-target-header"

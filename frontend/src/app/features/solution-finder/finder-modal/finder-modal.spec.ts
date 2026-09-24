@@ -990,6 +990,17 @@ describe('FinderModalComponent', () => {
     ).toBe(true);
     expect(compiled.querySelector('#solution-finder-modal-marine-steps-grid')).not.toBeNull();
     expect(
+      compiled
+        .querySelector('#solution-finder-modal-marine-steps-grid')
+        ?.classList.contains('hidden'),
+    ).toBe(true);
+    expect(
+      compiled.querySelector('#solution-finder-modal-marine-coming-soon-label')?.textContent,
+    ).toContain('solutionControls.finder.marine.comingSoon');
+    expect(
+      (compiled.querySelector('#solution-finder-modal-apply-button') as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
       compiled.querySelector('#solution-finder-modal-marine-hhm-row')?.getAttribute('disabled'),
     ).toBeNull();
     expect(
@@ -1042,8 +1053,44 @@ describe('FinderModalComponent', () => {
       expect(component.matchResults.map((match) => match.solutionId)).toEqual([
         `marine-${targetPercent}-${includeOmecs ? 'omec' : 'no-omec'}`,
       ]);
+      expect(
+        (
+          component as unknown as {
+            canApplySolution: () => boolean;
+          }
+        ).canApplySolution(),
+      ).toBe(false);
     },
   );
+
+  it('does not apply a matched marine scenario while marine results are paused', () => {
+    vi.useFakeTimers();
+    catalog.getAll.mockReturnValue([buildMarineSolution(30, false)]);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    const component = fixture.componentInstance as unknown as {
+      selectedDomain: 'land' | 'marine';
+      runMatching: () => void;
+      matchState: string;
+      matchResults: { id: string; solutionId: string }[];
+      selectedMatchId: string | null;
+      selectedMatch: { id: string; solutionId: string } | null;
+      canApplySolution: () => boolean;
+      applySelectedSolution: () => void;
+      solutionApplied: { emit: (value: unknown) => void };
+    };
+    const solutionAppliedSpy = vi.spyOn(fixture.componentInstance.solutionApplied, 'emit');
+
+    component.selectedDomain = 'marine';
+    component.runMatching();
+    vi.advanceTimersByTime(350);
+    component.matchState = 'ready';
+    component.selectedMatch = component.matchResults[0] ?? null;
+    component.selectedMatchId = component.selectedMatch?.id ?? null;
+
+    expect(component.canApplySolution()).toBe(false);
+    component.applySelectedSolution();
+    expect(solutionAppliedSpy).not.toHaveBeenCalled();
+  });
 
   it('uses explicit domain metadata to prevent mixed land and marine matches', () => {
     vi.useFakeTimers();

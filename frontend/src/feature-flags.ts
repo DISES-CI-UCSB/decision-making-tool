@@ -20,6 +20,9 @@ const FLAGS = {
       thematic: true,
       marine: true,
     },
+    // Marine scenario results are paused while Mesa Nacional corrects the inputs.
+    // Finder controls stay in the template; flip this back on to restore them.
+    marineScenarios: false,
   },
 
   production: {
@@ -31,6 +34,7 @@ const FLAGS = {
       thematic: true,
       marine: true,
     },
+    marineScenarios: false,
   },
 };
 

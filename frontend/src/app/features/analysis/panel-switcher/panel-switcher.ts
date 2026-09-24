@@ -895,6 +895,9 @@ export class PanelSwitcherComponent {
   );
   /** SIRAP goal summaries load only from an explicit regional release URL. */
   private readonly goalsDocumentSolutionId = computed<string | null>(() => {
+    if (!FEATURE_FLAGS.marineScenarios && this.isMarineSolution()) {
+      return null;
+    }
     const solutionId = this.activeSolutionId();
     const catalogSolution = this.findActiveCatalogSolution(this.activeSolution());
     if (!solutionId || !catalogSolution) {
@@ -1679,7 +1682,7 @@ export class PanelSwitcherComponent {
 
     toObservable(this.activeSolution)
       .pipe(
-        map((solution) => this.resolveMetricsSolutionId(solution)),
+        map((solution) => this.resolveLoadableMetricsSolutionId(solution)),
         distinctUntilChanged(),
         switchMap((solutionId) => {
           if (!solutionId) {
@@ -1784,7 +1787,7 @@ export class PanelSwitcherComponent {
 
     toObservable(this.activeSolution)
       .pipe(
-        map((solution) => this.resolveMetricsSolutionId(solution)),
+        map((solution) => this.resolveLoadableMetricsSolutionId(solution)),
         distinctUntilChanged(),
         switchMap((solutionId) => {
           if (!solutionId) {
@@ -1882,7 +1885,7 @@ export class PanelSwitcherComponent {
           this.areCustomAoiGeometriesEqual(previous, current),
         ),
         switchMap((geometry) => {
-          if (!geometry) {
+          if (!geometry || (!FEATURE_FLAGS.marineScenarios && this.isMarineSolution())) {
             this.customAoiMetricsRequestSequence += 1;
             this.tearDownAoiCoverageModals();
             this.customAoiMetrics.set([]);
@@ -1958,7 +1961,7 @@ export class PanelSwitcherComponent {
 
     toObservable(this.comparisonSolution)
       .pipe(
-        map((solution) => this.resolveMetricsSolutionId(solution)),
+        map((solution) => this.resolveLoadableMetricsSolutionId(solution)),
         distinctUntilChanged(),
         switchMap((solutionId) => {
           if (!solutionId) {
@@ -1983,6 +1986,20 @@ export class PanelSwitcherComponent {
    * `metadata.solutionId` (always the manifest id) over `solution.id`, which can
    * be a mock id when the candidate is built via the dev-tools panel.
    */
+  private resolveLoadableMetricsSolutionId(solution: Solution | null): string | null {
+    if (!FEATURE_FLAGS.marineScenarios && this.isMarineCatalogSolution(solution)) {
+      return null;
+    }
+    return this.resolveMetricsSolutionId(solution);
+  }
+
+  private isMarineCatalogSolution(solution: Solution | null): boolean {
+    return (
+      this.findActiveCatalogSolution(solution)?.domain === 'marine' ||
+      solution?.metadata?.['domain'] === 'marine'
+    );
+  }
+
   private resolveMetricsSolutionId(solution: Solution | null): string | null {
     const solutionId = solution?.metadata?.['solutionId'];
     if (typeof solutionId === 'string' && solutionId.length > 0) {

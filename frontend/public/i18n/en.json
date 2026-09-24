@@ -1229,7 +1229,8 @@
         "fixedChip": "Fixed",
         "includesHeading": "Included areas",
         "includesIntro": "OMEC is optional. RUNAP is included in every marine scenario.",
-        "omecLabel": "Include marine OMECs"
+        "omecLabel": "Include marine OMECs",
+        "comingSoon": "Coming Soon"
       },
       "selectionSummary": "Current selections",
       "selectionSummaryPattern": "{{targets}} target selections, {{variables}} variable includes/excludes, {{tradeoff}} cost basis",

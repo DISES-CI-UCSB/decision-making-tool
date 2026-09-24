@@ -532,7 +532,7 @@ describe('PanelSwitcherComponent', () => {
       },
     },
   ])(
-    'keeps $label overview to mangroves and candidate area',
+    'does not load $label overview metrics while marine scenarios are paused',
     async ({ catalog, metricsDocument }) => {
       const solution = buildTestSolution();
       vi.spyOn(TestBed.inject(SolutionCatalogService), 'getById').mockReturnValue({
@@ -553,19 +553,13 @@ describe('PanelSwitcherComponent', () => {
       await fixture.whenStable();
       fixture.detectChanges();
       const compiled = fixture.nativeElement as HTMLElement;
-      const gainRowIds = [
-        ...compiled.querySelectorAll('#right-sidebar-v3-overview-gains-table .v3-metric-row'),
-      ].map((row) => row.id);
-
-      expect(gainRowIds).toEqual([
-        'right-sidebar-v3-overview-gain-row-metric-62-marine-mangrove-coverage',
-        'right-sidebar-v3-overview-gain-row-metric-18-priority-area-total',
-      ]);
+      expect(apiServiceSpy.getSolutionMetrics).not.toHaveBeenCalled();
       expect(
         compiled.querySelector(
           '#right-sidebar-v3-overview-gain-value-metric-62-marine-mangrove-coverage',
         )?.textContent,
-      ).toContain('2 km²');
+      ).toContain('--');
+      expect(compiled.textContent).not.toContain('2 km²');
       expect(
         compiled.querySelector('#right-sidebar-v3-overview-gain-row-metric-61-coral-reef-coverage'),
       ).toBeNull();
@@ -590,7 +584,7 @@ describe('PanelSwitcherComponent', () => {
     },
   );
 
-  it('reports marine ecosystem target progress and opens the breakdown modal', async () => {
+  it('does not load marine ecosystem target progress while marine scenarios are paused', async () => {
     const solution = buildTestSolution();
     const document = buildGoalsDocument();
     document.source.solutionDomain = 'marine';
@@ -609,32 +603,11 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-widget')).not.toBeNull();
+    expect(solutionGoalsLoaderSpy.loadGoals).not.toHaveBeenCalled();
     expect(
-      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-ecosystems'),
-    ).not.toBeNull();
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-count-ecosystems')
-        ?.textContent,
-    ).toContain('1 / 2');
-    expect(compiled.querySelector('#right-sidebar-v3-overview-goals-domain-species')).toBeNull();
-    expect(
-      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-strategic-ecosystems'),
+      compiled.querySelector('#right-sidebar-v3-overview-goals-domain-count-ecosystems'),
     ).toBeNull();
-
-    const viewBreakdown = compiled.querySelector(
-      '#right-sidebar-v3-overview-goals-domain-view-ecosystems',
-    ) as HTMLButtonElement;
-    expect(viewBreakdown).not.toBeNull();
-    viewBreakdown.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(compiled.querySelector('#conservation-goals-modal-shell')).not.toBeNull();
-    expect(compiled.querySelector('#conservation-goals-modal-title')?.textContent).toContain(
-      'analysis.overview.goalsWidget.modal.nationalEcosystemsTitle',
-    );
+    expect(compiled.textContent).not.toContain('1 / 2');
   });
 
   it('disables AOI and comparison tabs until a scenario is active', () => {
@@ -1106,7 +1079,7 @@ describe('PanelSwitcherComponent', () => {
       label: 'SIRAP marine',
       catalog: { domain: 'marine', scope: 'sirap', sirapId: 'eje-cafetero' },
     },
-  ])('keeps $label AOI to candidate area and mangroves', async ({ catalog }) => {
+  ])('does not load $label AOI metrics while marine scenarios are paused', async ({ catalog }) => {
     const solution = buildTestSolution();
     const solutionCatalog = TestBed.inject(SolutionCatalogService);
     vi.spyOn(solutionCatalog, 'getById').mockReturnValue({
@@ -1170,9 +1143,11 @@ describe('PanelSwitcherComponent', () => {
     const marineRowIds = [...compiled.querySelectorAll('#aoi-marine-metrics .aoi-metric-row')].map(
       (row) => row.id,
     );
+    expect(apiServiceSpy.getSolutionMetrics).not.toHaveBeenCalled();
     expect(marineRowIds).toEqual(['aoi-row-mangrove']);
-    expect(compiled.querySelector('#aoi-hero-priority')?.textContent).toContain('20 km²');
-    expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).toContain('0 km²');
+    expect(compiled.querySelector('#aoi-hero-priority')?.textContent).not.toContain('20 km²');
+    expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).toContain('--');
+    expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('0 km²');
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('9 km²');
     expect(compiled.querySelector('#aoi-row-mangrove-value')?.textContent).not.toContain('%');
     expect(compiled.querySelector('#aoi-row-mangrove-unit')).toBeNull();
