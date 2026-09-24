@@ -94,17 +94,24 @@ export function computeSelectedLayerOrder(
   ];
 }
 
+/**
+ * Keep boundary rows in priority order at the slot where they already sit.
+ * Rows outside that set, including the active scenario, stay where the user placed them.
+ */
 export function pinContextualSelectedLayerOrder(
   order: string[],
   contextualIds: readonly string[] = CONTEXTUAL_PRIORITY_LAYER_IDS,
 ): string[] {
   const presentContextualIds = contextualIds.filter((id) => order.includes(id));
-  if (presentContextualIds.length === 0) {
+  if (presentContextualIds.length < 2) {
     return order;
   }
 
   const contextualIdSet = new Set(presentContextualIds);
-  return [...presentContextualIds, ...order.filter((id) => !contextualIdSet.has(id))];
+  const firstIndex = order.findIndex((id) => contextualIdSet.has(id));
+  const earlierIds = order.slice(0, firstIndex).filter((id) => !contextualIdSet.has(id));
+  const laterIds = order.slice(firstIndex).filter((id) => !contextualIdSet.has(id));
+  return [...earlierIds, ...presentContextualIds, ...laterIds];
 }
 
 /** Merge persisted order with newly-selected ids, then pin contextual boundaries. */
@@ -244,7 +251,10 @@ export function inferHumanFootprintCostYear(
     if (!token) {
       continue;
     }
-    const normalized = token.trim().toLowerCase().replace(/[+\s-]+/g, '_');
+    const normalized = token
+      .trim()
+      .toLowerCase()
+      .replace(/[+\s-]+/g, '_');
     const year = normalized.match(/(?:human_footprint_|hf_|iheh_?)(2022|2030)/)?.[1];
     if (year === '2022' || year === '2030') {
       years.add(year);

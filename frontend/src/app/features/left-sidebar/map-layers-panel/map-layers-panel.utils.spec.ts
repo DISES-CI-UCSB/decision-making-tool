@@ -67,6 +67,15 @@ describe('selected layer ordering', () => {
     ).toEqual(['baseline', 'candidate', 'overlap', 'data']);
   });
 
+  it('leaves a dragged scenario below Colombia instead of pinning it back to the top', () => {
+    expect(
+      pinContextualSelectedLayerOrder([
+        'boundary-admin_country_outline',
+        'overlay-conservation-solution',
+      ]),
+    ).toEqual(['boundary-admin_country_outline', 'overlay-conservation-solution']);
+  });
+
   it('pins the active SIRAP between the scenario overlay and Colombia outline', () => {
     expect(
       pinContextualSelectedLayerOrder([
@@ -175,20 +184,20 @@ describe('scenario status aliases', () => {
 
   it('considers only the IHEH cost year used in the scenario', () => {
     const considered2022 = buildConsideredLayerIdSet(['iheh_2022']);
-    expect(
-      scenarioLayerStatus('layer-human_footprint_2022', undefined, considered2022, true),
-    ).toBe('considered');
-    expect(
-      scenarioLayerStatus('layer-human_footprint_2030', undefined, considered2022, true),
-    ).toBe('reference');
+    expect(scenarioLayerStatus('layer-human_footprint_2022', undefined, considered2022, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-human_footprint_2030', undefined, considered2022, true)).toBe(
+      'reference',
+    );
 
     const considered2030 = buildConsideredLayerIdSet(['iheh_2030']);
-    expect(
-      scenarioLayerStatus('layer-human_footprint_2030', undefined, considered2030, true),
-    ).toBe('considered');
-    expect(
-      scenarioLayerStatus('layer-human_footprint_2022', undefined, considered2030, true),
-    ).toBe('reference');
+    expect(scenarioLayerStatus('layer-human_footprint_2030', undefined, considered2030, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-human_footprint_2022', undefined, considered2030, true)).toBe(
+      'reference',
+    );
   });
 
   it('infers IHEH year from national, SIRAP, and compact name tokens', () => {
@@ -212,12 +221,12 @@ describe('scenario status aliases', () => {
       }),
     );
 
-    expect(
-      scenarioLayerStatus('layer-human_footprint_2022', undefined, consideredIds, true),
-    ).toBe('considered');
-    expect(
-      scenarioLayerStatus('layer-human_footprint_2030', undefined, consideredIds, true),
-    ).toBe('reference');
+    expect(scenarioLayerStatus('layer-human_footprint_2022', undefined, consideredIds, true)).toBe(
+      'considered',
+    );
+    expect(scenarioLayerStatus('layer-human_footprint_2030', undefined, consideredIds, true)).toBe(
+      'reference',
+    );
     expect(scenarioLayerStatus('layer-hhm', undefined, consideredIds, true)).toBe('reference');
   });
 
@@ -232,12 +241,12 @@ describe('scenario status aliases', () => {
     );
 
     expect(scenarioLayerStatus('layer-hhm', undefined, consideredIds, true)).toBe('considered');
-    expect(
-      scenarioLayerStatus('layer-human_footprint_2022', undefined, consideredIds, true),
-    ).toBe('reference');
-    expect(
-      scenarioLayerStatus('layer-human_footprint_2030', undefined, consideredIds, true),
-    ).toBe('reference');
+    expect(scenarioLayerStatus('layer-human_footprint_2022', undefined, consideredIds, true)).toBe(
+      'reference',
+    );
+    expect(scenarioLayerStatus('layer-human_footprint_2030', undefined, consideredIds, true)).toBe(
+      'reference',
+    );
   });
 
   it('matches compact IHEH tokens and legacy COST_HF year ids to the same year', () => {
@@ -298,15 +307,13 @@ describe('scenario status aliases', () => {
     const consideredIds = buildConsideredLayerIdSet(implicitIds);
 
     expect(implicitIds).toContain('eje-wetlands');
-    expect(
-      scenarioLayerStatus('layer-eje_cafetero_wetlands', undefined, consideredIds, true),
-    ).toBe('considered');
-    expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, true)).toBe(
-      'reference',
+    expect(scenarioLayerStatus('layer-eje_cafetero_wetlands', undefined, consideredIds, true)).toBe(
+      'considered',
     );
-    expect(
-      implicitConsideredIncludeIds({ scope: 'sirap', sirapId: 'orinoquia' }),
-    ).not.toContain('eje-wetlands');
+    expect(scenarioLayerStatus('layer-wetlands', undefined, consideredIds, true)).toBe('reference');
+    expect(implicitConsideredIncludeIds({ scope: 'sirap', sirapId: 'orinoquia' })).not.toContain(
+      'eje-wetlands',
+    );
   });
 
   it('matches the Eje Cafetero wetlands row through HuEC catalog aliases', () => {
@@ -316,9 +323,9 @@ describe('scenario status aliases', () => {
     expect(
       scenarioLayerStatus('layer-eje_cafetero_wetlands', undefined, ejeWetlandsIds, true),
     ).toBe('considered');
-    expect(
-      scenarioLayerStatus('layer-eje_cafetero_wetlands', undefined, ecWetlandsIds, true),
-    ).toBe('considered');
+    expect(scenarioLayerStatus('layer-eje_cafetero_wetlands', undefined, ecWetlandsIds, true)).toBe(
+      'considered',
+    );
     expect(scenarioLayerStatus('layer-wetlands', undefined, ejeWetlandsIds, true)).toBe(
       'reference',
     );

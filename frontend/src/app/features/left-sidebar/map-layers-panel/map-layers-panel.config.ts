@@ -290,9 +290,8 @@ export function enabledSirapBoundaryLayerKeys(): SirapBoundaryLayerKey[] {
 export const ACTIVE_SIRAP_BOUNDARY_ROW_ID = 'boundary-active_sirap';
 export const COLOMBIA_OUTLINE_ROW_ID = 'boundary-admin_country_outline';
 
-/** Displayed Layers pin: active scenario → active SIRAP → Colombia outline. */
+/** Boundary rows kept together: active SIRAP, then Colombia outline. The active scenario is not pinned. */
 export const CONTEXTUAL_PRIORITY_LAYER_IDS = [
-  BASELINE_SOLUTION_OVERLAY_ID,
   ACTIVE_SIRAP_BOUNDARY_ROW_ID,
   COLOMBIA_OUTLINE_ROW_ID,
 ] as const;
