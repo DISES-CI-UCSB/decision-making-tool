@@ -46,7 +46,9 @@
     [showCloseButton]="true"
     headerAlign="start"
     initialFocus="panel"
-    ariaLabelKey="landingWelcome.title"
+    [ariaLabelKey]="
+      landingWelcomeStep === 'video' ? 'landingWelcome.videoTitle' : 'landingWelcome.title'
+    "
     (requestClose)="closeLandingWelcomeModal()"
   >
     <section
@@ -61,62 +63,133 @@
         {{ 'landingWelcome.kicker' | translate }}
       </p>
       <h2 id="landing-welcome-modal-title" class="text-xl font-semibold text-slate-950">
-        {{ 'landingWelcome.title' | translate }}
+        {{
+          (landingWelcomeStep === 'video' ? 'landingWelcome.videoTitle' : 'landingWelcome.title')
+            | translate
+        }}
       </h2>
-      <nav
-        id="landing-welcome-modal-language-toggle-nav"
-        aria-label="Language switcher"
-        class="inline-flex items-center pt-2 text-sm"
+      <div
+        id="landing-welcome-modal-header-controls"
+        class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-sm"
       >
-        @if (activeLanguage === 'es') {
+        @if (landingWelcomeStep === 'getting-started') {
           <button
-            id="landing-welcome-modal-language-toggle-link-en"
+            id="landing-welcome-modal-back-button"
             type="button"
-            class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            (click)="setLanguage('en')"
+            class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+            (click)="showLandingWelcomeVideo()"
           >
-            EN
-          </button>
-          <span
-            id="landing-welcome-modal-language-toggle-divider-es"
-            class="px-1.5 text-slate-400"
-            aria-hidden="true"
-            >|</span
-          >
-          <span
-            id="landing-welcome-modal-language-toggle-current-es"
-            aria-current="page"
-            class="font-semibold text-slate-900"
-          >
-            ES
-          </span>
-        } @else {
-          <span
-            id="landing-welcome-modal-language-toggle-current-en"
-            aria-current="page"
-            class="font-semibold text-slate-900"
-          >
-            EN
-          </span>
-          <span
-            id="landing-welcome-modal-language-toggle-divider-en"
-            class="px-1.5 text-slate-400"
-            aria-hidden="true"
-            >|</span
-          >
-          <button
-            id="landing-welcome-modal-language-toggle-link-es"
-            type="button"
-            class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            (click)="setLanguage('es')"
-          >
-            ES
+            {{ 'landingWelcome.actions.back' | translate }}
           </button>
         }
-      </nav>
+        <nav
+          id="landing-welcome-modal-language-toggle-nav"
+          aria-label="Language switcher"
+          class="inline-flex items-center"
+        >
+          @if (activeLanguage === 'es') {
+            <button
+              id="landing-welcome-modal-language-toggle-link-en"
+              type="button"
+              class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="setLanguage('en')"
+            >
+              EN
+            </button>
+            <span
+              id="landing-welcome-modal-language-toggle-divider-es"
+              class="px-1.5 text-slate-400"
+              aria-hidden="true"
+              >|</span
+            >
+            <span
+              id="landing-welcome-modal-language-toggle-current-es"
+              aria-current="page"
+              class="font-semibold text-slate-900"
+            >
+              ES
+            </span>
+          } @else {
+            <span
+              id="landing-welcome-modal-language-toggle-current-en"
+              aria-current="page"
+              class="font-semibold text-slate-900"
+            >
+              EN
+            </span>
+            <span
+              id="landing-welcome-modal-language-toggle-divider-en"
+              class="px-1.5 text-slate-400"
+              aria-hidden="true"
+              >|</span
+            >
+            <button
+              id="landing-welcome-modal-language-toggle-link-es"
+              type="button"
+              class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="setLanguage('es')"
+            >
+              ES
+            </button>
+          }
+        </nav>
+      </div>
     </section>
 
     <section id="landing-welcome-modal-content" class="space-y-5">
+      @if (landingWelcomeStep === 'video') {
+        <div id="landing-welcome-modal-video-step" class="space-y-4">
+          @if (landingWelcomeVideoStatus === 'error') {
+            <div
+              id="landing-welcome-modal-video-error"
+              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-sm leading-6 text-slate-600"
+            >
+              <p id="landing-welcome-modal-video-error-copy">
+                {{ 'landingWelcome.videoError' | translate }}
+              </p>
+            </div>
+          } @else {
+            <div
+              id="landing-welcome-modal-video-frame"
+              class="relative aspect-video overflow-hidden rounded-lg bg-slate-950"
+            >
+              <video
+                id="landing-welcome-modal-video-player"
+                class="h-full w-full"
+                [src]="landingWelcomeVideoAssets.videoUrl"
+                [poster]="landingWelcomeVideoAssets.posterUrl"
+                [attr.data-locale]="landingWelcomeVideoAssets.locale"
+                controls
+                playsinline
+                preload="metadata"
+                aria-labelledby="landing-welcome-modal-title"
+                (loadstart)="onLandingWelcomeVideoLoadStart()"
+                (loadedmetadata)="onLandingWelcomeVideoReady()"
+                (error)="onLandingWelcomeVideoError()"
+              ></video>
+              @if (landingWelcomeVideoStatus === 'loading') {
+                <p
+                  id="landing-welcome-modal-video-loading"
+                  class="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/70 px-4 text-center text-sm text-slate-300"
+                >
+                  {{ 'landingWelcome.videoLoading' | translate }}
+                </p>
+              }
+            </div>
+          }
+
+          <div id="landing-welcome-modal-video-actions" class="flex justify-end">
+            <button
+              id="landing-welcome-modal-skip-video-button"
+              type="button"
+              class="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md px-3 py-1 text-sm font-medium text-slate-600 underline-offset-2 transition hover:text-slate-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="skipLandingWelcomeVideo()"
+            >
+              {{ 'landingWelcome.actions.skipVideo' | translate }}
+            </button>
+          </div>
+        </div>
+      } @else {
       <div id="landing-welcome-modal-introduction" class="space-y-3">
         <p id="landing-welcome-modal-description" class="text-sm leading-6 text-slate-700">
           {{ 'landingWelcome.description' | translate }}
@@ -250,6 +323,7 @@
           </button>
         </div>
       </div>
+      }
     </section>
   </app-modal-shell>
 
