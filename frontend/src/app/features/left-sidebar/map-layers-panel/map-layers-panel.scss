@@ -4,6 +4,7 @@
   min-height: 0;
 }
 
+/* Native bar stays hidden; #map-layers-sidebar-overlay-scrollbar-thumb replaces it. */
 #map-layers-sidebar-body {
   scrollbar-width: none;
 }

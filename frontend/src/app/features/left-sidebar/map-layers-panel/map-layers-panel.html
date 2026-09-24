@@ -366,10 +366,19 @@
   </header>
 
   @if (hasActiveSolution()) {
-    <section
-      id="map-layers-sidebar-body"
-      class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pl-5 pr-3.5 py-4"
+    <div
+      id="map-layers-sidebar-body-frame"
+      class="relative flex min-h-0 flex-1 flex-col"
+      (mouseenter)="setSidebarScrollbarInteracting(true)"
+      (mouseleave)="setSidebarScrollbarInteracting(false)"
+      (focusin)="setSidebarScrollbarInteracting(true)"
+      (focusout)="setSidebarScrollbarInteracting(false)"
     >
+      <section
+        id="map-layers-sidebar-body"
+        #mapLayersSidebarScrollArea
+        class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pl-5 pr-3.5 py-4"
+      >
       <!-- ─── SELECTED LAYERS ─── -->
       <section id="map-layers-selected-layers-section" class="flex flex-col gap-1.5">
         <span
@@ -2403,7 +2412,24 @@
           </p>
         </div>
       }
-    </section>
+      </section>
+
+      <div
+        id="map-layers-sidebar-overlay-scrollbar-track"
+        class="pointer-events-none absolute inset-y-0 right-0 z-20 w-3"
+        aria-hidden="true"
+      >
+        <div
+          id="map-layers-sidebar-overlay-scrollbar-thumb"
+          class="absolute right-0.5 w-1 rounded-full bg-slate-400/70 transition-opacity duration-200"
+          [class.opacity-100]="isSidebarOverlayThumbVisible()"
+          [class.opacity-0]="!isSidebarOverlayThumbVisible()"
+          [class.hidden]="sidebarOverlayScrollbar.thumbHeight() === 0"
+          [style.height.px]="sidebarOverlayScrollbar.thumbHeight()"
+          [style.top.px]="sidebarOverlayScrollbar.thumbTop()"
+        ></div>
+      </div>
+    </div>
 
     <footer
       id="map-layers-sidebar-footer"

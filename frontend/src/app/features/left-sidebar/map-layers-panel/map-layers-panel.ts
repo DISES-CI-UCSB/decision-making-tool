@@ -16,6 +16,7 @@ import {
   inject,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -307,6 +308,9 @@ export class MapLayersPanelComponent implements OnDestroy {
   });
   protected readonly sidebarOverlayScrollbar = useOverlayScrollbar();
   protected sidebarScrollbarInteracting = false;
+  private readonly sidebarScrollAreaRef = viewChild<ElementRef<HTMLElement>>(
+    'mapLayersSidebarScrollArea',
+  );
   private formatSelectIdSequence = 0;
   private loadedSpeciesManifestUrl: string | null = null;
 
@@ -547,7 +551,27 @@ export class MapLayersPanelComponent implements OnDestroy {
   private layerInfoOutsidePointerListener: ((event: PointerEvent) => void) | null = null;
   protected readonly selectSolutionHoverFx = this.appState.selectSolutionButtonHoverFx$;
 
+  protected setSidebarScrollbarInteracting(isInteracting: boolean): void {
+    this.sidebarScrollbarInteracting = isInteracting;
+    if (isInteracting) {
+      this.sidebarOverlayScrollbar.recalculate();
+    }
+  }
+
+  protected isSidebarOverlayThumbVisible(): boolean {
+    return (
+      this.sidebarOverlayScrollbar.thumbHeight() > 0 &&
+      (this.sidebarOverlayScrollbar.isScrolling() || this.sidebarScrollbarInteracting)
+    );
+  }
+
   constructor() {
+    effect(() => {
+      const scrollElement = this.sidebarScrollAreaRef()?.nativeElement ?? null;
+      this.sidebarOverlayScrollbar.scrollRef.set(scrollElement);
+      this.sidebarOverlayScrollbar.recalculate();
+    });
+
     this.translate.onLangChange
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.activeLanguage.set(this.resolveActiveLanguage()));
