@@ -3627,26 +3627,6 @@ export class MapLayersPanelComponent implements OnDestroy {
         mapSync: { type: 'solution-baseline' },
       },
       {
-        id: RUNAP_OVERLAY_LAYER_ID,
-        name: this.localizedTextOrFallback(
-          'mapLayersPanel.overlayNames.protectedAreasRunap',
-          'Protected Areas (RUNAP)',
-        ),
-        selected: false,
-        visible: false,
-        expanded: false,
-        opacity: DEFAULT_DATA_LAYER_OPACITY,
-        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.color ?? '#f97316',
-        fillStyle: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.fillStyle,
-        borderColor:
-          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderColor ?? '#c2410c',
-        borderWidth: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderWidth,
-        canReorder: true,
-        hasStyleControls: true,
-        hasColorControl: true,
-        mapUnavailable: true,
-      },
-      {
         id: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
         name: this.localizedTextOrFallback(
           'mapLayersPanel.overlayNames.nationalNaturalParks',
@@ -3681,6 +3661,26 @@ export class MapLayersPanelComponent implements OnDestroy {
             selectedColor: '#dc2626',
           },
         },
+      },
+      {
+        id: RUNAP_OVERLAY_LAYER_ID,
+        name: this.localizedTextOrFallback(
+          'mapLayersPanel.overlayNames.protectedAreasRunap',
+          'Protected Areas (RUNAP)',
+        ),
+        selected: false,
+        visible: false,
+        expanded: false,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
+        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.color ?? '#f97316',
+        fillStyle: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.fillStyle,
+        borderColor:
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderColor ?? '#c2410c',
+        borderWidth: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderWidth,
+        canReorder: true,
+        hasStyleControls: true,
+        hasColorControl: true,
+        mapUnavailable: true,
       },
       {
         id: OMEC_OVERLAY_LAYER_ID,
