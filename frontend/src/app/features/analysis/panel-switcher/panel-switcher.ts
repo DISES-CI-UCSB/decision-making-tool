@@ -2970,7 +2970,7 @@ export class PanelSwitcherComponent {
       return;
     }
     this.cancelGoalsModalPreparation();
-    this.goalsModalScope.set(this.resolveGoalsModalScope(source));
+    this.goalsModalScope.set(this.resolveGoalsModalScope(source, domainId));
     this.goalsModalDomainId.set(domainId);
     this.goalsModalSearchQuery.set('');
     this.goalsModalSort.set({ ...DEFAULT_SPECIES_COVERAGE_SORT });
@@ -3416,11 +3416,14 @@ export class PanelSwitcherComponent {
     return {};
   }
 
-  private resolveGoalsModalScope(source: GoalsModalSource): GoalsModalScope {
+  private resolveGoalsModalScope(
+    source: GoalsModalSource,
+    domainId: string,
+  ): GoalsModalScope {
     if (source === 'aoi') {
       return 'selected-aoi';
     }
-    if (this.isSirapScopedSolution()) {
+    if (domainId === 'ecosystems' || this.isSirapScopedSolution()) {
       return 'solution-overview';
     }
     const aoi = this.selectedAoi();
