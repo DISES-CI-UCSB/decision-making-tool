@@ -17,6 +17,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'auth/action',
+    loadComponent: () =>
+      import('@features/auth/auth-action-page/auth-action-page').then(
+        (module) => module.AuthActionPageComponent,
+      ),
+  },
+  {
     path: 'tier-two',
     component: TierTwoPageComponent,
     canActivate: [tierAccessGuard],

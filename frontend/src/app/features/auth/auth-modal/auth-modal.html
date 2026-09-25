@@ -54,7 +54,7 @@
               A Google account is required. Email and password sign-in is not available.
             </p>
             <p id="auth-modal-entry-req-authenticator" class="mt-2">
-              Google sign-in creates your account. You then set up an authenticator app. SMS is not
+              Google sign-in creates your account. Then set up an authenticator app. SMS is not
               used, and an administrator does not have to approve the account.
             </p>
           </aside>
@@ -103,7 +103,6 @@
                 </svg>
               }
             </button>
-
           </div>
 
           @if (loginStatus()) {
@@ -219,7 +218,7 @@
               [attr.aria-invalid]="totpError() ? 'true' : 'false'"
               [attr.aria-describedby]="totpError() ? 'auth-modal-mfa-enroll-error' : null"
               [value]="totpCode()"
-              [disabled]="isSubmitting()"
+              [disabled]="isSubmitting() || totpErrorKind() === 'restart'"
               (input)="updateTotpCode($any($event.target).value)"
             />
 
@@ -415,7 +414,6 @@
           </form>
         </section>
       }
-
     }
   </div>
 </div>

@@ -1,0 +1,84 @@
+<main
+  id="auth-action-page"
+  class="flex min-h-screen items-center justify-center bg-slate-50 p-4 sm:p-8"
+  [attr.data-mode]="mode"
+>
+  <section
+    id="auth-action-card"
+    class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-2xl"
+    aria-labelledby="auth-action-title"
+  >
+    <header id="auth-action-header" class="mb-5">
+      <h1 id="auth-action-title" class="text-lg font-semibold text-slate-900">
+        {{ copy.title }}
+      </h1>
+      @if (status() !== 'success') {
+        <p id="auth-action-description" class="mt-1 text-sm leading-relaxed text-slate-600">
+          {{ copy.description }}
+        </p>
+      }
+    </header>
+
+    @if (copy.warning && status() !== 'success') {
+      <aside
+        id="auth-action-warning"
+        class="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900"
+      >
+        {{ copy.warning }}
+      </aside>
+    }
+
+    <div id="auth-action-status-region" aria-live="polite" aria-atomic="true">
+      @if (status() === 'success') {
+        <p
+          id="auth-action-success"
+          class="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          role="status"
+        >
+          {{ copy.successMessage }}
+        </p>
+      }
+      @if (error(); as actionError) {
+        <p
+          id="auth-action-error"
+          class="mb-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+          role="alert"
+        >
+          {{ actionError.message }}
+        </p>
+      }
+    </div>
+
+    <div id="auth-action-actions" class="space-y-2">
+      @if (showConfirmButton()) {
+        <button
+          id="auth-action-confirm-btn"
+          type="button"
+          class="flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
+          [disabled]="isSubmitting()"
+          [attr.aria-busy]="isSubmitting()"
+          (click)="confirm()"
+        >
+          @if (isSubmitting()) {
+            <span
+              id="auth-action-confirm-spinner"
+              class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+              aria-hidden="true"
+            ></span>
+            Working&hellip;
+          } @else {
+            {{ copy.buttonLabel }}
+          }
+        </button>
+      }
+
+      <a
+        id="auth-action-return-link"
+        class="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        [attr.href]="continueHref"
+      >
+        {{ status() === 'success' ? 'Go to the app' : 'Return to the app' }}
+      </a>
+    </div>
+  </section>
+</main>

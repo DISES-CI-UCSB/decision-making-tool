@@ -21,6 +21,7 @@ import {
   AUTH_ERROR_CODE_EXPIRED,
   AUTH_ERROR_INVALID_OTP,
   AUTH_ERROR_REQUIRES_RECENT_LOGIN,
+  AUTH_ERROR_USER_TOKEN_EXPIRED,
   TOTP_ALREADY_ENROLLED_CODE,
   TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
   TOTP_ENROLLMENT_REPLACE_WARNING,
@@ -32,6 +33,7 @@ import {
   TOTP_RECENT_LOGIN_MESSAGE,
   TOTP_RESTART_MESSAGE,
   TotpMfaService,
+  hasTotpSecondFactorClaim,
   isTotpMfaError,
   totpSupportCode,
   toTotpMfaError,
@@ -45,6 +47,7 @@ export const ACCOUNT_NOT_ACTIVE_MESSAGE =
   'This Google account is not active. Contact an administrator for help.';
 
 export type AuthModalState = 'entry' | 'mfaEnroll' | 'mfaChallenge';
+export type GoogleSignInContinuation = 'first-factor' | 'challenge';
 
 @Component({
   selector: 'app-auth-modal',
@@ -172,7 +175,7 @@ export class AuthModalComponent implements OnDestroy {
     this.enrollmentSupportCode.set(null);
     try {
       await this.totpMfa.completeEnrollment(user, session, this.totpCode());
-      await this.finishVerifiedEnrollment();
+      await this.finishVerifiedEnrollment(true);
     } catch (error) {
       const mapped = isTotpMfaError(error) ? error : toTotpMfaError(error);
       if (mapped.code === AUTH_ERROR_REQUIRES_RECENT_LOGIN) {
@@ -200,7 +203,7 @@ export class AuthModalComponent implements OnDestroy {
     try {
       const credential = await this.totpMfa.completeChallenge(session, this.totpCode());
       const profile = await this.googleIdentity.profileFromCredential(credential);
-      await this.continueAfterGoogleProfile(profile);
+      await this.continueAfterGoogleSignIn(profile, 'challenge');
     } catch (error) {
       this.applyTotpError(error);
     } finally {
@@ -257,7 +260,12 @@ export class AuthModalComponent implements OnDestroy {
       return;
     }
     const message = this.totpError() ?? TOTP_RESTART_MESSAGE;
-    await this.abortMfaSessions();
+    const preserveIdentity = this.state() === 'mfaEnroll' && this.mfaEnrollment() === null;
+    if (preserveIdentity) {
+      this.clearMfaSessions();
+    } else {
+      await this.abortMfaSessions();
+    }
     this.resetForms();
     this.loginError.set(message);
     this.state.set('entry');
@@ -280,7 +288,9 @@ export class AuthModalComponent implements OnDestroy {
         this.enterMfaChallenge(result.assertion);
         return;
       }
-      await this.continueAfterGoogleProfile(result.profile);
+      if (result.kind === 'completed') {
+        await this.continueAfterGoogleSignIn(result.profile, 'first-factor');
+      }
     } catch (error) {
       this.loginError.set(this.googleErrorMessage(error));
     } finally {
@@ -297,7 +307,15 @@ export class AuthModalComponent implements OnDestroy {
     this.state.set('mfaChallenge');
   }
 
-  private async continueAfterGoogleProfile(profile: GoogleProfile): Promise<void> {
+  private async continueAfterGoogleSignIn(
+    profile: GoogleProfile,
+    continuation: GoogleSignInContinuation,
+  ): Promise<void> {
+    if (continuation === 'challenge') {
+      await this.finishMfaVerifiedSignIn();
+      return;
+    }
+
     const user = this.firebase.currentUser;
     if (!user) {
       this.loginError.set('Google sign-in did not finish. Please try again.');
@@ -305,20 +323,29 @@ export class AuthModalComponent implements OnDestroy {
       return;
     }
 
+    // A durable MFA account raises auth/multi-factor-auth-required. A
+    // first-factor popup is first-time setup. Do not force-refresh factors
+    // here. The cached TOTP claim is the only first-factor path that may
+    // finish as a returning MFA session.
+    if (await hasTotpSecondFactorClaim(user)) {
+      await this.finishMfaVerifiedSignIn();
+      return;
+    }
+
+    this.totpMfa.markEnrollmentInProgress(user.uid);
+
     const ensured = await this.firebase.ensureSelfUserRecord(user);
     if (ensured.status === 'denied') {
+      this.totpMfa.clearEnrollmentInProgress(user.uid);
       await this.authService.logout();
       this.loginError.set(ACCOUNT_NOT_ACTIVE_MESSAGE);
       this.state.set('entry');
       return;
     }
 
-    if (!(await this.totpMfa.userHasEnrolledTotp(user))) {
-      await this.enterEnrollment(user, user.email || profile.email || profile.name);
-      return;
-    }
-
-    await this.finishVerifiedEnrollment();
+    await this.enterEnrollment(user, user.email || profile.email || profile.name, {
+      skipFactorCheck: true,
+    });
   }
 
   private async resumeRequiredEnrollment(): Promise<void> {
@@ -337,7 +364,12 @@ export class AuthModalComponent implements OnDestroy {
     this.requestTotpFocus();
   }
 
-  private async enterEnrollment(user: User, accountName: string): Promise<void> {
+  private async enterEnrollment(
+    user: User,
+    accountName: string,
+    options?: { skipFactorCheck?: boolean },
+  ): Promise<void> {
+    this.totpMfa.markEnrollmentInProgress(user.uid);
     const existing = this.totpMfa.openEnrollmentFor(user);
     this.clearTotpFields();
     this.state.set('mfaEnroll');
@@ -353,12 +385,25 @@ export class AuthModalComponent implements OnDestroy {
       return;
     }
     this.mfaEnrollment.set(null);
-    try {
-      if (await this.totpMfa.userHasEnrolledTotp(user)) {
-        await this.finishVerifiedEnrollment();
+    if (!options?.skipFactorCheck) {
+      try {
+        if (await this.totpMfa.userHasEnrolledTotp(user)) {
+          await this.finishVerifiedEnrollment();
+          return;
+        }
+      } catch (error) {
+        if (isTotpMfaError(error) && error.code === TOTP_ALREADY_ENROLLED_CODE) {
+          await this.finishVerifiedEnrollment();
+          return;
+        }
+        this.holdIdentityAfterResumeFailure(error);
         return;
       }
-      const enrollment = await this.totpMfa.beginEnrollment(user, accountName);
+    }
+    try {
+      const enrollment = await this.totpMfa.beginEnrollment(user, accountName, {
+        skipEnrolledCheck: true,
+      });
       this.mfaEnrollment.set(enrollment);
       this.isSubmitting.set(false);
     } catch (error) {
@@ -366,11 +411,7 @@ export class AuthModalComponent implements OnDestroy {
         await this.finishVerifiedEnrollment();
         return;
       }
-      if (isTotpMfaError(error)) {
-        this.applyTotpError(error);
-        return;
-      }
-      this.applyRestartError(TOTP_RESTART_MESSAGE);
+      this.holdIdentityAfterResumeFailure(error);
     }
   }
 
@@ -429,11 +470,21 @@ export class AuthModalComponent implements OnDestroy {
       this.holdEnrollmentForRetry(TOTP_RECENT_LOGIN_FAILED_MESSAGE, error.code);
       return;
     }
+    if (error.code === AUTH_ERROR_USER_TOKEN_EXPIRED) {
+      this.restartExpiredEnrollmentSession(error);
+      return;
+    }
     const message =
       error.kind === 'recover' || error.code === TOTP_ENROLLMENT_UNCONFIRMED_CODE
         ? error.message
         : TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE;
     this.holdEnrollmentForRecovery(message, error.code);
+  }
+
+  private restartExpiredEnrollmentSession(error: TotpMfaError): void {
+    this.totpMfa.forgetOpenEnrollment(this.firebase.currentUser?.uid);
+    this.applyRestartError(error.message);
+    this.enrollmentSupportCode.set(totpSupportCode(error.code));
   }
 
   private isRetryableEnrollmentCode(error: TotpMfaError): boolean {
@@ -442,6 +493,17 @@ export class AuthModalComponent implements OnDestroy {
       error.code === AUTH_ERROR_CODE_EXPIRED ||
       error.code === TOTP_INVALID_FORMAT_CODE
     );
+  }
+
+  private holdIdentityAfterResumeFailure(error: unknown): void {
+    const mapped = isTotpMfaError(error) ? error : toTotpMfaError(error);
+    this.mfaEnrollment.set(null);
+    this.totpErrorKind.set('restart');
+    this.totpError.set(mapped.message);
+    this.enrollmentSupportCode.set(totpSupportCode(mapped.code));
+    this.totpCode.set('');
+    this.isSubmitting.set(false);
+    this.requestTotpFocus();
   }
 
   private holdEnrollmentForRetry(message: string, code?: string): void {
@@ -477,9 +539,12 @@ export class AuthModalComponent implements OnDestroy {
   }
 
   private requestTotpFocus(): void {
-    afterNextRender(() => this.totpCodeInputRef?.nativeElement.focus(), {
-      injector: this.injector,
-    });
+    afterNextRender(
+      () => {
+        this.totpCodeInputRef?.nativeElement.focus();
+      },
+      { injector: this.injector },
+    );
   }
 
   private rememberOpener(): void {
@@ -501,7 +566,9 @@ export class AuthModalComponent implements OnDestroy {
   private focusPreferredControl(): void {
     const preferredId =
       this.state() === 'mfaEnroll'
-        ? 'auth-modal-mfa-enroll-code-input'
+        ? this.totpErrorKind() === 'restart'
+          ? 'auth-modal-mfa-enroll-restart-btn'
+          : 'auth-modal-mfa-enroll-code-input'
         : this.state() === 'mfaChallenge'
           ? 'auth-modal-mfa-challenge-code-input'
           : 'auth-modal-entry-google-btn';
@@ -582,9 +649,33 @@ export class AuthModalComponent implements OnDestroy {
     this.clearTotpFields();
   }
 
-  private async finishVerifiedEnrollment(): Promise<void> {
+  private async finishMfaVerifiedSignIn(): Promise<void> {
+    const user = this.firebase.currentUser;
+    if (!user) {
+      this.loginError.set('Google sign-in did not finish. Please try again.');
+      this.state.set('entry');
+      return;
+    }
+
+    const ensured = await this.firebase.ensureSelfUserRecord(user);
+    if (ensured.status === 'denied') {
+      this.totpMfa.clearEnrollmentInProgress(user.uid);
+      await this.authService.logout();
+      this.loginError.set(ACCOUNT_NOT_ACTIVE_MESSAGE);
+      this.state.set('entry');
+      return;
+    }
+
+    // resolveSignIn already proved the TOTP factor. Skip enrollment and
+    // the competing factor probe.
+    await this.finishVerifiedEnrollment(true);
+  }
+
+  private async finishVerifiedEnrollment(totpEnrollmentConfirmed = false): Promise<void> {
     try {
-      await this.authService.refreshCurrentUserTier();
+      await this.authService.refreshCurrentUserTier(
+        totpEnrollmentConfirmed ? { totpEnrollmentConfirmed: true } : undefined,
+      );
     } catch {
       this.holdEnrollmentForRecovery(
         TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,

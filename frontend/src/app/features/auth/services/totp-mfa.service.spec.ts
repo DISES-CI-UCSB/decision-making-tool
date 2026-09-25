@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import * as firebaseAuth from 'firebase/auth';
 import { FactorId, type MultiFactorInfo, type MultiFactorResolver, type User } from 'firebase/auth';
 import { QrCodeService } from './qr-code.service';
-import { TotpEnrollmentDiagnosticService } from './totp-enrollment-diagnostic.service';
+import { TOTP_PROBE_LOG_PREFIX } from './totp-enrollment-probe';
 import {
   applyTotpEnrollmentResult,
   AUTH_ERROR_CODE_EXPIRED,
@@ -11,6 +11,7 @@ import {
   AUTH_ERROR_MFA_REQUIRED,
   AUTH_ERROR_MISSING_MFA_INFO,
   AUTH_ERROR_REQUIRES_RECENT_LOGIN,
+  AUTH_ERROR_USER_TOKEN_EXPIRED,
   TOTP_ENROLLMENT_EXPIRED_CODE,
   TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
   TOTP_ENROLLMENT_UNCONFIRMED_CODE,
@@ -22,6 +23,7 @@ import {
   TOTP_RECENT_LOGIN_FAILED_MESSAGE,
   TOTP_RESTART_MESSAGE,
   TOTP_RETRY_MESSAGE,
+  TOTP_USER_TOKEN_EXPIRED_MESSAGE,
   TotpMfaError,
   TotpMfaService,
   type TotpEnrollmentSession,
@@ -30,8 +32,10 @@ import {
   buildTotpOtpauthUri,
   canBeginTotpEnrollment,
   createTotpChallengeSession,
+  hasEnrolledTotpAfterEnrollment,
   hasEnrolledTotpAfterFactorRefresh,
   hasTotpFactor,
+  hasTotpSecondFactorClaim,
   isMultiFactorAuthRequired,
   isSixDigitTotpCode,
   normalizeTotpCode,
@@ -90,11 +94,29 @@ describe('TOTP MFA guards', () => {
     expect(selectTotpHint([phone])).toBeNull();
   });
 
+  it('reads only the cached TOTP second-factor claim', async () => {
+    const getIdTokenResult = vi.fn(
+      async (forceRefresh?: boolean): Promise<{ signInSecondFactor: string | null }> => {
+        expect(forceRefresh).toBe(false);
+        return { signInSecondFactor: 'totp' };
+      },
+    );
+    await expect(hasTotpSecondFactorClaim({ getIdTokenResult })).resolves.toBe(true);
+    expect(getIdTokenResult).toHaveBeenCalledWith(false);
+
+    getIdTokenResult.mockResolvedValueOnce({ signInSecondFactor: null });
+    await expect(hasTotpSecondFactorClaim({ getIdTokenResult })).resolves.toBe(false);
+
+    getIdTokenResult.mockRejectedValueOnce(new Error('token unavailable'));
+    await expect(hasTotpSecondFactorClaim({ getIdTokenResult })).resolves.toBe(false);
+  });
+
   it('classifies invalid and expired codes as retryable', () => {
     expect(classifyTotpErrorCode(AUTH_ERROR_INVALID_OTP)).toBe('retry');
     expect(classifyTotpErrorCode(AUTH_ERROR_INVALID_VERIFICATION_ID)).toBe('retry');
     expect(classifyTotpErrorCode(AUTH_ERROR_CODE_EXPIRED)).toBe('retry');
     expect(classifyTotpErrorCode(AUTH_ERROR_REQUIRES_RECENT_LOGIN)).toBe('retry');
+    expect(classifyTotpErrorCode(AUTH_ERROR_USER_TOKEN_EXPIRED)).toBe('restart');
     expect(classifyTotpErrorCode(TOTP_ENROLLMENT_UNCONFIRMED_CODE)).toBe('recover');
     expect(classifyTotpErrorCode(TOTP_ENROLLMENT_EXPIRED_CODE)).toBe('recover');
     expect(classifyTotpErrorCode(TOTP_INVALID_FORMAT_CODE)).toBe('retry');
@@ -117,6 +139,11 @@ describe('TOTP MFA guards', () => {
     expect(recentLogin.kind).toBe('retry');
     expect(recentLogin.code).toBe(AUTH_ERROR_REQUIRES_RECENT_LOGIN);
     expect(recentLogin.message).toBe(TOTP_RECENT_LOGIN_FAILED_MESSAGE);
+
+    const tokenExpired = toTotpMfaError({ code: AUTH_ERROR_USER_TOKEN_EXPIRED });
+    expect(tokenExpired.kind).toBe('restart');
+    expect(tokenExpired.code).toBe(AUTH_ERROR_USER_TOKEN_EXPIRED);
+    expect(tokenExpired.message).toBe(TOTP_USER_TOKEN_EXPIRED_MESSAGE);
 
     const unconfirmed = toTotpMfaError({ code: TOTP_ENROLLMENT_UNCONFIRMED_CODE });
     expect(unconfirmed.kind).toBe('recover');
@@ -205,6 +232,46 @@ describe('TOTP MFA guards', () => {
     ).resolves.toBe(false);
   });
 
+  it('confirms enrollment from local factors without forcing a token refresh', async () => {
+    const order: string[] = [];
+
+    await expect(
+      hasEnrolledTotpAfterEnrollment(
+        () => {
+          order.push('check');
+          return true;
+        },
+        async () => {
+          order.push('reload');
+        },
+      ),
+    ).resolves.toBe(true);
+    expect(order).toEqual(['check']);
+
+    order.length = 0;
+    let visible = false;
+    await expect(
+      hasEnrolledTotpAfterEnrollment(
+        () => {
+          order.push('check');
+          return visible;
+        },
+        async () => {
+          order.push('reload');
+          visible = true;
+        },
+      ),
+    ).resolves.toBe(true);
+    expect(order).toEqual(['check', 'reload', 'check']);
+
+    await expect(
+      hasEnrolledTotpAfterEnrollment(
+        () => false,
+        async () => undefined,
+      ),
+    ).resolves.toBe(false);
+  });
+
   it('fails closed when the resolver has no TOTP hint', () => {
     const resolver = {
       hints: [hint(FactorId.PHONE, 'phone-1')],
@@ -270,6 +337,85 @@ describe('TotpMfaService', () => {
 
     await readAfterRefresh(false);
     await readAfterRefresh(true);
+  });
+
+  it('shares one forced refresh across concurrent factor reads for the same user', async () => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: QrCodeService, useValue: { toDataUrl: vi.fn() } }],
+    });
+    const service = TestBed.inject(TotpMfaService);
+    let resolveToken: (value: string) => void = () => undefined;
+    const getIdToken = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveToken = resolve;
+        }),
+    );
+    const reload = vi.fn(async () => undefined);
+    const user = {
+      uid: 'shared-uid',
+      getIdToken,
+      reload,
+    } as unknown as User;
+    const enrolledSpy = vi.spyOn(service, 'hasEnrolledTotp').mockReturnValue(false);
+
+    const first = service.userHasEnrolledTotp(user);
+    const second = service.userHasEnrolledTotp(user);
+    expect(getIdToken).toHaveBeenCalledTimes(1);
+    expect(getIdToken).toHaveBeenCalledWith(true);
+
+    resolveToken('token');
+    await expect(first).resolves.toBe(false);
+    await expect(second).resolves.toBe(false);
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    getIdToken.mockResolvedValue('token');
+    await expect(service.userHasEnrolledTotp(user)).resolves.toBe(false);
+    expect(getIdToken).toHaveBeenCalledTimes(2);
+    enrolledSpy.mockRestore();
+  });
+
+  it('holds enrollment for a uid while setup is in progress or a QR is open', () => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: QrCodeService, useValue: { toDataUrl: vi.fn() } }],
+    });
+    const service = TestBed.inject(TotpMfaService);
+    const user = { uid: 'held-uid' } as User;
+    const session = { secretKey: 'KEY' } as TotpEnrollmentSession;
+
+    expect(service.isEnrollmentHeld('held-uid')).toBe(false);
+    service.markEnrollmentInProgress('held-uid');
+    expect(service.isEnrollmentHeld('held-uid')).toBe(true);
+    expect(service.isEnrollmentHeld('other-uid')).toBe(false);
+    service.rememberOpenEnrollment(user, session);
+    service.clearEnrollmentInProgress('held-uid');
+    expect(service.isEnrollmentHeld('held-uid')).toBe(true);
+    service.forgetOpenEnrollment('held-uid');
+    expect(service.isEnrollmentHeld('held-uid')).toBe(false);
+  });
+
+  it('does not force a token refresh when confirming a just-enrolled factor', async () => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: QrCodeService, useValue: { toDataUrl: vi.fn() } }],
+    });
+    const service = TestBed.inject(TotpMfaService);
+    const order: string[] = [];
+    const user = {
+      getIdToken: vi.fn(async () => {
+        order.push('token');
+        return 'token';
+      }),
+      reload: vi.fn(async () => {
+        order.push('reload');
+      }),
+    } as unknown as User;
+    const enrolledSpy = vi.spyOn(service, 'hasEnrolledTotp').mockReturnValue(true);
+
+    await expect(service.confirmEnrolledTotp(user)).resolves.toBe(true);
+    expect(user.getIdToken).not.toHaveBeenCalled();
+    expect(user.reload).not.toHaveBeenCalled();
+    expect(order).toEqual([]);
+    enrolledSpy.mockRestore();
   });
 });
 
@@ -445,10 +591,10 @@ describe('TOTP enrollment result', () => {
   });
 });
 
-describe('TotpMfaService unconfirmed enrollment', () => {
+describe('TotpMfaService enrollment persistence probe', () => {
   const session = {
     secret: { secretKey: 'SHOULD_NOT_LEAK' },
-    qrCodeUrl: 'otpauth://totp/test',
+    qrCodeUrl: 'otpauth://totp/test?secret=SHOULD_NOT_LEAK',
     qrCodeDataUrl: 'data:image/png;base64,abc',
     secretKey: 'SHOULD_NOT_LEAK',
     accountName: 'wthompson@ucsb.edu',
@@ -458,19 +604,22 @@ describe('TotpMfaService unconfirmed enrollment', () => {
     codeIntervalSeconds: 30,
   } as TotpEnrollmentSession;
 
-  async function finishEnrollment(enrolledAfterEnroll: boolean, diagnose: () => Promise<void>) {
-    const diagnostic = { reportUnconfirmed: vi.fn(diagnose) };
+  async function finishEnrollment(options: {
+    enrolledAfterEnroll: boolean;
+    lookupUsers?: unknown;
+    enrollError?: { code: string; message: string };
+  }) {
     TestBed.configureTestingModule({
-      providers: [
-        { provide: QrCodeService, useValue: { toDataUrl: vi.fn() } },
-        { provide: TotpEnrollmentDiagnosticService, useValue: diagnostic },
-      ],
+      providers: [{ provide: QrCodeService, useValue: { toDataUrl: vi.fn() } }],
     });
     const service = TestBed.inject(TotpMfaService);
     const factors: { factorId: string }[] = [];
     const multiFactorSpy = vi.spyOn(firebaseAuth, 'multiFactor').mockReturnValue({
       enroll: vi.fn(async () => {
-        if (enrolledAfterEnroll) {
+        if (options.enrollError) {
+          throw options.enrollError;
+        }
+        if (options.enrolledAfterEnroll) {
           factors.push({ factorId: FactorId.TOTP });
         }
       }),
@@ -481,55 +630,157 @@ describe('TotpMfaService unconfirmed enrollment', () => {
       .mockReturnValue({} as never);
     const user = {
       uid: 'uid-1',
-      getIdToken: vi.fn(async () => 'token'),
+      getIdToken: vi.fn(async (forceRefresh?: boolean) => {
+        if (forceRefresh === true) {
+          throw new Error('forced refresh is forbidden on the probe path');
+        }
+        return 'token';
+      }),
       reload: vi.fn(async () => undefined),
     } as unknown as User;
+    const lookupBody = {
+      users: options.lookupUsers ?? [{ localId: 'uid-1', mfaInfo: [] }],
+      idToken: 'eyJshould-not-log',
+      refreshToken: 'refresh-SECRET',
+    };
+    const fetchImpl = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify(lookupBody), { status: 200 }));
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     service.rememberOpenEnrollment(user, session);
 
     let thrown: unknown;
     try {
       await service.completeEnrollment(user, session, '123456');
-    } catch (error) {
-      thrown = error;
+    } catch (caught) {
+      thrown = caught;
     } finally {
       multiFactorSpy.mockRestore();
       assertionSpy.mockRestore();
     }
-    return { service, user, diagnostic, thrown };
+    const probeLines = info.mock.calls.map((call) => String(call[0]));
+    const restore = () => {
+      fetchImpl.mockRestore();
+      info.mockRestore();
+      warn.mockRestore();
+      log.mockRestore();
+      error.mockRestore();
+    };
+    return { service, user, thrown, fetchImpl, probeLines, warn, log, error, restore };
   }
 
-  it('keeps the open session locked when the refreshed user has no TOTP factor', async () => {
-    const finished = await finishEnrollment(false, async () => undefined);
-
-    expect(finished.thrown).toMatchObject({
-      code: TOTP_ENROLLMENT_UNCONFIRMED_CODE,
-      message: TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
-    });
-    expect(finished.diagnostic.reportUnconfirmed).toHaveBeenCalledWith(finished.user);
-    expect(finished.service.openEnrollmentFor(finished.user)).toBe(session);
-    expect(String(finished.thrown)).not.toContain('SHOULD_NOT_LEAK');
-    expect(String(finished.thrown)).not.toContain('wthompson@ucsb.edu');
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('stays locked when the diagnostic rejects with sensitive text', async () => {
-    const finished = await finishEnrollment(false, async () => {
-      throw new Error('idToken=eyJsecret email=wthompson@ucsb.edu');
+  it('logs enroll-result error and does not look up when enroll throws', async () => {
+    const finished = await finishEnrollment({
+      enrolledAfterEnroll: false,
+      enrollError: {
+        code: AUTH_ERROR_INVALID_OTP,
+        message: 'Firebase: otp=123456 email=wthompson@ucsb.edu secretKey=SHOULD_NOT_LEAK',
+      },
     });
 
-    expect(finished.thrown).toBeInstanceOf(TotpMfaError);
-    expect(finished.thrown).toMatchObject({
-      code: TOTP_ENROLLMENT_UNCONFIRMED_CODE,
-      message: TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
-    });
-    expect(finished.service.openEnrollmentFor(finished.user)).toBe(session);
-    expect(String(finished.thrown)).not.toContain('eyJsecret');
+    try {
+      expect(finished.thrown).toMatchObject({
+        kind: 'retry',
+        code: AUTH_ERROR_INVALID_OTP,
+      });
+      expect(finished.user.getIdToken).not.toHaveBeenCalled();
+      expect(finished.fetchImpl).not.toHaveBeenCalled();
+      expect(finished.service.openEnrollmentFor(finished.user)).toBe(session);
+      expect(finished.probeLines).toEqual([
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"enroll-start"}`,
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"enroll-result","outcome":"error","errorCode":"auth/invalid-verification-code"}`,
+      ]);
+      expect(finished.warn).not.toHaveBeenCalled();
+      expect(finished.log).not.toHaveBeenCalled();
+      expect(finished.error).not.toHaveBeenCalled();
+      expect(finished.probeLines.join('\n')).not.toContain('SHOULD_NOT_LEAK');
+      expect(finished.probeLines.join('\n')).not.toContain('wthompson@ucsb.edu');
+      expect(String(finished.thrown)).not.toContain('SHOULD_NOT_LEAK');
+    } finally {
+      finished.restore();
+    }
   });
 
-  it('clears the session after a confirmed factor and does not diagnose', async () => {
-    const finished = await finishEnrollment(true, async () => undefined);
+  it('confirms enrollment from the local reload even when token lookup has no TOTP', async () => {
+    const finished = await finishEnrollment({
+      enrolledAfterEnroll: true,
+      lookupUsers: [{ localId: 'uid-1', mfaInfo: [] }],
+    });
 
-    expect(finished.thrown).toBeUndefined();
-    expect(finished.diagnostic.reportUnconfirmed).not.toHaveBeenCalled();
-    expect(finished.service.openEnrollmentFor(finished.user)).toBeNull();
+    try {
+      expect(finished.thrown).toBeUndefined();
+      expect(finished.user.getIdToken).toHaveBeenCalledOnce();
+      expect(finished.user.getIdToken).toHaveBeenCalledWith(false);
+      expect(finished.fetchImpl).toHaveBeenCalledOnce();
+      expect(finished.service.openEnrollmentFor(finished.user)).toBeNull();
+      expect(finished.probeLines).toEqual([
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"enroll-start"}`,
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"enroll-result","outcome":"ok"}`,
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"local-factor-check","factorIds":["totp"],"factorCount":1}`,
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"persistence-lookup","scope":"id-token","httpStatus":200,"userCount":1,"uidMatches":true,"mfaInfoLength":0,"totpInfoPresent":false}`,
+      ]);
+      expect(finished.probeLines.join('\n')).not.toContain('eyJshould-not-log');
+      expect(finished.probeLines.join('\n')).not.toContain('refresh-SECRET');
+    } finally {
+      finished.restore();
+    }
+  });
+
+  it('reports token-scoped lookup TOTP without treating it as durable proof', async () => {
+    const finished = await finishEnrollment({
+      enrolledAfterEnroll: true,
+      lookupUsers: [
+        {
+          localId: 'uid-1',
+          email: 'wthompson@ucsb.edu',
+          mfaInfo: [{ totpInfo: { secretKey: 'SHOULD_NOT_LEAK', otp: '123456' } }],
+        },
+      ],
+    });
+
+    try {
+      expect(finished.thrown).toBeUndefined();
+      expect(finished.user.getIdToken).toHaveBeenCalledOnce();
+      expect(finished.user.getIdToken).toHaveBeenCalledWith(false);
+      expect(finished.fetchImpl).toHaveBeenCalledOnce();
+      expect(finished.service.openEnrollmentFor(finished.user)).toBeNull();
+      expect(finished.probeLines).toEqual([
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"enroll-start"}`,
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"enroll-result","outcome":"ok"}`,
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"local-factor-check","factorIds":["totp"],"factorCount":1}`,
+        `${TOTP_PROBE_LOG_PREFIX} {"event":"persistence-lookup","scope":"id-token","httpStatus":200,"userCount":1,"uidMatches":true,"mfaInfoLength":1,"totpInfoPresent":true}`,
+      ]);
+      expect(finished.probeLines.join('\n')).not.toContain('SHOULD_NOT_LEAK');
+      expect(finished.probeLines.join('\n')).not.toContain('wthompson@ucsb.edu');
+    } finally {
+      finished.restore();
+    }
+  });
+
+  it('forgets a remembered enrollment for the current uid or globally', () => {
+    TestBed.configureTestingModule({
+      providers: [{ provide: QrCodeService, useValue: { toDataUrl: vi.fn() } }],
+    });
+    const service = TestBed.inject(TotpMfaService);
+    const user = { uid: 'uid-1' } as User;
+    const other = { uid: 'uid-2' } as User;
+    service.rememberOpenEnrollment(user, session);
+
+    service.forgetOpenEnrollment(other.uid);
+    expect(service.openEnrollmentFor(user)).toBe(session);
+
+    service.forgetOpenEnrollment(user.uid);
+    expect(service.openEnrollmentFor(user)).toBeNull();
+
+    service.rememberOpenEnrollment(user, session);
+    service.forgetOpenEnrollment();
+    expect(service.openEnrollmentFor(user)).toBeNull();
   });
 });

@@ -53,6 +53,7 @@ export class HeaderComponent implements AfterViewInit {
   protected readonly partnerCarouselCanMovePrevious = signal(false);
   protected readonly partnerCarouselCanMoveNext = signal(true);
   protected readonly isSignedIn = computed(() => this.appState.userIsSignedIn$());
+  protected readonly authReady = computed(() => this.authService.authReady$());
   protected readonly needsMfaEnrollment = computed(() => this.authService.mfaEnrollmentRequired$());
   protected readonly isApproved = computed(
     () => this.appState.userTier$() >= UserTier.DecisionMaker,

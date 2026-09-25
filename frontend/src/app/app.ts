@@ -63,7 +63,19 @@ export class App implements OnInit {
   private readonly header?: HeaderComponent;
 
   protected get isStandalonePage(): boolean {
-    return this.router.url.startsWith('/about') || this.router.url.startsWith('/guide');
+    return (
+      this.router.url.startsWith('/about') ||
+      this.router.url.startsWith('/guide') ||
+      this.isAuthActionPage
+    );
+  }
+
+  /**
+   * The header boots AuthService and can auto-open MFA enrollment, so the
+   * email action page renders without it to stay side-effect free on load.
+   */
+  protected get isAuthActionPage(): boolean {
+    return this.router.url.startsWith('/auth/action');
   }
 
   ngOnInit(): void {

@@ -233,7 +233,7 @@
         >
           {{ 'header.logout' | translate }}
         </button>
-      } @else {
+      } @else if (authReady()) {
         <button
           id="foundation-header-auth-toggle-button"
           type="button"

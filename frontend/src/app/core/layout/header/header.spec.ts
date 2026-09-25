@@ -18,11 +18,13 @@ describe('HeaderComponent auth state', () => {
   const authService = {
     logout: vi.fn().mockResolvedValue(undefined),
     mfaEnrollmentRequired$: signal(false),
+    authReady$: signal(true),
   };
 
   beforeEach(async () => {
     authService.logout.mockClear();
     authService.mfaEnrollmentRequired$.set(false);
+    authService.authReady$.set(true);
     await TestBed.configureTestingModule({
       imports: [HeaderComponent],
       providers: [
@@ -98,6 +100,24 @@ describe('HeaderComponent auth state', () => {
     const header = fixture.nativeElement as HTMLElement;
     expect(header.querySelector('#foundation-header-auth-toggle-button')).not.toBeNull();
     expect(header.querySelector('#foundation-header-logout-button')).toBeNull();
+  });
+
+  it('waits for auth readiness before showing Login / Register', () => {
+    authService.authReady$.set(false);
+    const fixture = TestBed.createComponent(HeaderComponent);
+    fixture.detectChanges();
+
+    const header = fixture.nativeElement as HTMLElement;
+    expect(header.querySelector('#foundation-header-auth-toggle-button')).toBeNull();
+    expect(header.querySelector('#foundation-header-logout-button')).toBeNull();
+
+    authService.authReady$.set(true);
+    fixture.detectChanges();
+
+    expect(header.querySelector('#foundation-header-auth-toggle-button')).not.toBeNull();
+    expect(header.querySelector('#foundation-header-auth-toggle-button')?.textContent).toContain(
+      'Login / Register',
+    );
   });
 
   it('renders only MinAmbiente and PNNC partner logos in the header', () => {

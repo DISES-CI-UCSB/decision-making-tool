@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import {
   provideTranslateLoader,
   provideTranslateService,
@@ -32,6 +32,13 @@ class AboutRouteStubComponent {}
 })
 class GuideRouteStubComponent {}
 
+@Component({
+  standalone: true,
+  selector: 'app-auth-action-route-stub',
+  template: '',
+})
+class AuthActionRouteStubComponent {}
+
 function skipLandingWelcomeVideo(fixture: {
   nativeElement: HTMLElement;
   detectChanges(): void;
@@ -55,6 +62,7 @@ describe('App', () => {
         provideRouter([
           { path: 'about', component: AboutRouteStubComponent },
           { path: 'guide', component: GuideRouteStubComponent },
+          { path: 'auth/action', component: AuthActionRouteStubComponent },
         ]),
         provideNoopAnimations(),
       ],
@@ -160,9 +168,9 @@ describe('App', () => {
       ?.click();
     fixture.detectChanges();
 
-    expect(
-      compiled.querySelector('#landing-welcome-modal-video-player')?.getAttribute('src'),
-    ).toBe(USER_GUIDE_ASSETS.en.videoUrl);
+    expect(compiled.querySelector('#landing-welcome-modal-video-player')?.getAttribute('src')).toBe(
+      USER_GUIDE_ASSETS.en.videoUrl,
+    );
   });
 
   it('keeps skip available when the welcome video fails to load', () => {
@@ -176,10 +184,22 @@ describe('App', () => {
     fixture.detectChanges();
 
     expect(compiled.querySelector('#landing-welcome-modal-video-player')).toBeNull();
-    expect(compiled.querySelector('#landing-welcome-modal-video-error-copy')?.textContent).toContain(
-      'landingWelcome.videoError',
-    );
+    expect(
+      compiled.querySelector('#landing-welcome-modal-video-error-copy')?.textContent,
+    ).toContain('landingWelcome.videoError');
     expect(compiled.querySelector('#landing-welcome-modal-skip-video-button')).not.toBeNull();
+  });
+
+  it('renders the email action route without the header, map shell, or welcome modal', async () => {
+    const fixture = TestBed.createComponent(App);
+    await TestBed.inject(Router).navigateByUrl('/auth/action?mode=verifyEmail&oobCode=code');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('#foundation-header')).toBeNull();
+    expect(compiled.querySelector('#foundation-app-shell')).toBeNull();
+    expect(compiled.querySelector('#landing-welcome-modal-shell')).toBeNull();
+    expect(compiled.querySelector('app-auth-action-route-stub')).not.toBeNull();
   });
 
   it('closes the landing welcome modal when Guide is chosen', () => {

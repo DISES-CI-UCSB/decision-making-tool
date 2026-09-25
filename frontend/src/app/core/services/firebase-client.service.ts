@@ -1,15 +1,31 @@
 import { Injectable } from '@angular/core';
-import { initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
+import {
+  getApp,
+  getApps,
+  initializeApp,
+  type FirebaseApp,
+  type FirebaseOptions,
+} from 'firebase/app';
 import {
   GoogleAuthProvider,
+  applyActionCode as firebaseApplyActionCode,
+  browserLocalPersistence,
+  browserPopupRedirectResolver,
+  browserSessionPersistence,
+  checkActionCode as firebaseCheckActionCode,
   createUserWithEmailAndPassword,
   getAuth,
+  indexedDBLocalPersistence,
+  initializeAuth,
   onAuthStateChanged,
   reauthenticateWithPopup,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
+  type ActionCodeInfo,
   type Auth,
+  type Persistence,
+  type PopupRedirectResolver,
   type Unsubscribe,
   type User,
   type UserCredential,
@@ -37,9 +53,89 @@ export function shouldEnsureActiveDirectory(existingUserStatus: string | null): 
   return existingUserStatus === null || existingUserStatus === 'active';
 }
 
+export interface BrowserAuthSettings {
+  persistence: Persistence[];
+  popupRedirectResolver: PopupRedirectResolver;
+}
+
+/** IndexedDB first, then browser local/session. Popup resolver is required for Google. */
+export function browserAuthSettings(): BrowserAuthSettings {
+  return {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence],
+    popupRedirectResolver: browserPopupRedirectResolver,
+  };
+}
+
+export function isAuthAlreadyInitialized(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code: unknown }).code === 'auth/already-initialized'
+  );
+}
+
+export function initializeBrowserAuth(
+  app: FirebaseApp,
+  authApi: {
+    initializeAuth: typeof initializeAuth;
+    getAuth: typeof getAuth;
+  } = { initializeAuth, getAuth },
+): Auth {
+  try {
+    return authApi.initializeAuth(app, browserAuthSettings());
+  } catch (error) {
+    if (isAuthAlreadyInitialized(error)) {
+      return authApi.getAuth(app);
+    }
+    throw error;
+  }
+}
+
+export function createGoogleSelectAccountProvider(
+  createProvider: () => GoogleAuthProvider = () => new GoogleAuthProvider(),
+): GoogleAuthProvider {
+  const provider = createProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  return provider;
+}
+
+/**
+ * The popup's signInWithIdp already rejects with auth/multi-factor-auth-required
+ * whenever the account has an enrolled factor. A resolved popup means Firebase
+ * holds no factor for this account.
+ */
+export async function signInWithGoogleSelectAccountPopup(
+  auth: Auth,
+  authApi: {
+    signInWithPopup: typeof signInWithPopup;
+    signOut: typeof firebaseSignOut;
+    createProvider?: () => GoogleAuthProvider;
+  },
+): Promise<UserCredential> {
+  if (auth.currentUser) {
+    await authApi.signOut(auth);
+  }
+  return authApi.signInWithPopup(auth, createGoogleSelectAccountProvider(authApi.createProvider));
+}
+
+export async function reauthenticateWithGoogleSelectAccountPopup(
+  user: User,
+  authApi: {
+    reauthenticateWithPopup: typeof reauthenticateWithPopup;
+    createProvider?: () => GoogleAuthProvider;
+  },
+): Promise<UserCredential> {
+  return authApi.reauthenticateWithPopup(
+    user,
+    createGoogleSelectAccountProvider(authApi.createProvider),
+  );
+}
+
 @Injectable({ providedIn: 'root' })
 export class FirebaseClientService {
   private app: FirebaseApp | null = null;
+  private authInstance: Auth | null = null;
 
   get isEnabled(): boolean {
     return environment.firebase.enabled && Boolean(environment.firebase.config.projectId);
@@ -49,7 +145,17 @@ export class FirebaseClientService {
     if (!this.isEnabled) {
       return null;
     }
-    return getAuth(this.ensureApp());
+    if (!this.authInstance) {
+      const app = this.ensureApp();
+      try {
+        this.authInstance = initializeBrowserAuth(app);
+      } catch {
+        // jsdom and some browsers cannot construct IndexedDB persistence.
+        // getAuth still yields the same app-scoped instance.
+        this.authInstance = getAuth(app);
+      }
+    }
+    return this.authInstance;
   }
 
   get firestore(): Firestore | null {
@@ -79,11 +185,16 @@ export class FirebaseClientService {
   }
 
   async signInWithGooglePopup(): Promise<UserCredential> {
-    return signInWithPopup(this.requireAuth(), new GoogleAuthProvider());
+    return signInWithGoogleSelectAccountPopup(this.requireAuth(), {
+      signInWithPopup,
+      signOut: firebaseSignOut,
+    });
   }
 
   async reauthenticateWithGooglePopup(user: User): Promise<UserCredential> {
-    return reauthenticateWithPopup(user, new GoogleAuthProvider());
+    return reauthenticateWithGoogleSelectAccountPopup(user, {
+      reauthenticateWithPopup,
+    });
   }
 
   async signInWithEmail(email: string, password: string): Promise<User> {
@@ -96,6 +207,14 @@ export class FirebaseClientService {
     const auth = this.requireAuth();
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     return credential.user;
+  }
+
+  async applyActionCode(oobCode: string): Promise<void> {
+    await firebaseApplyActionCode(this.requireAuth(), oobCode);
+  }
+
+  async checkActionCode(oobCode: string): Promise<ActionCodeInfo> {
+    return firebaseCheckActionCode(this.requireAuth(), oobCode);
   }
 
   async getUserDocument(uid: string): Promise<DocumentData | null> {
@@ -192,7 +311,10 @@ export class FirebaseClientService {
 
   private ensureApp(): FirebaseApp {
     if (!this.app) {
-      this.app = initializeApp(environment.firebase.config as FirebaseOptions);
+      this.app =
+        getApps().length > 0
+          ? getApp()
+          : initializeApp(environment.firebase.config as FirebaseOptions);
     }
     return this.app;
   }

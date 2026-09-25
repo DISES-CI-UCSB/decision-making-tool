@@ -12,7 +12,9 @@
  * Admin credentials (FIREBASE_SERVICE_ACCOUNT_JSON or Application Default
  * Credentials) are used only to create, read, and delete those users. Sign-in,
  * secret generation, enrollment, and the next sign-in challenge use the client
- * SDK. The script accepts no email argument.
+ * SDK. After enroll(), confirmation reads local factors and reloads without
+ * getIdToken(true), matching the Google popup app path. The script accepts no
+ * email argument.
  */
 
 import { createHmac, randomBytes } from 'node:crypto';
@@ -51,6 +53,7 @@ const SAFE_LOG_KEYS = new Set([
   'adminTotpCount',
   'clientFactorCountBeforeRefresh',
   'clientFactorCountAfterRefresh',
+  'clientTotpCountBeforeRefresh',
   'clientTotpCountAfterRefresh',
   'signInSecondFactor',
   'secondFactorIdentifierPresent',
@@ -58,13 +61,17 @@ const SAFE_LOG_KEYS = new Set([
   'finalizeDateHeader',
   'skewSeconds',
   'failure',
-  'uid',
   'deleted',
   'credentialSource',
   'projectId',
   'waitMs',
   'ok',
+  'enrollChangedLastSignIn',
+  'enrollChangedLastRefresh',
+  'enrollChangedValidSince',
+  'validSinceMinusLastRefreshSec',
 ]);
+export const ENROLL_TIMING_GAP_MS = 2000;
 
 export function assertNoTargetArguments(argv) {
   const extras = argv.slice(2).filter((arg) => arg !== '--');
@@ -163,14 +170,13 @@ function disposableEmail(email) {
 }
 
 export function assertCleanupTarget(expected, loaded) {
-  const uid = expected && typeof expected.uid === 'string' ? expected.uid : 'unknown';
   if (!expected || !loaded || expected.uid !== loaded.uid) {
-    throw new Error(`Refusing cleanup for uid ${uid}: uid guard failed.`);
+    throw new Error('Refusing cleanup: uid guard failed.');
   }
   const expectedEmail = disposableEmail(expected.email);
   const loadedEmail = disposableEmail(loaded.email);
   if (!expectedEmail || expectedEmail !== loadedEmail) {
-    throw new Error(`Refusing cleanup for uid ${expected.uid}: email guard failed.`);
+    throw new Error('Refusing cleanup: email guard failed.');
   }
 }
 
@@ -453,6 +459,9 @@ export function enrollmentOutcome({
   signInSecondFactor,
 }) {
   const adminTotpCount = adminFactorIds.filter((factorId) => factorId === 'totp').length;
+  const clientTotpCountBeforeRefresh = clientFactorIdsBeforeRefresh.filter(
+    (factorId) => factorId === 'totp',
+  ).length;
   const clientTotpCountAfterRefresh = clientFactorIdsAfterRefresh.filter(
     (factorId) => factorId === 'totp',
   ).length;
@@ -461,16 +470,38 @@ export function enrollmentOutcome({
     adminTotpCount,
     clientFactorCountBeforeRefresh: clientFactorIdsBeforeRefresh.length,
     clientFactorCountAfterRefresh: clientFactorIdsAfterRefresh.length,
+    clientTotpCountBeforeRefresh,
     clientTotpCountAfterRefresh,
     signInSecondFactor: signInSecondFactor ?? null,
   };
   if (adminTotpCount !== 1) {
     return { ...base, ok: false, failure: 'admin-totp-not-persisted' };
   }
-  if (clientTotpCountAfterRefresh < 1) {
-    return { ...base, ok: false, failure: 'hypothesis-4-client-factors-empty' };
+  if (clientTotpCountBeforeRefresh >= 1 || clientTotpCountAfterRefresh >= 1) {
+    return { ...base, ok: true, failure: null };
   }
-  return { ...base, ok: true, failure: null };
+  return { ...base, ok: false, failure: 'hypothesis-4-client-factors-empty' };
+}
+
+/** How finalize moved the Admin session timestamps. Booleans and seconds only. */
+export function sessionTimingSummary(before, after) {
+  const read = (record) => ({
+    lastSignIn: Date.parse(record?.metadata?.lastSignInTime ?? ''),
+    lastRefresh: Date.parse(record?.metadata?.lastRefreshTime ?? ''),
+    validSince: Date.parse(record?.tokensValidAfterTime ?? ''),
+  });
+  const a = read(before);
+  const b = read(after);
+  const changed = (key) => Number.isFinite(b[key]) && b[key] !== a[key];
+  return {
+    enrollChangedLastSignIn: changed('lastSignIn'),
+    enrollChangedLastRefresh: changed('lastRefresh'),
+    enrollChangedValidSince: changed('validSince'),
+    validSinceMinusLastRefreshSec:
+      Number.isFinite(b.validSince) && Number.isFinite(b.lastRefresh)
+        ? Math.round((b.validSince - b.lastRefresh) / 1000)
+        : null,
+  };
 }
 
 export function challengeOutcome({ errorCode, signInSecondFactor }) {
@@ -649,7 +680,7 @@ async function cleanupCreatedUsers(adminAuth, created) {
   for (const record of created) {
     try {
       await deleteExactUser(adminAuth, record);
-      logEvent('deleted-disposable-user', { uid: record.uid, deleted: true });
+      logEvent('deleted-disposable-user', { deleted: true });
     } catch (error) {
       console.error(safeErrorText(error));
       failedUids.push(record.uid);
@@ -746,6 +777,8 @@ async function runSuccessfulUser(adminAuth, clientAuth, auth, identity, created,
   const credential = await clientAuth.signInWithEmailAndPassword(auth, identity.email, identity.password);
   const user = credential.user;
   const { secret, params } = await openSecret(clientAuth, auth, user, identity.email);
+  const beforeEnroll = await assertAdminUser(adminAuth, record);
+  await delay(ENROLL_TIMING_GAP_MS);
   const enrolledAt = Date.now();
   const codeOptions = {
     algorithm: params.algorithm,
@@ -762,7 +795,6 @@ async function runSuccessfulUser(adminAuth, clientAuth, auth, identity, created,
     throw new Error(`Enrollment failed (${publicErrorCode(error) ?? 'unrecognized-error'}).`);
   }
   const clientBefore = factorIds(user, clientAuth.multiFactor);
-  await user.getIdToken(true);
   await user.reload();
   const clientAfter = factorIds(user, clientAuth.multiFactor);
   const enrollmentClaim = readIdTokenSecondFactor(await user.getIdToken());
@@ -782,17 +814,18 @@ async function runSuccessfulUser(adminAuth, clientAuth, auth, identity, created,
     skewSeconds: clockSkewSeconds(enrolledAt, dateCapture.read()),
     uid: record.uid,
   });
+  logEvent('session-timing', sessionTimingSummary(beforeEnroll, loaded));
   if (!outcome.ok) {
     const detail =
       outcome.failure === 'hypothesis-4-client-factors-empty'
-        ? 'Hypothesis 4: enroll resolved but the client factor list stayed empty after refresh.'
+        ? 'Hypothesis 4: enroll resolved but the client factor list stayed empty after reload.'
         : 'Enrollment did not persist an authenticator factor.';
     throw new Error(detail);
   }
 
   await clientAuth.signOut(auth);
   const waitMs = millisUntilFreshCode(Date.now(), enrolledAt, params.periodSeconds);
-  logEvent('wait-for-fresh-code', { waitMs, uid: record.uid });
+  logEvent('wait-for-fresh-code', { waitMs });
   if (waitMs > 0) {
     await delay(waitMs);
   }
@@ -819,7 +852,7 @@ async function runSuccessfulUser(adminAuth, clientAuth, auth, identity, created,
     }
   }
   const challenge = challengeOutcome({ errorCode: challengeError, signInSecondFactor: signedInFactor });
-  logEvent('mfa-challenge', { ...challenge, uid: record.uid });
+  logEvent('mfa-challenge', challenge);
   if (!challenge.ok) {
     throw new Error(`Next sign-in MFA check failed (${challenge.failure}).`);
   }

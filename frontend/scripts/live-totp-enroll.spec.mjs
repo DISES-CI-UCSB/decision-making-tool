@@ -31,6 +31,7 @@ import {
   safeErrorText,
   safeLogRecord,
   selectRejectedCode,
+  sessionTimingSummary,
   totpAccountLabel,
   totpCode,
   totpCodesAround,
@@ -148,11 +149,11 @@ describe('live TOTP safety guards', () => {
     );
     assert.throws(
       () => assertCleanupTarget(expected, { uid: 'someone-else', email }),
-      /uid uid-created: uid guard failed/,
+      /Refusing cleanup: uid guard failed/,
     );
     assert.throws(
       () => assertCleanupTarget(expected, { uid: 'uid-created', email: 'wthompson@ucsb.edu' }),
-      /uid uid-created: email guard failed/,
+      /Refusing cleanup: email guard failed/,
     );
     assert.throws(() => assertUserGone({ code: 'auth/internal-error' }), /Post-delete verification failed/);
     assert.doesNotThrow(() => assertUserGone({ code: 'auth/user-not-found' }));
@@ -359,6 +360,14 @@ describe('enrollment checks', () => {
     });
     assert.equal(persisted.ok, true);
     assert.equal(persisted.signInSecondFactor, null);
+    const localAfterEnroll = enrollmentOutcome({
+      adminFactorIds: ['totp'],
+      clientFactorIdsBeforeRefresh: ['totp'],
+      clientFactorIdsAfterRefresh: [],
+      signInSecondFactor: null,
+    });
+    assert.equal(localAfterEnroll.ok, true);
+    assert.equal(localAfterEnroll.clientTotpCountBeforeRefresh, 1);
     assert.equal(
       enrollmentOutcome({
         adminFactorIds: [],
@@ -374,6 +383,35 @@ describe('enrollment checks', () => {
     );
     assert.equal(challengeOutcome({ errorCode: null, signInSecondFactor: 'totp' }).ok, true);
     assert.equal(challengeOutcome({ errorCode: null, signInSecondFactor: null }).failure, 'id-token-missing-totp-claim');
+  });
+
+  it('summarizes session timestamps as booleans and seconds only', () => {
+    const at = (seconds) => new Date(Date.UTC(2026, 8, 25, 6, 0, seconds)).toUTCString();
+    const before = {
+      metadata: { lastSignInTime: at(0), lastRefreshTime: at(0) },
+      tokensValidAfterTime: at(0),
+    };
+    const after = {
+      metadata: { lastSignInTime: at(0), lastRefreshTime: at(3) },
+      tokensValidAfterTime: at(3),
+    };
+    assert.deepEqual(sessionTimingSummary(before, after), {
+      enrollChangedLastSignIn: false,
+      enrollChangedLastRefresh: true,
+      enrollChangedValidSince: true,
+      validSinceMinusLastRefreshSec: 0,
+    });
+    assert.equal(sessionTimingSummary({}, {}).validSinceMinusLastRefreshSec, null);
+    assert.deepEqual(
+      Object.keys(safeLogRecord('session-timing', sessionTimingSummary(before, after))).sort(),
+      [
+        'enrollChangedLastRefresh',
+        'enrollChangedLastSignIn',
+        'enrollChangedValidSince',
+        'event',
+        'validSinceMinusLastRefreshSec',
+      ],
+    );
   });
 
   it('reads the second-factor claim and clock skew without keeping the token', async () => {

@@ -2,7 +2,11 @@ import { Injectable, OnDestroy, inject, signal } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
-import { TotpMfaService } from '@features/auth/services/totp-mfa.service';
+import { hasTotpSecondFactorClaim, TotpMfaService } from '@features/auth/services/totp-mfa.service';
+import {
+  emitIdentityContextProbe,
+  toIdentityContextProbeSource,
+} from '@features/auth/services/identity-context-probe';
 import {
   readAppRole,
   readSirapAccessRegionIds,
@@ -33,6 +37,7 @@ export class AuthService implements OnDestroy {
   private readonly savedSolutionScenarios = inject(SavedSolutionScenariosService);
   private readonly totpMfa = inject(TotpMfaService);
   readonly mfaEnrollmentRequired$ = signal(false);
+  readonly authReady$ = signal(false);
   private authStateUnsubscribe: Unsubscribe | null = null;
   private userAccessUnsubscribe: Unsubscribe | null = null;
   private explicitlyLoggedOut = false;
@@ -41,12 +46,24 @@ export class AuthService implements OnDestroy {
   private factorGeneration = 0;
   private factorRefresh: Promise<boolean> | null = null;
   private totpEnrollmentCache: { uid: string; enrolled: boolean } | null = null;
+  private totpEnrollmentConfirmedUid: string | null = null;
 
   constructor() {
     this.appState.userTier$.set(this.getFallbackTier());
     this.authStateUnsubscribe = this.firebase.subscribeToAuthState((user) => {
       this.subscribeToFirebaseUserAccess(user);
+      this.authReady$.set(true);
+      void emitIdentityContextProbe(environment.production, () =>
+        toIdentityContextProbeSource(
+          user,
+          this.firebase.auth?.tenantId,
+          environment.firebase.config.projectId,
+        ),
+      );
     });
+    if (!this.authStateUnsubscribe) {
+      this.authReady$.set(true);
+    }
   }
 
   ngOnDestroy(): void {
@@ -56,11 +73,13 @@ export class AuthService implements OnDestroy {
   }
 
   async logout(): Promise<void> {
+    this.forgetConfirmedTotpEnrollment();
     this.invalidateFactorRead();
     this.accessEpoch += 1;
     this.explicitlyLoggedOut = true;
     this.mfaEnrollmentRequired$.set(false);
     this.savedSolutionScenarios.stopSync();
+    this.totpMfa.forgetOpenEnrollment(this.firebase.currentUser?.uid);
     await this.firebase.signOut();
     this.applySignedOutTier();
   }
@@ -77,13 +96,21 @@ export class AuthService implements OnDestroy {
     return this.appState.userIsSignedIn$();
   }
 
-  async refreshCurrentUserTier(): Promise<UserTier> {
+  async refreshCurrentUserTier(options?: { totpEnrollmentConfirmed?: boolean }): Promise<UserTier> {
+    // After enroll(), Firebase revokes existing refresh tokens. Skip the
+    // forced factor refresh for this uid until logout or a different user.
     this.invalidateFactorRead();
     const epoch = this.accessEpoch;
     const user = this.firebase.currentUser;
     this.appState.userIsSignedIn$.set(user !== null);
     if (!user) {
       return this.applySignedOutTier();
+    }
+    if (options?.totpEnrollmentConfirmed) {
+      this.totpEnrollmentConfirmedUid = user.uid;
+    }
+    if (this.totpEnrollmentConfirmedUid === user.uid) {
+      this.totpEnrollmentCache = { uid: user.uid, enrolled: true };
     }
 
     this.explicitlyLoggedOut = false;
@@ -110,6 +137,7 @@ export class AuthService implements OnDestroy {
     if (nextUid === this.boundUid) {
       return;
     }
+    this.forgetConfirmedTotpEnrollment();
     this.invalidateFactorRead();
     this.accessEpoch += 1;
     const epoch = this.accessEpoch;
@@ -181,9 +209,22 @@ export class AuthService implements OnDestroy {
     // token refresh.
     const cached = this.totpEnrollmentCache;
     if (cached?.uid === user.uid) {
-      return cached.enrolled ? 'enrolled' : 'needs-enrollment';
+      if (!cached.enrolled) {
+        return 'needs-enrollment';
+      }
+      return this.completeEnrolledGate(user);
+    }
+    if (this.totpMfa.isEnrollmentHeld(user.uid)) {
+      return 'needs-enrollment';
     }
     return this.refreshFactorGate(user);
+  }
+
+  private completeEnrolledGate(user: User): FactorGate | Promise<FactorGate> {
+    if (this.totpEnrollmentConfirmedUid === user.uid) {
+      return 'enrolled';
+    }
+    return hasTotpSecondFactorClaim(user).then((hasClaim) => (hasClaim ? 'enrolled' : 'unknown'));
   }
 
   private refreshFactorGate(user: User): Promise<FactorGate> {
@@ -203,7 +244,7 @@ export class AuthService implements OnDestroy {
       this.factorRefresh = tracked;
     }
     return this.factorRefresh.then(
-      (enrolled) => (enrolled ? 'enrolled' : 'needs-enrollment'),
+      (enrolled) => (enrolled ? this.completeEnrolledGate(user) : 'needs-enrollment'),
       () => 'unknown',
     );
   }
@@ -212,6 +253,10 @@ export class AuthService implements OnDestroy {
     this.factorGeneration += 1;
     this.totpEnrollmentCache = null;
     this.factorRefresh = null;
+  }
+
+  private forgetConfirmedTotpEnrollment(): void {
+    this.totpEnrollmentConfirmedUid = null;
   }
 
   private holdUnenrolledActiveAccess(access: UserAccess, gate: FactorGate): UserAccess {

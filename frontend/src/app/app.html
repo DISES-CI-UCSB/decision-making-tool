@@ -1,8 +1,10 @@
-<app-header
-  id="foundation-header"
-  [coordinateToolEnabled]="coordinateToolEnabled"
-  (coordinateToolEnabledChange)="onCoordinateToolEnabledChange($event)"
-></app-header>
+@if (!isAuthActionPage) {
+  <app-header
+    id="foundation-header"
+    [coordinateToolEnabled]="coordinateToolEnabled"
+    (coordinateToolEnabledChange)="onCoordinateToolEnabledChange($event)"
+  ></app-header>
+}
 
 @if (!isStandalonePage) {
   <app-shell id="foundation-app-shell">
@@ -190,139 +192,142 @@
           </div>
         </div>
       } @else {
-      <div id="landing-welcome-modal-introduction" class="space-y-3">
-        <p id="landing-welcome-modal-description" class="text-sm leading-6 text-slate-700">
-          {{ 'landingWelcome.description' | translate }}
+        <div id="landing-welcome-modal-introduction" class="space-y-3">
+          <p id="landing-welcome-modal-description" class="text-sm leading-6 text-slate-700">
+            {{ 'landingWelcome.description' | translate }}
+          </p>
+        </div>
+
+        <section
+          id="landing-welcome-modal-quick-start-card"
+          class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+        >
+          <h3
+            id="landing-welcome-modal-quick-start-title"
+            class="text-sm font-semibold text-slate-900"
+          >
+            {{ 'landingWelcome.quickStartTitle' | translate }}
+          </h3>
+          <ol id="landing-welcome-modal-quick-start-list" class="mt-3 space-y-3">
+            <li id="landing-welcome-modal-quick-start-step-select" class="flex gap-3">
+              <span
+                id="landing-welcome-modal-quick-start-step-select-marker"
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-700 pt-px text-xs font-semibold leading-none text-white"
+                aria-hidden="true"
+              >
+                1
+              </span>
+              <span
+                id="landing-welcome-modal-quick-start-step-select-copy"
+                class="text-sm leading-6 text-slate-700"
+              >
+                {{ 'landingWelcome.steps.selectSolution' | translate }}
+              </span>
+            </li>
+            <li id="landing-welcome-modal-quick-start-step-explore" class="flex gap-3">
+              <span
+                id="landing-welcome-modal-quick-start-step-explore-marker"
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
+                aria-hidden="true"
+              >
+                2
+              </span>
+              <span
+                id="landing-welcome-modal-quick-start-step-explore-copy"
+                class="text-sm leading-6 text-slate-700"
+              >
+                {{ 'landingWelcome.steps.exploreMap' | translate }}
+              </span>
+            </li>
+            <li id="landing-welcome-modal-quick-start-step-review" class="flex gap-3">
+              <span
+                id="landing-welcome-modal-quick-start-step-review-marker"
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
+                aria-hidden="true"
+              >
+                3
+              </span>
+              <span
+                id="landing-welcome-modal-quick-start-step-review-copy"
+                class="text-sm leading-6 text-slate-700"
+              >
+                {{ 'landingWelcome.steps.reviewAnalysis' | translate }}
+              </span>
+            </li>
+            <li id="landing-welcome-modal-quick-start-step-download" class="flex gap-3">
+              <span
+                id="landing-welcome-modal-quick-start-step-download-marker"
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
+                aria-hidden="true"
+              >
+                4
+              </span>
+              <span
+                id="landing-welcome-modal-quick-start-step-download-copy"
+                class="text-sm leading-6 text-slate-700"
+              >
+                {{ 'landingWelcome.steps.downloadOutputs' | translate }}
+              </span>
+            </li>
+          </ol>
+        </section>
+
+        <p
+          id="landing-welcome-modal-decision-support-note"
+          class="text-sm leading-6 text-slate-700"
+        >
+          {{ 'landingWelcome.decisionSupportNote' | translate }}
         </p>
-      </div>
 
-      <section
-        id="landing-welcome-modal-quick-start-card"
-        class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-      >
-        <h3
-          id="landing-welcome-modal-quick-start-title"
-          class="text-sm font-semibold text-slate-900"
-        >
-          {{ 'landingWelcome.quickStartTitle' | translate }}
-        </h3>
-        <ol id="landing-welcome-modal-quick-start-list" class="mt-3 space-y-3">
-          <li id="landing-welcome-modal-quick-start-step-select" class="flex gap-3">
-            <span
-              id="landing-welcome-modal-quick-start-step-select-marker"
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-700 pt-px text-xs font-semibold leading-none text-white"
-              aria-hidden="true"
-            >
-              1
-            </span>
-            <span
-              id="landing-welcome-modal-quick-start-step-select-copy"
-              class="text-sm leading-6 text-slate-700"
-            >
-              {{ 'landingWelcome.steps.selectSolution' | translate }}
-            </span>
-          </li>
-          <li id="landing-welcome-modal-quick-start-step-explore" class="flex gap-3">
-            <span
-              id="landing-welcome-modal-quick-start-step-explore-marker"
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
-              aria-hidden="true"
-            >
-              2
-            </span>
-            <span
-              id="landing-welcome-modal-quick-start-step-explore-copy"
-              class="text-sm leading-6 text-slate-700"
-            >
-              {{ 'landingWelcome.steps.exploreMap' | translate }}
-            </span>
-          </li>
-          <li id="landing-welcome-modal-quick-start-step-review" class="flex gap-3">
-            <span
-              id="landing-welcome-modal-quick-start-step-review-marker"
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
-              aria-hidden="true"
-            >
-              3
-            </span>
-            <span
-              id="landing-welcome-modal-quick-start-step-review-copy"
-              class="text-sm leading-6 text-slate-700"
-            >
-              {{ 'landingWelcome.steps.reviewAnalysis' | translate }}
-            </span>
-          </li>
-          <li id="landing-welcome-modal-quick-start-step-download" class="flex gap-3">
-            <span
-              id="landing-welcome-modal-quick-start-step-download-marker"
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
-              aria-hidden="true"
-            >
-              4
-            </span>
-            <span
-              id="landing-welcome-modal-quick-start-step-download-copy"
-              class="text-sm leading-6 text-slate-700"
-            >
-              {{ 'landingWelcome.steps.downloadOutputs' | translate }}
-            </span>
-          </li>
-        </ol>
-      </section>
-
-      <p id="landing-welcome-modal-decision-support-note" class="text-sm leading-6 text-slate-700">
-        {{ 'landingWelcome.decisionSupportNote' | translate }}
-      </p>
-
-      <div
-        id="landing-welcome-modal-actions"
-        class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"
-      >
         <div
-          id="landing-welcome-modal-secondary-actions"
-          class="flex flex-wrap items-center justify-center gap-2 sm:justify-start"
+          id="landing-welcome-modal-actions"
+          class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"
         >
-          <a
-            id="landing-welcome-modal-guide-link"
-            routerLink="/guide"
-            class="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            (click)="openGuideFromLandingWelcome()"
+          <div
+            id="landing-welcome-modal-secondary-actions"
+            class="flex flex-wrap items-center justify-center gap-2 sm:justify-start"
           >
-            {{ 'landingWelcome.actions.howToGuide' | translate }}
-          </a>
-          <a
-            id="landing-welcome-modal-about-link"
-            routerLink="/about"
-            class="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            (click)="openAboutFromLandingWelcome()"
+            <a
+              id="landing-welcome-modal-guide-link"
+              routerLink="/guide"
+              class="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="openGuideFromLandingWelcome()"
+            >
+              {{ 'landingWelcome.actions.howToGuide' | translate }}
+            </a>
+            <a
+              id="landing-welcome-modal-about-link"
+              routerLink="/about"
+              class="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="openAboutFromLandingWelcome()"
+            >
+              {{ 'landingWelcome.actions.about' | translate }}
+            </a>
+          </div>
+          <div
+            id="landing-welcome-modal-primary-actions"
+            class="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3"
           >
-            {{ 'landingWelcome.actions.about' | translate }}
-          </a>
-        </div>
-        <div
-          id="landing-welcome-modal-primary-actions"
-          class="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3"
-        >
-          @if (!isSignedIn()) {
+            @if (!isSignedIn()) {
+              <button
+                id="landing-welcome-modal-login-button"
+                type="button"
+                class="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 sm:w-auto"
+                (click)="openLoginFromLandingWelcome()"
+              >
+                {{ 'header.loginRegister' | translate }}
+              </button>
+            }
             <button
-              id="landing-welcome-modal-login-button"
+              id="landing-welcome-modal-select-solution-button"
               type="button"
-              class="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 sm:w-auto"
-              (click)="openLoginFromLandingWelcome()"
+              class="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 sm:w-auto"
+              (click)="startFromLandingWelcome()"
             >
-              {{ 'header.loginRegister' | translate }}
+              {{ 'landingWelcome.actions.selectSolution' | translate }}
             </button>
-          }
-          <button
-            id="landing-welcome-modal-select-solution-button"
-            type="button"
-            class="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 sm:w-auto"
-            (click)="startFromLandingWelcome()"
-          >
-            {{ 'landingWelcome.actions.selectSolution' | translate }}
-          </button>
+          </div>
         </div>
-      </div>
       }
     </section>
   </app-modal-shell>

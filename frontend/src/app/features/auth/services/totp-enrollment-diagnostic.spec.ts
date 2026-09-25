@@ -4,6 +4,7 @@ import {
   formatTotpDiagnosticFailure,
   formatTotpDiagnosticLine,
   isSafeTotpDiagnosticLine,
+  lookupAccountsPersistence,
   reportUnconfirmedTotpLookup,
   sanitizeDiagnosticErrorCode,
   shouldRunTotpEnrollmentDiagnostic,
@@ -615,5 +616,40 @@ describe('shouldRunTotpEnrollmentDiagnostic', () => {
     expect(shouldRunTotpEnrollmentDiagnostic(true, false)).toBe(false);
     expect(shouldRunTotpEnrollmentDiagnostic(false, true)).toBe(false);
     expect(shouldRunTotpEnrollmentDiagnostic(false, false)).toBe(true);
+  });
+});
+
+describe('lookupAccountsPersistence', () => {
+  it('requests a cached ID token and never force-refreshes', async () => {
+    const getIdToken = vi.fn(async (forceRefresh: boolean) => {
+      expect(forceRefresh).toBe(false);
+      return unsignedJwt({ sub: currentUid, email });
+    });
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ users: [{ localId: currentUid, mfaInfo: [] }] }), {
+          status: 200,
+        }),
+    );
+
+    await expect(
+      lookupAccountsPersistence(
+        {
+          apiKey,
+          currentUid,
+          getIdToken,
+          fetchImpl,
+        },
+        false,
+      ),
+    ).resolves.toEqual({
+      httpStatus: 200,
+      userCount: 1,
+      uidMatches: true,
+      mfaInfoLength: 0,
+      totpInfoPresent: false,
+    });
+    expect(getIdToken).toHaveBeenCalledOnce();
+    expect(getIdToken).toHaveBeenCalledWith(false);
   });
 });

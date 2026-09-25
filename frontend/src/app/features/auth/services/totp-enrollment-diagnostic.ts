@@ -79,6 +79,22 @@ export interface TotpLookupDependencies {
   log?: (line: string) => void;
 }
 
+export interface TotpPersistenceLookupResult {
+  httpStatus: number;
+  userCount: number;
+  uidMatches: boolean;
+  mfaInfoLength: number;
+  totpInfoPresent: boolean;
+  errorCode?: string;
+}
+
+export interface TotpAccountsLookupRequestDeps {
+  apiKey: string;
+  currentUid: string;
+  getIdToken: (forceRefresh: boolean) => Promise<string>;
+  fetchImpl?: typeof fetch;
+}
+
 export function shouldRunTotpEnrollmentDiagnostic(
   production: boolean,
   enrolledAfterRefresh: boolean,
@@ -193,6 +209,50 @@ export function formatTotpDiagnosticFailure(httpStatus: number, errorCode: unkno
   })}`;
 }
 
+export function persistenceLookupFromAccountsBody(
+  httpStatus: number,
+  body: unknown,
+  currentUid: string,
+): TotpPersistenceLookupResult {
+  const shape = summarizeAccountsLookupBody(body, currentUid);
+  return {
+    httpStatus: safeHttpStatus(httpStatus),
+    userCount: shape.usersLength,
+    uidMatches: shape.uidMatchesCurrentUser,
+    mfaInfoLength: shape.mfaInfoLength,
+    totpInfoPresent: shape.mfaEntries.some((entry) => entry.totpInfoPresent),
+  };
+}
+
+export async function lookupAccountsPersistence(
+  deps: TotpAccountsLookupRequestDeps,
+  forceRefresh: boolean,
+): Promise<TotpPersistenceLookupResult> {
+  try {
+    const request = await requestAccountsLookup(deps, forceRefresh);
+    if (!request.ok) {
+      return {
+        httpStatus: request.httpStatus,
+        userCount: 0,
+        uidMatches: false,
+        mfaInfoLength: 0,
+        totpInfoPresent: false,
+        errorCode: request.errorCode,
+      };
+    }
+    return persistenceLookupFromAccountsBody(request.httpStatus, request.body, deps.currentUid);
+  } catch {
+    return {
+      httpStatus: 0,
+      userCount: 0,
+      uidMatches: false,
+      mfaInfoLength: 0,
+      totpInfoPresent: false,
+      errorCode: 'unavailable',
+    };
+  }
+}
+
 export async function reportUnconfirmedTotpLookup(deps: TotpLookupDependencies): Promise<void> {
   if (deps.production !== false) {
     return;
@@ -217,27 +277,32 @@ function emitTotpDiagnosticLine(log: TotpLookupDependencies['log'], line: string
   write(line);
 }
 
-async function runUnconfirmedTotpLookup(deps: TotpLookupDependencies): Promise<void> {
+type AccountsLookupRequest =
+  | { ok: false; httpStatus: number; errorCode: string }
+  | { ok: true; httpStatus: number; idToken: string; body: unknown };
+
+async function requestAccountsLookup(
+  deps: Pick<TotpAccountsLookupRequestDeps, 'apiKey' | 'getIdToken' | 'fetchImpl'>,
+  forceRefresh: boolean,
+): Promise<AccountsLookupRequest> {
   if (!deps.apiKey) {
-    emitTotpDiagnosticLine(deps.log, formatTotpDiagnosticFailure(0, 'unavailable'));
-    return;
+    return { ok: false, httpStatus: 0, errorCode: 'unavailable' };
   }
   let idToken: string;
   try {
-    idToken = await deps.getIdToken(true);
+    idToken = await deps.getIdToken(forceRefresh);
   } catch (error) {
     const code = isRecord(error)
       ? sanitizeDiagnosticErrorCode(field(error, 'code'))
       : 'unavailable';
-    emitTotpDiagnosticLine(
-      deps.log,
-      formatTotpDiagnosticFailure(0, code === 'unavailable' ? 'token-unavailable' : code),
-    );
-    return;
+    return {
+      ok: false,
+      httpStatus: 0,
+      errorCode: code === 'unavailable' ? 'token-unavailable' : code,
+    };
   }
   if (typeof idToken !== 'string' || idToken.length === 0) {
-    emitTotpDiagnosticLine(deps.log, formatTotpDiagnosticFailure(0, 'token-unavailable'));
-    return;
+    return { ok: false, httpStatus: 0, errorCode: 'token-unavailable' };
   }
 
   const fetchImpl = deps.fetchImpl ?? globalThis.fetch.bind(globalThis);
@@ -253,21 +318,36 @@ async function runUnconfirmedTotpLookup(deps: TotpLookupDependencies): Promise<v
       signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
     });
   } catch (error) {
-    emitTotpDiagnosticLine(deps.log, formatTotpDiagnosticFailure(0, lookupThrownCode(error)));
-    return;
+    return { ok: false, httpStatus: 0, errorCode: lookupThrownCode(error) };
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(await response.text());
   } catch {
-    emitTotpDiagnosticLine(deps.log, formatTotpDiagnosticFailure(response.status, 'unreadable'));
-    return;
+    return { ok: false, httpStatus: safeHttpStatus(response.status), errorCode: 'unreadable' };
   }
   if (!response.ok) {
+    return {
+      ok: false,
+      httpStatus: safeHttpStatus(response.status),
+      errorCode: readIdentityToolkitErrorCode(parsed),
+    };
+  }
+  return {
+    ok: true,
+    httpStatus: safeHttpStatus(response.status),
+    idToken,
+    body: parsed,
+  };
+}
+
+async function runUnconfirmedTotpLookup(deps: TotpLookupDependencies): Promise<void> {
+  const request = await requestAccountsLookup(deps, true);
+  if (!request.ok) {
     emitTotpDiagnosticLine(
       deps.log,
-      formatTotpDiagnosticFailure(response.status, readIdentityToolkitErrorCode(parsed)),
+      formatTotpDiagnosticFailure(request.httpStatus, request.errorCode),
     );
     return;
   }
@@ -275,9 +355,9 @@ async function runUnconfirmedTotpLookup(deps: TotpLookupDependencies): Promise<v
     deps.log,
     formatTotpDiagnosticLine(
       buildTotpDiagnosticSummary({
-        httpStatus: response.status,
-        body: parsed,
-        idToken,
+        httpStatus: request.httpStatus,
+        body: request.body,
+        idToken: request.idToken,
         currentUid: deps.currentUid,
         projectId: deps.projectId,
       }),
