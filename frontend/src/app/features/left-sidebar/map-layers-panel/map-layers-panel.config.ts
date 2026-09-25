@@ -178,6 +178,17 @@ export const MANIFEST_CATEGORY_TITLE_OVERRIDES: Partial<
   Record<string, { en: string; es: string }>
 > = {
   socioeconomic: { en: 'Human Activity and Land Use', es: 'Actividad humana y uso del suelo' },
+  cultural_and_ethnic_territories: {
+    en: 'Collective territories and peasant reserve zones',
+    es: 'Territorios colectivos y zonas de reserva campesina',
+  },
+};
+/** Sidebar names that replace the catalog label for a specific layer (UCS-234). */
+export const MANIFEST_LAYER_NAME_OVERRIDES: Partial<Record<string, { en: string; es: string }>> = {
+  comunidades: {
+    en: 'Community councils with land titles',
+    es: 'Consejos comunitarios titulados',
+  },
 };
 /** Manifest layers available elsewhere in the app but intentionally omitted from the left sidebar. */
 export const LEFT_SIDEBAR_EXCLUDED_MANIFEST_LAYER_IDS = new Set(['net_benefit']);

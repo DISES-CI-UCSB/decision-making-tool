@@ -131,6 +131,7 @@ import {
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
   MANIFEST_CATEGORY_TITLE_OVERRIDES,
   MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID,
+  MANIFEST_LAYER_NAME_OVERRIDES,
   MARINE_ECOSYSTEMS_GROUP_ID,
   MARINE_ECOSYSTEMS_LAYER_ID,
   OVERLAP_SOLUTION_OVERLAY_ID,
@@ -1154,6 +1155,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
+    const layerNameOverride = this.manifestLayerNameOverride(manifestRow.id);
+    if (layerNameOverride) {
+      return layerNameOverride;
+    }
     const sirapBoundaryNameKeys: Record<string, { key: string; fallback: string }> = {
       siraps: {
         key: 'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
@@ -1290,6 +1295,14 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private manifestCategoryTitle(manifestCategoryId: string): string | undefined {
     const override = MANIFEST_CATEGORY_TITLE_OVERRIDES[manifestCategoryId];
+    if (!override) {
+      return undefined;
+    }
+    return this.appLocaleService.locale() === 'es' ? override.es : override.en;
+  }
+
+  private manifestLayerNameOverride(manifestLayerId: string): string | undefined {
+    const override = MANIFEST_LAYER_NAME_OVERRIDES[manifestLayerId];
     if (!override) {
       return undefined;
     }
@@ -4370,7 +4383,8 @@ export class MapLayersPanelComponent implements OnDestroy {
           ),
           this.layerRow(
             'cult-afro',
-            'Community Councils for Black Communities',
+            this.manifestLayerNameOverride('comunidades') ??
+              'Community councils with land titles',
             '#a855f7',
             DEFAULT_DATA_LAYER_OPACITY,
           ),
@@ -4649,6 +4663,17 @@ export class MapLayersPanelComponent implements OnDestroy {
                 'mapLayersPanel.layerNames.marineHumanModification',
                 'Marine human modification (HHM)',
               ),
+            };
+          }
+          if (row.id === 'layer-comunidades' || row.id === 'layer-cult-afro') {
+            return {
+              ...row,
+              name:
+                this.manifestLayerNameOverride('comunidades') ??
+                this.localizedTextOrFallback(
+                  'mapLayersPanel.layerNames.communityCouncilsWithLandTitles',
+                  'Community councils with land titles',
+                ),
             };
           }
           return row;

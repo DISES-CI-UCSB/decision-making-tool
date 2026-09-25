@@ -1645,12 +1645,13 @@
       "speciesBiodiversity": "Species & Biodiversity",
       "ecosystems": "Ecosystems",
       "marineEcosystems": "Marine Ecosystems",
-      "culturalEthnicTerritories": "Cultural & Ethnic Territories",
+      "culturalEthnicTerritories": "Collective territories and peasant reserve zones",
       "costs": "Human Activity and Land Use"
     },
     "layerNames": {
       "marineHumanModification": "Marine human modification (HHM)",
-      "campesinaReserveZones": "Campesina Reserve Zones"
+      "campesinaReserveZones": "Campesina Reserve Zones",
+      "communityCouncilsWithLandTitles": "Community councils with land titles"
     },
     "boundaryNames": {
       "combinedSirapReviewLayer": "SIRAP",
