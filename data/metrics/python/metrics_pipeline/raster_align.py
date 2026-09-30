@@ -19,13 +19,13 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
-import fcntl
 import numpy as np
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.warp import reproject
 
 from metric_definitions import required_layer_ids
+from platform_io import fsync_directory, lock_exclusive, unlock_exclusive
 from raster_metrics import RasterError, RasterFingerprint
 
 ALIGNMENT_MANIFEST_FORMAT = "metrics-raster-alignment-v3"
@@ -632,7 +632,7 @@ class RasterAlignmentCache:
                 self._fsync_file(manifest_tmp)
                 tmp.replace(path)
                 manifest_tmp.replace(manifest_path)
-                self._fsync_directory(directory)
+                fsync_directory(directory)
             finally:
                 tmp.unlink(missing_ok=True)
                 manifest_tmp.unlink(missing_ok=True)
@@ -901,7 +901,7 @@ class RasterAlignmentCache:
             deadline = time.monotonic() + self.lock_timeout_seconds
             while True:
                 try:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    lock_exclusive(handle, nonblocking=True)
                     break
                 except BlockingIOError:
                     if time.monotonic() >= deadline:
@@ -912,7 +912,7 @@ class RasterAlignmentCache:
             try:
                 yield
             finally:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                unlock_exclusive(handle)
 
     def evict(self) -> int:
         """Evict oldest complete, unlocked, unpinned pairs to the configured limit."""
@@ -946,7 +946,7 @@ class RasterAlignmentCache:
             lock_path = manifest_path.with_suffix(".lock")
             with lock_path.open("a+b") as handle:
                 try:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    lock_exclusive(handle, nonblocking=True)
                 except BlockingIOError:
                     continue
                 try:
@@ -958,7 +958,7 @@ class RasterAlignmentCache:
                         total -= size
                         removed += 1
                 finally:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                    unlock_exclusive(handle)
         return removed
 
     def cache_usage_bytes(self) -> int:
@@ -985,10 +985,3 @@ class RasterAlignmentCache:
         with path.open("rb") as handle:
             os.fsync(handle.fileno())
 
-    @staticmethod
-    def _fsync_directory(path: Path) -> None:
-        descriptor = os.open(path, os.O_RDONLY)
-        try:
-            os.fsync(descriptor)
-        finally:
-            os.close(descriptor)

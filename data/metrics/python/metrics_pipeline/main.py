@@ -43,7 +43,6 @@ import argparse
 import hashlib
 import json
 import os
-import resource
 import subprocess
 import sys
 import time
@@ -143,6 +142,7 @@ from local_io import (
     write_publish_report,
     write_solution_cache,
 )
+from platform_io import process_rusage
 from metric_definitions import (
     METRIC_CATALOG,
     MetricDefinition,
@@ -370,7 +370,7 @@ def _weighted_boundary_fanout_mode() -> str:
 
 
 def _peak_rss_mib() -> float:
-    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    peak = process_rusage().ru_maxrss
     bytes_used = peak if sys.platform == "darwin" else peak * 1024
     return bytes_used / (1024 * 1024)
 
@@ -4409,7 +4409,7 @@ def _process_solution(
         marine_sirap_features or [],
     )
     started = time.time()
-    usage_started = resource.getrusage(resource.RUSAGE_SELF)
+    usage_started = process_rusage()
     phase_seconds: dict[str, float] = {}
     species_accumulator: SpeciesAccumulator | None = precomputed_species_accumulator
     fanout_mode = boundary_fanout_mode or _boundary_fanout_mode()
@@ -4710,7 +4710,7 @@ def _process_solution(
                 active_levels=active_levels,
             )
         species_started = time.time()
-        usage_before = resource.getrusage(resource.RUSAGE_SELF)
+        usage_before = process_rusage()
         effective_species_runtime = {}
         species_accumulator = _process_species_for_solution(
             raster=raster,
@@ -4728,7 +4728,7 @@ def _process_solution(
             species_goals_scope_mask=species_goals_scope,
         )
         phase_seconds["species"] = time.time() - species_started
-        usage_after = resource.getrusage(resource.RUSAGE_SELF)
+        usage_after = process_rusage()
         effective_species_runtime.update(
             {
                 "wallSeconds": phase_seconds["species"],
@@ -5182,7 +5182,7 @@ def _process_solution(
     print(f"[tier1-metrics]   cache → {cache_path}")
 
     elapsed_seconds = time.time() - started
-    usage_finished = resource.getrusage(resource.RUSAGE_SELF)
+    usage_finished = process_rusage()
     print(
         f"[tier1-metrics]   phases: {json.dumps({key: round(value, 2) for key, value in phase_seconds.items()}, sort_keys=True)}; "
         f"peak-rss={_peak_rss_mib():.1f} MiB"
@@ -6396,7 +6396,7 @@ def main(argv: list[str] | None = None) -> int:
         failed_microbatch_ids.update(setup_failures)
 
         started = time.perf_counter()
-        usage_before = resource.getrusage(resource.RUSAGE_SELF)
+        usage_before = process_rusage()
         try:
             processor = (
                 process_exact_species_batch_buffered
@@ -6424,7 +6424,7 @@ def main(argv: list[str] | None = None) -> int:
                     )
             raise
         wall_seconds = time.perf_counter() - started
-        usage_after = resource.getrusage(resource.RUSAGE_SELF)
+        usage_after = process_rusage()
         runtime = {
             "batchOrdinal": plan.ordinal,
             "wallSeconds": wall_seconds,

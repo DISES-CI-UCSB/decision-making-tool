@@ -6,7 +6,6 @@ are deliberately stored outside ``cache/`` and are never publishable artifacts.
 
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import json
 import os
@@ -19,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from path_contracts import safe_solution_id
+from platform_io import fsync_directory, lock_exclusive, unlock_exclusive
 
 CANDIDATE_FORMAT = "metrics-candidate-v1"
 CANDIDATE_SUFFIX = ".metrics.candidate.json"
@@ -237,7 +237,7 @@ def promote_metrics_candidate(
             and current.get("solution") == binding.to_dict()["solution"]
         ):
             target.unlink(missing_ok=True)
-            _fsync_directory(target.parent)
+            fsync_directory(target.parent)
 
 
 @contextmanager
@@ -245,11 +245,11 @@ def _candidate_lock(target: Path) -> Iterator[None]:
     lock_path = target.with_suffix(target.suffix + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a+b") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        lock_exclusive(handle)
         try:
             yield
         finally:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            unlock_exclusive(handle)
 
 
 def _payload_binding_issues(
@@ -334,8 +334,8 @@ def _archive_incompatible_candidate(
         f"{safe_solution_id(binding.solution_id)}.{uuid.uuid4().hex}{CANDIDATE_SUFFIX}"
     )
     target.replace(archive)
-    _fsync_directory(archive_dir)
-    _fsync_directory(target.parent)
+    fsync_directory(archive_dir)
+    fsync_directory(target.parent)
 
 
 def _write_json_atomic(target: Path, document: dict[str, Any]) -> None:
@@ -348,14 +348,6 @@ def _write_json_atomic(target: Path, document: dict[str, Any]) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         temporary.replace(target)
-        _fsync_directory(target.parent)
+        fsync_directory(target.parent)
     finally:
         temporary.unlink(missing_ok=True)
-
-
-def _fsync_directory(path: Path) -> None:
-    descriptor = os.open(path, os.O_RDONLY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
