@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import os
 import time
@@ -14,6 +13,7 @@ import rasterio
 from calculators.species import SpeciesAccumulator, SpeciesScopeMetrics
 from raster_align import AlignmentError, RasterAlignmentCache
 from raster_metrics import RasterFingerprint
+from platform_io import lock_exclusive
 from rasterio.transform import from_origin
 from rasterio.warp import calculate_default_transform
 from shapely.geometry import Polygon
@@ -342,7 +342,7 @@ def test_stale_temp_cleanup_skips_active_locked_write(tmp_path: Path):
 
     active_lock = active.parent / f"{active_key}.lock"
     with active_lock.open("a+b") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        lock_exclusive(handle)
         cache = SpeciesOverlapCache(
             cache_dir,
             max_cache_bytes=1024,
