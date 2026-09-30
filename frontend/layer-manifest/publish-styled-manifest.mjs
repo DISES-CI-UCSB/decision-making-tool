@@ -225,9 +225,17 @@ function jsonEqual(left, right) {
   return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
 }
 
+function windowsSafeRequestId(requestId) {
+  const sanitized = String(requestId)
+    .replace(/[^a-z0-9_.-]+/gi, '-')
+    .slice(0, 40)
+    .replace(/^[.\s-]+|[.\s-]+$/g, '');
+  return sanitized || 'request';
+}
+
 async function writePublishArtifact(manifest, requestId) {
   await fs.mkdir(publishWorkDir, { recursive: true });
-  const safeRequestId = requestId.replace(/[^a-z0-9_.:-]+/gi, '-').slice(0, 80);
+  const safeRequestId = windowsSafeRequestId(requestId);
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const filePath = path.resolve(
     publishWorkDir,
