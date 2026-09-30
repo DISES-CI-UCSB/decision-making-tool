@@ -6134,6 +6134,60 @@ describe('PanelSwitcherComponent', () => {
     expect(fixture.debugElement.query(By.directive(CdkVirtualScrollViewport))).not.toBeNull();
   });
 
+  it('keeps Overview ecosystem values after exploring ecosystems in an AOI', async () => {
+    const solution = buildTestSolution();
+    goalsDocument = buildGoalsDocument();
+    const nationalMecDocument = buildFiveViewV2MecDocument(solution.id);
+    nationalMecDocument.classCatalog[4] = [4, 'biomeRegion:andean-forest', 'Andean forest'];
+    const municipalityMecDocument = buildV2MecDocument(solution.id);
+    vi.mocked(mecMetricsLoaderSpy.loadMecMetrics).mockImplementation(
+      (_solutionId, geographyLevel) =>
+        of({
+          status: 'loaded',
+          document:
+            geographyLevel === 'national' ? nationalMecDocument : municipalityMecDocument,
+          format: 'mec-compact-v2',
+        }),
+    );
+    appState.activeSolution$.set(solution);
+    appState.selectAOI(buildFixedMunicipalityAoi());
+    appState.setRightSidebarMode('aoi');
+
+    const fixture = TestBed.createComponent(PanelSwitcherComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance as unknown as {
+      closeMecModal(): void;
+      goalsModalRows(): { name: string; ecosystemAreaKm2: number | null }[];
+    };
+
+    (compiled.querySelector('#aoi-mec-open-modal-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('#aoi-mec-classifications-modal')).not.toBeNull();
+
+    component.closeMecModal();
+    (compiled.querySelector('#right-sidebar-panel-tab-overview') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (
+      compiled.querySelector(
+        '#right-sidebar-v3-overview-goals-domain-view-ecosystems',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    fixture.detectChanges();
+
+    expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenLastCalledWith(solution.id, 'national');
+    expect(component.goalsModalRows()).toContainEqual(
+      expect.objectContaining({
+        name: 'Andean forest',
+        ecosystemAreaKm2: 10,
+      }),
+    );
+  });
+
   it('tears down goals modal state when custom AOI geometry is cleared', async () => {
     const solution = buildTestSolution();
     goalsDocument = buildGoalsDocument();

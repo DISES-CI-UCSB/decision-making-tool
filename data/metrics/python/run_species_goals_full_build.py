@@ -10,7 +10,6 @@ import multiprocessing as mp
 import os
 import queue
 import re
-import resource
 import shutil
 import subprocess
 import sys
@@ -31,6 +30,7 @@ from boundaries.boundary_mask import BoundaryMaskCache  # noqa: E402
 from local_io import DownloadError, cached_download  # noqa: E402
 from main import _species_goals_provenance  # noqa: E402
 from metrics_contract import build_metrics_provenance  # noqa: E402
+from platform_io import process_rusage  # noqa: E402
 from raster_align import grid_sha256  # noqa: E402
 from raster_metrics import read_solution_raster, terrestrial_template_scope_mask  # noqa: E402
 from species_data import load_species_records  # noqa: E402
@@ -267,8 +267,7 @@ def _memory_free_percent() -> int | None:
 
 
 def _max_rss_bytes() -> int:
-    value = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return int(value)
+    return int(process_rusage().ru_maxrss)
 
 
 def _solution_url(entry: dict[str, Any]) -> str:

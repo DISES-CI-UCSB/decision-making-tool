@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import numpy as np
@@ -65,7 +66,7 @@ def _synthetic_raster() -> SolutionRaster:
     selected = new | pre_existing
     valid = np.array([[True, True, False], [True, True, True]])
     return SolutionRaster(
-        path=Path("/dev/null"),
+        path=Path(os.devnull),
         selected_mask=selected,
         valid_mask=valid,
         pixel_area_km2_per_row=np.array([1.0, 2.0]),
@@ -200,7 +201,7 @@ def test_real_cache_grouped_scope_primitives_match_scalar_masks():
     valid = rng.random((57, 48)) > 0.08
     selected = valid & (rng.random((57, 48)) < 0.3)
     raster = SolutionRaster(
-        path=Path("/dev/null"),
+        path=Path(os.devnull),
         selected_mask=selected,
         valid_mask=valid,
         pixel_area_km2_per_row=np.linspace(0.8, 1.2, 57),

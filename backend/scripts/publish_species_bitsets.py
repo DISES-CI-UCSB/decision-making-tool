@@ -15,6 +15,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -70,7 +71,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--staging-dir",
         type=Path,
-        default=Path("/tmp/dmt-species-bitsets"),
+        default=Path(tempfile.gettempdir()) / "dmt-species-bitsets",
     )
     parser.add_argument(
         "--kits",

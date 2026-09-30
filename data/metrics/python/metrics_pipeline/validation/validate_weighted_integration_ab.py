@@ -8,6 +8,8 @@ import hashlib
 import json
 import math
 import re
+import shlex
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -466,7 +468,7 @@ def main() -> int:
         for item in comparisons["pair1ScalarVsGrouped"]["regular"]["perSolution"]
     )
     common_command = (
-        "data/metrics/python/.venv/bin/python "
+        f"{shlex.quote(sys.executable)} "
         "data/metrics/python/metrics_pipeline/main.py "
         f"--manifest-url {first_report['manifestUrl']} "
         "--cache-dir data/metrics/cache/releases/solutions-v0-2-0-20260805 "
@@ -478,15 +480,29 @@ def main() -> int:
         "--cache-policy recompute-all "
         f"{solution_args}"
     )
+
     def command(mode: str, output_dir: Path) -> str:
+        metrics = (
+            f"{common_command} --output-dir {output_dir} "
+            f"--species-goals-output-dir {output_dir / 'species-goals'}"
+        )
+        if sys.platform == "win32":
+            return (
+                "$env:PYTHONUNBUFFERED='1'; "
+                "$env:METRICS_SPECIES_EXECUTION='solution-microbatch-v2'; "
+                "$env:METRICS_SPECIES_BATCH_SIZE='8'; "
+                "$env:METRICS_BOUNDARY_FANOUT='grouped'; "
+                f"$env:METRICS_WEIGHTED_BOUNDARY_FANOUT='{mode}'; "
+                "$env:METRICS_LAYER_SOURCE='dense'; "
+                f"{metrics}"
+            )
         return (
             "env PYTHONUNBUFFERED=1 "
             "METRICS_SPECIES_EXECUTION=solution-microbatch-v2 "
             "METRICS_SPECIES_BATCH_SIZE=8 METRICS_BOUNDARY_FANOUT=grouped "
             f"METRICS_WEIGHTED_BOUNDARY_FANOUT={mode} "
             "METRICS_LAYER_SOURCE=dense /usr/bin/time -lp "
-            f"{common_command} --output-dir {output_dir} "
-            f"--species-goals-output-dir {output_dir / 'species-goals'} "
+            f"{metrics} "
             f"> {output_dir / 'stdout.log'} 2> {output_dir / 'stderr-time.log'}"
         )
 

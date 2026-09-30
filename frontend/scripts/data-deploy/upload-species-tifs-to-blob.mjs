@@ -12,9 +12,7 @@ const frontendRoot = path.resolve(__dirname, '../..');
 
 const BLOB_TOKEN_ENV = 'BLOB_READ_WRITE_TOKEN';
 const DEFAULT_BLOB_PREFIX = 'inputs/features/species/';
-const DEFAULT_SOURCE = path.join(
-  '/Users/woverbyethompson/Downloads/drive-download-20260501T221333Z-3-001/inputs/features/species',
-);
+const SOURCE_ENV = 'SPECIES_TIF_UPLOAD_SOURCE';
 
 const SPECIES_MANIFEST_SCRIPT = path.join(frontendRoot, 'layer-manifest/generate-species-manifest.mjs');
 
@@ -61,9 +59,13 @@ async function main() {
     throw new Error(`${BLOB_TOKEN_ENV} missing (set in repo or frontend .env.local)`);
   }
 
-  const sourceDir = path.resolve(
-    process.env.SPECIES_TIF_UPLOAD_SOURCE?.trim() || DEFAULT_SOURCE,
-  );
+  const sourceSetting = process.env[SOURCE_ENV]?.trim();
+  if (!sourceSetting) {
+    throw new Error(
+      `${SOURCE_ENV} is required. Set it to the local directory of species GeoTIFF files.`,
+    );
+  }
+  const sourceDir = path.resolve(sourceSetting);
   const blobPrefixRaw = process.env.SPECIES_TIF_BLOB_PREFIX?.trim() || DEFAULT_BLOB_PREFIX;
   const blobPrefix = blobPrefixRaw.endsWith('/') ? blobPrefixRaw : `${blobPrefixRaw}/`;
   const concurrency = readPositiveInt('SPECIES_TIF_UPLOAD_CONCURRENCY', 2);

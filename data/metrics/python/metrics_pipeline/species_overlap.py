@@ -20,7 +20,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-import fcntl
 import numpy as np
 import pyproj
 import rasterio
@@ -33,6 +32,7 @@ from rasterio.transform import Affine
 from shapely.geometry import Polygon, mapping, shape
 from shapely.ops import transform as transform_geometry
 
+from platform_io import fsync_directory, lock_exclusive, unlock_exclusive
 from raster_align import (
     AlignmentError,
     canonical_sha256,
@@ -384,7 +384,7 @@ class SpeciesOverlapCache:
             deadline = time.monotonic() + self.lock_timeout_seconds
             while True:
                 try:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    lock_exclusive(handle, nonblocking=True)
                     break
                 except BlockingIOError:
                     if time.monotonic() >= deadline:
@@ -395,7 +395,7 @@ class SpeciesOverlapCache:
             try:
                 yield
             finally:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                unlock_exclusive(handle)
 
     def evict(self) -> int:
         self.cleanup_stale_temporary_files()
@@ -429,7 +429,7 @@ class SpeciesOverlapCache:
             lock_path = manifest_path.with_suffix(".lock")
             with lock_path.open("a+b") as handle:
                 try:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    lock_exclusive(handle, nonblocking=True)
                 except BlockingIOError:
                     continue
                 try:
@@ -440,7 +440,7 @@ class SpeciesOverlapCache:
                         total -= size
                         removed += 1
                 finally:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                    unlock_exclusive(handle)
         return removed
 
     def cleanup_stale_temporary_files(self) -> int:
@@ -465,7 +465,7 @@ class SpeciesOverlapCache:
             lock_path = temporary_path.parent / f"{key}.lock"
             with lock_path.open("a+b") as handle:
                 try:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    lock_exclusive(handle, nonblocking=True)
                 except BlockingIOError:
                     continue
                 try:
@@ -477,7 +477,7 @@ class SpeciesOverlapCache:
                         temporary_path.unlink(missing_ok=True)
                         removed += 1
                 finally:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                    unlock_exclusive(handle)
         return removed
 
     def cache_usage_bytes(self) -> int:
@@ -913,8 +913,4 @@ def _fsync_file(path: Path) -> None:
 
 
 def _fsync_directory(path: Path) -> None:
-    descriptor = os.open(path, os.O_RDONLY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
+    fsync_directory(path)

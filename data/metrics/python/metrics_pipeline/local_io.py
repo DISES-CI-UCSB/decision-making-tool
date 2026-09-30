@@ -7,7 +7,6 @@ upload step (run separately) does not have to re-derive paths.
 
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import json
 import os
@@ -21,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from platform_io import fsync_directory, lock_exclusive, unlock_exclusive
 from path_contracts import (
     solution_artifact_name,
     solution_artifact_path,
@@ -87,7 +87,7 @@ def cached_download(
                 out.flush()
                 os.fsync(out.fileno())
             tmp.replace(target)
-            _fsync_directory(target.parent)
+            fsync_directory(target.parent)
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
             raise DownloadError(f"Failed to download {url}: {exc}") from exc
         finally:
@@ -122,7 +122,7 @@ def _file_lock(path: Path, timeout_seconds: float):
         deadline = time.monotonic() + timeout_seconds
         while True:
             try:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                lock_exclusive(handle, nonblocking=True)
                 break
             except BlockingIOError:
                 if time.monotonic() >= deadline:
@@ -133,15 +133,7 @@ def _file_lock(path: Path, timeout_seconds: float):
         try:
             yield
         finally:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-
-
-def _fsync_directory(path: Path) -> None:
-    descriptor = os.open(path, os.O_RDONLY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
+            unlock_exclusive(handle)
 
 
 def staged_sidecar_path(output_dir: Path, solution_basename: str) -> Path:
@@ -235,7 +227,7 @@ def _write_json_atomic(target: Path, doc: dict[str, Any]) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         tmp.replace(target)
-        _fsync_directory(target.parent)
+        fsync_directory(target.parent)
     finally:
         tmp.unlink(missing_ok=True)
 

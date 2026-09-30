@@ -1,4 +1,5 @@
 import { writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildHydrationPackage } from '../shared/hydration-package.mjs';
@@ -44,7 +45,7 @@ async function main(rawArgs = process.argv.slice(2)) {
   const args = parseArgs(rawArgs);
   const liveManifest = await fetchLiveManifest();
   const nextManifest = await mergeHydrationPackage(liveManifest);
-  const sourcePath = path.resolve('/tmp/dmt-manifest-with-hydration.json');
+  const sourcePath = path.join(os.tmpdir(), 'dmt-manifest-with-hydration.json');
   await writeFile(sourcePath, `${JSON.stringify(nextManifest, null, 2)}\n`, 'utf8');
   console.log(`[publish-hydration-package] wrote ${sourcePath}`);
   console.log(

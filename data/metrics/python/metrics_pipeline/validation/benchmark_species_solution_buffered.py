@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import resource
 import sqlite3
 import sys
 import tempfile
@@ -15,6 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from platform_io import peak_rss_bytes, process_rusage
 from boundaries.boundary_loader import load_all_boundaries
 from boundaries.boundary_topology import BoundaryTopologyCache
 from calculators.species import SpeciesAccumulator
@@ -243,7 +243,7 @@ def run(args: argparse.Namespace) -> dict:
         for accumulator in accumulators:
             accumulator.init_sub(sizes)
 
-        usage_before = resource.getrusage(resource.RUSAGE_SELF)
+        usage_before = process_rusage()
         started = time.perf_counter()
         if args.mode == "v1":
             stats = process_exact_species_batch(
@@ -265,7 +265,7 @@ def run(args: argparse.Namespace) -> dict:
                 species_chunk_size=args.species_chunk_size,
             )
         wall_seconds = time.perf_counter() - started
-        usage_after = resource.getrusage(resource.RUSAGE_SELF)
+        usage_after = process_rusage()
 
         output_started = time.perf_counter()
         detail_results = [sink.digest() for sink in sinks]
@@ -327,8 +327,7 @@ def _sha256(path: Path) -> str:
 
 
 def _peak_rss_bytes() -> int:
-    value = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    return value if sys.platform == "darwin" else value * 1024
+    return peak_rss_bytes()
 
 
 def _parse_args() -> argparse.Namespace:
