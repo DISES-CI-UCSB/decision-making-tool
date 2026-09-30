@@ -1,8 +1,37 @@
 #!/usr/bin/env sh
-# Ensure node is on PATH for GUI git clients (VS Code, etc.) that don't source shell profiles
-export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" --no-use
+# GUI Git clients skip the login shell, so Node may not be on PATH yet.
+# Add a location only when that directory exists, then run lint-staged.
+prepend_if_dir() {
+  if [ -n "$1" ] && [ -d "$1" ]; then
+    PATH="$1:$PATH"
+  fi
+}
 
+to_posix_dir() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -u "$1" 2>/dev/null || printf '%s' "$1"
+  else
+    printf '%s' "$1"
+  fi
+}
+
+prepend_if_dir "/opt/homebrew/bin"
+prepend_if_dir "/usr/local/bin"
+prepend_if_dir "$(to_posix_dir "/c/Program Files/nodejs")"
+if [ -n "$LOCALAPPDATA" ]; then
+  prepend_if_dir "$(to_posix_dir "$LOCALAPPDATA/Programs/nodejs")"
+fi
+if [ -n "$APPDATA" ]; then
+  prepend_if_dir "$(to_posix_dir "$APPDATA/npm")"
+fi
+if [ -n "$NVM_DIR" ] && [ -s "$NVM_DIR/nvm.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$NVM_DIR/nvm.sh" --no-use
+elif [ -s "$HOME/.nvm/nvm.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$HOME/.nvm/nvm.sh" --no-use
+fi
+
+export PATH
 cd "frontend" || exit 1
 yarn lint-staged
