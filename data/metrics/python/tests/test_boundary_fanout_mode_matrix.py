@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -188,7 +189,7 @@ def _raster() -> SolutionRaster:
     selected = new | pre_existing
     valid = np.array([[True, True, False], [True, True, True]])
     return SolutionRaster(
-        path=Path("/dev/null"),
+        path=Path(os.devnull),
         selected_mask=selected,
         valid_mask=valid,
         pixel_area_km2_per_row=np.array([1.0, 2.0]),
@@ -318,7 +319,7 @@ def _run_document(
     monkeypatch.setattr(pipeline, "_finalize_solution_document", serialize_document)
     download = CachedDownload(
         url=solution["displayUrl"],
-        path=Path("/dev/null"),
+        path=Path(os.devnull),
         sha256="a" * 64,
         bytes=0,
     )

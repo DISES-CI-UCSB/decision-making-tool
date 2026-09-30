@@ -8,6 +8,7 @@ conftest being importable as a regular module.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -20,7 +21,7 @@ FIXTURES_DIR = Path(__file__).parents[2] / "fixtures"
 EXAMPLES_DIR = Path(__file__).parents[2] / "generated" / "examples"
 EXAMPLE_FILE = EXAMPLES_DIR / "ecos17_estr30_runap_hf.metrics.json"
 
-_DUMMY_PATH = Path("/dev/null")
+_DUMMY_PATH = Path(os.devnull)
 TEST_RASTER_SHA256 = "a" * 64
 TEST_GRID_SHA256 = "b" * 64
 TEST_VALIDITY_MASK_SHA256 = "c" * 64
