@@ -1,8 +1,10 @@
-<app-header
-  id="foundation-header"
-  [coordinateToolEnabled]="coordinateToolEnabled"
-  (coordinateToolEnabledChange)="onCoordinateToolEnabledChange($event)"
-></app-header>
+@if (!isAuthActionPage) {
+  <app-header
+    id="foundation-header"
+    [coordinateToolEnabled]="coordinateToolEnabled"
+    (coordinateToolEnabledChange)="onCoordinateToolEnabledChange($event)"
+  ></app-header>
+}
 
 @if (!isStandalonePage) {
   <app-shell id="foundation-app-shell">
@@ -46,7 +48,9 @@
     [showCloseButton]="true"
     headerAlign="start"
     initialFocus="panel"
-    ariaLabelKey="landingWelcome.title"
+    [ariaLabelKey]="
+      landingWelcomeStep === 'video' ? 'landingWelcome.videoTitle' : 'landingWelcome.title'
+    "
     (requestClose)="closeLandingWelcomeModal()"
   >
     <section
@@ -61,195 +65,270 @@
         {{ 'landingWelcome.kicker' | translate }}
       </p>
       <h2 id="landing-welcome-modal-title" class="text-xl font-semibold text-slate-950">
-        {{ 'landingWelcome.title' | translate }}
+        {{
+          (landingWelcomeStep === 'video' ? 'landingWelcome.videoTitle' : 'landingWelcome.title')
+            | translate
+        }}
       </h2>
-      <nav
-        id="landing-welcome-modal-language-toggle-nav"
-        aria-label="Language switcher"
-        class="inline-flex items-center pt-2 text-sm"
+      <div
+        id="landing-welcome-modal-header-controls"
+        class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-sm"
       >
-        @if (activeLanguage === 'es') {
+        @if (landingWelcomeStep === 'getting-started') {
           <button
-            id="landing-welcome-modal-language-toggle-link-en"
+            id="landing-welcome-modal-back-button"
             type="button"
-            class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            (click)="setLanguage('en')"
+            class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+            (click)="showLandingWelcomeVideo()"
           >
-            EN
-          </button>
-          <span
-            id="landing-welcome-modal-language-toggle-divider-es"
-            class="px-1.5 text-slate-400"
-            aria-hidden="true"
-            >|</span
-          >
-          <span
-            id="landing-welcome-modal-language-toggle-current-es"
-            aria-current="page"
-            class="font-semibold text-slate-900"
-          >
-            ES
-          </span>
-        } @else {
-          <span
-            id="landing-welcome-modal-language-toggle-current-en"
-            aria-current="page"
-            class="font-semibold text-slate-900"
-          >
-            EN
-          </span>
-          <span
-            id="landing-welcome-modal-language-toggle-divider-en"
-            class="px-1.5 text-slate-400"
-            aria-hidden="true"
-            >|</span
-          >
-          <button
-            id="landing-welcome-modal-language-toggle-link-es"
-            type="button"
-            class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            (click)="setLanguage('es')"
-          >
-            ES
+            {{ 'landingWelcome.actions.back' | translate }}
           </button>
         }
-      </nav>
+        <nav
+          id="landing-welcome-modal-language-toggle-nav"
+          aria-label="Language switcher"
+          class="inline-flex items-center"
+        >
+          @if (activeLanguage === 'es') {
+            <button
+              id="landing-welcome-modal-language-toggle-link-en"
+              type="button"
+              class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="setLanguage('en')"
+            >
+              EN
+            </button>
+            <span
+              id="landing-welcome-modal-language-toggle-divider-es"
+              class="px-1.5 text-slate-400"
+              aria-hidden="true"
+              >|</span
+            >
+            <span
+              id="landing-welcome-modal-language-toggle-current-es"
+              aria-current="page"
+              class="font-semibold text-slate-900"
+            >
+              ES
+            </span>
+          } @else {
+            <span
+              id="landing-welcome-modal-language-toggle-current-en"
+              aria-current="page"
+              class="font-semibold text-slate-900"
+            >
+              EN
+            </span>
+            <span
+              id="landing-welcome-modal-language-toggle-divider-en"
+              class="px-1.5 text-slate-400"
+              aria-hidden="true"
+              >|</span
+            >
+            <button
+              id="landing-welcome-modal-language-toggle-link-es"
+              type="button"
+              class="inline-flex min-h-8 cursor-pointer items-center rounded-md py-1 font-medium text-sky-700 underline-offset-2 transition hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="setLanguage('es')"
+            >
+              ES
+            </button>
+          }
+        </nav>
+      </div>
     </section>
 
     <section id="landing-welcome-modal-content" class="space-y-5">
-      <div id="landing-welcome-modal-introduction" class="space-y-3">
-        <p id="landing-welcome-modal-description" class="text-sm leading-6 text-slate-700">
-          {{ 'landingWelcome.description' | translate }}
-        </p>
-      </div>
-
-      <section
-        id="landing-welcome-modal-quick-start-card"
-        class="rounded-xl border border-slate-200 bg-slate-50 p-4"
-      >
-        <h3
-          id="landing-welcome-modal-quick-start-title"
-          class="text-sm font-semibold text-slate-900"
-        >
-          {{ 'landingWelcome.quickStartTitle' | translate }}
-        </h3>
-        <ol id="landing-welcome-modal-quick-start-list" class="mt-3 space-y-3">
-          <li id="landing-welcome-modal-quick-start-step-select" class="flex gap-3">
-            <span
-              id="landing-welcome-modal-quick-start-step-select-marker"
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-700 pt-px text-xs font-semibold leading-none text-white"
-              aria-hidden="true"
+      @if (landingWelcomeStep === 'video') {
+        <div id="landing-welcome-modal-video-step" class="space-y-4">
+          @if (landingWelcomeVideoStatus === 'error') {
+            <div
+              id="landing-welcome-modal-video-error"
+              class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-sm leading-6 text-slate-600"
             >
-              1
-            </span>
-            <span
-              id="landing-welcome-modal-quick-start-step-select-copy"
-              class="text-sm leading-6 text-slate-700"
+              <p id="landing-welcome-modal-video-error-copy">
+                {{ 'landingWelcome.videoError' | translate }}
+              </p>
+            </div>
+          } @else {
+            <div
+              id="landing-welcome-modal-video-frame"
+              class="relative aspect-video overflow-hidden rounded-lg bg-slate-950"
             >
-              {{ 'landingWelcome.steps.selectSolution' | translate }}
-            </span>
-          </li>
-          <li id="landing-welcome-modal-quick-start-step-explore" class="flex gap-3">
-            <span
-              id="landing-welcome-modal-quick-start-step-explore-marker"
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
-              aria-hidden="true"
-            >
-              2
-            </span>
-            <span
-              id="landing-welcome-modal-quick-start-step-explore-copy"
-              class="text-sm leading-6 text-slate-700"
-            >
-              {{ 'landingWelcome.steps.exploreMap' | translate }}
-            </span>
-          </li>
-          <li id="landing-welcome-modal-quick-start-step-review" class="flex gap-3">
-            <span
-              id="landing-welcome-modal-quick-start-step-review-marker"
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
-              aria-hidden="true"
-            >
-              3
-            </span>
-            <span
-              id="landing-welcome-modal-quick-start-step-review-copy"
-              class="text-sm leading-6 text-slate-700"
-            >
-              {{ 'landingWelcome.steps.reviewAnalysis' | translate }}
-            </span>
-          </li>
-          <li id="landing-welcome-modal-quick-start-step-download" class="flex gap-3">
-            <span
-              id="landing-welcome-modal-quick-start-step-download-marker"
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
-              aria-hidden="true"
-            >
-              4
-            </span>
-            <span
-              id="landing-welcome-modal-quick-start-step-download-copy"
-              class="text-sm leading-6 text-slate-700"
-            >
-              {{ 'landingWelcome.steps.downloadOutputs' | translate }}
-            </span>
-          </li>
-        </ol>
-      </section>
-
-      <p id="landing-welcome-modal-decision-support-note" class="text-sm leading-6 text-slate-700">
-        {{ 'landingWelcome.decisionSupportNote' | translate }}
-      </p>
-
-      <div
-        id="landing-welcome-modal-actions"
-        class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div
-          id="landing-welcome-modal-secondary-actions"
-          class="flex flex-wrap items-center justify-center gap-2 sm:justify-start"
-        >
-          <a
-            id="landing-welcome-modal-guide-link"
-            routerLink="/guide"
-            class="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            (click)="openGuideFromLandingWelcome()"
-          >
-            {{ 'landingWelcome.actions.howToGuide' | translate }}
-          </a>
-          <a
-            id="landing-welcome-modal-about-link"
-            routerLink="/about"
-            class="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            (click)="openAboutFromLandingWelcome()"
-          >
-            {{ 'landingWelcome.actions.about' | translate }}
-          </a>
-        </div>
-        <div
-          id="landing-welcome-modal-primary-actions"
-          class="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3"
-        >
-          @if (!isSignedIn()) {
-            <button
-              id="landing-welcome-modal-login-button"
-              type="button"
-              class="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 sm:w-auto"
-              (click)="openLoginFromLandingWelcome()"
-            >
-              {{ 'header.loginRegister' | translate }}
-            </button>
+              <video
+                id="landing-welcome-modal-video-player"
+                class="h-full w-full"
+                [src]="landingWelcomeVideoAssets.videoUrl"
+                [poster]="landingWelcomeVideoAssets.posterUrl"
+                [attr.data-locale]="landingWelcomeVideoAssets.locale"
+                controls
+                playsinline
+                preload="metadata"
+                aria-labelledby="landing-welcome-modal-title"
+                (loadstart)="onLandingWelcomeVideoLoadStart()"
+                (loadedmetadata)="onLandingWelcomeVideoReady()"
+                (error)="onLandingWelcomeVideoError()"
+              ></video>
+              @if (landingWelcomeVideoStatus === 'loading') {
+                <p
+                  id="landing-welcome-modal-video-loading"
+                  class="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/70 px-4 text-center text-sm text-slate-300"
+                >
+                  {{ 'landingWelcome.videoLoading' | translate }}
+                </p>
+              }
+            </div>
           }
-          <button
-            id="landing-welcome-modal-select-solution-button"
-            type="button"
-            class="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 sm:w-auto"
-            (click)="startFromLandingWelcome()"
-          >
-            {{ 'landingWelcome.actions.selectSolution' | translate }}
-          </button>
+
+          <div id="landing-welcome-modal-video-actions" class="flex justify-end">
+            <button
+              id="landing-welcome-modal-skip-video-button"
+              type="button"
+              class="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md px-3 py-1 text-sm font-medium text-slate-600 underline-offset-2 transition hover:text-slate-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="skipLandingWelcomeVideo()"
+            >
+              {{ 'landingWelcome.actions.skipVideo' | translate }}
+            </button>
+          </div>
         </div>
-      </div>
+      } @else {
+        <div id="landing-welcome-modal-introduction" class="space-y-3">
+          <p id="landing-welcome-modal-description" class="text-sm leading-6 text-slate-700">
+            {{ 'landingWelcome.description' | translate }}
+          </p>
+        </div>
+
+        <section
+          id="landing-welcome-modal-quick-start-card"
+          class="rounded-xl border border-slate-200 bg-slate-50 p-4"
+        >
+          <h3
+            id="landing-welcome-modal-quick-start-title"
+            class="text-sm font-semibold text-slate-900"
+          >
+            {{ 'landingWelcome.quickStartTitle' | translate }}
+          </h3>
+          <ol id="landing-welcome-modal-quick-start-list" class="mt-3 space-y-3">
+            <li id="landing-welcome-modal-quick-start-step-select" class="flex gap-3">
+              <span
+                id="landing-welcome-modal-quick-start-step-select-marker"
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-700 pt-px text-xs font-semibold leading-none text-white"
+                aria-hidden="true"
+              >
+                1
+              </span>
+              <span
+                id="landing-welcome-modal-quick-start-step-select-copy"
+                class="text-sm leading-6 text-slate-700"
+              >
+                {{ 'landingWelcome.steps.selectSolution' | translate }}
+              </span>
+            </li>
+            <li id="landing-welcome-modal-quick-start-step-explore" class="flex gap-3">
+              <span
+                id="landing-welcome-modal-quick-start-step-explore-marker"
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
+                aria-hidden="true"
+              >
+                2
+              </span>
+              <span
+                id="landing-welcome-modal-quick-start-step-explore-copy"
+                class="text-sm leading-6 text-slate-700"
+              >
+                {{ 'landingWelcome.steps.exploreMap' | translate }}
+              </span>
+            </li>
+            <li id="landing-welcome-modal-quick-start-step-review" class="flex gap-3">
+              <span
+                id="landing-welcome-modal-quick-start-step-review-marker"
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
+                aria-hidden="true"
+              >
+                3
+              </span>
+              <span
+                id="landing-welcome-modal-quick-start-step-review-copy"
+                class="text-sm leading-6 text-slate-700"
+              >
+                {{ 'landingWelcome.steps.reviewAnalysis' | translate }}
+              </span>
+            </li>
+            <li id="landing-welcome-modal-quick-start-step-download" class="flex gap-3">
+              <span
+                id="landing-welcome-modal-quick-start-step-download-marker"
+                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-700 pt-px text-xs font-semibold leading-none text-white"
+                aria-hidden="true"
+              >
+                4
+              </span>
+              <span
+                id="landing-welcome-modal-quick-start-step-download-copy"
+                class="text-sm leading-6 text-slate-700"
+              >
+                {{ 'landingWelcome.steps.downloadOutputs' | translate }}
+              </span>
+            </li>
+          </ol>
+        </section>
+
+        <p
+          id="landing-welcome-modal-decision-support-note"
+          class="text-sm leading-6 text-slate-700"
+        >
+          {{ 'landingWelcome.decisionSupportNote' | translate }}
+        </p>
+
+        <div
+          id="landing-welcome-modal-actions"
+          class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div
+            id="landing-welcome-modal-secondary-actions"
+            class="flex flex-wrap items-center justify-center gap-2 sm:justify-start"
+          >
+            <a
+              id="landing-welcome-modal-guide-link"
+              routerLink="/guide"
+              class="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="openGuideFromLandingWelcome()"
+            >
+              {{ 'landingWelcome.actions.howToGuide' | translate }}
+            </a>
+            <a
+              id="landing-welcome-modal-about-link"
+              routerLink="/about"
+              class="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              (click)="openAboutFromLandingWelcome()"
+            >
+              {{ 'landingWelcome.actions.about' | translate }}
+            </a>
+          </div>
+          <div
+            id="landing-welcome-modal-primary-actions"
+            class="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3"
+          >
+            @if (!isSignedIn()) {
+              <button
+                id="landing-welcome-modal-login-button"
+                type="button"
+                class="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 sm:w-auto"
+                (click)="openLoginFromLandingWelcome()"
+              >
+                {{ 'header.loginRegister' | translate }}
+              </button>
+            }
+            <button
+              id="landing-welcome-modal-select-solution-button"
+              type="button"
+              class="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 sm:w-auto"
+              (click)="startFromLandingWelcome()"
+            >
+              {{ 'landingWelcome.actions.selectSolution' | translate }}
+            </button>
+          </div>
+        </div>
+      }
     </section>
   </app-modal-shell>
 

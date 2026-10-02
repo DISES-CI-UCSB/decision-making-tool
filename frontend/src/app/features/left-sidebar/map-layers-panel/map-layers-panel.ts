@@ -131,6 +131,7 @@ import {
   MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE,
   MANIFEST_CATEGORY_TITLE_OVERRIDES,
   MANIFEST_LAYER_ID_BY_OVERLAY_ROW_ID,
+  MANIFEST_LAYER_NAME_OVERRIDES,
   MARINE_ECOSYSTEMS_GROUP_ID,
   MARINE_ECOSYSTEMS_LAYER_ID,
   OVERLAP_SOLUTION_OVERLAY_ID,
@@ -1154,6 +1155,10 @@ export class MapLayersPanelComponent implements OnDestroy {
   }
 
   private manifestSidebarLayerName(manifestRow: ManifestSidebarLayerRow): string {
+    const layerNameOverride = this.manifestLayerNameOverride(manifestRow.id);
+    if (layerNameOverride) {
+      return layerNameOverride;
+    }
     const sirapBoundaryNameKeys: Record<string, { key: string; fallback: string }> = {
       siraps: {
         key: 'mapLayersPanel.boundaryNames.combinedSirapReviewLayer',
@@ -1290,6 +1295,14 @@ export class MapLayersPanelComponent implements OnDestroy {
 
   private manifestCategoryTitle(manifestCategoryId: string): string | undefined {
     const override = MANIFEST_CATEGORY_TITLE_OVERRIDES[manifestCategoryId];
+    if (!override) {
+      return undefined;
+    }
+    return this.appLocaleService.locale() === 'es' ? override.es : override.en;
+  }
+
+  private manifestLayerNameOverride(manifestLayerId: string): string | undefined {
+    const override = MANIFEST_LAYER_NAME_OVERRIDES[manifestLayerId];
     if (!override) {
       return undefined;
     }
@@ -3627,26 +3640,6 @@ export class MapLayersPanelComponent implements OnDestroy {
         mapSync: { type: 'solution-baseline' },
       },
       {
-        id: RUNAP_OVERLAY_LAYER_ID,
-        name: this.localizedTextOrFallback(
-          'mapLayersPanel.overlayNames.protectedAreasRunap',
-          'Protected Areas (RUNAP)',
-        ),
-        selected: false,
-        visible: false,
-        expanded: false,
-        opacity: DEFAULT_DATA_LAYER_OPACITY,
-        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.color ?? '#f97316',
-        fillStyle: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.fillStyle,
-        borderColor:
-          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderColor ?? '#c2410c',
-        borderWidth: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderWidth,
-        canReorder: true,
-        hasStyleControls: true,
-        hasColorControl: true,
-        mapUnavailable: true,
-      },
-      {
         id: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
         name: this.localizedTextOrFallback(
           'mapLayersPanel.overlayNames.nationalNaturalParks',
@@ -3681,6 +3674,26 @@ export class MapLayersPanelComponent implements OnDestroy {
             selectedColor: '#dc2626',
           },
         },
+      },
+      {
+        id: RUNAP_OVERLAY_LAYER_ID,
+        name: this.localizedTextOrFallback(
+          'mapLayersPanel.overlayNames.protectedAreasRunap',
+          'Protected Areas (RUNAP)',
+        ),
+        selected: false,
+        visible: false,
+        expanded: false,
+        opacity: DEFAULT_DATA_LAYER_OPACITY,
+        color: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.color ?? '#f97316',
+        fillStyle: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.fillStyle,
+        borderColor:
+          MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderColor ?? '#c2410c',
+        borderWidth: MANAGEMENT_OVERLAY_DEFAULT_APPEARANCE[RUNAP_OVERLAY_LAYER_ID]?.borderWidth,
+        canReorder: true,
+        hasStyleControls: true,
+        hasColorControl: true,
+        mapUnavailable: true,
       },
       {
         id: OMEC_OVERLAY_LAYER_ID,
@@ -4370,7 +4383,7 @@ export class MapLayersPanelComponent implements OnDestroy {
           ),
           this.layerRow(
             'cult-afro',
-            'Community Councils for Black Communities',
+            this.manifestLayerNameOverride('comunidades') ?? 'Community councils with land titles',
             '#a855f7',
             DEFAULT_DATA_LAYER_OPACITY,
           ),
@@ -4649,6 +4662,17 @@ export class MapLayersPanelComponent implements OnDestroy {
                 'mapLayersPanel.layerNames.marineHumanModification',
                 'Marine human modification (HHM)',
               ),
+            };
+          }
+          if (row.id === 'layer-comunidades' || row.id === 'layer-cult-afro') {
+            return {
+              ...row,
+              name:
+                this.manifestLayerNameOverride('comunidades') ??
+                this.localizedTextOrFallback(
+                  'mapLayersPanel.layerNames.communityCouncilsWithLandTitles',
+                  'Community councils with land titles',
+                ),
             };
           }
           return row;

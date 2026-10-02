@@ -7,6 +7,9 @@
     "title": "Explore candidate areas for conservation action",
     "description": "This decision-support tool maps candidate areas for conservation action in Colombia.",
     "decisionSupportNote": "Disclaimer: This tool is intended to inform discussion and planning. It is not a substitute for local expertise or official policy. Candidate areas are precomputed. Information about data sources can be found throughout the tool.",
+    "videoTitle": "Watch the walkthrough",
+    "videoLoading": "Loading video…",
+    "videoError": "The video could not be loaded. You can still continue.",
     "quickStartTitle": "How to get started",
     "steps": {
       "selectSolution": "Set goals: Set goals for conserving species, ecosystems, and more.",
@@ -18,7 +21,9 @@
       "exploreFirst": "Explore map first",
       "howToGuide": "How-to guide",
       "about": "About",
-      "selectSolution": "Get Started"
+      "selectSolution": "Get Started",
+      "skipVideo": "Skip video",
+      "back": "Back"
     }
   },
   "header": {
@@ -34,10 +39,11 @@
     "languageEnglish": "English",
     "languageSpanish": "Spanish",
     "adminAccess": "Admin console",
+    "sirapAccess": "SIRAP access",
     "logout": "Logout",
     "loginRegister": "Login / Register",
     "tierChip": "Tier {{tier}}",
-    "pendingAccess": "Signed in · Access pending"
+    "pendingAccess": "Signed in · Account is not active"
   },
   "about": {
     "kicker": "About the collaboration",
@@ -1639,12 +1645,13 @@
       "speciesBiodiversity": "Species & Biodiversity",
       "ecosystems": "Ecosystems",
       "marineEcosystems": "Marine Ecosystems",
-      "culturalEthnicTerritories": "Cultural & Ethnic Territories",
+      "culturalEthnicTerritories": "Collective territories and peasant reserve zones",
       "costs": "Human Activity and Land Use"
     },
     "layerNames": {
       "marineHumanModification": "Marine human modification (HHM)",
-      "campesinaReserveZones": "Campesina Reserve Zones"
+      "campesinaReserveZones": "Campesina Reserve Zones",
+      "communityCouncilsWithLandTitles": "Community councils with land titles"
     },
     "boundaryNames": {
       "combinedSirapReviewLayer": "SIRAP",

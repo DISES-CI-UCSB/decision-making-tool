@@ -94,8 +94,10 @@ FLAG_TARGET_CONFIGURED = 4
 FLAG_MET_17 = 8
 FLAG_MET_30 = 16
 FLAG_CONFIGURED_TARGET_MET = 32
-# A missing national denominator makes every subnational range fall back to its
-# own boundary total, so every range becomes the catalog-wide national range.
+# Fail closed when either collapse hits at least this many ranged species:
+# clipping range to selected-only rasters makes every species 100% covered, and
+# a missing national denominator makes every subnational range equal the
+# catalog national range.
 _SPECIES_GOALS_TAUTOLOGY_MIN_RANGED = 50
 # Compact km² columns independently round(catalog_range * held/total, 6).
 # Configured ``met`` follows Mesa cell counts, so selected can sit one
@@ -1109,6 +1111,42 @@ def validate_compact(
         if level != "national" and (flags & (FLAG_UNAVAILABLE | FLAG_NO_RANGE)):
             raise SpeciesGoalsContractError("sparse partitions must omit unavailable/no-range rows")
         previous_key = key
+    ranged_species = 0
+    fully_covered_species = 0
+    national_range_matches = 0
+    for row in rows:
+        total = 0.0 if row[2] is None else float(row[2])
+        selected = 0.0 if row[3] is None else float(row[3])
+        if total <= 0:
+            continue
+        ranged_species += 1
+        if selected + 1e-9 >= total:
+            fully_covered_species += 1
+        if level == "siraps" and catalog is not None:
+            national_range = catalog["rows"][row[1]][4]
+            if (
+                national_range is not None
+                and abs(total - float(national_range)) <= _KM2_ROUNDING_ABS
+            ):
+                national_range_matches += 1
+    if (
+        ranged_species >= _SPECIES_GOALS_TAUTOLOGY_MIN_RANGED
+        and fully_covered_species == ranged_species
+    ):
+        raise SpeciesGoalsContractError(
+            "species-goals coverage is tautological: every in-range species has "
+            "selected area equal to range area. Scope must be the planning grid, "
+            "not the solution-data valid mask."
+        )
+    if (
+        level == "siraps"
+        and ranged_species >= _SPECIES_GOALS_TAUTOLOGY_MIN_RANGED
+        and national_range_matches == ranged_species
+    ):
+        raise SpeciesGoalsContractError(
+            "species-goals SIRAP national-range tautology: every in-range species "
+            "has range area equal to its catalog national range."
+        )
     if level != "national" and catalog is not None:
         ranged_by_scope: dict[int, int] = {}
         national_range_equal_by_scope: dict[int, int] = {}

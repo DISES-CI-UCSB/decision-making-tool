@@ -17,6 +17,7 @@ from typing import Any, Callable
 from urllib.parse import unquote, urlsplit
 
 from cli_utils import BLOB_TOKEN_ENV_VAR, extract_first_url, find_repo_root, load_env_value
+from platform_io import fsync_directory
 
 PLAN_FORMAT = "solution-source-upload-plan-v1"
 REPORT_FORMAT = "solution-source-upload-report-v1"
@@ -49,11 +50,7 @@ def _atomic_write_json(path: Path, value: dict[str, Any]) -> None:
         target.flush()
         os.fsync(target.fileno())
     temporary.replace(path)
-    directory_fd = os.open(path.parent, os.O_RDONLY)
-    try:
-        os.fsync(directory_fd)
-    finally:
-        os.close(directory_fd)
+    fsync_directory(path.parent)
 
 
 def _load_plan(path: Path) -> tuple[dict[str, Any], str]:

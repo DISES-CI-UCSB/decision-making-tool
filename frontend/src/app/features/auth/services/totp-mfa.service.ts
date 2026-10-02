@@ -15,7 +15,14 @@ import {
 } from 'firebase/auth';
 import { environment } from '../../../../environments/environment';
 import { shouldRunTotpEnrollmentDiagnostic } from './totp-enrollment-diagnostic';
-import { TotpEnrollmentDiagnosticService } from './totp-enrollment-diagnostic.service';
+import {
+  emitTotpProbeEvent,
+  enrollmentConfirmedFromProbe,
+  enrollResultFromThrown,
+  persistenceLookupEvent,
+  probeEnrollmentPersistence,
+  summarizeLocalFactorCheck,
+} from './totp-enrollment-probe';
 import { QrCodeService } from './qr-code.service';
 
 export const AUTH_ERROR_MFA_REQUIRED = 'auth/multi-factor-auth-required';
@@ -23,6 +30,7 @@ export const AUTH_ERROR_INVALID_OTP = 'auth/invalid-verification-code';
 export const AUTH_ERROR_INVALID_VERIFICATION_ID = 'auth/invalid-verification-id';
 export const AUTH_ERROR_CODE_EXPIRED = 'auth/code-expired';
 export const AUTH_ERROR_REQUIRES_RECENT_LOGIN = 'auth/requires-recent-login';
+export const AUTH_ERROR_USER_TOKEN_EXPIRED = 'auth/user-token-expired';
 export const AUTH_ERROR_MISSING_MFA_INFO = 'auth/missing-multi-factor-info';
 export const AUTH_ERROR_SECOND_FACTOR_ALREADY_ENROLLED = 'auth/second-factor-already-in-use';
 export const TOTP_ENROLLMENT_EXPIRED_CODE = 'totp/enrollment-expired';
@@ -91,6 +99,8 @@ export const TOTP_FORMAT_MESSAGE = 'Enter the 6-digit code from your authenticat
 export const TOTP_NO_HINT_MESSAGE =
   'This account needs an authenticator app. SMS is not supported.';
 export const TOTP_RESTART_MESSAGE = 'This sign-in challenge expired. Sign in with Google again.';
+export const TOTP_USER_TOKEN_EXPIRED_MESSAGE =
+  'This sign-in expired. Sign in with Google again to continue authenticator setup.';
 export const TOTP_ENROLLMENT_UNCONFIRMED_CODE = 'totp/enrollment-unconfirmed';
 export const TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE =
   'The authenticator code was not confirmed yet. Keep this QR code and enter the current 6-digit code again.';
@@ -186,6 +196,18 @@ export function hasTotpFactor(factors: readonly MultiFactorInfo[]): boolean {
   return factors.some((factor) => factor.factorId === FactorId.TOTP);
 }
 
+/** Cached ID token only. Never force-refresh. */
+export async function hasTotpSecondFactorClaim(user: {
+  getIdTokenResult: (forceRefresh?: boolean) => Promise<{ signInSecondFactor?: string | null }>;
+}): Promise<boolean> {
+  try {
+    const result = await user.getIdTokenResult(false);
+    return result.signInSecondFactor === 'totp';
+  } catch {
+    return false;
+  }
+}
+
 export function selectTotpHint(hints: readonly MultiFactorInfo[]): MultiFactorInfo | null {
   return hints.find((hint) => hint.factorId === FactorId.TOTP) ?? null;
 }
@@ -203,12 +225,18 @@ export function classifyTotpErrorCode(code: string): TotpErrorKind {
   ) {
     return 'retry';
   }
+  if (code === AUTH_ERROR_USER_TOKEN_EXPIRED) {
+    return 'restart';
+  }
   return 'restart';
 }
 
 export function totpErrorMessage(code: string, kind: TotpErrorKind): string {
   if (code === AUTH_ERROR_REQUIRES_RECENT_LOGIN) {
     return TOTP_RECENT_LOGIN_FAILED_MESSAGE;
+  }
+  if (code === AUTH_ERROR_USER_TOKEN_EXPIRED) {
+    return TOTP_USER_TOKEN_EXPIRED_MESSAGE;
   }
   if (code === TOTP_ENROLLMENT_UNCONFIRMED_CODE) {
     return TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE;
@@ -292,6 +320,22 @@ export async function hasEnrolledTotpAfterFactorRefresh(
   return hasEnrolledTotp();
 }
 
+/**
+ * Successful `enroll()` updates user tokens and revokes existing refresh
+ * tokens. Confirm from the SDK factor list first, then `reload()` with that
+ * new ID token. Do not call `getIdToken(true)` here.
+ */
+export async function hasEnrolledTotpAfterEnrollment(
+  hasEnrolledTotp: () => boolean,
+  reload: () => Promise<void>,
+): Promise<boolean> {
+  if (hasEnrolledTotp()) {
+    return true;
+  }
+  await reload();
+  return hasEnrolledTotp();
+}
+
 export function createTotpChallengeSession(
   resolver: MultiFactorResolver,
   email?: string,
@@ -311,28 +355,61 @@ export function createTotpChallengeSession(
 @Injectable({ providedIn: 'root' })
 export class TotpMfaService {
   private readonly qrCode = inject(QrCodeService);
-  private readonly enrollmentDiagnostic = inject(TotpEnrollmentDiagnosticService);
   /**
    * In-memory open enrollment for this app session. Deadline expiry does not
    * clear it. A full page reload does, and the secret is never persisted.
    */
   private openEnrollment: { uid: string; session: TotpEnrollmentSession } | null = null;
   private unconfirmedEnrollmentUid: string | null = null;
+  private enrollmentInProgressUid: string | null = null;
+  private factorReadFlights = new Map<string, Promise<boolean>>();
 
   hasEnrolledTotp(user: User | null): boolean {
     return user !== null && hasTotpFactor(multiFactor(user).enrolledFactors);
   }
 
+  markEnrollmentInProgress(uid: string): void {
+    this.enrollmentInProgressUid = uid;
+  }
+
+  clearEnrollmentInProgress(uid?: string): void {
+    if (!uid || this.enrollmentInProgressUid === uid) {
+      this.enrollmentInProgressUid = null;
+    }
+  }
+
+  isEnrollmentHeld(uid: string): boolean {
+    return this.enrollmentInProgressUid === uid || this.openEnrollment?.uid === uid;
+  }
+
   async userHasEnrolledTotp(user: User): Promise<boolean> {
-    // Firebase can leave enrolledFactors empty until reload runs with a fresh ID
-    // token, and it can also leave a removed factor in that local list. Never
-    // trust the pre-reload list. Force a token refresh, reload, then read.
-    return hasEnrolledTotpAfterFactorRefresh(
+    // Returning-user and admin-removed-factor reads cannot trust the cached
+    // list. Force a token refresh, reload, then read. Concurrent callers for
+    // the same uid share one in-flight refresh.
+    const existing = this.factorReadFlights.get(user.uid);
+    if (existing) {
+      return existing;
+    }
+    const flight = hasEnrolledTotpAfterFactorRefresh(
       async () => {
         await user.getIdToken(true);
       },
       () => user.reload(),
       () => this.hasEnrolledTotp(user),
+    );
+    const tracked = flight.finally(() => {
+      if (this.factorReadFlights.get(user.uid) === tracked) {
+        this.factorReadFlights.delete(user.uid);
+      }
+    });
+    this.factorReadFlights.set(user.uid, tracked);
+    return tracked;
+  }
+
+  async confirmEnrolledTotp(user: User): Promise<boolean> {
+    return hasEnrolledTotpAfterEnrollment(
+      () => this.hasEnrolledTotp(user),
+      () => user.reload(),
     );
   }
 
@@ -362,6 +439,7 @@ export class TotpMfaService {
     if (!uid || this.unconfirmedEnrollmentUid === uid) {
       this.unconfirmedEnrollmentUid = null;
     }
+    this.clearEnrollmentInProgress(uid);
   }
 
   rememberOpenEnrollment(user: User, session: TotpEnrollmentSession): void {
@@ -376,8 +454,16 @@ export class TotpMfaService {
     return this.unconfirmedEnrollmentUid === uid;
   }
 
-  async beginEnrollment(user: User, accountName: string): Promise<TotpEnrollmentSession> {
-    if (!canBeginTotpEnrollment(await this.userHasEnrolledTotp(user))) {
+  async beginEnrollment(
+    user: User,
+    accountName: string,
+    options?: { skipEnrolledCheck?: boolean },
+  ): Promise<TotpEnrollmentSession> {
+    this.markEnrollmentInProgress(user.uid);
+    if (
+      !options?.skipEnrolledCheck &&
+      !canBeginTotpEnrollment(await this.userHasEnrolledTotp(user))
+    ) {
       this.forgetOpenEnrollment(user.uid);
       throw new TotpMfaError('restart', TOTP_ALREADY_ENROLLED_CODE, TOTP_ALREADY_ENROLLED_MESSAGE);
     }
@@ -415,12 +501,15 @@ export class TotpMfaService {
   async completeEnrollment(user: User, session: TotpEnrollmentSession, otp: string): Promise<void> {
     requireOpenEnrollmentDeadline(session.enrollmentCompletionDeadline);
     const code = requireSixDigitTotpCode(otp);
+    const production = environment.production;
+    emitTotpProbeEvent(production, { event: 'enroll-start' });
     try {
       await multiFactor(user).enroll(
         TotpMultiFactorGenerator.assertionForEnrollment(session.secret, code),
         TOTP_DISPLAY_NAME,
       );
     } catch (error) {
+      emitTotpProbeEvent(production, enrollResultFromThrown(error));
       if (isAuthError(error) && error.code === AUTH_ERROR_SECOND_FACTOR_ALREADY_ENROLLED) {
         if (await this.userHasEnrolledTotp(user)) {
           this.forgetOpenEnrollment(user.uid);
@@ -429,10 +518,19 @@ export class TotpMfaService {
       }
       throw toTotpMfaError(error);
     }
+    emitTotpProbeEvent(production, { event: 'enroll-result', outcome: 'ok' });
+    const localEnrolled = await this.confirmEnrolledTotp(user);
+    emitTotpProbeEvent(production, summarizeLocalFactorCheck(multiFactor(user).enrolledFactors));
+    const lookup = await probeEnrollmentPersistence({
+      apiKey: environment.firebase.config.apiKey,
+      currentUid: user.uid,
+      getIdToken: (forceRefresh) => user.getIdToken(forceRefresh),
+    });
+    emitTotpProbeEvent(production, persistenceLookupEvent(lookup));
     await applyTotpEnrollmentResult({
-      production: environment.production,
-      enrolledAfterRefresh: await this.userHasEnrolledTotp(user),
-      diagnoseUnconfirmed: () => this.enrollmentDiagnostic.reportUnconfirmed(user),
+      production,
+      enrolledAfterRefresh: enrollmentConfirmedFromProbe(production, localEnrolled, lookup),
+      diagnoseUnconfirmed: async () => undefined,
       forgetEnrollment: () => this.forgetOpenEnrollment(user.uid),
     });
   }

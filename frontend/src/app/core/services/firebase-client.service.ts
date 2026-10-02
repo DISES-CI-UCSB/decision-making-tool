@@ -1,33 +1,141 @@
 import { Injectable } from '@angular/core';
-import { initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
+import {
+  getApp,
+  getApps,
+  initializeApp,
+  type FirebaseApp,
+  type FirebaseOptions,
+} from 'firebase/app';
 import {
   GoogleAuthProvider,
+  applyActionCode as firebaseApplyActionCode,
+  browserLocalPersistence,
+  browserPopupRedirectResolver,
+  browserSessionPersistence,
+  checkActionCode as firebaseCheckActionCode,
   createUserWithEmailAndPassword,
   getAuth,
+  indexedDBLocalPersistence,
+  initializeAuth,
   onAuthStateChanged,
   reauthenticateWithPopup,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
+  type ActionCodeInfo,
   type Auth,
+  type Persistence,
+  type PopupRedirectResolver,
   type Unsubscribe,
   type User,
   type UserCredential,
 } from 'firebase/auth';
+import { UserTier } from '@core/models';
 import {
   doc,
   getDoc,
   type DocumentData,
   getFirestore,
   onSnapshot,
-  setDoc,
+  runTransaction,
+  serverTimestamp,
   type Firestore,
 } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
 
+export interface EnsuredSelfUserRecord {
+  created: boolean;
+  status: string;
+}
+
+/** Directory rows are only for people who are being created or are already active. */
+export function shouldEnsureActiveDirectory(existingUserStatus: string | null): boolean {
+  return existingUserStatus === null || existingUserStatus === 'active';
+}
+
+export interface BrowserAuthSettings {
+  persistence: Persistence[];
+  popupRedirectResolver: PopupRedirectResolver;
+}
+
+/** IndexedDB first, then browser local/session. Popup resolver is required for Google. */
+export function browserAuthSettings(): BrowserAuthSettings {
+  return {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence],
+    popupRedirectResolver: browserPopupRedirectResolver,
+  };
+}
+
+export function isAuthAlreadyInitialized(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code: unknown }).code === 'auth/already-initialized'
+  );
+}
+
+export function initializeBrowserAuth(
+  app: FirebaseApp,
+  authApi: {
+    initializeAuth: typeof initializeAuth;
+    getAuth: typeof getAuth;
+  } = { initializeAuth, getAuth },
+): Auth {
+  try {
+    return authApi.initializeAuth(app, browserAuthSettings());
+  } catch (error) {
+    if (isAuthAlreadyInitialized(error)) {
+      return authApi.getAuth(app);
+    }
+    throw error;
+  }
+}
+
+export function createGoogleSelectAccountProvider(
+  createProvider: () => GoogleAuthProvider = () => new GoogleAuthProvider(),
+): GoogleAuthProvider {
+  const provider = createProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  return provider;
+}
+
+/**
+ * The popup's signInWithIdp already rejects with auth/multi-factor-auth-required
+ * whenever the account has an enrolled factor. A resolved popup means Firebase
+ * holds no factor for this account.
+ */
+export async function signInWithGoogleSelectAccountPopup(
+  auth: Auth,
+  authApi: {
+    signInWithPopup: typeof signInWithPopup;
+    signOut: typeof firebaseSignOut;
+    createProvider?: () => GoogleAuthProvider;
+  },
+): Promise<UserCredential> {
+  if (auth.currentUser) {
+    await authApi.signOut(auth);
+  }
+  return authApi.signInWithPopup(auth, createGoogleSelectAccountProvider(authApi.createProvider));
+}
+
+export async function reauthenticateWithGoogleSelectAccountPopup(
+  user: User,
+  authApi: {
+    reauthenticateWithPopup: typeof reauthenticateWithPopup;
+    createProvider?: () => GoogleAuthProvider;
+  },
+): Promise<UserCredential> {
+  return authApi.reauthenticateWithPopup(
+    user,
+    createGoogleSelectAccountProvider(authApi.createProvider),
+  );
+}
+
 @Injectable({ providedIn: 'root' })
 export class FirebaseClientService {
   private app: FirebaseApp | null = null;
+  private authInstance: Auth | null = null;
 
   get isEnabled(): boolean {
     return environment.firebase.enabled && Boolean(environment.firebase.config.projectId);
@@ -37,7 +145,17 @@ export class FirebaseClientService {
     if (!this.isEnabled) {
       return null;
     }
-    return getAuth(this.ensureApp());
+    if (!this.authInstance) {
+      const app = this.ensureApp();
+      try {
+        this.authInstance = initializeBrowserAuth(app);
+      } catch {
+        // jsdom and some browsers cannot construct IndexedDB persistence.
+        // getAuth still yields the same app-scoped instance.
+        this.authInstance = getAuth(app);
+      }
+    }
+    return this.authInstance;
   }
 
   get firestore(): Firestore | null {
@@ -67,11 +185,16 @@ export class FirebaseClientService {
   }
 
   async signInWithGooglePopup(): Promise<UserCredential> {
-    return signInWithPopup(this.requireAuth(), new GoogleAuthProvider());
+    return signInWithGoogleSelectAccountPopup(this.requireAuth(), {
+      signInWithPopup,
+      signOut: firebaseSignOut,
+    });
   }
 
   async reauthenticateWithGooglePopup(user: User): Promise<UserCredential> {
-    return reauthenticateWithPopup(user, new GoogleAuthProvider());
+    return reauthenticateWithGoogleSelectAccountPopup(user, {
+      reauthenticateWithPopup,
+    });
   }
 
   async signInWithEmail(email: string, password: string): Promise<User> {
@@ -86,20 +209,73 @@ export class FirebaseClientService {
     return credential.user;
   }
 
+  async applyActionCode(oobCode: string): Promise<void> {
+    await firebaseApplyActionCode(this.requireAuth(), oobCode);
+  }
+
+  async checkActionCode(oobCode: string): Promise<ActionCodeInfo> {
+    return firebaseCheckActionCode(this.requireAuth(), oobCode);
+  }
+
   async getUserDocument(uid: string): Promise<DocumentData | null> {
-    return this.getDocument('users', uid);
+    return this.getDocument(uid);
   }
 
-  async getAccessRequestDocument(uid: string): Promise<DocumentData | null> {
-    return this.getDocument('accessRequests', uid);
-  }
-
-  async setAccessRequestDocument(uid: string, data: DocumentData): Promise<void> {
+  /**
+   * Creates this person's user row after Google sign-in.
+   * An existing user document is never overwritten. A directory row is added
+   * only when the account is active, in a follow-up write so rules can see it.
+   */
+  async ensureSelfUserRecord(user: User): Promise<EnsuredSelfUserRecord> {
     const firestore = this.firestore;
     if (!firestore) {
       throw new Error('Firestore is not configured.');
     }
-    await setDoc(doc(firestore, 'accessRequests', uid), data, { merge: true });
+
+    const email = user.email ?? '';
+    const displayName = user.displayName || email || 'Google user';
+    const userRef = doc(firestore, 'users', user.uid);
+    const directoryRef = doc(firestore, 'userDirectory', user.uid);
+
+    const ensured = await runTransaction(firestore, async (transaction) => {
+      const userSnapshot = await transaction.get(userRef);
+      if (!userSnapshot.exists()) {
+        transaction.set(userRef, {
+          uid: user.uid,
+          email,
+          displayName,
+          status: 'active',
+          role: 'user',
+          tier: UserTier.DecisionMaker,
+          allowedSirapIds: [],
+          administeredSirapIds: [],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      const storedStatus = userSnapshot.exists() ? userSnapshot.data()['status'] : 'active';
+      return {
+        created: !userSnapshot.exists(),
+        status: typeof storedStatus === 'string' ? storedStatus : 'active',
+      };
+    });
+
+    if (shouldEnsureActiveDirectory(ensured.status)) {
+      await runTransaction(firestore, async (transaction) => {
+        const directorySnapshot = await transaction.get(directoryRef);
+        if (!directorySnapshot.exists()) {
+          transaction.set(directoryRef, {
+            uid: user.uid,
+            email,
+            displayName,
+            status: 'active',
+            updatedAt: serverTimestamp(),
+          });
+        }
+      });
+    }
+
+    return ensured;
   }
 
   subscribeToUserDocument(
@@ -115,16 +291,13 @@ export class FirebaseClientService {
     });
   }
 
-  private async getDocument(
-    collectionName: 'users' | 'accessRequests',
-    uid: string,
-  ): Promise<DocumentData | null> {
+  private async getDocument(uid: string): Promise<DocumentData | null> {
     const firestore = this.firestore;
     if (!firestore) {
       return null;
     }
 
-    const snapshot = await getDoc(doc(firestore, collectionName, uid));
+    const snapshot = await getDoc(doc(firestore, 'users', uid));
     return snapshot.exists() ? snapshot.data() : null;
   }
 
@@ -138,7 +311,10 @@ export class FirebaseClientService {
 
   private ensureApp(): FirebaseApp {
     if (!this.app) {
-      this.app = initializeApp(environment.firebase.config as FirebaseOptions);
+      this.app =
+        getApps().length > 0
+          ? getApp()
+          : initializeApp(environment.firebase.config as FirebaseOptions);
     }
     return this.app;
   }

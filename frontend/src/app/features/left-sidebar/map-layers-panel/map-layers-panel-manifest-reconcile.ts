@@ -368,10 +368,10 @@ function reconcileOverlays(
     if (!existingOverlay) {
       continue;
     }
-    reconciledManagementRows.push(applyManifestToManagementOverlay(existingOverlay, manifestRow));
     if (overlayId === RUNAP_OVERLAY_LAYER_ID && nationalParksRow && !manifestHasNationalParksRow) {
       reconciledManagementRows.push(nationalParksRow);
     }
+    reconciledManagementRows.push(applyManifestToManagementOverlay(existingOverlay, manifestRow));
   }
 
   if (

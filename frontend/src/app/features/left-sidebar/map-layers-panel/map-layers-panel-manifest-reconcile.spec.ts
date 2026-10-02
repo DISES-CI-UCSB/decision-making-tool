@@ -278,7 +278,7 @@ describe('reconcileMapLayersManifest', () => {
     );
   });
 
-  it('moves conservation reference layers under OMECs in Conservation Areas', () => {
+  it('orders Conservation Areas as Parks, RUNAP, OMECs, then reference layers', () => {
     const existingRamsar = row({
       id: 'layer-ramsar',
       selected: true,
@@ -340,8 +340,8 @@ describe('reconcileMapLayersManifest', () => {
       ['group-species-biodiversity', ['layer-kba_aica']],
     ]);
     expect(result.overlays.map((overlay) => overlay.id)).toEqual([
-      RUNAP_OVERLAY_LAYER_ID,
       RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
+      RUNAP_OVERLAY_LAYER_ID,
       OMEC_OVERLAY_LAYER_ID,
       'layer-ramsar',
       'layer-biosphere_reserves',
@@ -377,10 +377,7 @@ describe('reconcileMapLayersManifest', () => {
         ]),
       ],
       groups: [group('group-ecosystems', [])],
-      overlays: [
-        row({ id: RUNAP_OVERLAY_LAYER_ID }),
-        row({ id: OMEC_OVERLAY_LAYER_ID }),
-      ],
+      overlays: [row({ id: RUNAP_OVERLAY_LAYER_ID }), row({ id: OMEC_OVERLAY_LAYER_ID })],
       ports,
     });
 
@@ -456,8 +453,8 @@ describe('reconcileMapLayersManifest', () => {
       BASELINE_SOLUTION_OVERLAY_ID,
       CANDIDATE_SOLUTION_OVERLAY_ID,
       OVERLAP_SOLUTION_OVERLAY_ID,
-      RUNAP_OVERLAY_LAYER_ID,
       RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
+      RUNAP_OVERLAY_LAYER_ID,
       OMEC_OVERLAY_LAYER_ID,
     ]);
     expect(result.overlays.at(-1)).toMatchObject({

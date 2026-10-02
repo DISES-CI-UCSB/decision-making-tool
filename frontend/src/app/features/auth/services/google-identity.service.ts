@@ -1,7 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
-import { type User, type UserCredential } from 'firebase/auth';
+import { multiFactor, type User, type UserCredential } from 'firebase/auth';
 import { environment } from '../../../../environments/environment';
+import {
+  emitGooglePopupProbe,
+  signInSecondFactorFromIdTokenResult,
+  type GooglePopupProbeInput,
+  type GooglePopupProbeUserSnapshot,
+} from './google-popup-probe';
 import {
   isMultiFactorAuthRequired,
   TotpMfaService,
@@ -111,6 +117,30 @@ export function settleOnce<T>(
   };
 }
 
+export function toGooglePopupProbeSnapshot(user: User | null): GooglePopupProbeUserSnapshot | null {
+  if (!user) {
+    return null;
+  }
+  return {
+    enrolledFactorCount: googlePopupEnrolledFactorCount(user),
+    getIdTokenResult: async (forceRefresh: boolean) => ({
+      signInSecondFactor:
+        forceRefresh === false
+          ? signInSecondFactorFromIdTokenResult(await user.getIdTokenResult(false))
+          : null,
+    }),
+  };
+}
+
+function googlePopupEnrolledFactorCount(user: User): number {
+  try {
+    const factors = multiFactor(user).enrolledFactors;
+    return Array.isArray(factors) ? factors.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
 interface GisWindow extends Window {
   google?: GisGlobal;
 }
@@ -144,16 +174,37 @@ export class GoogleIdentityService {
 
     try {
       const credential = await this.firebase.signInWithGooglePopup();
+      await this.probeGooglePopup({
+        outcome: 'resolved',
+        currentUserPresent: auth.currentUser != null,
+        snapshot: () => toGooglePopupProbeSnapshot(auth.currentUser),
+      });
       return completedSignIn(await this.profileFromUser(credential.user));
     } catch (error) {
       if (isMultiFactorAuthRequired(error)) {
+        await this.probeGooglePopup({
+          outcome: 'mfa-required',
+          errorCode: error.code,
+          currentUserPresent: auth.currentUser != null,
+          snapshot: () => toGooglePopupProbeSnapshot(auth.currentUser),
+        });
         return {
           kind: 'totp-assertion-required',
           assertion: this.totpMfa.createAssertionSession(auth, error),
         };
       }
+      await this.probeGooglePopup({
+        outcome: 'rejected',
+        errorCode: error,
+        currentUserPresent: auth.currentUser != null,
+        snapshot: () => toGooglePopupProbeSnapshot(auth.currentUser),
+      });
       throw error;
     }
+  }
+
+  private async probeGooglePopup(input: GooglePopupProbeInput): Promise<void> {
+    await emitGooglePopupProbe(environment.production, input);
   }
 
   async profileFromCredential(credential: Pick<UserCredential, 'user'>): Promise<GoogleProfile> {

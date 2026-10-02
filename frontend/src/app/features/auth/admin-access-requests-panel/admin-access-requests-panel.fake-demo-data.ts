@@ -1,26 +1,10 @@
-import { SIRAP_REGION_IDS, UserTier, type SirapRegionId } from '@core/models';
-import type {
-  AccessRequestRecord,
-  AdminManagedUserRecord,
-} from '../services/admin-access-requests.service';
+import { roleForScopes, roleToUserTier, SIRAP_REGION_IDS, type SirapRegionId } from '@core/models';
+import type { AdminManagedUserRecord } from '../services/admin-access-requests.service';
 import type { SirapAccessRequestRecord } from '../services/sirap-access.service';
 
 export const FAKE_DEMO_RECORD_COUNT = 100;
-export const FAKE_PENDING_ACCOUNT_COUNT = FAKE_DEMO_RECORD_COUNT;
-export const FAKE_PENDING_UID_PREFIX = 'fake-pending-';
 export const FAKE_SIRAP_REQUESTER_UID_PREFIX = 'fake-sirap-requester-';
 export const FAKE_ACTIVE_USER_UID_PREFIX = 'fake-active-user-';
-
-const FAKE_ORGANIZATIONS = [
-  'Instituto de Investigación de Recursos Biológicos Alexander von Humboldt',
-  'Universidad Nacional de Colombia',
-  'Parques Nacionales Naturales de Colombia',
-  'Ministerio de Ambiente y Desarrollo Sostenible',
-  'Corporación Autónoma Regional de Cundinamarca',
-  'World Wildlife Fund Colombia',
-  'Conservation International Andes',
-  'Fundación Natura Colombia',
-] as const;
 
 const FAKE_REQUEST_BASE_MS = Date.UTC(2026, 0, 15, 14, 30, 0);
 
@@ -30,27 +14,12 @@ export function setForceAppendFakeDemoDataForTests(value: boolean | null): void 
   forceAppendFakeDemoDataForTests = value;
 }
 
-/** @deprecated Use setForceAppendFakeDemoDataForTests */
-export function setForceAppendFakePendingAccountsForTests(value: boolean | null): void {
-  setForceAppendFakeDemoDataForTests(value);
-}
-
 /** Fake records stay off in every environment. Tests opt in with the setter above. */
 export function shouldAppendFakeDemoData(): boolean {
   if (forceAppendFakeDemoDataForTests !== null) {
     return forceAppendFakeDemoDataForTests;
   }
   return false;
-}
-
-/** @deprecated Use shouldAppendFakeDemoData. The production flag is ignored. */
-export function shouldAppendFakePendingAccounts(isProduction: boolean): boolean {
-  void isProduction;
-  return shouldAppendFakeDemoData();
-}
-
-export function isFakePendingAccount(uid: string): boolean {
-  return uid.startsWith(FAKE_PENDING_UID_PREFIX);
 }
 
 export function isFakeSirapRequester(uid: string): boolean {
@@ -64,26 +33,6 @@ export function isFakeActiveUser(uid: string): boolean {
 export function isFakeSirapRequest(request: Pick<SirapAccessRequestRecord, 'uid' | 'id'>): boolean {
   return (
     isFakeSirapRequester(request.uid) || request.id.startsWith(FAKE_SIRAP_REQUESTER_UID_PREFIX)
-  );
-}
-
-function fakePendingIndex(uid: string): number | null {
-  if (!isFakePendingAccount(uid)) {
-    return null;
-  }
-  const match = /^fake-pending-(\d{3})$/.exec(uid);
-  return match ? Number(match[1]) : null;
-}
-
-export function fakePendingSirapRequestCount(index: number): number {
-  return index % 4;
-}
-
-export function fakePendingSirapIds(index: number): SirapRegionId[] {
-  const count = fakePendingSirapRequestCount(index);
-  return Array.from(
-    { length: count },
-    (_, offset) => SIRAP_REGION_IDS[(index + offset) % SIRAP_REGION_IDS.length],
   );
 }
 
@@ -123,51 +72,6 @@ export function fakeActiveUserAdministeredSirapIds(index: number): SirapRegionId
   );
 }
 
-export function buildFakePendingAccounts(count = FAKE_DEMO_RECORD_COUNT): AccessRequestRecord[] {
-  return Array.from({ length: count }, (_, offset) => {
-    const index = offset + 1;
-    const uid = `${FAKE_PENDING_UID_PREFIX}${String(index).padStart(3, '0')}`;
-    return {
-      uid,
-      email: `fake.user.${String(index).padStart(3, '0')}@example.test`,
-      displayName: `Fake User ${index}`,
-      organization: FAKE_ORGANIZATIONS[offset % FAKE_ORGANIZATIONS.length],
-      reason: `Demo access request ${index}`,
-      provider: 'google',
-      status: 'pending',
-      requestedAt: new Date(FAKE_REQUEST_BASE_MS + index * 3_600_000),
-      submittedAt: null,
-    };
-  });
-}
-
-export function buildFakeSirapRequestsForAccounts(
-  accounts: readonly AccessRequestRecord[],
-): SirapAccessRequestRecord[] {
-  const requests: SirapAccessRequestRecord[] = [];
-  for (const account of accounts) {
-    const index = fakePendingIndex(account.uid);
-    if (index === null) {
-      continue;
-    }
-    for (const sirapId of fakePendingSirapIds(index)) {
-      requests.push({
-        id: `${account.uid}_${sirapId}`,
-        uid: account.uid,
-        email: account.email,
-        displayName: account.displayName,
-        sirapId,
-        status: 'pending',
-        reason: null,
-        requestedAt: account.requestedAt,
-        decidedAt: null,
-        decidedBy: null,
-      });
-    }
-  }
-  return requests;
-}
-
 export function buildFakeStandaloneSirapRequests(
   count = FAKE_DEMO_RECORD_COUNT,
 ): SirapAccessRequestRecord[] {
@@ -201,70 +105,41 @@ export function buildFakeActiveUsers(count = FAKE_DEMO_RECORD_COUNT): AdminManag
   return Array.from({ length: count }, (_, offset) => {
     const index = offset + 1;
     const uid = `${FAKE_ACTIVE_USER_UID_PREFIX}${String(index).padStart(3, '0')}`;
-    const tier = index % 10 === 0 ? UserTier.Manager : UserTier.DecisionMaker;
-    const isAdmin = index % 25 === 0;
+    const allowedSirapIds = fakeActiveUserAllowedSirapIds(index);
+    const administeredSirapIds = fakeActiveUserAdministeredSirapIds(index);
+    const role = roleForScopes(allowedSirapIds, administeredSirapIds, index % 25 === 0);
     return {
       uid,
       email: `fake.active.user.${String(index).padStart(3, '0')}@example.test`,
       displayName: `Fake Active User ${index}`,
       status: 'active',
-      role: tier >= UserTier.Manager ? 'science_publisher' : 'authorized_viewer',
-      tier,
-      isAdmin,
-      administeredSirapIds: fakeActiveUserAdministeredSirapIds(index),
-      allowedSirapIds: fakeActiveUserAllowedSirapIds(index),
+      role,
+      tier: roleToUserTier(role),
+      isAdmin: role === 'super-admin',
+      administeredSirapIds,
+      allowedSirapIds,
       updatedAt: new Date(FAKE_REQUEST_BASE_MS + index * 1_800_000),
     };
   });
 }
 
 export function appendDevelopmentFakeDemoData(
-  realPendingRequests: readonly AccessRequestRecord[],
   realSirapRequests: readonly SirapAccessRequestRecord[],
   realActiveUsers: readonly AdminManagedUserRecord[],
   includeFakeDemoData: boolean,
 ): {
-  pendingRequests: AccessRequestRecord[];
   sirapRequests: SirapAccessRequestRecord[];
   activeUsers: AdminManagedUserRecord[];
 } {
   if (!includeFakeDemoData) {
     return {
-      pendingRequests: [...realPendingRequests],
       sirapRequests: [...realSirapRequests],
       activeUsers: [...realActiveUsers],
     };
   }
 
-  const fakePendingRequests = buildFakePendingAccounts();
-  const fakeSirapRequests = [
-    ...buildFakeSirapRequestsForAccounts(fakePendingRequests),
-    ...buildFakeStandaloneSirapRequests(),
-  ];
   return {
-    pendingRequests: [...realPendingRequests, ...fakePendingRequests],
-    sirapRequests: [...realSirapRequests, ...fakeSirapRequests],
+    sirapRequests: [...realSirapRequests, ...buildFakeStandaloneSirapRequests()],
     activeUsers: [...realActiveUsers, ...buildFakeActiveUsers()],
-  };
-}
-
-/** @deprecated Use appendDevelopmentFakeDemoData */
-export function appendDevelopmentFakePendingData(
-  realPendingRequests: readonly AccessRequestRecord[],
-  realSirapRequests: readonly SirapAccessRequestRecord[],
-  includeFakePendingAccounts: boolean,
-): {
-  pendingRequests: AccessRequestRecord[];
-  sirapRequests: SirapAccessRequestRecord[];
-} {
-  const merged = appendDevelopmentFakeDemoData(
-    realPendingRequests,
-    realSirapRequests,
-    [],
-    includeFakePendingAccounts,
-  );
-  return {
-    pendingRequests: merged.pendingRequests,
-    sirapRequests: merged.sirapRequests,
   };
 }

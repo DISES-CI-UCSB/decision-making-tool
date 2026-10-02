@@ -2,13 +2,22 @@ import { Injectable, OnDestroy, inject, signal } from '@angular/core';
 import { AppStateService } from '@core/services/app-state.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
-import { TotpMfaService } from '@features/auth/services/totp-mfa.service';
-import { readSirapAccessRegionIds, type SirapRegionId, UserTier } from '@core/models';
+import { hasTotpSecondFactorClaim, TotpMfaService } from '@features/auth/services/totp-mfa.service';
+import {
+  emitIdentityContextProbe,
+  toIdentityContextProbeSource,
+} from '@features/auth/services/identity-context-probe';
+import {
+  readAppRole,
+  readSirapAccessRegionIds,
+  roleToUserTier,
+  type SirapRegionId,
+  UserTier,
+} from '@core/models';
 import { type Unsubscribe, type User } from 'firebase/auth';
 import { type DocumentData } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
 
-type ApprovedUserRole = 'authorized_viewer' | 'science_publisher' | 'admin';
 type FactorGate = 'enrolled' | 'needs-enrollment' | 'unknown';
 
 interface UserAccess {
@@ -28,6 +37,7 @@ export class AuthService implements OnDestroy {
   private readonly savedSolutionScenarios = inject(SavedSolutionScenariosService);
   private readonly totpMfa = inject(TotpMfaService);
   readonly mfaEnrollmentRequired$ = signal(false);
+  readonly authReady$ = signal(false);
   private authStateUnsubscribe: Unsubscribe | null = null;
   private userAccessUnsubscribe: Unsubscribe | null = null;
   private explicitlyLoggedOut = false;
@@ -36,12 +46,24 @@ export class AuthService implements OnDestroy {
   private factorGeneration = 0;
   private factorRefresh: Promise<boolean> | null = null;
   private totpEnrollmentCache: { uid: string; enrolled: boolean } | null = null;
+  private totpEnrollmentConfirmedUid: string | null = null;
 
   constructor() {
     this.appState.userTier$.set(this.getFallbackTier());
     this.authStateUnsubscribe = this.firebase.subscribeToAuthState((user) => {
       this.subscribeToFirebaseUserAccess(user);
+      this.authReady$.set(true);
+      void emitIdentityContextProbe(environment.production, () =>
+        toIdentityContextProbeSource(
+          user,
+          this.firebase.auth?.tenantId,
+          environment.firebase.config.projectId,
+        ),
+      );
     });
+    if (!this.authStateUnsubscribe) {
+      this.authReady$.set(true);
+    }
   }
 
   ngOnDestroy(): void {
@@ -51,11 +73,13 @@ export class AuthService implements OnDestroy {
   }
 
   async logout(): Promise<void> {
+    this.forgetConfirmedTotpEnrollment();
     this.invalidateFactorRead();
     this.accessEpoch += 1;
     this.explicitlyLoggedOut = true;
     this.mfaEnrollmentRequired$.set(false);
     this.savedSolutionScenarios.stopSync();
+    this.totpMfa.forgetOpenEnrollment(this.firebase.currentUser?.uid);
     await this.firebase.signOut();
     this.applySignedOutTier();
   }
@@ -72,13 +96,21 @@ export class AuthService implements OnDestroy {
     return this.appState.userIsSignedIn$();
   }
 
-  async refreshCurrentUserTier(): Promise<UserTier> {
+  async refreshCurrentUserTier(options?: { totpEnrollmentConfirmed?: boolean }): Promise<UserTier> {
+    // After enroll(), Firebase revokes existing refresh tokens. Skip the
+    // forced factor refresh for this uid until logout or a different user.
     this.invalidateFactorRead();
     const epoch = this.accessEpoch;
     const user = this.firebase.currentUser;
     this.appState.userIsSignedIn$.set(user !== null);
     if (!user) {
       return this.applySignedOutTier();
+    }
+    if (options?.totpEnrollmentConfirmed) {
+      this.totpEnrollmentConfirmedUid = user.uid;
+    }
+    if (this.totpEnrollmentConfirmedUid === user.uid) {
+      this.totpEnrollmentCache = { uid: user.uid, enrolled: true };
     }
 
     this.explicitlyLoggedOut = false;
@@ -105,6 +137,7 @@ export class AuthService implements OnDestroy {
     if (nextUid === this.boundUid) {
       return;
     }
+    this.forgetConfirmedTotpEnrollment();
     this.invalidateFactorRead();
     this.accessEpoch += 1;
     const epoch = this.accessEpoch;
@@ -176,9 +209,22 @@ export class AuthService implements OnDestroy {
     // token refresh.
     const cached = this.totpEnrollmentCache;
     if (cached?.uid === user.uid) {
-      return cached.enrolled ? 'enrolled' : 'needs-enrollment';
+      if (!cached.enrolled) {
+        return 'needs-enrollment';
+      }
+      return this.completeEnrolledGate(user);
+    }
+    if (this.totpMfa.isEnrollmentHeld(user.uid)) {
+      return 'needs-enrollment';
     }
     return this.refreshFactorGate(user);
+  }
+
+  private completeEnrolledGate(user: User): FactorGate | Promise<FactorGate> {
+    if (this.totpEnrollmentConfirmedUid === user.uid) {
+      return 'enrolled';
+    }
+    return hasTotpSecondFactorClaim(user).then((hasClaim) => (hasClaim ? 'enrolled' : 'unknown'));
   }
 
   private refreshFactorGate(user: User): Promise<FactorGate> {
@@ -198,7 +244,7 @@ export class AuthService implements OnDestroy {
       this.factorRefresh = tracked;
     }
     return this.factorRefresh.then(
-      (enrolled) => (enrolled ? 'enrolled' : 'needs-enrollment'),
+      (enrolled) => (enrolled ? this.completeEnrolledGate(user) : 'needs-enrollment'),
       () => 'unknown',
     );
   }
@@ -207,6 +253,10 @@ export class AuthService implements OnDestroy {
     this.factorGeneration += 1;
     this.totpEnrollmentCache = null;
     this.factorRefresh = null;
+  }
+
+  private forgetConfirmedTotpEnrollment(): void {
+    this.totpEnrollmentConfirmedUid = null;
   }
 
   private holdUnenrolledActiveAccess(access: UserAccess, gate: FactorGate): UserAccess {
@@ -247,16 +297,30 @@ export class AuthService implements OnDestroy {
       };
     }
 
-    const isActive = userData['status'] === 'active';
-    const isSuperAdmin = isActive && this.readIsSuperAdmin(userData);
-    const administeredSirapIds = isActive
-      ? readSirapAccessRegionIds(userData['administeredSirapIds'])
-      : [];
+    if (userData['status'] !== 'active') {
+      return {
+        tier: UserTier.Public,
+        isAdmin: false,
+        isSuperAdmin: false,
+        allowedSirapIds: [],
+        administeredSirapIds: [],
+      };
+    }
+
+    const allowedSirapIds = readSirapAccessRegionIds(userData['allowedSirapIds']);
+    const administeredSirapIds = readSirapAccessRegionIds(userData['administeredSirapIds']);
+    const role = readAppRole(
+      userData['role'],
+      allowedSirapIds,
+      administeredSirapIds,
+      userData['isAdmin'] === true || userData['isSuperAdmin'] === true,
+    );
+    const isSuperAdmin = role === 'super-admin';
     return {
-      tier: this.readUserTier(userData),
-      isAdmin: isSuperAdmin || administeredSirapIds.length > 0,
+      tier: roleToUserTier(role),
+      isAdmin: isSuperAdmin || role === 'sirap-admin',
       isSuperAdmin,
-      allowedSirapIds: isActive ? readSirapAccessRegionIds(userData['allowedSirapIds']) : [],
+      allowedSirapIds,
       administeredSirapIds,
     };
   }
@@ -265,42 +329,6 @@ export class AuthService implements OnDestroy {
     return environment.bypassLoginForDevelopment && !this.explicitlyLoggedOut
       ? UserTier.DecisionMaker
       : UserTier.Public;
-  }
-
-  private readUserTier(data: DocumentData): UserTier {
-    if (data['status'] !== 'active') {
-      return UserTier.Public;
-    }
-
-    const tier = data['tier'];
-    if (tier === UserTier.Public || tier === UserTier.DecisionMaker || tier === UserTier.Manager) {
-      return tier;
-    }
-
-    const legacyRole = this.readApprovedRole(data);
-    return legacyRole ? this.roleToTier(legacyRole) : UserTier.Public;
-  }
-
-  private readIsSuperAdmin(data: DocumentData): boolean {
-    return data['isSuperAdmin'] === true || data['role'] === 'admin' || data['isAdmin'] === true;
-  }
-
-  private readApprovedRole(data: DocumentData): ApprovedUserRole | null {
-    if (data['status'] !== 'active') {
-      return null;
-    }
-    const role = data['role'];
-    if (role === 'authorized_viewer' || role === 'science_publisher' || role === 'admin') {
-      return role;
-    }
-    return null;
-  }
-
-  private roleToTier(role: ApprovedUserRole): UserTier {
-    if (role === 'admin' || role === 'science_publisher') {
-      return UserTier.Manager;
-    }
-    return UserTier.DecisionMaker;
   }
 
   private clearSirapAccess(): void {

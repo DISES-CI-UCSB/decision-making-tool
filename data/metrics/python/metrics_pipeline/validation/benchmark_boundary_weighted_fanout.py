@@ -12,7 +12,6 @@ import argparse
 import hashlib
 import json
 import math
-import resource
 import sys
 import time
 from dataclasses import asdict
@@ -25,6 +24,7 @@ PIPELINE_ROOT = Path(__file__).parents[1]
 if str(PIPELINE_ROOT) not in sys.path:
     sys.path.insert(0, str(PIPELINE_ROOT))
 
+from platform_io import peak_rss_bytes, process_rusage
 import main as pipeline
 from blob_manifest import fetch_manifest
 from boundaries.boundary_loader import BOUNDARY_SOURCE_SPECS, load_all_boundaries
@@ -113,7 +113,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if is_species_metric_kind(definition.kind)
     )
 
-    setup_usage_before = resource.getrusage(resource.RUSAGE_SELF)
+    setup_usage_before = process_rusage()
     setup_started = time.perf_counter()
     first_solution = solutions_by_id[solution_ids[0]]
     first_download = cached_download(first_solution["displayUrl"], args.cache_dir)
@@ -131,7 +131,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if tuple(indexes) != expected_levels:
         raise BenchmarkError("Boundary topology levels do not match pinned sources.")
     setup_seconds = time.perf_counter() - setup_started
-    setup_usage_after = resource.getrusage(resource.RUSAGE_SELF)
+    setup_usage_after = process_rusage()
     setup_user_seconds = setup_usage_after.ru_utime - setup_usage_before.ru_utime
     setup_system_seconds = setup_usage_after.ru_stime - setup_usage_before.ru_stime
 
@@ -568,8 +568,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "currentWeightedSystemSeconds": total_current["systemSeconds"],
             "prototypeWeightedUserSeconds": total_prototype["userSeconds"],
             "prototypeWeightedSystemSeconds": total_prototype["systemSeconds"],
-            "userSeconds": resource.getrusage(resource.RUSAGE_SELF).ru_utime,
-            "systemSeconds": resource.getrusage(resource.RUSAGE_SELF).ru_stime,
+            "userSeconds": process_rusage().ru_utime,
+            "systemSeconds": process_rusage().ru_stime,
             "contextualCombinedProcessPeakRssBytes": peak_rss,
             "memoryClaim": (
                 "Context only: current and prototype execute in one process. The "
@@ -632,7 +632,7 @@ def _run_current_fallback(
 ]:
     phases = _empty_phases()
     reduction_by_metric = {definition.metric_id: 0.0 for definition in definitions}
-    usage_before = resource.getrusage(resource.RUSAGE_SELF)
+    usage_before = process_rusage()
     started = time.perf_counter()
     payloads: dict[str, dict[str, dict[str, Any]]] = {}
     documents: dict[str, Any] = {}
@@ -749,7 +749,7 @@ def _run_current_fallback(
     json.dumps(documents, ensure_ascii=False, separators=(",", ":"))
     phases["serialization"] += time.perf_counter() - phase
     phases["total"] = time.perf_counter() - started
-    usage_after = resource.getrusage(resource.RUSAGE_SELF)
+    usage_after = process_rusage()
     phases["userSeconds"] = usage_after.ru_utime - usage_before.ru_utime
     phases["systemSeconds"] = usage_after.ru_stime - usage_before.ru_stime
     return payloads, phases, reduction_by_metric
@@ -769,7 +769,7 @@ def _run_grouped_prototype(
     dict[str, float],
 ]:
     phases = _empty_phases()
-    usage_before = resource.getrusage(resource.RUSAGE_SELF)
+    usage_before = process_rusage()
     started = time.perf_counter()
     phase = time.perf_counter()
     fanout = aggregate_selected_weighted_layers(
@@ -861,7 +861,7 @@ def _run_grouped_prototype(
     json.dumps(documents, ensure_ascii=False, separators=(",", ":"))
     phases["serialization"] += time.perf_counter() - phase
     phases["total"] = time.perf_counter() - started
-    usage_after = resource.getrusage(resource.RUSAGE_SELF)
+    usage_after = process_rusage()
     phases["userSeconds"] = usage_after.ru_utime - usage_before.ru_utime
     phases["systemSeconds"] = usage_after.ru_stime - usage_before.ru_stime
     diagnostic_by_layer: dict[str, float] = {}
@@ -1164,8 +1164,7 @@ def _canonical_sha256(value: Any) -> str:
 
 
 def _peak_rss_bytes() -> int:
-    value = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    return value if sys.platform == "darwin" else value * 1024
+    return peak_rss_bytes()
 
 
 def _artifact_binding(path: Path) -> dict[str, Any]:

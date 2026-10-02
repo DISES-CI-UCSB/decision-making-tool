@@ -1,3 +1,6 @@
+# On Windows, install these with pip so rasterio and exactextract use published
+# wheels. rasterio's wheel bundles GDAL (Geospatial Data Abstraction Library).
+# A source build is not required for the metrics pipeline.
 exactextract>=0.3
 numpy>=1.26
 pyproj>=3.6

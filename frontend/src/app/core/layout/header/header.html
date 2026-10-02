@@ -194,7 +194,7 @@
             [attr.aria-expanded]="sirapAccessPanelOpen()"
             (click)="openSirapAccessPanel()"
           >
-            SIRAP access
+            {{ 'header.sirapAccess' | translate }}
           </button>
           @if (isAdmin()) {
             <button
@@ -233,7 +233,7 @@
         >
           {{ 'header.logout' | translate }}
         </button>
-      } @else {
+      } @else if (authReady()) {
         <button
           id="foundation-header-auth-toggle-button"
           type="button"

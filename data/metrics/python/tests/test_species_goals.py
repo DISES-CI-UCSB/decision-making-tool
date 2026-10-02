@@ -986,7 +986,7 @@ def test_resumed_subnational_build_rejects_catalog_range_denominator_collapse(
         "DELETE FROM observations WHERE geography_level = 'national'"
     )
 
-    with pytest.raises(SpeciesGoalsContractError, match="tautological"):
+    with pytest.raises(SpeciesGoalsContractError, match="tautolog"):
         pipeline.build_partition(
             geography_level=level,
             scope_catalog=[["scope-1", "Scope 1"]],
@@ -1034,6 +1034,70 @@ def test_validate_compact_allows_individual_subnational_national_range_equality(
     validate_compact(document, catalog=catalog)
 
 
+def test_validate_compact_rejects_selected_equals_range_tautology(tmp_path: Path):
+    records = [_species(f"Bird {index}", 10.0) for index in range(50)]
+    catalog = _catalog(records)
+    pipeline = _pipeline(catalog, tmp_path)
+    for record in records:
+        pipeline.record_national(record, 10, 10)
+
+    with pytest.raises(SpeciesGoalsContractError, match="tautological"):
+        pipeline.build_partition(
+            geography_level="national",
+            scope_catalog=[["colombia", "Colombia"]],
+        )
+
+
+def test_validate_compact_rejects_sirap_range_equals_catalog_national_tautology(
+    tmp_path: Path,
+):
+    records = [_species(f"Bird {index}", 100.0 + index) for index in range(50)]
+    catalog = _catalog(records)
+    pipeline = _pipeline(
+        catalog,
+        tmp_path,
+        active_levels={"siraps"},
+        primary_geography_level="siraps",
+    )
+    for record in records:
+        pipeline.record_national(
+            record,
+            5,
+            10,
+            display_range_km2=record.range_km2,
+        )
+
+    with pytest.raises(SpeciesGoalsContractError) as exc_info:
+        pipeline.build_partition(
+            geography_level="siraps",
+            scope_catalog=[["scope-1", "Scope 1"]],
+        )
+    assert str(exc_info.value) == (
+        "species-goals SIRAP national-range tautology: every in-range species "
+        "has range area equal to its catalog national range."
+    )
+
+    legitimate = _pipeline(
+        catalog,
+        tmp_path / "legitimate",
+        active_levels={"siraps"},
+        primary_geography_level="siraps",
+    )
+    for index, record in enumerate(records):
+        legitimate.record_national(
+            record,
+            5,
+            10,
+            display_range_km2=(
+                record.range_km2 if index == 0 else record.range_km2 - 1.0
+            ),
+        )
+    legitimate.build_partition(
+        geography_level="siraps",
+        scope_catalog=[["scope-1", "Scope 1"]],
+    )
+
+
 def test_partition_is_resumable_rejects_tautological_subnational(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -1069,6 +1133,39 @@ def test_partition_is_resumable_rejects_tautological_subnational(
         catalog=catalog,
         expected_solution_id="fixture-solution",
         expected_level="departments",
+        expected_catalog_sha256=catalog["catalogSha256"],
+        expected_provenance=pipeline.provenance,
+    )
+
+
+def test_partition_is_resumable_rejects_tautological_national(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    import species_goals as species_goals_module
+
+    records = [_species(f"Bird {index}", 10.0) for index in range(50)]
+    catalog = _catalog(records)
+    pipeline = _pipeline(catalog, tmp_path)
+    for record in records:
+        pipeline.record_national(record, 10, 10)
+    monkeypatch.setattr(
+        species_goals_module, "_SPECIES_GOALS_TAUTOLOGY_MIN_RANGED", 10_000
+    )
+    path = compact_partition_path(tmp_path / "release", "fixture-solution", "national")
+    pipeline.write_partition_streaming(
+        path,
+        geography_level="national",
+        scope_catalog=[["colombia", "Colombia"]],
+    )
+    monkeypatch.setattr(
+        species_goals_module, "_SPECIES_GOALS_TAUTOLOGY_MIN_RANGED", 50
+    )
+
+    assert not partition_is_resumable(
+        path,
+        catalog=catalog,
+        expected_solution_id="fixture-solution",
+        expected_level="national",
         expected_catalog_sha256=catalog["catalogSha256"],
         expected_provenance=pipeline.provenance,
     )

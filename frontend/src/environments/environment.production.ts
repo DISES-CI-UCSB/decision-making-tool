@@ -16,7 +16,6 @@ export const environment = {
       appId: '1:961351909896:web:81b07cc64cfe0ad7e4c7bd',
       measurementId: 'G-EGXWGXG26X',
     },
-    accessRequestNotificationEmail: '',
   },
   googleClientId: '',
   manifestBlobUrl: '',

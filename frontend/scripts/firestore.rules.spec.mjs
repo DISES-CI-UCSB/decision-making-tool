@@ -81,6 +81,31 @@ function totpMissingIdentifierDb(actor) {
   });
 }
 
+function defaultSelfUser(actor) {
+  return {
+    uid: actor.uid,
+    email: actor.email,
+    displayName: actor.name,
+    status: 'active',
+    role: 'user',
+    tier: 2,
+    allowedSirapIds: [],
+    administeredSirapIds: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+}
+
+function defaultSelfDirectory(actor) {
+  return {
+    uid: actor.uid,
+    email: actor.email,
+    displayName: actor.name,
+    status: 'active',
+    updatedAt: serverTimestamp(),
+  };
+}
+
 function gticSelfProvisionedUser(actor) {
   return {
     uid: actor.uid,
@@ -262,27 +287,47 @@ after(async () => {
   await testEnv?.cleanup();
 });
 
-describe('first-factor pending requester', () => {
-  it('can create, read, and pending-update their own access request', async () => {
+describe('legacy account access requests', () => {
+  it('denies signed-in users and super admins from reading, creating, or approving them', async () => {
     const requester = { uid: 'fresh-pending', email: 'fresh@example.com', name: 'Fresh Pending' };
-    const db = firstFactorDb(requester);
-    const requestRef = doc(db, 'accessRequests', requester.uid);
+    const ownDb = firstFactorDb(requester);
+    const ownRef = doc(ownDb, 'accessRequests', requester.uid);
+    await assertFails(setDoc(ownRef, pendingAccessRequestData(requester)));
+    await assertFails(getDoc(ownRef));
 
-    await assertSucceeds(setDoc(requestRef, pendingAccessRequestData(requester)));
-    await assertSucceeds(getDoc(requestRef));
-    await assertSucceeds(
+    const storedRef = doc(firstFactorDb(ACTORS.pending), 'accessRequests', ACTORS.pending.uid);
+    await assertFails(getDoc(storedRef));
+    await assertFails(
       setDoc(
-        requestRef,
-        pendingAccessRequestData(requester, {
+        storedRef,
+        pendingAccessRequestData(ACTORS.pending, {
           reason: 'Updated reason',
           submittedAt: 1_700_000_000_111,
         }),
         { merge: true },
       ),
     );
+
+    const adminDb = totpDb(ACTORS.superAdmin);
+    await assertFails(getDoc(doc(adminDb, 'accessRequests', ACTORS.pending.uid)));
+    await assertFails(
+      getDocs(query(collection(adminDb, 'accessRequests'), where('status', '==', 'pending'))),
+    );
+    await assertFails(
+      setDoc(
+        doc(adminDb, 'accessRequests', ACTORS.pending.uid),
+        {
+          status: 'approved',
+          approvedAt: serverTimestamp(),
+          approvedBy: ACTORS.superAdmin.uid,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+    );
   });
 
-  it('can create and rerequest their own SIRAP access request', async () => {
+  it('cannot create or rerequest a SIRAP access request before authenticator setup', async () => {
     const db = firstFactorDb(ACTORS.active);
     const requestRef = doc(
       db,
@@ -291,7 +336,7 @@ describe('first-factor pending requester', () => {
     );
 
     await assertSucceeds(getDoc(requestRef));
-    await assertSucceeds(
+    await assertFails(
       setDoc(
         requestRef,
         {
@@ -316,7 +361,7 @@ describe('first-factor pending requester', () => {
       name: 'SIRAP Requester',
     };
     const freshDb = firstFactorDb(fresh);
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(freshDb, 'sirapAccessRequests', sirapRequestId(fresh.uid, 'eje-cafetero')), {
         uid: fresh.uid,
         email: fresh.email,
@@ -445,24 +490,12 @@ describe('TOTP super admin', () => {
       email: approvedUser.email,
       displayName: approvedUser.name,
       status: 'active',
-      role: 'authorized_viewer',
+      role: 'sirap-user',
       tier: 2,
-      isAdmin: false,
-      isSuperAdmin: false,
       allowedSirapIds: ['orinoquia'],
       administeredSirapIds: [],
       updatedAt: serverTimestamp(),
     });
-    batch.set(
-      doc(db, 'accessRequests', approvedUser.uid),
-      {
-        status: 'approved',
-        approvedAt: serverTimestamp(),
-        approvedBy: ACTORS.superAdmin.uid,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
     batch.update(doc(db, 'sirapAccessRequests', sirapRequestId(approvedUser.uid, 'orinoquia')), {
       status: 'approved',
       decidedAt: serverTimestamp(),
@@ -483,7 +516,7 @@ describe('TOTP super admin', () => {
     await assertSucceeds(
       getDocs(query(collection(db, 'userDirectory'), where('status', '==', 'active'))),
     );
-    await assertSucceeds(
+    await assertFails(
       getDocs(query(collection(db, 'accessRequests'), where('status', '==', 'pending'))),
     );
   });
@@ -503,6 +536,10 @@ describe('TOTP SIRAP admin', () => {
       sirapRequestId(ACTORS.target.uid, 'eje-cafetero'),
     );
 
+    await assertSucceeds(getDoc(doc(db, 'users', ACTORS.target.uid)));
+    await assertSucceeds(
+      getDocs(query(collection(db, 'users'), where('status', '==', 'active'))),
+    );
     await assertSucceeds(
       getDocs(query(collection(db, 'sirapAccessRequests'), where('sirapId', '==', 'orinoquia'))),
     );
@@ -517,6 +554,8 @@ describe('TOTP SIRAP admin', () => {
     await assertSucceeds(
       updateDoc(doc(db, 'users', ACTORS.target.uid), {
         allowedSirapIds: ['orinoquia'],
+        role: 'sirap-user',
+        tier: 2,
         updatedAt: serverTimestamp(),
         updatedBy: ACTORS.sirapAdmin.uid,
       }),
@@ -540,7 +579,39 @@ describe('TOTP SIRAP admin', () => {
         updatedBy: ACTORS.sirapAdmin.uid,
       }),
     );
-    await assertFails(getDoc(doc(db, 'users', ACTORS.foreign.uid)));
+    await assertSucceeds(getDoc(doc(db, 'users', ACTORS.foreign.uid)));
+  });
+
+  it('preserves another SIRAP when granting the first administered one', async () => {
+    const holder = { uid: 'split-access', email: 'split@example.com', name: 'Split Access' };
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), 'users', holder.uid),
+        userRecord(holder, {
+          role: 'sirap-user',
+          allowedSirapIds: ['eje-cafetero'],
+        }),
+      );
+    });
+    const db = totpDb(ACTORS.sirapAdmin);
+    await assertSucceeds(
+      updateDoc(doc(db, 'users', holder.uid), {
+        allowedSirapIds: ['eje-cafetero', 'orinoquia'],
+        role: 'sirap-user',
+        tier: 2,
+        updatedAt: serverTimestamp(),
+        updatedBy: ACTORS.sirapAdmin.uid,
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(db, 'users', holder.uid), {
+        allowedSirapIds: ['orinoquia'],
+        role: 'sirap-user',
+        tier: 2,
+        updatedAt: serverTimestamp(),
+        updatedBy: ACTORS.sirapAdmin.uid,
+      }),
+    );
   });
 });
 
@@ -582,6 +653,8 @@ describe('legacy allowedSirapIds', () => {
     });
     batch.update(doc(db, 'users', dispatch.uid), {
       allowedSirapIds,
+      role: allowedSirapIds.length > 0 ? 'sirap-user' : 'user',
+      tier: 2,
       updatedAt: serverTimestamp(),
       updatedBy: actor.uid,
     });
@@ -706,18 +779,52 @@ describe('legacy allowedSirapIds', () => {
   });
 });
 
-describe('TOTP publisher', () => {
-  it('can create a valid manifest style request', async () => {
+describe('manifest style requests', () => {
+  it('allows a TOTP super admin and blocks a legacy publisher', async () => {
+    await assertFails(
+      setDoc(
+        doc(totpDb(ACTORS.publisher), 'manifestStyleRequests', 'style-publisher'),
+        manifestRequestPayload(ACTORS.publisher),
+      ),
+    );
     await assertSucceeds(
       setDoc(
-        doc(totpDb(ACTORS.publisher), 'manifestStyleRequests', 'style-totp'),
-        manifestRequestPayload(ACTORS.publisher),
+        doc(totpDb(ACTORS.superAdmin), 'manifestStyleRequests', 'style-super'),
+        manifestRequestPayload(ACTORS.superAdmin),
       ),
     );
   });
 });
 
 describe('TOTP active user scenarios', () => {
+  it('can create and rerequest their own SIRAP access request', async () => {
+    const db = totpDb(ACTORS.active);
+    const requestRef = doc(
+      db,
+      'sirapAccessRequests',
+      sirapRequestId(ACTORS.active.uid, 'orinoquia'),
+    );
+
+    await assertSucceeds(
+      setDoc(
+        requestRef,
+        {
+          uid: ACTORS.active.uid,
+          email: ACTORS.active.email,
+          displayName: ACTORS.active.name,
+          sirapId: 'orinoquia',
+          status: 'pending',
+          reason: 'Trying again',
+          requestedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          decidedAt: deleteField(),
+          decidedBy: deleteField(),
+        },
+        { merge: true },
+      ),
+    );
+  });
+
   it('can create, read, update, and delete their own saved scenario', async () => {
     const db = totpDb(ACTORS.active);
     const scenarioRef = doc(
@@ -737,33 +844,49 @@ describe('TOTP active user scenarios', () => {
   });
 });
 
-describe('SEC-08: no self-provision of users/{uid}', () => {
-  it('has retired validSelfProvisionedUser and keeps create on super-admin only', () => {
+describe('self-registration of users/{uid}', () => {
+  it('allows the default Google account create and rejects privileged self-provision', async () => {
     const rules = readFileSync(RULES_PATH, 'utf8');
+    assert.equal(rules.includes('validSelfUserCreate'), true);
     assert.equal(rules.includes('validSelfProvisionedUser'), false);
-    assert.match(rules, /allow create:\s*if isSuperAdmin\(\) && validUserRecord\(uid\);/);
+
+    const fresh = { uid: 'fresh-google', email: 'fresh@example.com', name: 'Fresh Google' };
+    const db = firstFactorDb(fresh);
+    await assertSucceeds(setDoc(doc(db, 'users', fresh.uid), defaultSelfUser(fresh)));
+    await assertSucceeds(setDoc(doc(db, 'userDirectory', fresh.uid), defaultSelfDirectory(fresh)));
+    await assertFails(setDoc(doc(db, 'users', fresh.uid), defaultSelfUser(fresh)));
+    await assertFails(setDoc(doc(firstFactorDb(ACTORS.pending), 'users', ACTORS.pending.uid), gticSelfProvisionedUser(ACTORS.pending)));
   });
 
-  it('denies the original Google first-factor self-create payload', async () => {
-    const db = firstFactorDb(ACTORS.pending);
-    await assertFails(setDoc(doc(db, 'users', ACTORS.pending.uid), gticSelfProvisionedUser(ACTORS.pending)));
+  it('rejects an active directory row for a denied account', async () => {
+    const denied = { uid: 'denied-user', email: 'denied@example.com', name: 'Denied User' };
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users', denied.uid), {
+        ...userRecord(denied),
+        status: 'denied',
+      });
+    });
     await assertFails(
-      setDoc(doc(db, 'userDirectory', ACTORS.pending.uid), {
-        uid: ACTORS.pending.uid,
-        email: ACTORS.pending.email,
-        displayName: ACTORS.pending.name,
-        status: 'active',
+      setDoc(doc(firstFactorDb(denied), 'userDirectory', denied.uid), defaultSelfDirectory(denied)),
+    );
+    const db = totpDb(ACTORS.sirapAdmin);
+    await assertFails(getDoc(doc(db, 'users', denied.uid)));
+    await assertFails(
+      updateDoc(doc(db, 'users', denied.uid), {
+        allowedSirapIds: ['orinoquia'],
+        role: 'sirap-user',
+        tier: 2,
         updatedAt: serverTimestamp(),
+        updatedBy: ACTORS.sirapAdmin.uid,
       }),
     );
   });
 
-  it('denies create from TOTP non-admins, including a signed-in user with no user row', async () => {
+  it('denies creating another user, unauthenticated create, and role escalation', async () => {
     const fresh = { uid: 'fresh-totp', email: 'fresh-totp@example.com', name: 'Fresh TOTP' };
-    await assertFails(setDoc(doc(totpDb(fresh), 'users', fresh.uid), gticSelfProvisionedUser(fresh)));
     await assertFails(
-      setDoc(doc(totpDb(ACTORS.active), 'users', 'self-made-colleague'), {
-        ...gticSelfProvisionedUser({
+      setDoc(doc(totpDb(fresh), 'users', 'self-made-colleague'), {
+        ...defaultSelfUser({
           uid: 'self-made-colleague',
           email: 'colleague@example.com',
           name: 'Colleague',
@@ -779,39 +902,24 @@ describe('SEC-08: no self-provision of users/{uid}', () => {
         }),
       }),
     );
-    await assertFails(
-      setDoc(doc(totpDb(ACTORS.publisher), 'users', 'publisher-minted-user'), {
-        ...gticSelfProvisionedUser({
-          uid: 'publisher-minted-user',
-          email: 'pub-minted@example.com',
-          name: 'Publisher Minted',
-        }),
-      }),
-    );
-  });
 
-  it('denies unauthenticated create and first-factor role escalation on an existing user', async () => {
     const anonDb = testEnv.unauthenticatedContext().firestore();
     await assertFails(
       setDoc(
         doc(anonDb, 'users', 'anon-user'),
-        gticSelfProvisionedUser({ uid: 'anon-user', email: 'anon@example.com', name: 'Anon' }),
+        defaultSelfUser({ uid: 'anon-user', email: 'anon@example.com', name: 'Anon' }),
       ),
     );
     await assertFails(
       updateDoc(doc(firstFactorDb(ACTORS.active), 'users', ACTORS.active.uid), {
-        role: 'admin',
-        isAdmin: true,
-        isSuperAdmin: true,
+        role: 'super-admin',
         tier: 3,
         updatedAt: serverTimestamp(),
       }),
     );
     await assertFails(
       updateDoc(doc(totpDb(ACTORS.active), 'users', ACTORS.active.uid), {
-        role: 'admin',
-        isAdmin: true,
-        isSuperAdmin: true,
+        role: 'super-admin',
         tier: 3,
         updatedAt: serverTimestamp(),
       }),

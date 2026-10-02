@@ -45,7 +45,6 @@ export const environment = {
   firebase: {
     enabled: true,
     config: ${toTsObjectLiteral(firebaseConfig, 4)},
-    accessRequestNotificationEmail: ${toTsString(readOptionalEnv('ACCESS_REQUEST_NOTIFICATION_EMAIL'))},
   },
   googleClientId: ${toTsString(readOptionalEnv('GOOGLE_CLIENT_ID'))},
   manifestBlobUrl: ${toTsString(readOptionalEnv('MANIFEST_BLOB_URL') || RUNTIME_MANIFEST_BLOB_URL)},

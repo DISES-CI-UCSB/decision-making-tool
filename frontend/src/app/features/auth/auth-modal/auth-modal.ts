@@ -1,9 +1,11 @@
+import { A11yModule } from '@angular/cdk/a11y';
 import {
   Component,
   ElementRef,
   EventEmitter,
   HostListener,
   Injector,
+  OnDestroy,
   Output,
   ViewChild,
   afterNextRender,
@@ -13,19 +15,13 @@ import {
 } from '@angular/core';
 import { AuthService } from '@core/services/auth.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
-import { SIRAP_ACCESS_REGIONS, type SirapRegionId } from '@core/models';
 import { type User } from 'firebase/auth';
-import {
-  ACCESS_DENIED_MESSAGE,
-  AuthRequestService,
-  type EmailRequestPayload,
-  type StoredPendingRequest,
-} from '../services/auth-request.service';
 import { GoogleIdentityService, type GoogleProfile } from '../services/google-identity.service';
 import {
   AUTH_ERROR_CODE_EXPIRED,
   AUTH_ERROR_INVALID_OTP,
   AUTH_ERROR_REQUIRES_RECENT_LOGIN,
+  AUTH_ERROR_USER_TOKEN_EXPIRED,
   TOTP_ALREADY_ENROLLED_CODE,
   TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE,
   TOTP_ENROLLMENT_REPLACE_WARNING,
@@ -37,6 +33,7 @@ import {
   TOTP_RECENT_LOGIN_MESSAGE,
   TOTP_RESTART_MESSAGE,
   TotpMfaService,
+  hasTotpSecondFactorClaim,
   isTotpMfaError,
   totpSupportCode,
   toTotpMfaError,
@@ -46,54 +43,28 @@ import {
   type TotpMfaError,
 } from '../services/totp-mfa.service';
 
-export type AuthModalState =
-  | 'entry'
-  | 'emailLogin'
-  | 'emailRequest'
-  | 'pendingConfirm'
-  | 'pendingReview'
-  | 'postGoogle'
-  | 'mfaEnroll'
-  | 'mfaChallenge';
+export const ACCOUNT_NOT_ACTIVE_MESSAGE =
+  'This Google account is not active. Contact an administrator for help.';
 
-type GoogleIntent = 'login' | 'request';
-
-interface EmailLoginForm {
-  email: string;
-  password: string;
-}
-
-interface EmailRequestForm {
-  fullName: string;
-  email: string;
-  password: string;
-  passwordConfirm: string;
-  organization: string;
-  reason: string;
-}
-
-interface PostGoogleForm {
-  organization: string;
-  reason: string;
-  requestedSirapIds: SirapRegionId[];
-}
-
-const SUBMIT_MIN_DELAY_MS = 300;
+export type AuthModalState = 'entry' | 'mfaEnroll' | 'mfaChallenge';
+export type GoogleSignInContinuation = 'first-factor' | 'challenge';
 
 @Component({
   selector: 'app-auth-modal',
   standalone: true,
-  imports: [],
+  imports: [A11yModule],
   templateUrl: './auth-modal.html',
   styleUrl: './auth-modal.scss',
 })
-export class AuthModalComponent {
+export class AuthModalComponent implements OnDestroy {
   private readonly authService = inject(AuthService);
-  private readonly authRequest = inject(AuthRequestService);
   private readonly firebase = inject(FirebaseClientService);
   private readonly googleIdentity = inject(GoogleIdentityService);
   private readonly totpMfa = inject(TotpMfaService);
   private readonly injector = inject(Injector);
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly backgroundInertElements: HTMLElement[] = [];
+  private openerElement: HTMLElement | null = null;
 
   @Output() readonly closeRequested = new EventEmitter<void>();
 
@@ -107,25 +78,6 @@ export class AuthModalComponent {
   protected readonly isSubmitting = signal(false);
   protected readonly loginError = signal<string | null>(null);
   protected readonly loginStatus = signal<string | null>(null);
-
-  protected readonly emailLoginForm = signal<EmailLoginForm>({ email: '', password: '' });
-  protected readonly emailRequestForm = signal<EmailRequestForm>({
-    fullName: '',
-    email: '',
-    password: '',
-    passwordConfirm: '',
-    organization: '',
-    reason: '',
-  });
-  protected readonly postGoogleForm = signal<PostGoogleForm>({
-    organization: '',
-    reason: '',
-    requestedSirapIds: [],
-  });
-  protected readonly sirapRegions = SIRAP_ACCESS_REGIONS;
-  protected readonly pendingGoogleProfile = signal<GoogleProfile | null>(null);
-  protected readonly confirmedRequest = signal<StoredPendingRequest | null>(null);
-  protected readonly googleIntent = signal<GoogleIntent>('login');
   protected readonly totpIssuer = TOTP_ISSUER;
   protected readonly enrollmentReplaceWarning = TOTP_ENROLLMENT_REPLACE_WARNING;
   protected readonly totpCode = signal('');
@@ -135,41 +87,12 @@ export class AuthModalComponent {
   protected readonly mfaEnrollment = signal<TotpEnrollmentSession | null>(null);
   protected readonly totpChallenge = signal<TotpChallengeSession | null>(null);
 
-  protected readonly reviewTick = signal(0);
-
-  protected readonly pendingRequestForReview = computed(() => this.authRequest.pendingRequest$());
-
-  protected readonly nudgeCooldownLabel = computed(() => {
-    this.reviewTick();
-    const remainingMs = this.authRequest.getNudgeCooldownRemainingMs();
-    if (remainingMs === 0) {
-      return 'Email admins for an update';
-    }
-    const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
-    return `Email admins for an update · next nudge in ${remainingHours}h`;
-  });
-
-  protected readonly canNudge = computed(() => {
-    this.reviewTick();
-    return this.authRequest.canNudgeAdmins();
-  });
-
   protected readonly modalTitleId = computed(() => {
     switch (this.state()) {
       case 'mfaEnroll':
         return 'auth-modal-mfa-enroll-title';
       case 'mfaChallenge':
         return 'auth-modal-mfa-challenge-title';
-      case 'emailLogin':
-        return 'auth-modal-email-login-title';
-      case 'emailRequest':
-        return 'auth-modal-email-request-title';
-      case 'pendingConfirm':
-        return 'auth-modal-pending-confirm-title';
-      case 'pendingReview':
-        return 'auth-modal-pending-review-title';
-      case 'postGoogle':
-        return 'auth-modal-post-google-title';
       default:
         return 'auth-modal-title';
     }
@@ -178,8 +101,19 @@ export class AuthModalComponent {
   protected readonly canSubmitTotp = computed(() => /^\d{6}$/.test(this.totpCode()));
 
   constructor() {
+    this.rememberOpener();
+    afterNextRender(() => this.prepareOpenDialog(), { injector: this.injector });
     if (this.authService.mfaEnrollmentRequired$() && this.firebase.currentUser) {
       void this.resumeRequiredEnrollment();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.restoreBackgroundAccess();
+    const opener = this.openerElement;
+    this.openerElement = null;
+    if (opener?.isConnected) {
+      opener.focus();
     }
   }
 
@@ -200,250 +134,19 @@ export class AuthModalComponent {
     if (this.isSubmitting()) {
       return;
     }
-    if (this.isMfaState()) {
+    if (this.state() === 'mfaEnroll') {
+      this.preserveAccountAndClose();
+      return;
+    }
+    if (this.state() === 'mfaChallenge') {
       void this.abortMfaAndClose();
       return;
     }
     this.closeRequested.emit();
   }
 
-  // ------------------------------------------------------------------
-  // State transitions (entry card)
-  // ------------------------------------------------------------------
-
-  protected chooseEmailLogin(): void {
-    this.loginError.set(null);
-    this.state.set('emailLogin');
-  }
-
-  protected chooseEmailRequest(): void {
-    this.state.set('emailRequest');
-  }
-
   protected async chooseGoogleFromEntry(): Promise<void> {
-    await this.beginGoogleSignIn('login');
-  }
-
-  protected backToEntry(): void {
-    this.loginError.set(null);
-    this.state.set('entry');
-  }
-
-  // ------------------------------------------------------------------
-  // Email login (v5-B)
-  // ------------------------------------------------------------------
-
-  protected updateEmailLoginField<K extends keyof EmailLoginForm>(
-    field: K,
-    value: EmailLoginForm[K],
-  ): void {
-    this.emailLoginForm.update((form) => ({ ...form, [field]: value }));
-  }
-
-  protected canSubmitEmailLogin = computed(() => {
-    const form = this.emailLoginForm();
-    return form.email.trim().length > 0 && form.password.length > 0;
-  });
-
-  protected async submitEmailLogin(): Promise<void> {
-    if (!this.canSubmitEmailLogin() || this.isSubmitting()) {
-      return;
-    }
-    this.isSubmitting.set(true);
-    this.loginError.set(null);
-    try {
-      const form = this.emailLoginForm();
-      const result = await this.authRequest.attemptLogin({
-        email: form.email.trim(),
-        password: form.password,
-        provider: 'local',
-      });
-      if (result === 'active') {
-        this.loginError.set('Email login is not connected to Firebase yet. Please use Google.');
-        return;
-      }
-      if (result === 'pending') {
-        this.ensurePendingRequest({
-          name: form.email.split('@')[0] || form.email.trim(),
-          email: form.email.trim(),
-          avatarInitials: form.email.slice(0, 2).toUpperCase(),
-          idToken: '',
-          isStub: true,
-        });
-        this.state.set('pendingReview');
-        return;
-      }
-      this.loginError.set("That email and password didn't match any account.");
-    } finally {
-      this.isSubmitting.set(false);
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // Email Request Access (v5-C)
-  // ------------------------------------------------------------------
-
-  protected updateRequestField<K extends keyof EmailRequestForm>(
-    field: K,
-    value: EmailRequestForm[K],
-  ): void {
-    this.emailRequestForm.update((form) => ({ ...form, [field]: value }));
-  }
-
-  protected requestFormError = computed<string | null>(() => {
-    const form = this.emailRequestForm();
-    if (!form.fullName.trim() || !form.email.trim() || !form.password || !form.passwordConfirm) {
-      return null;
-    }
-    if (form.password !== form.passwordConfirm) {
-      return 'Passwords don\u2019t match.';
-    }
-    return null;
-  });
-
-  protected canSubmitRequest = computed(() => {
-    const form = this.emailRequestForm();
-    return (
-      form.fullName.trim().length > 0 &&
-      form.email.trim().length > 0 &&
-      form.password.length >= 6 &&
-      form.password === form.passwordConfirm
-    );
-  });
-
-  protected async submitEmailRequest(): Promise<void> {
-    if (!this.canSubmitRequest() || this.isSubmitting()) {
-      return;
-    }
-    this.isSubmitting.set(true);
-    try {
-      const form = this.emailRequestForm();
-      const payload: EmailRequestPayload = {
-        fullName: form.fullName.trim(),
-        email: form.email.trim(),
-        password: form.password,
-        organization: form.organization.trim() || undefined,
-        reason: form.reason.trim() || undefined,
-        requestedSirapIds: [],
-      };
-      const startedAt = Date.now();
-      const stored = await this.authRequest.submitEmailRequest(payload);
-      await this.enforceMinDelay(startedAt);
-      this.confirmedRequest.set(stored);
-      this.state.set('pendingConfirm');
-    } finally {
-      this.isSubmitting.set(false);
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // Google Request Access (triggers v5-F)
-  // ------------------------------------------------------------------
-
-  protected async chooseGoogleFromRequest(): Promise<void> {
-    await this.beginGoogleSignIn('request');
-  }
-
-  protected updatePostGoogleField<K extends keyof PostGoogleForm>(
-    field: K,
-    value: PostGoogleForm[K],
-  ): void {
-    this.postGoogleForm.update((form) => ({ ...form, [field]: value }));
-  }
-
-  protected togglePostGoogleSirap(sirapId: SirapRegionId): void {
-    this.postGoogleForm.update((form) => ({
-      ...form,
-      requestedSirapIds: this.toggleSirapId(form.requestedSirapIds, sirapId),
-    }));
-  }
-
-  protected async submitPostGoogle(): Promise<void> {
-    if (this.isSubmitting()) {
-      return;
-    }
-    const profile = this.pendingGoogleProfile();
-    if (!profile || this.postGoogleForm().requestedSirapIds.length === 0) {
-      return;
-    }
-    this.isSubmitting.set(true);
-    this.loginError.set(null);
-    try {
-      const form = this.postGoogleForm();
-      const startedAt = Date.now();
-      const stored = await this.authRequest.submitGoogleRequest({
-        uid: profile.uid,
-        googleName: profile.name,
-        googleEmail: profile.email,
-        googleAvatarInitials: profile.avatarInitials,
-        organization: form.organization.trim() || undefined,
-        reason: form.reason.trim() || undefined,
-        requestedSirapIds: form.requestedSirapIds,
-      });
-      await this.enforceMinDelay(startedAt);
-      this.confirmedRequest.set(stored);
-      await this.syncSessionAndClose();
-    } catch (error) {
-      const message = this.googleErrorMessage(error);
-      if (message === ACCESS_DENIED_MESSAGE) {
-        await this.authService.logout();
-        this.resetForms();
-        this.loginError.set(ACCESS_DENIED_MESSAGE);
-        this.state.set('entry');
-        return;
-      }
-      this.loginError.set(message);
-    } finally {
-      this.isSubmitting.set(false);
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // Pending confirmation (v5-D)
-  // ------------------------------------------------------------------
-
-  protected dismissFromConfirm(): void {
-    this.resetForms();
-    this.state.set('entry');
-    this.closeRequested.emit();
-  }
-
-  // ------------------------------------------------------------------
-  // Pending review (v5-E)
-  // ------------------------------------------------------------------
-
-  protected dismissFromReview(): void {
-    this.closeRequested.emit();
-  }
-
-  protected async nudgeAdmins(): Promise<void> {
-    if (!this.canNudge() || this.isSubmitting()) {
-      return;
-    }
-    this.isSubmitting.set(true);
-    try {
-      await this.authRequest.sendAdminNudge();
-      this.reviewTick.update((value) => value + 1);
-    } finally {
-      this.isSubmitting.set(false);
-    }
-  }
-
-  protected formatSubmittedRelative(submittedAt: number): string {
-    const diffMs = Date.now() - submittedAt;
-    const minutes = Math.floor(diffMs / 60000);
-    if (minutes < 1) {
-      return 'just now';
-    }
-    if (minutes < 60) {
-      return `${minutes}m ago`;
-    }
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) {
-      return `${hours}h ago`;
-    }
-    const days = Math.floor(hours / 24);
-    return days === 1 ? '1 day ago' : `${days} days ago`;
+    await this.beginGoogleSignIn();
   }
 
   // ------------------------------------------------------------------
@@ -472,7 +175,7 @@ export class AuthModalComponent {
     this.enrollmentSupportCode.set(null);
     try {
       await this.totpMfa.completeEnrollment(user, session, this.totpCode());
-      await this.finishVerifiedEnrollment();
+      await this.finishVerifiedEnrollment(true);
     } catch (error) {
       const mapped = isTotpMfaError(error) ? error : toTotpMfaError(error);
       if (mapped.code === AUTH_ERROR_REQUIRES_RECENT_LOGIN) {
@@ -500,7 +203,7 @@ export class AuthModalComponent {
     try {
       const credential = await this.totpMfa.completeChallenge(session, this.totpCode());
       const profile = await this.googleIdentity.profileFromCredential(credential);
-      await this.continueAfterGoogleProfile(profile, this.googleIntent());
+      await this.continueAfterGoogleSignIn(profile, 'challenge');
     } catch (error) {
       this.applyTotpError(error);
     } finally {
@@ -557,7 +260,12 @@ export class AuthModalComponent {
       return;
     }
     const message = this.totpError() ?? TOTP_RESTART_MESSAGE;
-    await this.abortMfaSessions();
+    const preserveIdentity = this.state() === 'mfaEnroll' && this.mfaEnrollment() === null;
+    if (preserveIdentity) {
+      this.clearMfaSessions();
+    } else {
+      await this.abortMfaSessions();
+    }
     this.resetForms();
     this.loginError.set(message);
     this.state.set('entry');
@@ -567,21 +275,22 @@ export class AuthModalComponent {
   // Helpers
   // ------------------------------------------------------------------
 
-  private async beginGoogleSignIn(intent: GoogleIntent): Promise<void> {
+  private async beginGoogleSignIn(): Promise<void> {
     if (this.isSubmitting()) {
       return;
     }
     this.isSubmitting.set(true);
     this.loginError.set(null);
     this.loginStatus.set(null);
-    this.googleIntent.set(intent);
     try {
       const result = await this.googleIdentity.signIn();
       if (result.kind === 'totp-assertion-required') {
         this.enterMfaChallenge(result.assertion);
         return;
       }
-      await this.continueAfterGoogleProfile(result.profile, intent);
+      if (result.kind === 'completed') {
+        await this.continueAfterGoogleSignIn(result.profile, 'first-factor');
+      }
     } catch (error) {
       this.loginError.set(this.googleErrorMessage(error));
     } finally {
@@ -598,42 +307,45 @@ export class AuthModalComponent {
     this.state.set('mfaChallenge');
   }
 
-  private async continueAfterGoogleProfile(
+  private async continueAfterGoogleSignIn(
     profile: GoogleProfile,
-    intent: GoogleIntent,
+    continuation: GoogleSignInContinuation,
   ): Promise<void> {
-    const loginResult = await this.authRequest.attemptLogin({
-      uid: profile.uid,
-      email: profile.email,
-      displayName: profile.name,
-      provider: 'google',
-    });
-
-    if (loginResult === 'pending') {
-      if (intent === 'request') {
-        this.pendingGoogleProfile.set(profile);
-        this.postGoogleForm.set({ organization: '', reason: '', requestedSirapIds: [] });
-        this.state.set('postGoogle');
-        return;
-      }
-      this.state.set('pendingReview');
-      return;
-    }
-
-    if (loginResult !== 'active') {
-      await this.authService.logout();
-      this.loginError.set(ACCESS_DENIED_MESSAGE);
-      this.state.set('entry');
+    if (continuation === 'challenge') {
+      await this.finishMfaVerifiedSignIn();
       return;
     }
 
     const user = this.firebase.currentUser;
-    if (user && !(await this.totpMfa.userHasEnrolledTotp(user))) {
-      await this.enterEnrollment(user, user.email || profile.email || profile.name);
+    if (!user) {
+      this.loginError.set('Google sign-in did not finish. Please try again.');
+      this.state.set('entry');
       return;
     }
 
-    await this.finishVerifiedEnrollment();
+    // A durable MFA account raises auth/multi-factor-auth-required. A
+    // first-factor popup is first-time setup. Do not force-refresh factors
+    // here. The cached TOTP claim is the only first-factor path that may
+    // finish as a returning MFA session.
+    if (await hasTotpSecondFactorClaim(user)) {
+      await this.finishMfaVerifiedSignIn();
+      return;
+    }
+
+    this.totpMfa.markEnrollmentInProgress(user.uid);
+
+    const ensured = await this.firebase.ensureSelfUserRecord(user);
+    if (ensured.status === 'denied') {
+      this.totpMfa.clearEnrollmentInProgress(user.uid);
+      await this.authService.logout();
+      this.loginError.set(ACCOUNT_NOT_ACTIVE_MESSAGE);
+      this.state.set('entry');
+      return;
+    }
+
+    await this.enterEnrollment(user, user.email || profile.email || profile.name, {
+      skipFactorCheck: true,
+    });
   }
 
   private async resumeRequiredEnrollment(): Promise<void> {
@@ -652,7 +364,12 @@ export class AuthModalComponent {
     this.requestTotpFocus();
   }
 
-  private async enterEnrollment(user: User, accountName: string): Promise<void> {
+  private async enterEnrollment(
+    user: User,
+    accountName: string,
+    options?: { skipFactorCheck?: boolean },
+  ): Promise<void> {
+    this.totpMfa.markEnrollmentInProgress(user.uid);
     const existing = this.totpMfa.openEnrollmentFor(user);
     this.clearTotpFields();
     this.state.set('mfaEnroll');
@@ -668,12 +385,25 @@ export class AuthModalComponent {
       return;
     }
     this.mfaEnrollment.set(null);
-    try {
-      if (await this.totpMfa.userHasEnrolledTotp(user)) {
-        await this.finishVerifiedEnrollment();
+    if (!options?.skipFactorCheck) {
+      try {
+        if (await this.totpMfa.userHasEnrolledTotp(user)) {
+          await this.finishVerifiedEnrollment();
+          return;
+        }
+      } catch (error) {
+        if (isTotpMfaError(error) && error.code === TOTP_ALREADY_ENROLLED_CODE) {
+          await this.finishVerifiedEnrollment();
+          return;
+        }
+        this.holdIdentityAfterResumeFailure(error);
         return;
       }
-      const enrollment = await this.totpMfa.beginEnrollment(user, accountName);
+    }
+    try {
+      const enrollment = await this.totpMfa.beginEnrollment(user, accountName, {
+        skipEnrolledCheck: true,
+      });
       this.mfaEnrollment.set(enrollment);
       this.isSubmitting.set(false);
     } catch (error) {
@@ -681,17 +411,19 @@ export class AuthModalComponent {
         await this.finishVerifiedEnrollment();
         return;
       }
-      if (isTotpMfaError(error)) {
-        this.applyTotpError(error);
-        return;
-      }
-      this.applyRestartError(TOTP_RESTART_MESSAGE);
+      this.holdIdentityAfterResumeFailure(error);
     }
   }
 
   private isMfaState(): boolean {
     const state = this.state();
     return state === 'mfaEnroll' || state === 'mfaChallenge';
+  }
+
+  private preserveAccountAndClose(): void {
+    this.resetForms();
+    this.state.set('entry');
+    this.closeRequested.emit();
   }
 
   private async abortMfaAndClose(): Promise<void> {
@@ -738,11 +470,21 @@ export class AuthModalComponent {
       this.holdEnrollmentForRetry(TOTP_RECENT_LOGIN_FAILED_MESSAGE, error.code);
       return;
     }
+    if (error.code === AUTH_ERROR_USER_TOKEN_EXPIRED) {
+      this.restartExpiredEnrollmentSession(error);
+      return;
+    }
     const message =
       error.kind === 'recover' || error.code === TOTP_ENROLLMENT_UNCONFIRMED_CODE
         ? error.message
         : TOTP_ENROLLMENT_REPLACE_REQUIRED_MESSAGE;
     this.holdEnrollmentForRecovery(message, error.code);
+  }
+
+  private restartExpiredEnrollmentSession(error: TotpMfaError): void {
+    this.totpMfa.forgetOpenEnrollment(this.firebase.currentUser?.uid);
+    this.applyRestartError(error.message);
+    this.enrollmentSupportCode.set(totpSupportCode(error.code));
   }
 
   private isRetryableEnrollmentCode(error: TotpMfaError): boolean {
@@ -751,6 +493,17 @@ export class AuthModalComponent {
       error.code === AUTH_ERROR_CODE_EXPIRED ||
       error.code === TOTP_INVALID_FORMAT_CODE
     );
+  }
+
+  private holdIdentityAfterResumeFailure(error: unknown): void {
+    const mapped = isTotpMfaError(error) ? error : toTotpMfaError(error);
+    this.mfaEnrollment.set(null);
+    this.totpErrorKind.set('restart');
+    this.totpError.set(mapped.message);
+    this.enrollmentSupportCode.set(totpSupportCode(mapped.code));
+    this.totpCode.set('');
+    this.isSubmitting.set(false);
+    this.requestTotpFocus();
   }
 
   private holdEnrollmentForRetry(message: string, code?: string): void {
@@ -786,9 +539,88 @@ export class AuthModalComponent {
   }
 
   private requestTotpFocus(): void {
-    afterNextRender(() => this.totpCodeInputRef?.nativeElement.focus(), {
-      injector: this.injector,
-    });
+    afterNextRender(
+      () => {
+        this.totpCodeInputRef?.nativeElement.focus();
+      },
+      { injector: this.injector },
+    );
+  }
+
+  private rememberOpener(): void {
+    const active = document.activeElement;
+    if (
+      active instanceof HTMLElement &&
+      active !== document.body &&
+      !this.host.nativeElement.contains(active)
+    ) {
+      this.openerElement = active;
+    }
+  }
+
+  private prepareOpenDialog(): void {
+    this.focusPreferredControl();
+    this.hideBackgroundFromAssistiveTech();
+  }
+
+  private focusPreferredControl(): void {
+    const preferredId =
+      this.state() === 'mfaEnroll'
+        ? this.totpErrorKind() === 'restart'
+          ? 'auth-modal-mfa-enroll-restart-btn'
+          : 'auth-modal-mfa-enroll-code-input'
+        : this.state() === 'mfaChallenge'
+          ? 'auth-modal-mfa-challenge-code-input'
+          : 'auth-modal-entry-google-btn';
+    if (this.focusControl(preferredId)) {
+      return;
+    }
+    this.focusControl('auth-modal-close-button');
+  }
+
+  private focusControl(id: string): boolean {
+    const target = this.host.nativeElement.querySelector(`#${id}`);
+    if (!(target instanceof HTMLElement) || target.hasAttribute('disabled')) {
+      return false;
+    }
+    target.focus();
+    return document.activeElement === target;
+  }
+
+  // Marks siblings of the dialog and of each ancestor. Ancestors stay active so the dialog is not hidden.
+  private hideBackgroundFromAssistiveTech(): void {
+    const dialogNode = this.host.nativeElement.querySelector('#auth-modal-overlay');
+    if (!(dialogNode instanceof HTMLElement)) {
+      return;
+    }
+    let current: HTMLElement | null = dialogNode;
+    while (current && current !== document.body) {
+      const parent: HTMLElement | null =
+        current.parentElement instanceof HTMLElement ? current.parentElement : null;
+      if (!parent) {
+        break;
+      }
+      for (const sibling of Array.from(parent.children)) {
+        if (!(sibling instanceof HTMLElement) || sibling === current) {
+          continue;
+        }
+        if (sibling.classList.contains('cdk-focus-trap-anchor') || sibling.hasAttribute('inert')) {
+          continue;
+        }
+        sibling.setAttribute('inert', '');
+        sibling.setAttribute('data-auth-modal-background-inert', '');
+        this.backgroundInertElements.push(sibling);
+      }
+      current = parent;
+    }
+  }
+
+  private restoreBackgroundAccess(): void {
+    for (const element of this.backgroundInertElements) {
+      element.removeAttribute('inert');
+      element.removeAttribute('data-auth-modal-background-inert');
+    }
+    this.backgroundInertElements.length = 0;
   }
 
   private applyRestartError(message: string): void {
@@ -817,9 +649,33 @@ export class AuthModalComponent {
     this.clearTotpFields();
   }
 
-  private async finishVerifiedEnrollment(): Promise<void> {
+  private async finishMfaVerifiedSignIn(): Promise<void> {
+    const user = this.firebase.currentUser;
+    if (!user) {
+      this.loginError.set('Google sign-in did not finish. Please try again.');
+      this.state.set('entry');
+      return;
+    }
+
+    const ensured = await this.firebase.ensureSelfUserRecord(user);
+    if (ensured.status === 'denied') {
+      this.totpMfa.clearEnrollmentInProgress(user.uid);
+      await this.authService.logout();
+      this.loginError.set(ACCOUNT_NOT_ACTIVE_MESSAGE);
+      this.state.set('entry');
+      return;
+    }
+
+    // resolveSignIn already proved the TOTP factor. Skip enrollment and
+    // the competing factor probe.
+    await this.finishVerifiedEnrollment(true);
+  }
+
+  private async finishVerifiedEnrollment(totpEnrollmentConfirmed = false): Promise<void> {
     try {
-      await this.authService.refreshCurrentUserTier();
+      await this.authService.refreshCurrentUserTier(
+        totpEnrollmentConfirmed ? { totpEnrollmentConfirmed: true } : undefined,
+      );
     } catch {
       this.holdEnrollmentForRecovery(
         TOTP_ENROLLMENT_UNCONFIRMED_MESSAGE,
@@ -840,41 +696,6 @@ export class AuthModalComponent {
     this.closeRequested.emit();
   }
 
-  private async syncSessionAndClose(): Promise<void> {
-    await this.authService.refreshCurrentUserTier();
-    this.resetForms();
-    this.state.set('entry');
-    this.closeRequested.emit();
-  }
-
-  /**
-   * Ensure there is a stored pending request so v5-E has metadata to
-   * display. If the user hasn't submitted one, synthesize one from the
-   * current login attempt — the mock always treats logins as pending
-   * (see AuthRequestService.attemptLogin).
-   */
-  private ensurePendingRequest(profile: Partial<GoogleProfile>): void {
-    if (this.authRequest.hasPendingRequest()) {
-      return;
-    }
-    const email = profile.email ?? '';
-    const name = profile.name ?? email.split('@')[0] ?? 'there';
-    void this.authRequest.submitEmailRequest({
-      fullName: name,
-      email,
-      password: 'unused-mock-pass',
-      requestedSirapIds: [],
-    });
-  }
-
-  private async enforceMinDelay(startedAt: number): Promise<void> {
-    const elapsed = Date.now() - startedAt;
-    const remaining = SUBMIT_MIN_DELAY_MS - elapsed;
-    if (remaining > 0) {
-      await new Promise((resolve) => setTimeout(resolve, remaining));
-    }
-  }
-
   private googleErrorMessage(error: unknown): string {
     return error instanceof Error && error.message
       ? error.message
@@ -882,28 +703,8 @@ export class AuthModalComponent {
   }
 
   private resetForms(): void {
-    this.emailLoginForm.set({ email: '', password: '' });
-    this.emailRequestForm.set({
-      fullName: '',
-      email: '',
-      password: '',
-      passwordConfirm: '',
-      organization: '',
-      reason: '',
-    });
-    this.postGoogleForm.set({ organization: '', reason: '', requestedSirapIds: [] });
-    this.pendingGoogleProfile.set(null);
     this.loginError.set(null);
     this.loginStatus.set(null);
     this.clearMfaSessions();
-  }
-
-  private toggleSirapId(
-    selectedIds: readonly SirapRegionId[],
-    sirapId: SirapRegionId,
-  ): SirapRegionId[] {
-    return selectedIds.includes(sirapId)
-      ? selectedIds.filter((id) => id !== sirapId)
-      : [...selectedIds, sirapId];
   }
 }

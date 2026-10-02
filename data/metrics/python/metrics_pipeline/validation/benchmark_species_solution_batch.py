@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import resource
 import sys
 import time
 from collections.abc import Callable, Mapping, Sequence
@@ -17,6 +16,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from platform_io import peak_rss_bytes, process_rusage
 from boundaries.boundary_id_grid import boundary_collection_sha256
 from boundaries.boundary_loader import load_all_boundaries
 from boundaries.boundary_topology import (
@@ -621,11 +621,11 @@ def _compare_accumulators(
 
 
 def _measure(function: Callable[[], None]) -> dict[str, Any]:
-    before = resource.getrusage(resource.RUSAGE_SELF)
+    before = process_rusage()
     started = time.perf_counter()
     function()
     elapsed = time.perf_counter() - started
-    after = resource.getrusage(resource.RUSAGE_SELF)
+    after = process_rusage()
     return {
         "wallSeconds": elapsed,
         "userSeconds": after.ru_utime - before.ru_utime,
@@ -672,8 +672,7 @@ def _close(expected: float, actual: float) -> bool:
 
 
 def _peak_rss_bytes() -> int:
-    value = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    return value if sys.platform == "darwin" else value * 1024
+    return peak_rss_bytes()
 
 
 def _read_json(path: Path) -> dict[str, Any]:
