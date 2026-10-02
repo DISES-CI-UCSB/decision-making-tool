@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import time
@@ -152,6 +153,8 @@ def _load_report_entries(report_path: Path) -> list[dict[str, Any]]:
 
 
 def _put_blob(token: str, local_path: Path, blob_path: str) -> str | None:
+    env = os.environ.copy()
+    env[BLOB_TOKEN_ENV_VAR] = token
     completed = subprocess.run(
         [
             "vercel",
@@ -169,6 +172,7 @@ def _put_blob(token: str, local_path: Path, blob_path: str) -> str | None:
         check=False,
         capture_output=True,
         text=True,
+        env=env,
     )
     output = f"{completed.stdout}\n{completed.stderr}"
     if completed.returncode != 0:

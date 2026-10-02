@@ -1,9 +1,16 @@
-"""Compact cached metric documents for Blob delivery.
+"""Production pipeline: compact cached metric documents for Blob delivery.
+
+Lifecycle: standard metrics release workflow (root README step 6), after verbose
+regular metrics pass inspection. Also imported as a library by release assembly,
+backfill scripts, and patch-release utilities.
 
 The verbose app-facing metrics shape is intentionally readable, but it repeats
 the same metric keys and metadata thousands of times across boundary scopes.
 This module provides a compact wire format plus a round-trip expander so the
 frontend can keep consuming the existing verbose shape after download.
+
+Safe reuse: format conversion and validation only; it does not compute or repair
+metric values. Use ``--cache-policy use-cache`` for incremental per-solution runs.
 """
 
 from __future__ import annotations
@@ -571,9 +578,7 @@ def _validate_release_verbose_document(
             provenance.get("generationConfig", {}).get("nationalOnly")
         ),
         domain=catalog_entry.domain,
-        skip_species=bool(
-            provenance.get("generationConfig", {}).get("speciesSkipped")
-        ),
+        skip_species=False,
     )
     if completeness_issues:
         raise ValueError(

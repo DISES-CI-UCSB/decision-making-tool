@@ -1,4 +1,14 @@
-"""Assemble recomputed and verified reused artifacts into one immutable release."""
+"""Production pipeline: assemble one immutable solution release for publish.
+
+Lifecycle: standard metrics release workflow (root README step 7), after
+``inspect_metrics.py`` and with a ``plan_solution_release.py`` plan. Copies or
+validates recomputed artifacts, binds catalog-declared reuse from a baseline
+inventory, and writes release metadata locally. Does not upload to Blob.
+
+Safe reuse: any release with a matching catalog, plan, and baseline inventory.
+Use ``--metadata-only`` when artifact bytes are unchanged and only reports need
+regeneration. Imported by tests; normally run as a CLI from the repo root.
+"""
 
 from __future__ import annotations
 
@@ -248,7 +258,7 @@ def _rebind_reused_document(
             verbose,
             national_only=bool(config.get("nationalOnly")),
             domain=entry.domain,
-            skip_species=bool(config.get("speciesSkipped")),
+            skip_species=False,
         )
         if completeness_errors:
             raise SolutionCatalogError(
@@ -511,7 +521,7 @@ def _validate_recomputed_document(
             verbose,
             national_only=bool(config.get("nationalOnly")),
             domain=entry.domain,
-            skip_species=bool(config.get("speciesSkipped")),
+            skip_species=False,
         )
         if completeness_errors:
             raise SolutionCatalogError(
@@ -773,7 +783,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--metadata-only",
         action="store_true",
-        help="Regenerate reports from checksum-identical existing artifacts.",
+        help=(
+            "Regenerate release reports only; skip copying or validating artifact "
+            "bytes when the release tree is already complete."
+        ),
     )
     return parser.parse_args(argv)
 

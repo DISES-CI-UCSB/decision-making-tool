@@ -428,6 +428,51 @@ def test_completed_partition_resumes_and_rejects_provenance_mismatch(tmp_path: P
         )
 
 
+def test_partial_resume_collects_national_dependency_without_rewriting_it(
+    tmp_path: Path,
+):
+    record = _species("Partial resume", 10.0)
+    catalog = _catalog([record])
+    national_path = compact_partition_path(
+        tmp_path / "release", "fixture-solution", "national"
+    )
+    first = _pipeline(catalog, tmp_path / "first")
+    first.record_national(record, 50, 100)
+    assert not first.write_partition_streaming(
+        national_path,
+        geography_level="national",
+        scope_catalog=[["colombia", "Colombia"]],
+    )
+    national_bytes = national_path.read_bytes()
+    completion_path = national_path.with_name(f"{national_path.name}.complete.json")
+    completion_bytes = completion_path.read_bytes()
+
+    resumed = _pipeline(
+        catalog,
+        tmp_path / "resumed",
+        active_levels={"departments"},
+    )
+    resumed.record_national(record, 50, 100)
+    resumed.record_sub_level(
+        record,
+        "departments",
+        np.array([25.0]),
+        np.array([50.0]),
+    )
+    departments = resumed.build_partition(
+        geography_level="departments",
+        scope_catalog=[["05", "Antioquia"]],
+    )
+    assert departments["rows"][0][2] == 5.0
+    assert resumed.write_partition_streaming(
+        national_path,
+        geography_level="national",
+        scope_catalog=[["colombia", "Colombia"]],
+    )
+    assert national_path.read_bytes() == national_bytes
+    assert completion_path.read_bytes() == completion_bytes
+
+
 def test_release_inventory_invariants_cover_8300_species():
     records = [
         _species(f"Species {index}", 0 if index < 166 else 1)
@@ -916,38 +961,104 @@ def test_validate_compact_rejects_configured_flag_far_from_km2_threshold(
         validate_compact(document, catalog=catalog)
 
 
-def test_validate_compact_rejects_selected_equals_range_tautology(tmp_path: Path):
+@pytest.mark.parametrize(
+    "level",
+    ["departments", "municipalities", "siraps", "runaps", "omecs"],
+)
+def test_resumed_subnational_build_rejects_catalog_range_denominator_collapse(
+    tmp_path: Path,
+    level: str,
+):
+    records = [_species(f"Bird {index}", 10.0) for index in range(50)]
+    catalog = _catalog(records)
+    pipeline = _pipeline(catalog, tmp_path, active_levels={level})
+    for record in records:
+        pipeline.record_national(record, 50, 100)
+        pipeline.record_sub_level(
+            record,
+            level,
+            np.array([25.0]),
+            np.array([50.0]),
+        )
+    # Reproduce the pre-fix partial-build spool: the completed national shard
+    # caused its observations to be skipped while subnational rows were pending.
+    pipeline._connection.execute(
+        "DELETE FROM observations WHERE geography_level = 'national'"
+    )
+
+    with pytest.raises(SpeciesGoalsContractError, match="tautological"):
+        pipeline.build_partition(
+            geography_level=level,
+            scope_catalog=[["scope-1", "Scope 1"]],
+        )
+
+
+def test_validate_compact_allows_national_catalog_range_equality(tmp_path: Path):
     records = [_species(f"Bird {index}", 10.0) for index in range(50)]
     catalog = _catalog(records)
     pipeline = _pipeline(catalog, tmp_path)
     for record in records:
-        pipeline.record_national(record, 10, 10)
+        pipeline.record_national(record, 5, 10)
 
-    with pytest.raises(SpeciesGoalsContractError, match="tautological"):
-        pipeline.build_partition(
-            geography_level="national",
-            scope_catalog=[["colombia", "Colombia"]],
+    document = pipeline.build_partition(
+        geography_level="national",
+        scope_catalog=[["colombia", "Colombia"]],
+    )
+
+    assert all(row[2] == catalog["rows"][row[1]][4] for row in document["rows"])
+    validate_compact(document, catalog=catalog)
+
+
+def test_validate_compact_allows_individual_subnational_national_range_equality(
+    tmp_path: Path,
+):
+    records = [_species(f"Bird {index}", 10.0) for index in range(50)]
+    catalog = _catalog(records)
+    pipeline = _pipeline(catalog, tmp_path)
+    for index, record in enumerate(records):
+        pipeline.record_national(record, 50, 100)
+        pipeline.record_sub_level(
+            record,
+            "departments",
+            np.array([50.0 if index == 0 else 25.0]),
+            np.array([100.0 if index == 0 else 50.0]),
         )
 
+    document = pipeline.build_partition(
+        geography_level="departments",
+        scope_catalog=[["05", "Antioquia"]],
+    )
 
-def test_partition_is_resumable_rejects_tautological_national(
+    assert document["rows"][0][2] == catalog["rows"][0][4]
+    assert any(row[2] < catalog["rows"][row[1]][4] for row in document["rows"][1:])
+    validate_compact(document, catalog=catalog)
+
+
+def test_partition_is_resumable_rejects_tautological_subnational(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     import species_goals as species_goals_module
 
     records = [_species(f"Bird {index}", 10.0) for index in range(50)]
     catalog = _catalog(records)
-    pipeline = _pipeline(catalog, tmp_path)
+    pipeline = _pipeline(catalog, tmp_path, active_levels={"departments"})
     for record in records:
-        pipeline.record_national(record, 10, 10)
+        pipeline.record_sub_level(
+            record,
+            "departments",
+            np.array([5.0]),
+            np.array([10.0]),
+        )
     monkeypatch.setattr(
         species_goals_module, "_SPECIES_GOALS_TAUTOLOGY_MIN_RANGED", 10_000
     )
-    path = compact_partition_path(tmp_path / "release", "fixture-solution", "national")
+    path = compact_partition_path(
+        tmp_path / "release", "fixture-solution", "departments"
+    )
     pipeline.write_partition_streaming(
         path,
-        geography_level="national",
-        scope_catalog=[["colombia", "Colombia"]],
+        geography_level="departments",
+        scope_catalog=[["05", "Antioquia"]],
     )
     monkeypatch.setattr(
         species_goals_module, "_SPECIES_GOALS_TAUTOLOGY_MIN_RANGED", 50
@@ -957,7 +1068,7 @@ def test_partition_is_resumable_rejects_tautological_national(
         path,
         catalog=catalog,
         expected_solution_id="fixture-solution",
-        expected_level="national",
+        expected_level="departments",
         expected_catalog_sha256=catalog["catalogSha256"],
         expected_provenance=pipeline.provenance,
     )

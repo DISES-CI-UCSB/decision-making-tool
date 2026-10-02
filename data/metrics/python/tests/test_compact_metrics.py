@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+from backfill_land_use_of_aoi import restamp_catalog_signature
 from compact_metrics import (
     COMPACT_METRICS_FORMAT,
     ReleaseSelection,
@@ -606,6 +607,45 @@ def test_release_compaction_rejects_input_missing_catalog_solutions(tmp_path: Pa
             cache_blob_directory="releases/test-release/regular/compact",
             release_id="test-release",
             catalog_solution_ids=catalog_ids,
+            solution_catalog=_test_catalog(tmp_path),
+        )
+
+
+def test_release_compaction_rejects_missing_species_groups_after_skip_species(
+    tmp_path: Path,
+):
+    catalog_ids = _release_solution_ids()
+    selected_ids = catalog_ids[:1]
+    input_dir = _write_release_input(tmp_path, selected_ids)
+    verbose_path = input_dir / "cache" / f"{selected_ids[0]}.metrics.json"
+    document = json.loads(verbose_path.read_text(encoding="utf-8"))
+    document[PROVENANCE_KEY]["generationConfig"]["speciesSkipped"] = True
+    for scopes in document["geographies"].values():
+        for scope in scopes.values():
+            metric = next(
+                row
+                for row in scope["metrics"]
+                if row["metricId"] == "species_groups_protected"
+            )
+            metric.update(
+                value=None,
+                status="derivation_needed",
+                notes="Species processing was skipped.",
+            )
+    document = restamp_catalog_signature(document)
+    verbose_path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match="species_groups_protected must be ready",
+    ):
+        convert_publish_report(
+            input_dir=input_dir,
+            output_dir=tmp_path / "generated" / "compact",
+            repo_root=tmp_path,
+            cache_blob_directory="releases/test-release/regular/compact",
+            release_id="test-release",
+            release_selection=_release_selection(catalog_ids, selected_ids),
             solution_catalog=_test_catalog(tmp_path),
         )
 

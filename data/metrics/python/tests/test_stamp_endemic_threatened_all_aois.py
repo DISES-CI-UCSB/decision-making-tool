@@ -13,20 +13,40 @@ from backfill_threatened_species_secured import (
     assert_untargeted_land_selection,
     catalog_policy_kind,
     document_exception_binding,
+    is_completed_species_reconciliation,
+    mark_species_complete,
     resolve_policy_kind,
     select_untargeted_land_ids,
     stamp_document,
+    validate_all_species_metrics,
     validate_dual_reference_secured,
     _threatened_rows,
 )
 from metrics_contract import PROVENANCE_KEY
+from metric_definitions import species_metric_ids
 from species_goals import (
     CATALOG_ROW_LAYOUT,
     COMPACT_ROW_LAYOUT,
+    FLAG_CONFIGURED_TARGET_MET,
     FLAG_MET_17,
     FLAG_MET_30,
+    FLAG_TARGET_CONFIGURED,
 )
 from species_target_policy import TARGET_POLICY_SOURCE
+
+
+REQUIRED_LAND_SPECIES_METRIC_IDS = (
+    "species_groups_protected",
+    "threatened_species_secured",
+    "species_richness_mammals",
+    "species_richness_birds",
+    "species_richness_amphibians",
+    "species_richness_reptiles",
+    "species_richness_plants",
+    "threatened_species_count",
+    "endemic_species_count",
+    "species_pct_of_national",
+)
 
 
 def _structured_solution(
@@ -354,3 +374,187 @@ def test_stamp_refuses_marine_and_species_targeted_incremental(tmp_path: Path):
             ),
             metric_ids={SECURED_METRIC_ID},
         )
+
+
+def test_reconcile_all_species_metrics_from_sidecars_preserves_other_rows(
+    tmp_path: Path,
+):
+    assert species_metric_ids() == REQUIRED_LAND_SPECIES_METRIC_IDS
+    solution_id = "eco17_estr17_runap_iheh2022"
+    goals_root = _write_goals(tmp_path, solution_id)
+    non_species = {
+        "metricId": "selected_area",
+        "value": 12.5,
+        "unit": "km2",
+        "status": "ready",
+        "source": "test",
+        "notes": "preserve me",
+        "labelKey": "metrics.tier1.selected_area",
+        "formatHint": "number",
+    }
+    document = _document(extra_metric=non_species)
+    catalog = json.loads(
+        (goals_root / "species-goals/catalog/v1/catalog.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    updated = stamp_document(
+        document,
+        species_goals_root=goals_root,
+        scientific_names={0: "Alpha beta", 1: "Gamma delta", 2: "Safe bird"},
+        endemic_by_name={"Alpha beta": True},
+        threatened_indexes={0, 1},
+        release_id="catalog-v3-7-0",
+        catalog_solution=_structured_solution(solution_id=solution_id),
+        metric_ids=set(species_metric_ids()),
+        catalog_rows=catalog["rows"],
+        available_species_count=3,
+    )
+    metrics = {
+        row["metricId"]: row
+        for row in updated["geographies"]["national"]["colombia"]["metrics"]
+    }
+
+    assert set(species_metric_ids()).issubset(metrics)
+    assert metrics["selected_area"] == non_species
+    assert metrics["species_richness_birds"]["value"] == 3
+    assert metrics["threatened_species_count"]["value"] == 2
+    assert metrics["endemic_species_count"]["value"] == 1
+    assert metrics["species_pct_of_national"]["value"] == 100.0
+    assert metrics["species_groups_protected"]["status"] == "partial"
+    assert metrics["species_groups_protected"]["value"] is None
+    assert [
+        outcome["targetPercent"]
+        for outcome in metrics["species_groups_protected"]["details"][
+            "thresholdOutcomes"
+        ]
+    ] == [17.0, 30.0]
+    assert validate_all_species_metrics(updated) == []
+    assert updated[PROVENANCE_KEY]["generationConfig"]["speciesSkipped"] is False
+    assert updated[PROVENANCE_KEY]["generationConfig"]["speciesBoundaryLevelsSkipped"] == []
+
+    mark_species_complete(
+        updated,
+        catalog_total=3,
+        available_expected=3,
+        exception_binding=None,
+    )
+    assert updated["speciesCompleteness"]["complete"] is True
+    assert updated[PROVENANCE_KEY]["speciesCompleteness"]["processed"] == 3
+    assert is_completed_species_reconciliation(updated)
+
+    updated["speciesCompleteness"]["complete"] = False
+    assert not is_completed_species_reconciliation(updated)
+
+
+def test_reconcile_all_species_metrics_handles_empty_and_marine_scopes(
+    tmp_path: Path,
+):
+    species_ids = set(species_metric_ids())
+    land_id = "eco17_estr17_runap_iheh2022"
+    goals_root = _write_goals(tmp_path, land_id)
+    catalog = json.loads(
+        (goals_root / "species-goals/catalog/v1/catalog.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    empty_document = _document(solution_id=land_id)
+    empty_document["geographies"]["national"]["colombia"]["scopeState"][
+        "solutionValidCellCount"
+    ] = 0
+
+    empty = stamp_document(
+        empty_document,
+        species_goals_root=goals_root,
+        scientific_names={},
+        endemic_by_name={},
+        threatened_indexes={0, 1},
+        release_id="catalog-v3-7-0",
+        catalog_solution=_structured_solution(solution_id=land_id),
+        metric_ids=species_ids,
+        catalog_rows=catalog["rows"],
+        available_species_count=3,
+    )
+    empty_rows = [
+        row
+        for row in empty["geographies"]["national"]["colombia"]["metrics"]
+        if row["metricId"] in species_ids
+    ]
+    assert {row["status"] for row in empty_rows} == {"empty"}
+
+    marine_id = "marine_ecos30_mang30_runap_hhm"
+    marine = stamp_document(
+        _document(solution_id=marine_id, domain="marine"),
+        species_goals_root=goals_root,
+        scientific_names={},
+        endemic_by_name={},
+        threatened_indexes=set(),
+        release_id="catalog-v3-7-0",
+        catalog_solution=_structured_solution(
+            solution_id=marine_id,
+            domain="marine",
+        ),
+        metric_ids=species_ids,
+        catalog_rows=catalog["rows"],
+        available_species_count=3,
+    )
+    marine_rows = [
+        row
+        for row in marine["geographies"]["national"]["colombia"]["metrics"]
+        if row["metricId"] in species_ids
+    ]
+    assert {row["status"] for row in marine_rows} == {"not_applicable"}
+    assert validate_all_species_metrics(marine) == []
+
+
+def test_reconcile_all_species_metrics_supports_configured_targets(tmp_path: Path):
+    solution_id = "eco17_estr17_esprep17_runap_iheh2022"
+    goals_root = _write_goals(tmp_path, solution_id)
+    partition_path = (
+        goals_root
+        / "species-goals"
+        / "compact"
+        / "v1"
+        / solution_id
+        / "national.species-goals.compact.json"
+    )
+    partition = json.loads(partition_path.read_text(encoding="utf-8"))
+    for row in partition["rows"]:
+        row[COMPACT_ROW_LAYOUT.index("configuredTargetPercent")] = 17.0
+        row[COMPACT_ROW_LAYOUT.index("flags")] |= FLAG_TARGET_CONFIGURED
+        row[COMPACT_ROW_LAYOUT.index("flags")] |= FLAG_CONFIGURED_TARGET_MET
+    partition_path.write_text(json.dumps(partition), encoding="utf-8")
+    catalog = json.loads(
+        (goals_root / "species-goals/catalog/v1/catalog.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    updated = stamp_document(
+        _document(solution_id=solution_id),
+        species_goals_root=goals_root,
+        scientific_names={0: "Alpha beta", 1: "Gamma delta", 2: "Safe bird"},
+        endemic_by_name={"Alpha beta": True},
+        threatened_indexes={0, 1},
+        release_id="catalog-v3-7-0",
+        catalog_solution=_structured_solution(
+            solution_id=solution_id,
+            feature_set="species",
+            species_representation=[
+                {"featureId": "alpha_beta", "targetPercent": 17}
+            ],
+        ),
+        metric_ids=set(species_metric_ids()),
+        catalog_rows=catalog["rows"],
+        available_species_count=3,
+    )
+    metrics = {
+        row["metricId"]: row
+        for row in updated["geographies"]["national"]["colombia"]["metrics"]
+    }
+
+    assert metrics["species_groups_protected"]["status"] == "ready"
+    assert metrics["species_groups_protected"]["value"] == 3
+    assert metrics["threatened_species_secured"]["status"] == "ready"
+    assert metrics["threatened_species_secured"]["value"] == 2

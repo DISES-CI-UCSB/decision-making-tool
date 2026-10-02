@@ -1,4 +1,11 @@
-"""Versioned per-species coverage catalog and compact sidecar pipeline.
+"""Production pipeline library: species-goals catalog and compact sidecars.
+
+Imported by ``main.py`` during normal metric generation and by backfill/repair
+utilities. Not a standalone CLI or one-off catalog script.
+
+Lifecycle: catalog and per-solution compact partitions are written during
+``main.py`` runs (unless generation skips species) and ship as release artifacts
+under ``species-goals/``.
 
 The shared catalog contains immutable species identity/taxonomy. One compact
 sidecar is written per solution and geography level. National rows are dense;
@@ -87,8 +94,8 @@ FLAG_TARGET_CONFIGURED = 4
 FLAG_MET_17 = 8
 FLAG_MET_30 = 16
 FLAG_CONFIGURED_TARGET_MET = 32
-# Same fail-closed rule as SIRAP packets: clipping range to selected-only
-# solution rasters (unselected PUs stored as nodata) makes every species 100%.
+# A missing national denominator makes every subnational range fall back to its
+# own boundary total, so every range becomes the catalog-wide national range.
 _SPECIES_GOALS_TAUTOLOGY_MIN_RANGED = 50
 # Compact km² columns independently round(catalog_range * held/total, 6).
 # Configured ``met`` follows Mesa cell counts, so selected can sit one
@@ -396,7 +403,10 @@ class SpeciesGoalsPipeline:
         (regional cell-area km²). National builds leave it unset and scale
         from the catalog range.
         """
-        if self.primary_geography_level not in self.active_levels:
+        # The primary observation is also the scaling denominator for every
+        # subnational row. Collect it during partial builds even when its
+        # completed partition will be resumed rather than rewritten.
+        if not self.active_levels:
             return
         index = self._species_index(species)
         observation = self._observation(
@@ -483,7 +493,7 @@ class SpeciesGoalsPipeline:
             raise SpeciesGoalsContractError("national chunk arrays differ")
 
         rows: list[tuple[Any, ...]] = []
-        if self.primary_geography_level in self.active_levels:
+        if self.active_levels:
             for row_index, species in enumerate(species_records):
                 rows.append(
                     (
@@ -1099,25 +1109,32 @@ def validate_compact(
         if level != "national" and (flags & (FLAG_UNAVAILABLE | FLAG_NO_RANGE)):
             raise SpeciesGoalsContractError("sparse partitions must omit unavailable/no-range rows")
         previous_key = key
-    ranged_species = 0
-    fully_covered_species = 0
-    for row in rows:
-        total = 0.0 if row[2] is None else float(row[2])
-        selected = 0.0 if row[3] is None else float(row[3])
-        if total <= 0:
-            continue
-        ranged_species += 1
-        if selected + 1e-9 >= total:
-            fully_covered_species += 1
-    if (
-        ranged_species >= _SPECIES_GOALS_TAUTOLOGY_MIN_RANGED
-        and fully_covered_species == ranged_species
-    ):
-        raise SpeciesGoalsContractError(
-            "species-goals coverage is tautological: every in-range species has "
-            "selected area equal to range area. Scope must be the planning grid, "
-            "not the solution-data valid mask."
-        )
+    if level != "national" and catalog is not None:
+        ranged_by_scope: dict[int, int] = {}
+        national_range_equal_by_scope: dict[int, int] = {}
+        for row in rows:
+            total = 0.0 if row[2] is None else float(row[2])
+            if total <= 0:
+                continue
+            scope_index, species_index = row[:2]
+            ranged_by_scope[scope_index] = ranged_by_scope.get(scope_index, 0) + 1
+            national_range = catalog["rows"][species_index][4]
+            if national_range is not None and total == round(float(national_range), 6):
+                national_range_equal_by_scope[scope_index] = (
+                    national_range_equal_by_scope.get(scope_index, 0) + 1
+                )
+        collapsed_scopes = [
+            scope_index
+            for scope_index, ranged_count in ranged_by_scope.items()
+            if ranged_count >= _SPECIES_GOALS_TAUTOLOGY_MIN_RANGED
+            and national_range_equal_by_scope.get(scope_index, 0) == ranged_count
+        ]
+        if collapsed_scopes:
+            raise SpeciesGoalsContractError(
+                "species-goals range denominator is tautological: every ranged "
+                "species in a subnational scope has rangeAreaKm2 equal to catalog "
+                "nationalRangeKm2"
+            )
     if level == "national" and catalog_size is not None and len(rows) != catalog_size:
         raise SpeciesGoalsContractError("national partition must contain every catalog species")
     if level == "national" and any(
