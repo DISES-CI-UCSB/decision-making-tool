@@ -119,3 +119,13 @@ branch-*-decision-making-tool.code-workspace
 !/backend/runtime-artifacts/.gitkeep
 /backend/runtime-cache/*
 !/backend/runtime-cache/.gitkeep
+
+*_service_account_key.json
+dises-decision-making-tool-firebase-adminsdk-fbsvc-e3654dc485.json
+# Feature test system (generated)
+.test-cache/
+.test-results/
+playwright-report/
+test-results/
+
+node_modules/

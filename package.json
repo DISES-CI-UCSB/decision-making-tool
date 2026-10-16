@@ -1,0 +1,28 @@
+{
+    "name": "dmt-feature-tests",
+    "private": true,
+    "type": "module",
+    "description": "Feature-centered test system (catalog, runner, live service tests)",
+    "scripts": {
+        "test:fast-only": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts fast-only",
+        "test:features": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts features",
+        "test:core": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts core",
+        "test:shared": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts shared",
+        "test:browser-deterministic": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-deterministic",
+        "test:browser-live": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-live",
+        "test:browser-all": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-all",
+        "test:browser-only": "npm run test:browser-all",
+        "test:gate": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts gate",
+        "test:all": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts all",
+        "test:view-test-catalog": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/view-test-catalog.mjs",
+        "test:feature": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts feature",
+        "test:feature-set": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts feature-set"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.64.1",
+        "firebase": "^13.0.0",
+        "firebase-admin": "^14.5.0",
+        "typescript": "^7.0.2",
+        "vitest": "^3.2.7"
+    }
+}

@@ -27,6 +27,7 @@ from .artifacts import (
     warmup_artifacts,
 )
 from .config import get_settings
+from .downloads.router import router as downloads_router
 from .coverage_target_validation import normalize_feature_name
 from .models import (
     CustomAreaProfileRequest,
@@ -157,7 +158,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="DISES Decision Making Tool Metrics API",
     version="0.2.0",
-    description="Backend metrics endpoints for custom polygon smoke paths.",
+    description="Backend metrics endpoints and the Blob URL Signing Service.",
     lifespan=lifespan,
 )
 
@@ -180,6 +181,8 @@ def cors_origins(extra: str | None = None) -> list[str]:
     extras = [origin.strip() for origin in raw.split(",") if origin.strip()]
     return [*_DEFAULT_CORS_ORIGINS, *extras]
 
+
+app.include_router(downloads_router)
 
 app.add_middleware(
     CORSMiddleware,

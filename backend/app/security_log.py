@@ -10,8 +10,10 @@ EVENT_UNAUTHORIZED_CANCEL = "unauthorized_cancel"
 EVENT_OVERSIZED_POLYGON = "oversized_polygon"
 EVENT_RATE_LIMITED = "rate_limited"
 EVENT_REPEAT_BLOCKED = "repeat_blocked"
+EVENT_DOWNLOAD_FORBIDDEN = "download_forbidden"
 
 JOB_CANCEL_PATH_PREFIX = "/area-profile/custom-polygon/species-coverage/jobs/"
+DOWNLOADS_PATH_PREFIX = "/downloads/"
 _OVERSIZED_POLYGON_PREFIXES = (
     "too_many_vertices:",
     "area_exceeds_national_territory:",
@@ -80,3 +82,6 @@ def maybe_log_http_exception(request: Request, status_code: int) -> None:
         return
     if status_code == 403 and is_job_cancel_path(request.url.path):
         log_unauthorized_cancel(request)
+        return
+    if status_code == 403 and request.url.path.startswith(DOWNLOADS_PATH_PREFIX):
+        emit_from_request(request, EVENT_DOWNLOAD_FORBIDDEN, 403)
