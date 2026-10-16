@@ -4,7 +4,7 @@ Handoff prompt for the next agent session. Paste everything below the line into 
 
 ---
 
-Continue UCS-232 (Blob URL Signing Service, supersedes UCS-192) on branch `feat/UCS-232-blob-url-signing-service`. Goal: deploy the service to the Digital Ocean VM and get the five live Feature Behavior Tests (FBT-001..005) passing. Act as the orchestrating agent and use Opus sub-agents for VM and test work.
+Continue UCS-232 (Blob URL Signing Service, supersedes UCS-192) on branch `blob-signing-service`. Goal: deploy the service to the Digital Ocean VM and get the five live Feature Behavior Tests (FBT-001..005) passing. Act as the orchestrating agent and use Opus sub-agents for VM and test work.
 
 ## What exists (committed in `cd79ba13`)
 
@@ -16,7 +16,7 @@ Continue UCS-232 (Blob URL Signing Service, supersedes UCS-192) on branch `feat/
 
 ## Setup on the new computer
 
-1. `git checkout feat/UCS-232-blob-url-signing-service` then `npm install` at repo root.
+1. `git checkout blob-signing-service` then `npm install` at repo root.
 2. Copy the Firebase Admin key JSON into the repo root (gitignored), or set `DMT_TEST_FIREBASE_ADMIN_KEY_FILE`. Never print key or token values.
 3. Confirm `ssh -o BatchMode=yes -o ConnectTimeout=10 root@107.170.64.162 "echo ok"` works. (The old PC had a local firewall rule "Block SSH Connections" on `ssh.exe`.)
 4. Offline sanity check: `npm run test:shared` (SST-001/002 pass; FBT-001..005 show NOT RUN).
