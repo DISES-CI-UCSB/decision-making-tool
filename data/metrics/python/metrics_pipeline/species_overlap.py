@@ -908,8 +908,12 @@ def _sha256_file(path: Path) -> str:
 
 
 def _fsync_file(path: Path) -> None:
-    with path.open("rb") as handle:
-        os.fsync(handle.fileno())
+    # Windows returns EBADF if the handle was opened read-only.
+    descriptor = os.open(path, os.O_RDWR)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def _fsync_directory(path: Path) -> None:

@@ -982,6 +982,10 @@ class RasterAlignmentCache:
 
     @staticmethod
     def _fsync_file(path: Path) -> None:
-        with path.open("rb") as handle:
-            os.fsync(handle.fileno())
+        # Windows returns EBADF if the handle was opened read-only.
+        descriptor = os.open(path, os.O_RDWR)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
 
