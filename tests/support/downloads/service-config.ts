@@ -26,13 +26,18 @@ export const serviceConfig = {
   bucket: process.env.DMT_TEST_GCS_BUCKET ?? 'pnn-priorizando-la-naturaleza',
   /**
    * Object keys that the deployed download catalog must contain (national, Orinoquia, Eje Cafetero)
-   * and one real bucket object that the catalog must leave out.
+   * and one real bucket object that the catalog must leave out. Verified 2026-10-16 against bucket
+   * pnn-priorizando-la-naturaleza and the VM catalog built from the national 3.7.1 and
+   * sirap-2026-09-09-v7-endemic manifests.
    */
   objects: {
-    national: process.env.DMT_TEST_NATIONAL_OBJECT ?? 'releases/catalog-v3-7-0/manifest.json',
-    orinoquia: process.env.DMT_TEST_ORINOQUIA_OBJECT ?? 'releases/catalog-v3-7-1/manifest.json',
+    national: process.env.DMT_TEST_NATIONAL_OBJECT ?? 'inputs/reference/ramsar/v0.1.0/ramsar.geojson',
+    orinoquia:
+      process.env.DMT_TEST_ORINOQUIA_OBJECT ??
+      'inputs/reference/orinoquia_savannas/v0.1.0/orinoquia_savannas.metadata.json',
     ejeCafetero:
-      process.env.DMT_TEST_EJE_CAFETERO_OBJECT ?? 'catalog-releases/3.7.1/catalog-release-index.json',
-    unlisted: process.env.DMT_TEST_UNLISTED_OBJECT ?? 'releases/catalog-v3-2-0/manifest.json',
+      process.env.DMT_TEST_EJE_CAFETERO_OBJECT ??
+      'inputs/reference/eje_cafetero_wetlands/v0.1.0/eje_cafetero_wetlands.metadata.json',
+    unlisted: process.env.DMT_TEST_UNLISTED_OBJECT ?? 'releases/catalog-v3-7-1/manifest.json',
   },
 } as const;
