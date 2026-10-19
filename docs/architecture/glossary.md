@@ -1,6 +1,6 @@
 # Architecture Glossary
 
-_Status: Draft, pending developer approval (2026-10-15)._
+_Status: Approved by the developer on 2026-10-16._
 
 Canonical names for architecture concepts. Use these names in diagrams, docs, interfaces, and new code. Aliases are older or informal names to retire in new writing.
 
@@ -15,8 +15,10 @@ Canonical names for architecture concepts. Use these names in diagrams, docs, in
 
 | Term | Meaning | Aliases | Evidence |
 | --- | --- | --- | --- |
-| **Blob URL Signing Service** | The Metrics API capability that turns a signed-in user's request into a short-lived signed GET link for one private layer file. "Blob" means one stored file object in the Private Layer Bucket, not Vercel Blob. | GCS download broker, secure download broker (UCS-232) | `backend/app/downloads/` |
+| **Blob URL Signing Service** | The Metrics API capability that turns a signed-in user's request into a short-lived signed GET link for one private layer file. "Blob" means one stored file object in the Private Layer Bucket, not Vercel Blob. | GCS download broker, secure download broker (UCS-232) | `backend/app/downloads/`; `GcsV4Signer` in `backend/app/downloads/signer.py` creates the signed GET link |
 | **Download Broker** | The Blob URL Signing Service component that runs the checks in order (token, account, catalog, authenticator sign-in, region grant), caches the results, and requests the signed link. Names only this component, not the whole service. | — | `backend/app/downloads/broker.py` |
-| **Download Catalog** | The server-side list of file keys the service may sign, each tagged national or one SIRAP region. A file missing from it is denied. | — | `backend/app/downloads/catalog.py` |
+| **Download Catalog** | The server-side list of file keys the service may sign, each tagged national or one SIRAP region. A file missing from it is denied. | — | `ObjectCatalog`, `FileObjectCatalog`, and `MemoryObjectCatalog` in `backend/app/downloads/catalog.py` |
 | **Private Layer Bucket** | The GTIC-run Google Cloud Storage bucket `pnn-priorizando-la-naturaleza`, which holds layer files without public access. Separate from the public Vercel Blob store. | GTIC bucket | UCS-231 transfer |
 | **Signed-In User** | A person with a Firebase session in the DISES Web App. Their access data lives in a Firestore user record, not in the session token. | — | `frontend/src/app/core/services/firebase-client.service.ts` |
+
+Reason codes, not architecture concepts: `broker_not_configured` means the service is missing configuration and returns HTTP 503; `token_certs_unavailable` means Google's token certificates could not be fetched and returns HTTP 503.
