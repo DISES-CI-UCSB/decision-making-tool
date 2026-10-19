@@ -29,7 +29,12 @@ from app.downloads.router import (
     router,
 )
 from app.downloads.settings import DownloadSettings, get_download_settings
-from app.downloads.verifier import VerifiedIdentity, issuer_matches, subject_uid
+from app.downloads.verifier import (
+    FirebaseIdTokenVerifier,
+    VerifiedIdentity,
+    issuer_matches,
+    subject_uid,
+)
 from app.security_log import maybe_log_http_exception
 
 NATIONAL = "releases/catalog-v3-7-0/solutions/land/example.tif"
@@ -815,6 +820,33 @@ def test_issuer_matches_project_and_subject_uid_uses_sub_only() -> None:
     assert subject_uid({"sub": "x" * 129}) is None
 
 
+def test_token_certificate_fetch_failure_returns_503_token_certs_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from google.auth.exceptions import TransportError
+
+    def unavailable(*_args: object, **_kwargs: object) -> None:
+        raise TransportError("certificate fetch failed for sample-token")
+
+    monkeypatch.setattr("google.oauth2.id_token.verify_firebase_token", unavailable)
+    with pytest.raises(BrokerError) as certs:
+        FirebaseIdTokenVerifier("dises-decision-making-tool").verify("sample-token")
+
+    assert certs.value.status_code == 503
+    assert certs.value.code == "token_certs_unavailable"
+    assert "sample-token" not in certs.value.message
+
+    def invalid(*_args: object, **_kwargs: object) -> None:
+        raise ValueError("sample-token")
+
+    monkeypatch.setattr("google.oauth2.id_token.verify_firebase_token", invalid)
+    with pytest.raises(BrokerError) as rejected:
+        FirebaseIdTokenVerifier("dises-decision-making-tool").verify("sample-token")
+
+    assert rejected.value.status_code == 401
+    assert rejected.value.code == "invalid_token"
+
+
 def test_deny_ttl_is_clamped_shorter_than_a_positive_allow_ttl(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -834,6 +866,23 @@ def test_deny_ttl_is_clamped_shorter_than_a_positive_allow_ttl(
     disabled = get_download_settings()
     assert disabled.access_allow_ttl_seconds == 0
     assert disabled.access_deny_ttl_seconds == 40
+
+
+def test_signed_url_lifetime_caps_at_seven_days(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seven_days = 7 * 24 * 60 * 60
+    monkeypatch.setenv("DMT_GCS_SIGNED_URL_TTL_SECONDS", str(8 * 24 * 60 * 60))
+    capped = get_download_settings()
+    assert capped.signed_url_ttl_seconds == seven_days
+
+    monkeypatch.setenv("DMT_GCS_SIGNED_URL_TTL_SECONDS", "900")
+    kept = get_download_settings()
+    assert kept.signed_url_ttl_seconds == 900
+
+    monkeypatch.setenv("DMT_GCS_SIGNED_URL_TTL_SECONDS", str(seven_days))
+    exact = get_download_settings()
+    assert exact.signed_url_ttl_seconds == seven_days
 
 
 def test_settings_key_tracks_credential_file_identity(tmp_path: Path) -> None:
