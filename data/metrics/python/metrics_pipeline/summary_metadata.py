@@ -7,6 +7,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
+from urllib.request import url2pathname
 
 
 class SummaryMetadataError(RuntimeError):
@@ -61,7 +62,7 @@ def _load_metadata_document(metadata_url: str, *, timeout: int) -> dict[str, Any
         with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
     elif parsed.scheme == "file":
-        payload = json.loads(Path(unquote(parsed.path)).read_text(encoding="utf-8"))
+        payload = json.loads(Path(url2pathname(parsed.path)).read_text(encoding="utf-8"))
     elif not parsed.scheme:
         payload = json.loads(Path(metadata_url).read_text(encoding="utf-8"))
     else:
@@ -89,6 +90,6 @@ def _sibling_url(metadata_url: str, summary_file: str) -> str:
             "",
         ))
     if parsed.scheme == "file":
-        sibling = Path(unquote(parsed.path)).parent / summary_file
+        sibling = Path(url2pathname(parsed.path)).parent / summary_file
         return sibling.resolve().as_uri()
     return str(Path(metadata_url).parent / summary_file)

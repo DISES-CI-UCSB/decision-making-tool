@@ -37,6 +37,8 @@ from sparse.vercel_blob import (  # noqa: E402
     load_token_from_env_file,
     upload_blob,
 )
+from console_encoding import use_utf8_console_streams  # noqa: E402
+from vercel_cli import require_vercel_cli  # noqa: E402
 
 SPECIES_RICHNESS_BLOB_DIRECTORY = "inputs/features/species_richness/"
 SPECIES_MATRIX_BLOB_DIRECTORY = "inputs/features/species-sparse/"
@@ -156,6 +158,7 @@ def main(argv: list[str] | None = None) -> int:
             raise RuntimeError(
                 "BLOB_READ_WRITE_TOKEN is required unless --no-upload is passed"
             ) from exc
+        require_vercel_cli()
 
     for group in groups:
         out_path, max_value, _ = _write_tif(group, args.local_output_dir)
@@ -170,4 +173,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    use_utf8_console_streams()
     raise SystemExit(main())

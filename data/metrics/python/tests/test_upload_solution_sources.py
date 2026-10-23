@@ -169,19 +169,39 @@ def test_interrupted_upload_resumes_from_remote_truth(tmp_path: Path):
         "failed",
     ]
 
+    # Entries the report already marks done are skipped on resume: each remote
+    # check downloads the whole immutable object, which is costly for large
+    # uploads. Only the interrupted entry is checked against the remote and
+    # uploaded.
+    resumed_fetches: list[str] = []
+    resumed_uploads: list[str] = []
+
+    def recording_fetch(url: str) -> str | None:
+        resumed_fetches.append(url)
+        return fetch(url)
+
+    def recording_upload(token: str, source: Path, blob_path: str) -> str:
+        resumed_uploads.append(blob_path)
+        return upload(token, source, blob_path)
+
     resumed = run_upload(
         plan,
         report_path=report_path,
         dry_run=False,
         token="secret",
-        fetch_remote_sha256=fetch,
-        upload_blob=upload,
+        fetch_remote_sha256=recording_fetch,
+        upload_blob=recording_upload,
     )
     assert resumed["complete"] is True
     assert [entry["status"] for entry in resumed["entries"]] == [
-        "already-complete",
+        "uploaded",
         "uploaded",
     ]
+    first_planned, second_planned = json.loads(plan.read_text(encoding="utf-8"))[
+        "entries"
+    ]
+    assert first_planned["expectedPublicUrl"] not in resumed_fetches
+    assert resumed_uploads == [second_planned["expectedBlobPath"]]
 
 
 def test_transient_failures_use_bounded_retry(tmp_path: Path):

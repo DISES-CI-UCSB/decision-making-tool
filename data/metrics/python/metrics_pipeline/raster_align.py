@@ -25,7 +25,13 @@ from rasterio.enums import Resampling
 from rasterio.warp import reproject
 
 from metric_definitions import required_layer_ids
-from platform_io import fsync_directory, lock_exclusive, unlock_exclusive
+from platform_io import (
+    fsync_directory,
+    lock_exclusive,
+    replace_with_retry,
+    unlink_best_effort,
+    unlock_exclusive,
+)
 from raster_metrics import RasterError, RasterFingerprint
 
 ALIGNMENT_MANIFEST_FORMAT = "metrics-raster-alignment-v3"
@@ -592,10 +598,8 @@ class RasterAlignmentCache:
                     self._pinned.add(key)
                 self._remember_verified(cached)
                 return cached
-            tmp = directory / f".{key}.{os.getpid()}.{uuid.uuid4().hex}.tmp.tif"
-            manifest_tmp = directory / (
-                f".{key}.{os.getpid()}.{uuid.uuid4().hex}.tmp.json"
-            )
+            tmp = directory / f".{key}.{uuid.uuid4().hex}.tmp.tif"
+            manifest_tmp = directory / f".{key}.{uuid.uuid4().hex}.tmp.json"
             try:
                 legacy = self._legacy_species_artifact(
                     source_sha256,
@@ -630,8 +634,8 @@ class RasterAlignmentCache:
                 self._write_json_file(manifest_tmp, manifest)
                 self._fsync_file(tmp)
                 self._fsync_file(manifest_tmp)
-                tmp.replace(path)
-                manifest_tmp.replace(manifest_path)
+                replace_with_retry(tmp, path)
+                replace_with_retry(manifest_tmp, manifest_path)
                 fsync_directory(directory)
             finally:
                 tmp.unlink(missing_ok=True)
@@ -951,12 +955,14 @@ class RasterAlignmentCache:
                     continue
                 try:
                     if key not in self._pinned:
-                        manifest_path.unlink(missing_ok=True)
-                        raster_path.unlink(missing_ok=True)
+                        if not unlink_best_effort(manifest_path):
+                            continue
+                        raster_removed = unlink_best_effort(raster_path)
                         self._verified.pop(key, None)
                         self._verified_stats.pop(key, None)
-                        total -= size
-                        removed += 1
+                        if raster_removed:
+                            total -= size
+                            removed += 1
                 finally:
                     unlock_exclusive(handle)
         return removed
@@ -978,6 +984,7 @@ class RasterAlignmentCache:
         path.write_text(
             json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
+            newline="\n",
         )
 
     @staticmethod

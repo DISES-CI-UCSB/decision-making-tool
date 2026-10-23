@@ -2,23 +2,11 @@
   "schemaVersion": 3,
   "featureSets": [
     {
-      "id": "FS-900",
-      "name": "Example catalog",
-      "example": true
-    },
-    {
       "id": "FS-200",
       "name": "Private layer downloads"
     }
   ],
   "features": [
-    {
-      "id": "F-900",
-      "featureSetId": "FS-900",
-      "name": "Account sign-in",
-      "lifecycle": "active",
-      "lifecycleChange": null
-    },
     {
       "id": "F-210",
       "featureSetId": "FS-200",
@@ -34,39 +22,8 @@
       "lifecycleChange": null
     }
   ],
-  "criticalCoreAreas": [
-    {
-      "id": "CC-900",
-      "name": "Example calculations",
-      "example": true
-    }
-  ],
-  "examples": [
-    {
-      "id": "FBT-E001",
-      "name": "A new user can sign in and register for multi-factor authentication.",
-      "methodology": "This example does not run. If promoted, the browser and application flow would be real: the test would create a new account through the user interface, enroll an authenticator second factor, sign out, and sign back in with the password plus a current authenticator code before observing the account page. The identity backend would need an isolated test tenant or emulator, the authenticator-code helper would be test-only, and authentication responses would not be mocked. SMS and email enrollment are not covered.",
-      "category": "feature-behavior",
-      "owner": "F-900",
-      "sourceFile": "tests/features/FS-900-example-catalog/F-900-account-sign-in/behavior/FBT-E001.example.spec.ts"
-    },
-    {
-      "id": "FBT-E002",
-      "name": "Signing in with a wrong password shows an error and does not open the account.",
-      "methodology": "This example does not run. If promoted, it would use the real browser and application flow with an isolated test account to submit a known wrong password, observe the visible error, verify that account navigation and multi-factor enrollment do not appear, then visit the protected account URL directly and observe the sign-in page instead of account content. The account credentials would be test-only, and authentication responses would not be mocked. This checks browser-observable access and does not inspect the identity provider's internal session storage.",
-      "category": "feature-behavior",
-      "owner": "F-900",
-      "sourceFile": "tests/features/FS-900-example-catalog/F-900-account-sign-in/behavior/FBT-E002.example.spec.ts"
-    },
-    {
-      "id": "CCT-E001",
-      "name": "Water depth in meters equals the surveyed water elevation minus the surveyed bed elevation.",
-      "methodology": "This example does not run. If promoted, it would call the real production water-depth calculation through an imported production seam and compare exact known surveyed values: 103.75 m water minus 101.25 m bed equals 2.5 m, and 99.5 m water minus 100 m bed equals -0.5 m. Inputs are fixed test values; no calculation or response is mocked. It does not read a map or network response.",
-      "category": "critical-core",
-      "owner": "CC-900",
-      "sourceFile": "tests/core/CC-900-example-calculations/CCT-E001.example.test.ts"
-    }
-  ],
+  "criticalCoreAreas": [],
+  "examples": [],
   "tests": [
     {
       "id": "SST-001",
@@ -108,8 +65,8 @@
     },
     {
       "id": "FBT-001",
-      "name": "A signed-in user with an active account can download a national layer file with the returned link, and opening the plain bucket address for that file is refused.",
-      "methodology": "Signs in a throwaway active account (role user, no SIRAP grant) and calls POST /downloads/signed-url on the deployed Metrics API for a national catalog file. It checks a 200 reply with a url, an expires_at between 14 and 16 minutes from now, and Cache-Control: no-store. It then makes a ranged GET for the first 1024 bytes on the returned link and expects 200 or 206 with bytes, and makes an anonymous GET of the same file's plain storage.googleapis.com address and expects 401 or 403. Real: the deployed Metrics API, Firebase Authentication, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked, and Firebase issues the ID token after a real email-and-password sign-in. Test-only: the Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, and the chosen national object key; the user and record are deleted afterward. Not checked: the web app's download button, server cache timing, 503 configuration errors, or that the link stops working after its 15-minute expiry.",
+      "name": "Direct bucket address is refused, while a signed-in user's temporary link downloads the national layer file.",
+      "methodology": "Proves that a national layer file cannot be opened from its plain bucket address, while a signed-in active user can download it through the temporary link the service returns. File requested: inputs/reference/ramsar/v0.1.0/ramsar.geojson (Ramsar wetlands geometry, listed as national in the download catalog), once through the service and once at its plain storage.googleapis.com address; the DMT_TEST_NATIONAL_OBJECT environment variable can override the key. Signs in a throwaway active account (role user, no SIRAP grant) and calls POST /downloads/signed-url on the deployed Metrics API for that file. It checks a 200 reply with a url, an expires_at between 14 and 16 minutes from now, and Cache-Control: no-store. It then makes a ranged GET for the first 1024 bytes on the returned link and expects 200 or 206 with bytes, and makes an anonymous GET of the same file's plain storage.googleapis.com address and expects 401 or 403. Real: the deployed Metrics API, Firebase Authentication, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked, and Firebase issues the ID token after a real email-and-password sign-in. Test-only: the Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, and the chosen national object key; the user and record are deleted afterward. Not checked: the web app's download button, server cache timing, 503 configuration errors, or that the link stops working after its 15-minute expiry; 'temporary' is checked only through the reported expires_at time.",
       "category": "feature-behavior",
       "owner": "F-210",
       "additionalFeatureAssociations": [],
@@ -123,12 +80,31 @@
       "enforcementChange": null,
       "durationBudgetMs": 6000,
       "fast": false,
-      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-210-signed-download-links/behavior/FBT-001.test.ts"
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-210-signed-download-links/behavior/FBT-001.api.spec.ts"
     },
     {
-      "id": "FBT-002",
-      "name": "Requests without a valid sign-in, or from a pending account, get no download link.",
-      "methodology": "Calls POST /downloads/signed-url on the deployed Metrics API for a national catalog file three times: with no Authorization header, with a made-up bearer string that is not a Firebase ID token, and with a real ID token for an account whose Firestore status is pending (role user, no authenticator). It expects 401, 401, and 403 with reason account_inactive, and checks that no reply body has a url and no raw reply text contains X-Goog-Signature. Real: the deployed Metrics API, Firebase Authentication, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked, and Firebase issues the pending account's ID token after a real email-and-password sign-in. Test-only: the pending Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, the made-up token string, and the chosen national object key; the user and record are deleted afterward. Not checked: expired, revoked, or other-project tokens, the web app's download button, server cache timing, 503 configuration errors, or the 15-minute link expiry.",
+      "id": "FBT-006",
+      "name": "A visitor who is not signed in cannot download a restricted regional file.",
+      "methodology": "Proves that a visitor with no sign-in gets no download link for a regional (SIRAP) file and cannot open it from its plain bucket address either. File requested: inputs/reference/orinoquia_savannas/v0.1.0/orinoquia_savannas.metadata.json (Orinoquia savannas metadata, listed as restricted to the orinoquia region), twice through the service and once at its plain storage.googleapis.com address; the DMT_TEST_ORINOQUIA_OBJECT environment variable can override the key. Calls POST /downloads/signed-url on the deployed Metrics API for that file with no Authorization header, then with a made-up bearer string that is not a Firebase ID token, and expects 401 with reason invalid_token each time. No reply body may contain a url, and no raw reply text may contain X-Goog-Signature. It then makes an anonymous GET of the file's plain storage.googleapis.com address and expects 401 or 403. Real: the deployed Metrics API, including its Firebase ID token check, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked. Test-only: the made-up token string and the chosen Orinoquia object key; no Firebase account is created. Not checked: expired, revoked, or other-project tokens, signed-in accounts (FBT-003 and FBT-007 cover those), the Eje Cafetero file, the web app's download button, server cache timing, or 503 configuration errors.",
+      "category": "feature-behavior",
+      "owner": "F-220",
+      "additionalFeatureAssociations": [],
+      "scope": "integration",
+      "environment": "non-browser",
+      "browserMode": "not-applicable",
+      "regression": false,
+      "bugReference": null,
+      "rootCauseAnalysis": null,
+      "enforcement": "required",
+      "enforcementChange": null,
+      "durationBudgetMs": 3000,
+      "fast": false,
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-006.api.spec.ts"
+    },
+    {
+      "id": "FBT-007",
+      "name": "A signed-in user with no regional (SIRAP) access cannot download a restricted regional file.",
+      "methodology": "Proves that a signed-in active user who passed the authenticator sign-in but holds no regional (SIRAP) grant gets no download link for a regional file and cannot open it from its plain bucket address either. File requested: inputs/reference/orinoquia_savannas/v0.1.0/orinoquia_savannas.metadata.json (Orinoquia savannas metadata, listed as restricted to the orinoquia region), once through the service and once at its plain storage.googleapis.com address; the DMT_TEST_ORINOQUIA_OBJECT environment variable can override the key. Creates an active account with role user and an empty allowedSirapIds list, enrolls a Time-based One-Time Password (TOTP) authenticator, then signs in again with password plus code, so Firebase marks its ID token's second factor as totp. Asking POST /downloads/signed-url for the file, it expects 403 with reason layer_forbidden; the reply body may not contain a url and the raw reply text may not contain X-Goog-Signature. It then makes an anonymous GET of the file's plain storage.googleapis.com address and expects 401 or 403. Because the authenticator sign-in is present, the refusal isolates the region-grant rule; FBT-003 covers the refusal without an authenticator (mfa_required). Real: the deployed Metrics API, Firebase Authentication including authenticator enrollment and the second-factor sign-in, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked. Test-only: the Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, authenticator codes computed in memory from the enrollment secret, and the chosen Orinoquia object key; the user and record are deleted afterward. Not checked: a sirap-user granted a different region (FBT-003 covers that with the Eje Cafetero file), the Eje Cafetero file itself, how fast a revoked grant takes effect, the web app's download button, server cache timing, or 503 configuration errors.",
       "category": "feature-behavior",
       "owner": "F-220",
       "additionalFeatureAssociations": [],
@@ -142,12 +118,31 @@
       "enforcementChange": null,
       "durationBudgetMs": 5000,
       "fast": false,
-      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-002.test.ts"
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-007.api.spec.ts"
+    },
+    {
+      "id": "FBT-002",
+      "name": "Download links are refused when the sign-in is missing, fake, or from a pending account.",
+      "methodology": "Proves that the service gives no download link when the request has no sign-in, a fake sign-in, or a real sign-in from an account still pending approval. File requested: inputs/reference/ramsar/v0.1.0/ramsar.geojson (Ramsar wetlands geometry, listed as national in the download catalog), three times through the service; the DMT_TEST_NATIONAL_OBJECT environment variable can override the key. Calls POST /downloads/signed-url on the deployed Metrics API for that file with no Authorization header, with a made-up bearer string that is not a Firebase ID token, and with a real ID token for an account whose Firestore status is pending (role user, no authenticator). It expects 401, 401, and 403 with reason account_inactive, and checks that no reply body has a url and no raw reply text contains X-Goog-Signature. Real: the deployed Metrics API, Firebase Authentication, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked, and Firebase issues the pending account's ID token after a real email-and-password sign-in. Test-only: the pending Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, the made-up token string, and the chosen national object key; the user and record are deleted afterward. Not checked: expired, revoked, or other-project tokens, the 401 refusal reason, the web app's download button, server cache timing, 503 configuration errors, or the 15-minute link expiry.",
+      "category": "feature-behavior",
+      "owner": "F-220",
+      "additionalFeatureAssociations": [],
+      "scope": "integration",
+      "environment": "non-browser",
+      "browserMode": "not-applicable",
+      "regression": false,
+      "bugReference": null,
+      "rootCauseAnalysis": null,
+      "enforcement": "required",
+      "enforcementChange": null,
+      "durationBudgetMs": 5000,
+      "fast": false,
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-002.api.spec.ts"
     },
     {
       "id": "FBT-003",
-      "name": "A SIRAP layer file needs authenticator sign-in and the matching region grant.",
-      "methodology": "Creates two active accounts with role sirap-user and allowedSirapIds ['orinoquia']. The first signs in with a password only. The second enrolls a Time-based One-Time Password (TOTP) authenticator, then signs in again with password plus code, so Firebase marks its ID token's second factor as totp. Asking POST /downloads/signed-url for the Orinoquia file, the password-only account gets 403 mfa_required with no link, and the authenticator account gets 200 with a link whose ranged GET returns 200 or 206 with bytes. The authenticator account asking for the Eje Cafetero file gets 403 layer_forbidden with no link. Real: the deployed Metrics API, Firebase Authentication including authenticator enrollment and the second-factor sign-in, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked. Test-only: the two Firebase users, created by the Admin SDK with verified @dmt-test.invalid addresses so no email is sent, their Firestore users records, authenticator codes computed in memory from the enrollment secret, and the chosen Orinoquia and Eje Cafetero object keys; users and records are deleted afterward. Not checked: SMS second factors, the sirap-admin role, how fast a revoked grant takes effect, the web app's download button, server cache timing, 503 configuration errors, or the 15-minute link expiry.",
+      "name": "A regional (SIRAP) layer download is refused without authenticator sign-in or without that region's grant.",
+      "methodology": "Proves that a regional (SIRAP) file is refused to an account that signed in without an authenticator and to an authenticator account that lacks that region's grant, while an authenticator account holding the grant can download it. Files requested: inputs/reference/orinoquia_savannas/v0.1.0/orinoquia_savannas.metadata.json (Orinoquia savannas metadata, listed as restricted to the orinoquia region), then inputs/reference/eje_cafetero_wetlands/v0.1.0/eje_cafetero_wetlands.metadata.json (Eje Cafetero wetlands metadata, listed as restricted to the eje-cafetero region); the DMT_TEST_ORINOQUIA_OBJECT and DMT_TEST_EJE_CAFETERO_OBJECT environment variables can override the keys. Creates two active accounts with role sirap-user and allowedSirapIds ['orinoquia']. The first signs in with a password only. The second enrolls a Time-based One-Time Password (TOTP) authenticator, then signs in again with password plus code, so Firebase marks its ID token's second factor as totp. Asking POST /downloads/signed-url for the Orinoquia file, the password-only account gets 403 mfa_required with no link, and the authenticator account gets 200 with a link whose ranged GET returns 200 or 206 with bytes. The authenticator account asking for the Eje Cafetero file gets 403 layer_forbidden with no link. Real: the deployed Metrics API, Firebase Authentication including authenticator enrollment and the second-factor sign-in, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked. Test-only: the two Firebase users, created by the Admin SDK with verified @dmt-test.invalid addresses so no email is sent, their Firestore users records, authenticator codes computed in memory from the enrollment secret, and the chosen Orinoquia and Eje Cafetero object keys; users and records are deleted afterward. Not checked: SMS second factors, the sirap-admin role, how fast a revoked grant takes effect, the plain bucket address, the web app's download button, server cache timing, 503 configuration errors, or the 15-minute link expiry.",
       "category": "feature-behavior",
       "owner": "F-220",
       "additionalFeatureAssociations": [],
@@ -161,12 +156,12 @@
       "enforcementChange": null,
       "durationBudgetMs": 8000,
       "fast": false,
-      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-003.test.ts"
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-003.api.spec.ts"
     },
     {
       "id": "FBT-004",
-      "name": "A super-admin signed in with an authenticator can get links for both SIRAP regions.",
-      "methodology": "Creates an active account with Firestore role super-admin and an empty allowedSirapIds list, enrolls a Time-based One-Time Password (TOTP) authenticator, and signs in again with password plus code. It asks POST /downloads/signed-url for the Orinoquia file and the Eje Cafetero file, expects 200 with a link for each, and expects a ranged GET on each link to return 200 or 206 with bytes. Because the grant list is empty, both regions must come from the super-admin role. Real: the deployed Metrics API, Firebase Authentication including authenticator enrollment and the second-factor sign-in, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked. Test-only: the Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, authenticator codes computed in memory, and the chosen Orinoquia and Eje Cafetero object keys; the user and record are deleted afterward. Not checked: a super-admin without an authenticator, national files, the web app's download button, server cache timing, 503 configuration errors, or the 15-minute link expiry.",
+      "name": "A super-admin with authenticator sign-in can download both regional (SIRAP) layers without region grants.",
+      "methodology": "Proves that a super-admin who signed in with an authenticator can download the files of both regions (SIRAP) even with an empty region-grant list. Files requested: inputs/reference/orinoquia_savannas/v0.1.0/orinoquia_savannas.metadata.json (Orinoquia savannas metadata, listed as restricted to the orinoquia region) and inputs/reference/eje_cafetero_wetlands/v0.1.0/eje_cafetero_wetlands.metadata.json (Eje Cafetero wetlands metadata, listed as restricted to the eje-cafetero region); the DMT_TEST_ORINOQUIA_OBJECT and DMT_TEST_EJE_CAFETERO_OBJECT environment variables can override the keys. Creates an active account with Firestore role super-admin and an empty allowedSirapIds list, enrolls a Time-based One-Time Password (TOTP) authenticator, and signs in again with password plus code. It asks POST /downloads/signed-url for the Orinoquia file and the Eje Cafetero file, expects 200 with a link for each, and expects a ranged GET on each link to return 200 or 206 with bytes. Because the grant list is empty, both regions must come from the super-admin role. Real: the deployed Metrics API, Firebase Authentication including authenticator enrollment and the second-factor sign-in, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked. Test-only: the Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, authenticator codes computed in memory, and the chosen Orinoquia and Eje Cafetero object keys; the user and record are deleted afterward. Not checked: a super-admin without an authenticator, national files, the web app's download button, server cache timing, 503 configuration errors, or the 15-minute link expiry.",
       "category": "feature-behavior",
       "owner": "F-220",
       "additionalFeatureAssociations": [],
@@ -180,12 +175,12 @@
       "enforcementChange": null,
       "durationBudgetMs": 6000,
       "fast": false,
-      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-004.test.ts"
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-004.api.spec.ts"
     },
     {
       "id": "FBT-005",
-      "name": "Files missing from the download catalog cannot be requested, even when they exist in the bucket.",
-      "methodology": "With a real ID token for an active account (role user, no SIRAP grant), asks POST /downloads/signed-url for an object key that is in the bucket but left out of the download catalog and expects 404 object_not_in_catalog with no link. It then asks for '../' followed by the listed national key and expects 422 with no link, so a path-shaped key is refused even when it points at a listed file. No reply body may contain a url, and no raw reply text may contain X-Goog-Signature. Real: the deployed Metrics API, Firebase Authentication, Firestore, and the deployed download catalog; nothing in the request path is mocked, and Firebase issues the ID token after a real email-and-password sign-in. Test-only: the Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, and the chosen unlisted and national object keys; the user and record are deleted afterward. The test does not itself verify that the unlisted key exists in the bucket; that is a precondition of the chosen key. Not checked: other malformed keys such as URLs or backslashes, the web app's download button, server cache timing, or 503 configuration errors.",
+      "name": "A file in the bucket but missing from the download catalog is refused, including ../ path tricks.",
+      "methodology": "Proves that the service refuses a file that exists in the bucket but is missing from the download catalog, and refuses a key starting with '../' even when the rest of it names a listed file. Files requested: releases/catalog-v3-7-1/manifest.json (a real 74 MB bucket object that the download catalog deliberately leaves out), then the path-shaped key ../inputs/reference/ramsar/v0.1.0/ramsar.geojson ('../' followed by the Ramsar wetlands geometry key, which is listed as national); the DMT_TEST_UNLISTED_OBJECT and DMT_TEST_NATIONAL_OBJECT environment variables can override the keys. With a real ID token for an active account (role user, no SIRAP grant), asks POST /downloads/signed-url for the unlisted key and expects 404 object_not_in_catalog with no link. It then asks for the path-shaped key and expects 422 with no link, so a path-shaped key is refused even when it points at a listed file. No reply body may contain a url, and no raw reply text may contain X-Goog-Signature. Real: the deployed Metrics API, Firebase Authentication, Firestore, and the deployed download catalog; nothing in the request path is mocked, and Firebase issues the ID token after a real email-and-password sign-in. Test-only: the Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, and the chosen unlisted and national object keys; the user and record are deleted afterward. The test does not itself verify that the unlisted key exists in the bucket; that is a precondition of the chosen key. Not checked: other malformed keys such as URLs or backslashes, the web app's download button, server cache timing, or 503 configuration errors.",
       "category": "feature-behavior",
       "owner": "F-220",
       "additionalFeatureAssociations": [],
@@ -199,7 +194,26 @@
       "enforcementChange": null,
       "durationBudgetMs": 4000,
       "fast": false,
-      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-005.test.ts"
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-005.api.spec.ts"
+    },
+    {
+      "id": "FBT-008",
+      "name": "A signed-in user with authenticator sign-in and a region grant can download that region's restricted file.",
+      "methodology": "Proves that a signed-in active user who passed the authenticator sign-in and holds a regional (SIRAP) grant gets a working temporary download link for that region's restricted file. File requested: inputs/reference/eje_cafetero_wetlands/v0.1.0/eje_cafetero_wetlands.metadata.json (Eje Cafetero wetlands metadata, listed as restricted to the eje-cafetero region); the DMT_TEST_EJE_CAFETERO_OBJECT environment variable can override the key. Creates an active account with role sirap-user and allowedSirapIds ['eje-cafetero'], enrolls a Time-based One-Time Password (TOTP) authenticator, then signs in again with password plus code, so Firebase marks its ID token's second factor as totp. Calls POST /downloads/signed-url on the deployed Metrics API for the file and expects a 200 reply with a url, an expires_at between 14 and 16 minutes from now, and Cache-Control: no-store. It then makes a ranged GET for the first 1024 bytes on the returned link and expects 200 or 206 with bytes. Because the account has a grant and no super-admin role, the success comes from the region grant itself, and it covers the second region that FBT-003 does not download. Real: the deployed Metrics API, Firebase Authentication including authenticator enrollment and the second-factor sign-in, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked. Test-only: the Firebase user, created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, its Firestore users record, authenticator codes computed in memory from the enrollment secret, and the chosen Eje Cafetero object key; the user and record are deleted afterward. Not checked: an Eje Cafetero-granted account asking for the Orinoquia file (FBT-003 covers the reverse), the password-only sign-in refusal (FBT-003), the no-grant refusal (FBT-007), super-admin access (FBT-004), how fast a revoked grant takes effect, the plain bucket address, the web app's download button, server cache timing, or 503 configuration errors.",
+      "category": "feature-behavior",
+      "owner": "F-220",
+      "additionalFeatureAssociations": [],
+      "scope": "integration",
+      "environment": "non-browser",
+      "browserMode": "not-applicable",
+      "regression": false,
+      "bugReference": null,
+      "rootCauseAnalysis": null,
+      "enforcement": "required",
+      "enforcementChange": null,
+      "durationBudgetMs": 4000,
+      "fast": false,
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-008.api.spec.ts"
     }
   ]
 }

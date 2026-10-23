@@ -1,4 +1,5 @@
 import { formatWallClock } from './command-report.ts';
+import { redactCredentials } from './credential-redaction.ts';
 
 export interface PlannedTest {
   id: string;
@@ -45,7 +46,7 @@ export function progressSentence(input: {
 export function readableErrorLines(message: string | undefined): string[] {
   if (!message) return [];
   const ansiPattern = new RegExp(`${String.fromCharCode(0x1b)}\\[[0-9;]*m`, 'g');
-  const lines = message
+  const lines = redactCredentials(message)
     .replace(ansiPattern, '')
     .split('\n')
     .map((line) => line.trim())

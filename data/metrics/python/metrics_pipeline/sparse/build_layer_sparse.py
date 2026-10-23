@@ -69,6 +69,8 @@ from sparse.vercel_blob import (  # noqa: E402
     public_url_for,
     upload_blob,
 )
+from console_encoding import use_utf8_console_streams  # noqa: E402
+from vercel_cli import VercelCliNotFoundError, require_vercel_cli  # noqa: E402
 
 DEFAULT_LOCAL_CACHE = Path("data/metrics/cache/sparse/layers")
 DEFAULT_TIF_CACHE = Path("data/metrics/cache/tier1")
@@ -300,7 +302,8 @@ def main(argv: list[str] | None = None) -> int:
     if upload_enabled:
         try:
             token = load_token_from_env_file(Path(".env.local"))
-        except BlobError as exc:
+            require_vercel_cli()
+        except (BlobError, VercelCliNotFoundError) as exc:
             print(f"[layer-sparse] ERROR: {exc}", file=sys.stderr)
             return 2
 
@@ -398,4 +401,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    use_utf8_console_streams()
     raise SystemExit(main())

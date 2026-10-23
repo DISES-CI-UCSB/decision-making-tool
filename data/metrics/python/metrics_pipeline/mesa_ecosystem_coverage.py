@@ -285,7 +285,11 @@ def write_document(path: Path, document: dict[str, Any]) -> None:
     if document.get("format") != FORMAT:
         raise MesaEcosystemCoverageError(f"Refusing to write unknown format {document.get('format')!r}.")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(document, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def compare_national_to_summary(

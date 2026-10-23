@@ -9,7 +9,8 @@ import shutil
 import warnings
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlsplit
+from urllib.parse import urlsplit
+from urllib.request import url2pathname
 
 from goal_summary import build_goal_summary
 from metrics_pipeline.species_goals import validate_catalog, validate_compact
@@ -121,7 +122,7 @@ def local_path(url: str) -> Path:
     parsed = urlsplit(url)
     if parsed.scheme != "file":
         raise ValueError(f"expected local file URL, got {url}")
-    return Path(unquote(parsed.path))
+    return Path(url2pathname(parsed.path))
 
 
 def immutable_url(path: str) -> str:
@@ -537,6 +538,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             output.write_text(
                 json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n",
                 encoding="utf-8",
+                newline="\n",
             )
             artifacts.append(
                 {
@@ -648,6 +650,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             )
             + "\n",
             encoding="utf-8",
+            newline="\n",
         )
         artifacts.append(
             {
@@ -715,7 +718,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         ("release-artifact-inventory.json", inventory),
     ):
         (root / filename).write_text(
-            json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            json.dumps(document, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+            newline="\n",
         )
     return validate(root)
 

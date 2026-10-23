@@ -12,7 +12,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlsplit
+from urllib.parse import urlsplit
+from urllib.request import url2pathname
 
 from solution_domain import is_batch_solution, solution_domain
 
@@ -356,7 +357,7 @@ def fetch_manifest(url: str | None = None, *, timeout: int = 30) -> ResolvedMani
     if parsed.scheme == "file":
         try:
             payload = json.loads(
-                Path(unquote(parsed.path)).read_text(encoding="utf-8")
+                Path(url2pathname(parsed.path)).read_text(encoding="utf-8")
             )
         except (OSError, json.JSONDecodeError) as exc:
             raise ManifestError(

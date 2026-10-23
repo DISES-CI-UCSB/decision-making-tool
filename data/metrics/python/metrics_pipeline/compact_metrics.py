@@ -722,6 +722,7 @@ def convert_publish_report(
             compact_path.write_text(
                 json.dumps(compact_doc, ensure_ascii=False, separators=(",", ":")) + "\n",
                 encoding="utf-8",
+                newline="\n",
             )
 
         verbose_bytes = verbose_path.stat().st_size
@@ -858,6 +859,7 @@ def main(argv: list[str] | None = None) -> int:
     report_path.write_text(
         json.dumps(report, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
 
     summary = report.get("compactSummary") or {}

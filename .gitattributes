@@ -1,0 +1,4 @@
+# Data files are checksummed and compared byte-for-byte across machines
+# (Mac and Windows), so Git must never convert their line endings.
+# `-text` means: store and check out exactly the bytes that were committed.
+data/** -text

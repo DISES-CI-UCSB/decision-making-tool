@@ -25,7 +25,7 @@ import argparse
 import hashlib
 import json
 import os
-import subprocess
+import subprocess  # noqa: F401 - tests patch publish.subprocess.run
 import sys
 import time
 import urllib.error
@@ -46,7 +46,9 @@ from cli_utils import (
     print_inspect_summary,
     resolve_output_dir,
 )
+from console_encoding import use_utf8_console_streams
 from validation.inspect_cache import inspect_publish_report
+from vercel_cli import VercelCliNotFoundError, require_vercel_cli, run_vercel
 
 
 @dataclass
@@ -155,9 +157,8 @@ def _load_report_entries(report_path: Path) -> list[dict[str, Any]]:
 def _put_blob(token: str, local_path: Path, blob_path: str) -> str | None:
     env = os.environ.copy()
     env[BLOB_TOKEN_ENV_VAR] = token
-    completed = subprocess.run(
+    completed = run_vercel(
         [
-            "vercel",
             "blob",
             "put",
             str(local_path),
@@ -172,6 +173,8 @@ def _put_blob(token: str, local_path: Path, blob_path: str) -> str | None:
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         env=env,
     )
     output = f"{completed.stdout}\n{completed.stderr}"
@@ -253,6 +256,12 @@ def _print_publish_report(run: PublishRun, *, elapsed_seconds: float) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    if not args.dry_run:
+        try:
+            require_vercel_cli()
+        except VercelCliNotFoundError as exc:
+            print(f"[tier1-publish] ERROR: {exc}", file=sys.stderr)
+            return 2
     repo_root = find_repo_root()
     report_path = (
         resolve_output_dir(repo_root, args.report)
@@ -405,4 +414,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    use_utf8_console_streams()
     raise SystemExit(main())

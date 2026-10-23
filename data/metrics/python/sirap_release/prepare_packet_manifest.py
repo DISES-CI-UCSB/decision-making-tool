@@ -262,6 +262,7 @@ def main() -> None:
     args.output_manifest.write_text(
         json.dumps(output, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     print(
         json.dumps(

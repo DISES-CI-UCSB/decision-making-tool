@@ -68,6 +68,8 @@ from sparse.vercel_blob import (  # noqa: E402
     public_url_for,
     upload_blob,
 )
+from console_encoding import use_utf8_console_streams  # noqa: E402
+from vercel_cli import VercelCliNotFoundError, require_vercel_cli  # noqa: E402
 
 DEFAULT_LOCAL_CACHE = Path("data/metrics/cache/sparse/species")
 DEFAULT_TIF_CACHE = Path("data/metrics/cache/tier1")
@@ -285,6 +287,12 @@ def main(argv: list[str] | None = None) -> int:
                     file=sys.stderr,
                 )
                 token = None
+    if upload_enabled:
+        try:
+            require_vercel_cli()
+        except VercelCliNotFoundError as exc:
+            print(f"[species-sparse] ERROR: {exc}", file=sys.stderr)
+            return 2
 
     print(f"[species-sparse] fetching species CSV: {args.species_csv_url}")
     csv_dl = cached_download(args.species_csv_url, args.cache_dir)
@@ -395,4 +403,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    use_utf8_console_streams()
     raise SystemExit(main())

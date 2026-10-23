@@ -10,7 +10,8 @@ import struct
 from collections import Counter
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 from species_data import load_species_records
 from species_taxonomy import normalize_class_name
@@ -25,7 +26,7 @@ def local_path(url: str) -> Path:
     parsed = urlparse(url)
     if parsed.scheme != "file":
         raise ValueError(f"audit requires a local file URL, received {url!r}")
-    return Path(unquote(parsed.path))
+    return Path(url2pathname(parsed.path))
 
 
 def sha256_file(path: Path) -> str:

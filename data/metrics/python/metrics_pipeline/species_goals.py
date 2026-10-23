@@ -649,7 +649,7 @@ class SpeciesGoalsPipeline:
         payload_digest = hashlib.sha256()
         sorted_keys = sorted((*body.keys(), "rows"))
         try:
-            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
                 handle.write("{")
                 for output_index, key in enumerate(body):
                     if output_index:
@@ -1465,7 +1465,7 @@ def _atomic_json_write(path: Path, document: dict[str, Any]) -> None:
     )
     temp_path = Path(temp_name)
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
             json.dump(
                 document,
                 handle,

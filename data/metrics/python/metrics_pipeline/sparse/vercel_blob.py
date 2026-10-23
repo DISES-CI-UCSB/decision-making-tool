@@ -20,6 +20,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
+from vercel_cli import run_vercel
+
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 BLOB_TOKEN_ENV_VAR = "BLOB_READ_WRITE_TOKEN"
 
@@ -45,10 +47,12 @@ def _run_vercel(args: list[str], *, capture: bool = True) -> subprocess.Complete
     body of text for parsing — exit code is the only signal we treat as
     fatal.
     """
-    completed = subprocess.run(
-        ["vercel", *args, "--no-color"],
+    completed = run_vercel(
+        [*args, "--no-color"],
         capture_output=capture,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if completed.returncode != 0:

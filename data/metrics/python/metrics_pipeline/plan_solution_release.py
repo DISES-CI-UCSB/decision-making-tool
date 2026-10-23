@@ -167,6 +167,7 @@ def write_release_plan(path: Path, plan: dict[str, Any]) -> None:
     temporary.write_text(
         json.dumps(plan, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     temporary.replace(path)
 

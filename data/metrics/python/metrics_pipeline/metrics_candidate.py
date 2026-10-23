@@ -342,7 +342,7 @@ def _write_json_atomic(target: Path, document: dict[str, Any]) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_name(f".{target.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
     try:
-        with temporary.open("w", encoding="utf-8") as handle:
+        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
             json.dump(document, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
             handle.flush()

@@ -463,6 +463,7 @@ def bind_release_output(
     temporary.write_text(
         json.dumps(expected, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     temporary.replace(marker)
     return marker

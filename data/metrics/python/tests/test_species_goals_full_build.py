@@ -148,25 +148,28 @@ def test_national_only_active_levels_skip_aoi_partitions(monkeypatch):
     assert module._active_geography_levels() == module.GEOGRAPHY_LEVELS
 
 
-def test_national_only_defaults_to_six_workers_and_rejects_full_geo_override():
+def test_worker_count_defaults_and_allows_one_to_eight_workers():
     module = _full_build()
     assert module._resolve_worker_count(national_only=True, requested=None) == 6
     assert module._resolve_worker_count(national_only=True, requested=6) == 6
     assert module._resolve_worker_count(national_only=False, requested=None) == 3
-    with pytest.raises(ValueError, match="exactly 3 workers"):
-        module._resolve_worker_count(national_only=False, requested=6)
-    with pytest.raises(ValueError, match="between 1 and 8"):
-        module._resolve_worker_count(national_only=True, requested=9)
+    assert module._resolve_worker_count(national_only=False, requested=6) == 6
+    for national_only in (True, False):
+        with pytest.raises(ValueError, match="between 1 and 8"):
+            module._resolve_worker_count(national_only=national_only, requested=9)
+        with pytest.raises(ValueError, match="between 1 and 8"):
+            module._resolve_worker_count(national_only=national_only, requested=0)
 
 
-def test_parse_args_allows_six_workers_only_with_national_only(tmp_path: Path):
+def test_parse_args_accepts_one_to_eight_workers_and_rejects_nine(tmp_path: Path):
     module = _full_build()
     required = _required_paths(tmp_path)
     parsed = module._parse_args([*required, "--national-only", "--workers", "6"])
     assert parsed.national_only is True
     assert parsed.workers == 6
+    assert module._parse_args([*required, "--workers", "6"]).workers == 6
     with pytest.raises(SystemExit):
-        module._parse_args([*required, "--workers", "6"])
+        module._parse_args([*required, "--workers", "9"])
 
 
 def test_smsp_paths_reject_split_plant_and_stub_amphibian_cache(

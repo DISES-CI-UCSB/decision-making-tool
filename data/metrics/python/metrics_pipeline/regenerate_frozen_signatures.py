@@ -22,6 +22,7 @@ def _write_json_atomic(path: Path, value: Any) -> None:
     temporary.write_text(
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     temporary.replace(path)
 
