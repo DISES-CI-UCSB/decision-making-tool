@@ -190,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
         boundary=_boundary_collection_metadata(boundary_level, collection),
     )
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    output.write_text(json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8", newline="\n")
     print(output)
     return 0
 

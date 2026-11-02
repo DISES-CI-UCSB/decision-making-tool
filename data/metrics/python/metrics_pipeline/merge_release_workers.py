@@ -434,7 +434,7 @@ def merge_workers(
                 key: value
                 for key, value in {
                     **entry,
-                    "cachePath": str(destination),
+                    "cachePath": destination.as_posix(),
                 }.items()
                 if key != "_sourcePath"
             }

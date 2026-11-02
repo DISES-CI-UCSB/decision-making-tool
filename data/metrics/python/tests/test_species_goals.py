@@ -607,11 +607,11 @@ def test_contract_paths_and_semantic_tamper_are_fail_closed(tmp_path: Path):
             / "frontend/layer-manifest/release-contract.json"
         ).read_text(encoding="utf-8")
     )
-    assert release_contract["speciesGoalsCatalogDirectory"] == str(
-        catalog_path(Path()).parent
+    assert release_contract["speciesGoalsCatalogDirectory"] == (
+        catalog_path(Path()).parent.as_posix()
     )
-    assert release_contract["speciesGoalsCompactDirectory"] == str(
-        compact_partition_path(Path(), "solution", "runaps").parents[1]
+    assert release_contract["speciesGoalsCompactDirectory"] == (
+        compact_partition_path(Path(), "solution", "runaps").parents[1].as_posix()
     )
     assert catalog_path(tmp_path) == (
         tmp_path / "species-goals/catalog/v1/catalog.json"

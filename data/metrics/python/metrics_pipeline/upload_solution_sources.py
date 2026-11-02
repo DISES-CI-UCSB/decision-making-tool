@@ -7,7 +7,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 import time
 import urllib.error
@@ -17,7 +16,9 @@ from typing import Any, Callable
 from urllib.parse import unquote, urlsplit
 
 from cli_utils import BLOB_TOKEN_ENV_VAR, extract_first_url, find_repo_root, load_env_value
+from console_encoding import use_utf8_console_streams
 from platform_io import fsync_directory
+from vercel_cli import VercelCliNotFoundError, require_vercel_cli, run_vercel
 
 PLAN_FORMAT = "solution-source-upload-plan-v1"
 REPORT_FORMAT = "solution-source-upload-report-v1"
@@ -44,7 +45,7 @@ def sha256_path(path: Path) -> str:
 def _atomic_write_json(path: Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    with temporary.open("w", encoding="utf-8") as target:
+    with temporary.open("w", encoding="utf-8", newline="\n") as target:
         json.dump(value, target, indent=2, ensure_ascii=False, sort_keys=True)
         target.write("\n")
         target.flush()
@@ -168,9 +169,8 @@ def remote_sha256(url: str) -> str | None:
 
 
 def put_blob(token: str, source_path: Path, blob_path: str) -> str | None:
-    completed = subprocess.run(
+    completed = run_vercel(
         [
-            "vercel",
             "blob",
             "put",
             str(source_path),
@@ -185,6 +185,8 @@ def put_blob(token: str, source_path: Path, blob_path: str) -> str | None:
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     output = f"{completed.stdout}\n{completed.stderr}".replace(token, "[redacted]")
     if completed.returncode != 0:
@@ -426,6 +428,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     dry_run = not args.execute
+    if not dry_run:
+        try:
+            require_vercel_cli()
+        except VercelCliNotFoundError as exc:
+            print(f"[solution-source-upload] ERROR: {exc}", file=sys.stderr)
+            return 1
     report_path = args.report or args.plan.with_name(
         "upload-dry-run-report.json" if dry_run else "upload-report.json"
     )
@@ -458,4 +466,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    use_utf8_console_streams()
     raise SystemExit(main())

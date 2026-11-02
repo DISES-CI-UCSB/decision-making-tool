@@ -125,6 +125,7 @@ from calculators.species import (
     SpeciesDetailSink,
     SpeciesScopeMetrics,
 )
+from console_encoding import use_utf8_console_streams
 from coverage_parity_contract import (
     CoverageParityContractError,
     load_coverage_parity_contract,
@@ -1699,7 +1700,7 @@ def _resume_entry_for_document(
     return {
         "solutionId": solution_id,
         "solutionBasename": solution_blob_basename(solution),
-        "cachePath": str(cache_path),
+        "cachePath": cache_path.as_posix(),
         "expectedBlobPath": expected_cache_blob_path(
             solution_id,
             cache_blob_directory=cache_blob_directory,
@@ -5190,7 +5191,7 @@ def _process_solution(
     return {
         "solutionId": solution_id,
         "solutionBasename": basename,
-        "cachePath": str(cache_path),
+        "cachePath": cache_path.as_posix(),
         "expectedBlobPath": expected_cache_blob_path(
             solution_id,
             cache_blob_directory=cache_blob_directory,
@@ -5314,6 +5315,8 @@ def _run_coverage_parity_gate(
         cwd=Path(__file__).resolve().parents[4],
         check=False,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
     )
     if completed.stdout:
@@ -6107,6 +6110,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             + "\n",
             encoding="utf-8",
+            newline="\n",
         )
         print(f"[tier1-metrics] input signatures -> {signature_path}")
         return 2 if alignment_failures else 0
@@ -6805,4 +6809,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    use_utf8_console_streams()
     raise SystemExit(main())

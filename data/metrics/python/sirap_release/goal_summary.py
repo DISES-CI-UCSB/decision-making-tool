@@ -9,7 +9,8 @@ import re
 import unicodedata
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlsplit
+from urllib.parse import urlsplit
+from urllib.request import url2pathname
 
 GOAL_SUMMARY_FORMAT = "conservation-goals-v1"
 EVALUATION_SOURCE = "prioritizr_model"
@@ -330,7 +331,7 @@ def _local_path(url: str) -> Path:
         raise ValueError(
             f"release build requires a local pinned summary URL, got {url}"
         )
-    return Path(unquote(parsed.path))
+    return Path(url2pathname(parsed.path))
 
 
 def _scenario_name(solution: dict[str, Any]) -> str:

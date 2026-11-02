@@ -1617,6 +1617,7 @@ def _write_minified_json(path: Path, document: dict[str, Any]) -> None:
     temporary.write_text(
         json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     temporary.replace(path)
 
@@ -1628,6 +1629,7 @@ def _write_report(output_dir: Path, report: dict[str, Any]) -> Path:
     temporary.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     temporary.replace(path)
     return path

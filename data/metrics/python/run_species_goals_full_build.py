@@ -1,4 +1,4 @@
-"""Build and validate release-bound land species-goals sidecars with three workers."""
+"""Build and validate release-bound land species-goals sidecars (default three workers)."""
 
 from __future__ import annotations
 
@@ -27,10 +27,16 @@ sys.path.insert(0, str(PIPELINE_DIR))
 from boundaries.boundary_id_grid import build_boundary_id_grid  # noqa: E402
 from boundaries.boundary_loader import load_all_boundaries  # noqa: E402
 from boundaries.boundary_mask import BoundaryMaskCache  # noqa: E402
+from console_encoding import use_utf8_console_streams  # noqa: E402
 from local_io import DownloadError, cached_download  # noqa: E402
 from main import _species_goals_provenance  # noqa: E402
 from metrics_contract import build_metrics_provenance  # noqa: E402
-from platform_io import process_rusage  # noqa: E402
+from platform_io import (  # noqa: E402
+    peak_rss_bytes,
+    process_rusage,
+    replace_with_retry,
+    windows_free_memory_percent,
+)
 from raster_align import grid_sha256  # noqa: E402
 from raster_metrics import read_solution_raster, terrestrial_template_scope_mask  # noqa: E402
 from species_data import load_species_records  # noqa: E402
@@ -243,8 +249,9 @@ def _atomic_json_write(path: Path, document: dict[str, Any]) -> None:
     temporary.write_text(
         json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
-    os.replace(temporary, path)
+    replace_with_retry(temporary, path)
 
 
 def _disk_free_gib(path: Path) -> float:
@@ -252,6 +259,13 @@ def _disk_free_gib(path: Path) -> float:
 
 
 def _memory_free_percent() -> int | None:
+    """System-wide free memory percent, or None when the OS gives no reading."""
+    if os.name == "nt":
+        return windows_free_memory_percent()
+    return _macos_memory_pressure_free_percent()
+
+
+def _macos_memory_pressure_free_percent() -> int | None:
     try:
         result = subprocess.run(
             ["/usr/bin/memory_pressure", "-Q"],
@@ -267,6 +281,8 @@ def _memory_free_percent() -> int | None:
 
 
 def _max_rss_bytes() -> int:
+    if os.name == "nt":
+        return peak_rss_bytes()
     return int(process_rusage().ru_maxrss)
 
 
@@ -1097,9 +1113,19 @@ def _update_report_runtime(
     report["validationCounts"] = _counts(report, validation=True)
     report["resources"]["diskFreeGiB"] = round(_disk_free_gib(output_root), 3)
     report["resources"]["memoryFreePercent"] = _memory_free_percent()
-    report["resources"]["outputBytes"] = sum(
-        path.stat().st_size for path in output_root.rglob("*") if path.is_file()
-    )
+    report["resources"]["outputBytes"] = _output_tree_bytes(output_root)
+
+
+def _output_tree_bytes(output_root: Path) -> int:
+    """Sum file sizes, skipping files replaced or deleted during the walk."""
+    total = 0
+    for path in output_root.rglob("*"):
+        try:
+            if path.is_file():
+                total += path.stat().st_size
+        except OSError:
+            continue
+    return total
 
 
 def _record_event(
@@ -1409,8 +1435,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=None,
         help=(
-            "Worker processes. Full-geography builds require 3. "
-            f"--national-only defaults to 6 and allows 1-{MAX_NATIONAL_ONLY_WORKERS}."
+            "Worker processes, 1-"
+            f"{MAX_NATIONAL_ONLY_WORKERS}. Full-geography defaults to 3; "
+            "--national-only defaults to 6."
         ),
     )
     parser.add_argument("--preflight-only", action="store_true")
@@ -1698,4 +1725,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    use_utf8_console_streams()
     raise SystemExit(main())

@@ -262,6 +262,15 @@ function testCard(test, feature, latestResults) {
     }
     lines.push(field('Recorded', latest.timestamp));
   }
+  const recording = recordings[test.id];
+  if (recording) {
+    lines.push(
+      field(
+        'Open recording',
+        `npm run test:show-recording -- ${test.id} (recorded ${recording.recordedAt ?? 'at an unknown time'})`,
+      ),
+    );
+  }
   if (display.stale && display.lastExecution) {
     lines.push(
       `Last execution: ${escapeHtml(display.lastExecution)} (stale test definition).`,
@@ -322,7 +331,22 @@ function exampleNote(owner) {
     : '';
 }
 
+/** Latest Playwright recording per test, written by the runner's --record option. */
+async function readRecordings() {
+  const recordings = {};
+  for (const test of testCatalog.tests) {
+    const file = path.join(resultDirectory, 'playwright-recordings', test.id, 'recording.json');
+    try {
+      recordings[test.id] = JSON.parse(await readFile(file, 'utf8'));
+    } catch {
+      // No recording for this test.
+    }
+  }
+  return recordings;
+}
+
 const latest = await readLatest();
+const recordings = await readRecordings();
 const coreAreasHtml = testCatalog.criticalCoreAreas
   .map((area) => {
     const tests = testCatalog.tests.filter(
@@ -442,7 +466,7 @@ const html = `<!doctype html>
       line-height: inherit;
       white-space: nowrap;
     }
-    /* Visible catalog test identifier on a test row, such as FBT-E001. Not an HTML id attribute. */
+    /* Visible catalog test identifier on a test row, such as FBT-001. Not an HTML id attribute. */
     .test-row .identifier {
       font-size: 19px;
       font-weight: 400;

@@ -91,4 +91,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    from ..console_encoding import use_utf8_console_streams
+
+    use_utf8_console_streams()
     raise SystemExit(main())

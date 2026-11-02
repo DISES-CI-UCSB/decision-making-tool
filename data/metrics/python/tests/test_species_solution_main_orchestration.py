@@ -122,7 +122,11 @@ def test_main_fixture_orchestrates_independent_and_guarded_microbatch(
         "cached_download",
         lambda *_args, **_kwargs: species_download,
     )
-    monkeypatch.setattr(pipeline, "load_species_records", lambda _path: [record])
+    monkeypatch.setattr(
+        pipeline,
+        "load_species_records",
+        lambda _path, endemic_csv_path=None: [record],
+    )
     monkeypatch.setattr(
         pipeline,
         "resolve_species_target_policy",

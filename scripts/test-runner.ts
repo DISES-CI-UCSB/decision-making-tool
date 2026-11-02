@@ -1,5 +1,26 @@
+/**
+ * Feature-centered test runner. Every command validates the catalog first.
+ *
+ *   npm run test:features | test:core | test:shared | test:gate | test:all | test:fast-only
+ *   npm run test:browser-deterministic | test:browser-live | test:browser-all
+ *   npm run test:feature -- F-210         Tests associated with one Feature
+ *   npm run test:feature-set -- FS-200    Tests associated with one Feature Set
+ *   npm run test:single -- FBT-002        One permanent test, by catalog test identifier
+ *
+ * Options, after the selector:
+ *   --headed   Show the browser window for browser tests. API and Vitest tests have no window.
+ *   --record   Keep a Playwright trace of each selected Playwright test, plus a video for browser tests,
+ *              in .test-results/playwright-recordings/<test id>/. Only the latest recording per test is kept.
+ *
+ * Watching tests. These runs are not stored in .test-results/latest.json:
+ *   npm run test:ui -- feature F-210 | feature-set FS-200 | test FBT-002 | features | all
+ *   npm run test:show-recording -- FBT-002
+ *
+ * Runners: *.test.ts files run on Vitest. *.api.spec.ts files (non-browser HTTP tests) run in the
+ * Playwright `api` project; *.deterministic.spec.ts and *.live.spec.ts files run in the browser projects.
+ */
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -11,8 +32,10 @@ import {
   commandReportUsesColor,
   formatWallClock,
 } from '../tests/support/reporting/command-report.ts';
+import { redactJsonStrings } from '../tests/support/reporting/credential-redaction.ts';
 import {
   executionStatus,
+  finalAttemptAttachments,
   normalizePlaywrightResults,
   passedAfterRetryLines,
   type NormalizedTestResult,
@@ -29,6 +52,7 @@ import { validateTestingFoundations } from '../tests/support/validation/foundati
 
 const root = process.cwd();
 const resultsDirectory = path.join(root, '.test-results');
+const recordingsDirectory = path.join(resultsDirectory, 'playwright-recordings');
 const cacheDirectory = process.env.TNC_TEST_CACHE_DIR
   ? path.resolve(process.env.TNC_TEST_CACHE_DIR)
   : path.join(root, '.test-cache');
@@ -47,7 +71,21 @@ interface Execution {
   results: NormalizedResult[];
 }
 
+type PlaywrightProject = 'api' | 'deterministic' | 'live';
+
+interface RunOptions {
+  headed: boolean;
+  record: boolean;
+}
+
 const isExecutable = (test: CatalogTest) => test.enforcement !== 'disabled';
+
+/** The Playwright project that runs a test, or null for a Vitest test. */
+function playwrightProjectFor(test: CatalogTest): PlaywrightProject | null {
+  if (test.environment === 'browser') return test.browserMode === 'live' ? 'live' : 'deterministic';
+  return test.sourceFile.endsWith('.api.spec.ts') ? 'api' : null;
+}
+
 const sourceFiles = (tests: CatalogTest[]) => [
   ...new Set(tests.map(({ sourceFile }) => sourceFile)),
 ];
@@ -94,6 +132,14 @@ function selectTests(mode: string | undefined, selector: string | undefined): Ca
         throw new Error(`Unknown Feature Set selector: ${selector ?? '(missing)'}.`);
       }
       return featureSetTests(selector ?? '').filter(isExecutable);
+    case 'test': {
+      const test = testCatalog.tests.find(({ id }) => id === selector);
+      if (!test) throw new Error(`Unknown test selector: ${selector ?? '(missing)'}.`);
+      if (!isExecutable(test)) {
+        throw new Error(`${test.id} is disabled, so normal commands do not run it.`);
+      }
+      return [test];
+    }
     case 'all':
       return enabled;
     default:
@@ -179,12 +225,15 @@ function vitestResults(
   });
 }
 
-function playwrightResults(
-  report: unknown,
-  selected: CatalogTest[],
-  processFailed: boolean,
-): NormalizedResult[] {
-  return normalizePlaywrightResults(report, selected, processFailed, root);
+/** Reads a raw runner report and rewrites it with bearer credentials removed. */
+async function readRedactedReport(file: string): Promise<unknown> {
+  const report = await readJson(file);
+  if (report === null) return null;
+  const redacted = redactJsonStrings(report);
+  if (JSON.stringify(redacted) !== JSON.stringify(report)) {
+    await writeFile(file, `${JSON.stringify(redacted, null, 2)}\n`);
+  }
+  return redacted;
 }
 
 function plannedTests(selected: CatalogTest[]): PlannedTest[] {
@@ -198,10 +247,27 @@ function vitestWorkerCount(): number {
   return Math.max(processors - 1, 1);
 }
 
-function playwrightWorkerCount(mode: 'deterministic' | 'live'): number {
-  const project = playwrightConfig.projects?.find((entry) => entry.name === mode);
-  const workers = project?.workers;
+function playwrightWorkerCount(project: PlaywrightProject): number {
+  const workers = playwrightConfig.projects?.find((entry) => entry.name === project)?.workers;
   return typeof workers === 'number' && workers > 0 ? workers : 1;
+}
+
+const testPort = process.env.TNC_TEST_PORT ?? String(42000 + (process.pid % 10000));
+
+/** Environment for one Playwright run. The local web app starts only when a browser project runs. */
+function playwrightEnvironment(projects: PlaywrightProject[], options: RunOptions): Record<string, string> {
+  const browserProjects = projects.filter((project) => project !== 'api');
+  return {
+    TNC_WEB_SERVER: browserProjects.length ? 'on' : 'off',
+    TNC_PLAYWRIGHT_RECORD: options.record ? '1' : '0',
+    TNC_TEST_PORT: testPort,
+    ...(browserProjects.length === 1
+      ? {
+          VITE_TEST_MODE: 'true',
+          VITE_TEST_RENDERER: browserProjects[0] === 'deterministic' ? 'three' : 'arcgis',
+        }
+      : {}),
+  };
 }
 
 function announceRun(selected: CatalogTest[], workers: number): string {
@@ -210,7 +276,7 @@ function announceRun(selected: CatalogTest[], workers: number): string {
   return JSON.stringify({ tests });
 }
 
-async function runNonBrowser(selected: CatalogTest[], runKey: string): Promise<Execution> {
+async function runVitest(selected: CatalogTest[], runKey: string): Promise<Execution> {
   if (!selected.length) return { name: 'passed', exitCode: 0, durationMs: 0, results: [] };
   const workers = vitestWorkerCount();
   const output = path.join(resultsDirectory, `raw-vitest-${runKey}.json`);
@@ -229,7 +295,7 @@ async function runNonBrowser(selected: CatalogTest[], runKey: string): Promise<E
     ],
     { TNC_TEST_RUN_PLAN: announceRun(selected, workers) },
   );
-  const results = vitestResults(await readJson(output), selected, processResult.exitCode !== 0);
+  const results = vitestResults(await readRedactedReport(output), selected, processResult.exitCode !== 0);
   return {
     ...executionStatus(selected, results),
     durationMs: processResult.durationMs,
@@ -237,14 +303,51 @@ async function runNonBrowser(selected: CatalogTest[], runKey: string): Promise<E
   };
 }
 
-async function runBrowser(
+/**
+ * Replaces each test's recording with the trace and video from its final attempt.
+ * Trace archives keep request headers, including test-account ID tokens, so they stay on this machine.
+ */
+async function saveRecordings(report: unknown, selected: CatalogTest[], results: NormalizedResult[]) {
+  for (const test of selected) {
+    const attachments = finalAttemptAttachments(report, test, root);
+    if (!attachments.some(({ name }) => name === 'trace')) {
+      console.warn(`No recording was produced for ${test.id}; any earlier recording is unchanged.`);
+      continue;
+    }
+    const directory = path.join(recordingsDirectory, test.id);
+    await rm(directory, { recursive: true, force: true });
+    await mkdir(directory, { recursive: true });
+    const files: string[] = [];
+    for (const attachment of attachments) {
+      const fileName =
+        attachment.name === 'trace' ? 'trace.zip' : `video${path.extname(attachment.path) || '.webm'}`;
+      await copyFile(attachment.path, path.join(directory, fileName));
+      await rm(attachment.path, { force: true });
+      files.push(fileName);
+    }
+    const recording = {
+      id: test.id,
+      name: test.name,
+      recordedAt: new Date().toISOString(),
+      state: results.find(({ id }) => id === test.id)?.state ?? 'unexecuted',
+      files,
+    };
+    await writeFile(path.join(directory, 'recording.json'), `${JSON.stringify(recording, null, 2)}\n`);
+    console.log(`Recording saved for ${test.id}. Open it with: npm run test:show-recording -- ${test.id}`);
+  }
+}
+
+async function runPlaywright(
   selected: CatalogTest[],
-  mode: 'deterministic' | 'live',
+  project: PlaywrightProject,
   runKey: string,
+  options: RunOptions,
 ): Promise<Execution> {
   if (!selected.length) return { name: 'passed', exitCode: 0, durationMs: 0, results: [] };
-  const report = path.join(resultsDirectory, `raw-playwright-${runKey}-${mode}.json`);
-  const workers = playwrightWorkerCount(mode);
+  const report = path.join(resultsDirectory, `raw-playwright-${runKey}-${project}.json`);
+  // Playwright never starts more workers than there are test files to share out.
+  const workers = Math.min(playwrightWorkerCount(project), sourceFiles(selected).length);
+  const headed = options.headed && project !== 'api';
   const processResult = await runProcess(
     'npx',
     [
@@ -252,22 +355,23 @@ async function runBrowser(
       'playwright',
       'test',
       ...sourceFiles(selected),
-      `--project=${mode}`,
+      `--project=${project}`,
       '--reporter=json,tests/support/reporting/quiet-stdio-reporter.ts',
+      ...(headed ? ['--headed'] : []),
     ],
     {
+      ...playwrightEnvironment([project], options),
       TNC_TEST_RUN_PLAN: announceRun(selected, workers),
-      VITE_TEST_MODE: 'true',
-      VITE_TEST_RENDERER: mode === 'deterministic' ? 'three' : 'arcgis',
-      TNC_TEST_PORT: process.env.TNC_TEST_PORT ?? String(42000 + (process.pid % 10000)),
       TNC_PLAYWRIGHT_OUTPUT_DIR: path.join(
         resultsDirectory,
-        `playwright-artifacts-${runKey}-${mode}`,
+        `playwright-artifacts-${runKey}-${project}`,
       ),
       PLAYWRIGHT_JSON_OUTPUT_FILE: report,
     },
   );
-  const results = playwrightResults(await readJson(report), selected, processResult.exitCode !== 0);
+  const reportData = await readRedactedReport(report);
+  const results = normalizePlaywrightResults(reportData, selected, processResult.exitCode !== 0, root);
+  if (options.record) await saveRecordings(reportData, selected, results);
   return {
     ...executionStatus(selected, results),
     durationMs: processResult.durationMs,
@@ -275,28 +379,72 @@ async function runBrowser(
   };
 }
 
-async function execute(selected: CatalogTest[], runKey: string): Promise<Execution> {
-  const nonBrowser = await runNonBrowser(
-    selected.filter(({ environment }) => environment === 'non-browser'),
-    runKey,
-  );
-  const deterministic = await runBrowser(
-    selected.filter(({ browserMode }) => browserMode === 'deterministic'),
-    'deterministic',
-    runKey,
-  );
-  const live = await runBrowser(
-    selected.filter(({ browserMode }) => browserMode === 'live'),
-    'live',
-    runKey,
-  );
-  const runs = [nonBrowser, deterministic, live];
+async function execute(
+  selected: CatalogTest[],
+  runKey: string,
+  options: RunOptions = { headed: false, record: false },
+): Promise<Execution> {
+  const vitestTests = selected.filter((test) => playwrightProjectFor(test) === null);
+  if (options.record && vitestTests.length) {
+    console.log(`--record applies to Playwright tests only. Not recorded: ${vitestTests.map(({ id }) => id).join(', ')}.`);
+  }
+  if (options.headed && selected.length && !selected.some(({ environment }) => environment === 'browser')) {
+    console.log('--headed has no effect here: no browser test is selected.');
+  }
+  const runs = [await runVitest(vitestTests, runKey)];
+  for (const project of ['api', 'deterministic', 'live'] as const) {
+    runs.push(
+      await runPlaywright(
+        selected.filter((test) => playwrightProjectFor(test) === project),
+        project,
+        runKey,
+        options,
+      ),
+    );
+  }
   const results = runs.flatMap((run) => run.results);
   return {
     ...executionStatus(selected, results),
     durationMs: runs.reduce((total, run) => total + run.durationMs, 0),
     results,
   };
+}
+
+/** Opens Playwright UI mode for the selected tests. Nothing is stored in latest.json or history.json. */
+async function openUiMode(kind: string | undefined, selector: string | undefined): Promise<number> {
+  if (!kind) {
+    throw new Error('Usage: npm run test:ui -- feature F-210 | feature-set FS-200 | test FBT-002 | features | all');
+  }
+  const selected = selectTests(kind, selector);
+  const viewable = selected.filter((test) => playwrightProjectFor(test) !== null);
+  const vitestOnly = selected.filter((test) => playwrightProjectFor(test) === null);
+  if (vitestOnly.length) {
+    console.log(
+      `Playwright UI mode shows Playwright tests only. Not shown (Vitest): ${vitestOnly.map(({ id }) => id).join(', ')}.`,
+    );
+  }
+  if (!viewable.length) {
+    throw new Error('No Playwright test matches this selection, so there is nothing to show in UI mode.');
+  }
+  const projects = [...new Set(viewable.map((test) => playwrightProjectFor(test) as PlaywrightProject))];
+  console.log(`Opening Playwright UI mode for ${viewable.map(({ id }) => id).join(', ')}.`);
+  console.log('UI mode runs are for watching; their results are not stored in .test-results/latest.json.');
+  const { exitCode } = await runProcess(
+    'npx',
+    [
+      '--no-install',
+      'playwright',
+      'test',
+      '--ui',
+      ...sourceFiles(viewable),
+      ...projects.map((project) => `--project=${project}`),
+    ],
+    {
+      ...playwrightEnvironment(projects, { headed: false, record: false }),
+      TNC_PLAYWRIGHT_OUTPUT_DIR: path.join(resultsDirectory, 'playwright-ui-artifacts'),
+    },
+  );
+  return exitCode;
 }
 
 function lifecycleFor(test: CatalogTest | undefined): string {
@@ -404,7 +552,7 @@ async function recordRun(
   }
 }
 
-async function runGate(): Promise<number> {
+async function runGate(options: RunOptions): Promise<number> {
   const coreRequired = requiredTests('critical-core');
   const featureRequired = requiredTests('feature-behavior');
   // An empty Critical Core phase stays allowed when required Feature Behavior tests exist.
@@ -430,7 +578,7 @@ async function runGate(): Promise<number> {
         ? 'Release gate phase 1/2: Critical Core.'
         : 'Release gate phase 2/2: required Feature Behavior tests.',
     );
-    const execution = await execute(selected, `gate-${phase}-${Date.now()}`);
+    const execution = await execute(selected, `gate-${phase}-${Date.now()}`, options);
     executed.push({ selected, execution });
     return { status: execution.name, durationMs: execution.durationMs };
   });
@@ -455,6 +603,21 @@ async function runGate(): Promise<number> {
   return exitCode;
 }
 
+const supportedFlags = new Set(['--headed', '--record']);
+
+function commandLine(argv: string[]) {
+  const flags = argv.filter((argument) => argument.startsWith('--'));
+  const unknown = flags.filter((flag) => !supportedFlags.has(flag));
+  if (unknown.length) {
+    throw new Error(`Unknown option ${unknown.join(' ')}. Supported options: --headed, --record.`);
+  }
+  const positional = argv.filter((argument) => !argument.startsWith('--'));
+  return {
+    positional,
+    options: { headed: flags.includes('--headed'), record: flags.includes('--record') },
+  };
+}
+
 await mkdir(resultsDirectory, { recursive: true });
 await mkdir(cacheDirectory, { recursive: true });
 console.log(`Test cache: ${cacheDirectory}.`);
@@ -463,10 +626,15 @@ try {
   const foundationErrors = await validateTestingFoundations(root, testCatalog);
   if (foundationErrors.length) throw new Error(foundationErrors.join('\n'));
 
-  const mode = process.argv[2];
-  const selector = process.argv[3];
-  if (mode === 'gate') {
-    process.exitCode = await runGate();
+  const { positional, options } = commandLine(process.argv.slice(2));
+  const [mode, selector] = positional;
+  if (mode === 'ui') {
+    if (options.headed || options.record) {
+      console.log('UI mode records a trace of every run and has its own browser controls; --headed and --record are ignored.');
+    }
+    process.exitCode = await openUiMode(positional[1], positional[2]);
+  } else if (mode === 'gate') {
+    process.exitCode = await runGate(options);
   } else {
     const selected = selectTests(mode, selector);
     if (mode === 'fast-only') {
@@ -479,7 +647,7 @@ try {
         }.`,
       );
     }
-    const execution = await execute(selected, `${mode}-${Date.now()}`);
+    const execution = await execute(selected, `${mode}-${Date.now()}`, options);
     let lintExitCode = 0;
     if (mode === 'all') {
       lintExitCode = (await runProcess('npm', ['run', 'lint'])).exitCode;

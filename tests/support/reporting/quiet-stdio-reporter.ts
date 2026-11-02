@@ -1,4 +1,5 @@
 import type { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+import { redactCredentials } from './credential-redaction.ts';
 import { readableErrorLines, readRunPlan, RunProgress } from './run-progress.ts';
 
 /**
@@ -14,11 +15,11 @@ export default class QuietStdioReporter implements Reporter {
   }
 
   onStdOut(chunk: string | Buffer): void {
-    if (this.progress.total === 0) process.stdout.write(chunk);
+    if (this.progress.total === 0) process.stdout.write(redactCredentials(chunk.toString()));
   }
 
   onStdErr(chunk: string | Buffer): void {
-    if (this.progress.total === 0) process.stderr.write(chunk);
+    if (this.progress.total === 0) process.stderr.write(redactCredentials(chunk.toString()));
   }
 
   onTestEnd(test: TestCase, result: TestResult): void {

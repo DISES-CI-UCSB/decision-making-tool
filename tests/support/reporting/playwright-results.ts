@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { redactCredentials } from './credential-redaction.ts';
 
 export type FailedAttemptStatus = 'failed' | 'timedOut' | 'interrupted' | 'inconclusive';
 
@@ -41,7 +42,7 @@ function stripAnsi(value: string): string {
 }
 
 function limitedLines(value: string, limit: number, fromEnd: boolean): string {
-  const lines = stripAnsi(value).split(/\r?\n/);
+  const lines = redactCredentials(stripAnsi(value)).split(/\r?\n/);
   const selected = fromEnd ? lines.slice(-limit) : lines.slice(0, limit);
   return selected.join('\n');
 }
@@ -223,6 +224,42 @@ function durationOf(attempt: Record<string, unknown> | undefined): number {
   return Math.round(typeof attempt?.duration === 'number' ? attempt.duration : 0);
 }
 
+function catalogSpec(
+  specs: Array<Record<string, unknown>>,
+  catalogTest: PlaywrightCatalogTarget,
+): Record<string, unknown> | undefined {
+  return specs.find((candidate) => {
+    const file = typeof candidate.file === 'string' ? candidate.file : '';
+    return (
+      (file.endsWith(catalogTest.sourceFile) || catalogTest.sourceFile.endsWith(file)) &&
+      candidate.title === catalogTest.name
+    );
+  });
+}
+
+export interface AttemptAttachment {
+  name: 'trace' | 'video';
+  /** Absolute path to the attachment file. */
+  path: string;
+}
+
+/** Trace and video files from a catalog test's final attempt in a Playwright JSON report. */
+export function finalAttemptAttachments(
+  report: unknown,
+  catalogTest: PlaywrightCatalogTarget,
+  repoRoot: string,
+): AttemptAttachment[] {
+  const specs = flattenPlaywrightSuites(asRecord(report)?.suites);
+  const finalAttempt = specAttempts(catalogSpec(specs, catalogTest)).at(-1);
+  const attachments = Array.isArray(finalAttempt?.attachments) ? finalAttempt.attachments : [];
+  return attachments.flatMap((attachment) => {
+    const record = asRecord(attachment);
+    const name = record?.name;
+    if ((name !== 'trace' && name !== 'video') || typeof record?.path !== 'string') return [];
+    return [{ name, path: path.resolve(repoRoot, record.path) }];
+  });
+}
+
 /**
  * A browser test's stored state is its final attempt. An earlier failure,
  * timeout, interruption, or inconclusive attempt stays on the result when
@@ -236,13 +273,7 @@ export function normalizePlaywrightResults(
 ): NormalizedTestResult[] {
   const specs = flattenPlaywrightSuites(asRecord(report)?.suites);
   return selected.map((catalogTest) => {
-    const spec = specs.find((candidate) => {
-      const file = typeof candidate.file === 'string' ? candidate.file : '';
-      return (
-        (file.endsWith(catalogTest.sourceFile) || catalogTest.sourceFile.endsWith(file)) &&
-        candidate.title === catalogTest.name
-      );
-    });
+    const spec = catalogSpec(specs, catalogTest);
     const attempts = specAttempts(spec);
     const totalDurationMs = attempts.reduce((total, attempt) => total + durationOf(attempt), 0);
     const finalAttempt = attempts.at(-1);

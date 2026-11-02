@@ -4,19 +4,55 @@
     "type": "module",
     "description": "Feature-centered test system (catalog, runner, live service tests)",
     "scripts": {
-        "test:fast-only": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts fast-only",
-        "test:features": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts features",
-        "test:core": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts core",
-        "test:shared": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts shared",
-        "test:browser-deterministic": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-deterministic",
-        "test:browser-live": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-live",
-        "test:browser-all": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-all",
-        "test:browser-only": "npm run test:browser-all",
-        "test:gate": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts gate",
-        "test:all": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts all",
+        "//": "Each '//name' key below documents the script after it. npm never runs '//' keys. Extra flags go after a double dash, e.g. npm run test:single -- FBT-002 --record",
+
+        "//test:view-test-catalog": "Opens the test catalog page at http://127.0.0.1:4174/ (Ctrl+C stops it). Reads saved results only and never runs a test. Add --no-open or --no-serve after a double dash to skip the browser or the server.",
         "test:view-test-catalog": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/view-test-catalog.mjs",
+
+        "//test:single": "Runs ONE test by its catalog id and prints a PASSED or FAILED line. Example: npm run test:single -- FBT-002. Add --record to keep a Playwright trace (every request and response) that you can replay later.",
+        "test:single": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts test",
+
+        "//test:ui": "Opens Playwright UI mode (a window where you can step back and forth through a run, see each request, and rerun). Pick what to open: npm run test:ui -- test FBT-002, or feature F-210, or feature-set FS-200, or features, or all. UI runs are not saved to the catalog results. Run npx playwright install chromium once first.",
+        "test:ui": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts ui",
+
+        "//test:show-recording": "Replays the latest saved trace for one test in the Playwright trace viewer. Record first with: npm run test:single -- FBT-002 --record. Then: npm run test:show-recording -- FBT-002. Traces hold test-account tokens, so keep them local.",
+        "test:show-recording": "node scripts/show-test-recording.mjs",
+
+        "//test:feature-set": "Runs every test owned by one Feature Set, such as FS-200 (Private layer downloads): npm run test:feature-set -- FS-200. The usual day-to-day command. This is a scoped run, not the release gate.",
+        "test:feature-set": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts feature-set",
+
+        "//test:feature": "Runs every test owned by one Feature, such as F-220 (Download access rules): npm run test:feature -- F-220. This is a scoped run, not the release gate.",
         "test:feature": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts feature",
-        "test:feature-set": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts feature-set"
+
+        "//test:features": "Runs every Feature Behavior Test in the catalog, required or not. Wider than one feature set but still not the release gate.",
+        "test:features": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts features",
+
+        "//test:gate": "The release gate. Runs required Critical Core tests first, then required Feature Behavior Tests, and stops if the first phase fails. Only this command sets the 'Release gate' status on the catalog page. Use before a release, not for every change.",
+        "test:gate": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts gate",
+
+        "//test:all": "Runs every executable test (all categories) and then npm run lint. Slowest option. Reports release eligibility separately from overall health.",
+        "test:all": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts all",
+
+        "//test:core": "Runs only Critical Core tests (indispensable shared correctness). None exist yet, so this currently runs nothing.",
+        "test:core": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts core",
+
+        "//test:shared": "Runs the Shared Supporting Tests (SST-001, SST-002) that check the test system itself: catalog rules and release-gate ordering. Offline and fast (about a second). Run it after editing the catalog or the runner.",
+        "test:shared": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts shared",
+
+        "//test:fast-only": "Runs only quick tests that need no browser and no network (fast: true in the catalog). Today that means the shared supporting tests. Good for a seconds-long check while editing.",
+        "test:fast-only": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts fast-only",
+
+        "//test:browser-deterministic": "Runs browser tests that use saved or mocked data (reproducible, no live services). No browser tests exist yet. Needs the Angular app's dependencies installed in frontend/.",
+        "test:browser-deterministic": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-deterministic",
+
+        "//test:browser-live": "Runs browser tests against real services, with one retry. No browser tests exist yet. Needs the Angular app's dependencies installed in frontend/.",
+        "test:browser-live": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-live",
+
+        "//test:browser-all": "Runs both browser modes (deterministic and live). No browser tests exist yet.",
+        "test:browser-all": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-all",
+
+        "//test:browser-only": "Alias for test:browser-all.",
+        "test:browser-only": "npm run test:browser-all"
     },
     "devDependencies": {
         "@playwright/test": "^1.64.1",

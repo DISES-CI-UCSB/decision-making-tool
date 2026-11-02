@@ -543,7 +543,7 @@ def _normalized_leaf_entry(
     return {
         **dict(node),
         "leafId": node["nodeId"],
-        "path": str(path.relative_to(cache_dir)),
+        "path": path.relative_to(cache_dir).as_posix(),
         "sha256": sha256_file(path),
     }
 

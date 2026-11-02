@@ -105,7 +105,7 @@ def _atomic_json(path: Path, document: Any, *, compact: bool = False) -> None:
             ensure_ascii=False,
             sort_keys=True,
         ) + "\n"
-    temporary.write_text(content, encoding="utf-8")
+    temporary.write_text(content, encoding="utf-8", newline="\n")
     temporary.replace(path)
 
 

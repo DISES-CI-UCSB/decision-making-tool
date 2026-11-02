@@ -160,7 +160,7 @@ def write_solution_sidecar(
 ) -> Path:
     target = staged_sidecar_path(output_dir, solution_basename)
     target.parent.mkdir(parents=True, exist_ok=True)
-    with target.open("w", encoding="utf-8") as handle:
+    with target.open("w", encoding="utf-8", newline="\n") as handle:
         json.dump(response, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
     return target
@@ -221,7 +221,7 @@ def _write_json_atomic(target: Path, doc: dict[str, Any]) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_name(f".{target.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
     try:
-        with tmp.open("w", encoding="utf-8") as handle:
+        with tmp.open("w", encoding="utf-8", newline="\n") as handle:
             json.dump(doc, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
             handle.flush()
@@ -269,7 +269,7 @@ def write_example_output(
     }
     target = examples_dir / solution_artifact_name(solution_id, suffix=CACHE_SUFFIX)
     target.parent.mkdir(parents=True, exist_ok=True)
-    with target.open("w", encoding="utf-8") as handle:
+    with target.open("w", encoding="utf-8", newline="\n") as handle:
         json.dump(doc, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
     return target

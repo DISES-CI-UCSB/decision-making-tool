@@ -653,6 +653,7 @@ def dump_metric_document(
     path.write_text(
         json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
 
 

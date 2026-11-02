@@ -32,7 +32,13 @@ from rasterio.transform import Affine
 from shapely.geometry import Polygon, mapping, shape
 from shapely.ops import transform as transform_geometry
 
-from platform_io import fsync_directory, lock_exclusive, unlock_exclusive
+from platform_io import (
+    fsync_directory,
+    lock_exclusive,
+    replace_with_retry,
+    unlink_best_effort,
+    unlock_exclusive,
+)
 from raster_align import (
     AlignmentError,
     canonical_sha256,
@@ -264,12 +270,8 @@ class SpeciesOverlapCache:
                     self._pinned.add(key)
                 self._remember(cached)
                 return cached
-            artifact_tmp = directory / (
-                f".{key}.{os.getpid()}.{uuid.uuid4().hex}.tmp.npz"
-            )
-            manifest_tmp = directory / (
-                f".{key}.{os.getpid()}.{uuid.uuid4().hex}.tmp.json"
-            )
+            artifact_tmp = directory / f".{key}.{uuid.uuid4().hex}.tmp.npz"
+            manifest_tmp = directory / f".{key}.{uuid.uuid4().hex}.tmp.json"
             try:
                 qa = _build_exact_overlap(
                     source_path,
@@ -291,11 +293,12 @@ class SpeciesOverlapCache:
                     json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True)
                     + "\n",
                     encoding="utf-8",
+                    newline="\n",
                 )
                 _fsync_file(artifact_tmp)
                 _fsync_file(manifest_tmp)
-                artifact_tmp.replace(path)
-                manifest_tmp.replace(manifest_path)
+                replace_with_retry(artifact_tmp, path)
+                replace_with_retry(manifest_tmp, manifest_path)
                 _fsync_directory(directory)
             finally:
                 artifact_tmp.unlink(missing_ok=True)
@@ -434,8 +437,9 @@ class SpeciesOverlapCache:
                     continue
                 try:
                     if key not in self._pinned:
-                        artifact_path.unlink(missing_ok=True)
-                        manifest_path.unlink(missing_ok=True)
+                        if not unlink_best_effort(artifact_path):
+                            continue
+                        unlink_best_effort(manifest_path)
                         self._verified.pop(key, None)
                         total -= size
                         removed += 1
@@ -451,14 +455,15 @@ class SpeciesOverlapCache:
         cutoff_ns = time.time_ns() - int(self.stale_temp_age_seconds * 1_000_000_000)
         removed = 0
         for temporary_path in self.root.glob("*/*.*.tmp.*"):
+            # ".<key>.<uuid>.tmp.<ext>", or legacy ".<key>.<pid>.<uuid>.tmp.<ext>".
             parts = temporary_path.name.split(".")
             if (
-                len(parts) != 6
+                len(parts) not in {5, 6}
                 or parts[0] != ""
                 or len(parts[1]) != 64
                 or any(character not in "0123456789abcdef" for character in parts[1])
-                or parts[4] != "tmp"
-                or parts[5] not in {"json", "npz"}
+                or parts[-2] != "tmp"
+                or parts[-1] not in {"json", "npz"}
             ):
                 continue
             key = parts[1]
@@ -473,8 +478,7 @@ class SpeciesOverlapCache:
                         is_stale = temporary_path.stat().st_mtime_ns <= cutoff_ns
                     except OSError:
                         continue
-                    if is_stale:
-                        temporary_path.unlink(missing_ok=True)
+                    if is_stale and unlink_best_effort(temporary_path):
                         removed += 1
                 finally:
                     unlock_exclusive(handle)

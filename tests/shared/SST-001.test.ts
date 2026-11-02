@@ -169,11 +169,7 @@ const approvedChange = (
 describe('SST-001', () => {
   it('The catalog rejects a test entry that breaks the classification rules, and feature filters return each matching test once.', () => {
     expect(validateCatalog(testCatalog)).toEqual([]);
-    expect(testCatalog.examples.map(({ id }) => id)).toEqual([
-      'FBT-E001',
-      'FBT-E002',
-      'CCT-E001',
-    ]);
+    expect(testCatalog.examples.map(({ id }) => id)).toEqual([]);
 
     const malformedIdentifier = copyCatalog();
     malformedIdentifier.tests[2].id = 'FBT-E001';
