@@ -42,7 +42,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
-import { testFirstFactorSignIn } from './test-sign-in-hook';
+import { testFirstFactorSignIn, testReauthentication, type Reauthentication } from './test-sign-in-hook';
 
 export interface EnsuredSelfUserRecord {
   created: boolean;
@@ -133,6 +133,13 @@ export async function reauthenticateWithGoogleSelectAccountPopup(
   );
 }
 
+/** The Test Sign-In Hook's re-authentication when it applies (e2e builds only); Google's popup otherwise. */
+export function googleReauthentication(
+  testHook: Reauthentication | null = testReauthentication(),
+): Reauthentication {
+  return testHook ?? reauthenticateWithPopup;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FirebaseClientService {
   private app: FirebaseApp | null = null;
@@ -194,7 +201,7 @@ export class FirebaseClientService {
 
   async reauthenticateWithGooglePopup(user: User): Promise<UserCredential> {
     return reauthenticateWithGoogleSelectAccountPopup(user, {
-      reauthenticateWithPopup,
+      reauthenticateWithPopup: googleReauthentication(),
     });
   }
 
