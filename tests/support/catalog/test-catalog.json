@@ -2,11 +2,54 @@
   "schemaVersion": 3,
   "featureSets": [
     {
+      "id": "FS-100",
+      "name": "Sign-in and authenticator protection"
+    },
+    {
       "id": "FS-200",
       "name": "Private layer downloads"
+    },
+    {
+      "id": "FS-300",
+      "name": "Account and region access"
     }
   ],
   "features": [
+    {
+      "id": "F-110",
+      "featureSetId": "FS-100",
+      "name": "Authenticator setup",
+      "lifecycle": "active",
+      "lifecycleChange": null
+    },
+    {
+      "id": "F-120",
+      "featureSetId": "FS-100",
+      "name": "Authenticator sign-in",
+      "lifecycle": "active",
+      "lifecycleChange": null
+    },
+    {
+      "id": "F-130",
+      "featureSetId": "FS-100",
+      "name": "Scanner-safe email links",
+      "lifecycle": "active",
+      "lifecycleChange": null
+    },
+    {
+      "id": "F-140",
+      "featureSetId": "FS-100",
+      "name": "Lost-authenticator recovery",
+      "lifecycle": "active",
+      "lifecycleChange": null
+    },
+    {
+      "id": "F-150",
+      "featureSetId": "FS-100",
+      "name": "Scanner-removal notice",
+      "lifecycle": "active",
+      "lifecycleChange": null
+    },
     {
       "id": "F-210",
       "featureSetId": "FS-200",
@@ -18,6 +61,34 @@
       "id": "F-220",
       "featureSetId": "FS-200",
       "name": "Download access rules",
+      "lifecycle": "active",
+      "lifecycleChange": null
+    },
+    {
+      "id": "F-230",
+      "featureSetId": "FS-200",
+      "name": "Access changes take effect",
+      "lifecycle": "active",
+      "lifecycleChange": null
+    },
+    {
+      "id": "F-240",
+      "featureSetId": "FS-200",
+      "name": "Regional files in the web app",
+      "lifecycle": "active",
+      "lifecycleChange": null
+    },
+    {
+      "id": "F-310",
+      "featureSetId": "FS-300",
+      "name": "Access record protection",
+      "lifecycle": "active",
+      "lifecycleChange": null
+    },
+    {
+      "id": "F-320",
+      "featureSetId": "FS-300",
+      "name": "What each role sees",
       "lifecycle": "active",
       "lifecycleChange": null
     }
