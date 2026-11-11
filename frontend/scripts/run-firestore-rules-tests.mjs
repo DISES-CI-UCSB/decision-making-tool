@@ -11,9 +11,13 @@ import { fileURLToPath } from 'node:url';
 
 const frontendRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const repoRoot = path.dirname(frontendRoot);
-const firebaseBin = path.join(frontendRoot, 'node_modules', '.bin', 'firebase');
-const specPath = path.join(frontendRoot, 'scripts', 'firestore.rules.spec.mjs');
+const firebaseCli = path.join(frontendRoot, 'node_modules', 'firebase-tools', 'lib', 'bin', 'firebase.js');
 const firebaseConfig = path.join(repoRoot, 'firebase.json');
+/**
+ * emulators:exec runs this through a shell in frontendRoot, so a relative path with no spaces
+ * needs no quoting in cmd.exe, PowerShell, or sh.
+ */
+const rulesTestCommand = 'node --test scripts/firestore.rules.spec.mjs';
 
 const HOMEBREW_JAVA_HOMES = [
   '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home',
@@ -88,16 +92,6 @@ function resolveJavaEnv() {
   return null;
 }
 
-function resolveFirebaseBin() {
-  if (process.platform === 'win32') {
-    const firebaseCmd = `${firebaseBin}.cmd`;
-    if (existsSync(firebaseCmd)) {
-      return firebaseCmd;
-    }
-  }
-  return firebaseBin;
-}
-
 function printJavaDiagnosis() {
   console.error('Firestore emulator could not start: no usable Java runtime on PATH.');
   console.error('The Cloud Firestore emulator requires a JDK 21+.');
@@ -120,15 +114,19 @@ if (!env) {
   process.exit(1);
 }
 
-const firebaseCommand = resolveFirebaseBin();
-if (!existsSync(firebaseCommand)) {
+if (!existsSync(firebaseCli)) {
   console.error('firebase-tools is not installed. Run npm install in frontend/.');
   process.exit(1);
 }
 
+/**
+ * Runs firebase-tools with this Node binary and no shell, so each array element reaches it as exactly
+ * one argument on every platform. Spawning firebase.cmd on Windows needs a shell, which splits the test command.
+ */
 const child = spawn(
-  firebaseCommand,
+  process.execPath,
   [
+    firebaseCli,
     'emulators:exec',
     '--only',
     'firestore',
@@ -136,12 +134,11 @@ const child = spawn(
     'demo-dises',
     '--config',
     firebaseConfig,
-    `node --test ${JSON.stringify(specPath)}`,
+    rulesTestCommand,
   ],
   {
     cwd: frontendRoot,
     env,
-    shell: process.platform === 'win32',
     stdio: 'inherit',
   },
 );
