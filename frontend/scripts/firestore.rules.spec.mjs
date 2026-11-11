@@ -66,6 +66,18 @@ function totpDb(actor, identifier = 'totp-1') {
   });
 }
 
+function passwordDb(actor) {
+  return firestoreFor(actor, { sign_in_provider: 'password' });
+}
+
+function passwordTotpDb(actor) {
+  return firestoreFor(actor, {
+    sign_in_provider: 'password',
+    sign_in_second_factor: 'totp',
+    second_factor_identifier: 'totp-1',
+  });
+}
+
 function phoneFactorDb(actor) {
   return firestoreFor(actor, {
     sign_in_provider: 'google.com',
@@ -858,6 +870,39 @@ describe('self-registration of users/{uid}', () => {
     await assertFails(setDoc(doc(firstFactorDb(ACTORS.pending), 'users', ACTORS.pending.uid), gticSelfProvisionedUser(ACTORS.pending)));
   });
 
+  it('rejects a users record self-created by a password, custom-token, or providerless sign-in', async () => {
+    const stranger = { uid: 'password-signup', email: 'victim@example.com', name: 'Password Signup' };
+    const nonGoogleDbs = [
+      passwordDb(stranger),
+      passwordTotpDb(stranger),
+      firestoreFor(stranger, { sign_in_provider: 'custom' }),
+      firestoreFor(stranger, {}),
+    ];
+
+    for (const db of nonGoogleDbs) {
+      await assertFails(setDoc(doc(db, 'users', stranger.uid), defaultSelfUser(stranger)));
+    }
+    await assertFails(
+      setDoc(doc(passwordDb(stranger), 'userDirectory', stranger.uid), defaultSelfDirectory(stranger)),
+    );
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const stored = await getDoc(doc(context.firestore(), 'users', stranger.uid));
+      assert.equal(stored.exists(), false);
+    });
+  });
+
+  it('allows the Google account create the web app sends, before and after TOTP sign-in', async () => {
+    const firstFactor = { uid: 'google-first', email: 'google-first@example.com', name: 'Google First' };
+    const afterTotp = { uid: 'google-totp', email: 'google-totp@example.com', name: 'Google TOTP' };
+
+    await assertSucceeds(
+      setDoc(doc(firstFactorDb(firstFactor), 'users', firstFactor.uid), defaultSelfUser(firstFactor)),
+    );
+    await assertSucceeds(
+      setDoc(doc(totpDb(afterTotp), 'users', afterTotp.uid), defaultSelfUser(afterTotp)),
+    );
+  });
+
   it('rejects an active directory row for a denied account', async () => {
     const denied = { uid: 'denied-user', email: 'denied@example.com', name: 'Denied User' };
     await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -925,4 +970,56 @@ describe('self-registration of users/{uid}', () => {
       }),
     );
   });
+});
+
+describe('deciding your own SIRAP access request', () => {
+  async function seedOwnRequest(actor, sirapId, status) {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), 'sirapAccessRequests', sirapRequestId(actor.uid, sirapId)),
+        pendingSirapRequest(actor, sirapId, {
+          status,
+          includeDecision: status !== 'pending',
+        }),
+      );
+    });
+  }
+
+  function decideOwnRequest(actor, sirapId, status) {
+    const db = totpDb(actor);
+    return updateDoc(doc(db, 'sirapAccessRequests', sirapRequestId(actor.uid, sirapId)), {
+      status,
+      decidedAt: serverTimestamp(),
+      decidedBy: actor.uid,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async function storedStatus(actor, sirapId) {
+    let status;
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const stored = await getDoc(
+        doc(context.firestore(), 'sirapAccessRequests', sirapRequestId(actor.uid, sirapId)),
+      );
+      status = stored.data().status;
+    });
+    return status;
+  }
+
+  for (const { label, actor, sirapId } of [
+    { label: 'regional admin', actor: ACTORS.sirapAdmin, sirapId: 'orinoquia' },
+    { label: 'super admin', actor: ACTORS.superAdmin, sirapId: 'eje-cafetero' },
+  ]) {
+    it(`stops a ${label} approving their own request but lets them deny or revoke it`, async () => {
+      await seedOwnRequest(actor, sirapId, 'pending');
+      await assertFails(decideOwnRequest(actor, sirapId, 'approved'));
+      assert.equal(await storedStatus(actor, sirapId), 'pending');
+      await assertSucceeds(decideOwnRequest(actor, sirapId, 'denied'));
+      assert.equal(await storedStatus(actor, sirapId), 'denied');
+
+      await seedOwnRequest(actor, sirapId, 'approved');
+      await assertSucceeds(decideOwnRequest(actor, sirapId, 'denied'));
+      assert.equal(await storedStatus(actor, sirapId), 'denied');
+    });
+  }
 });
