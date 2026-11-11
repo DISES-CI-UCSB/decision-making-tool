@@ -295,13 +295,46 @@ service cloud.firestore {
     // Existing allowedSirapIds must already be current-region ids. A regional
     // admin therefore cannot strip retired ids or grant a SIRAP they do not
     // administer.
-    function validSirapAdminUserUpdate() {
+    function validSirapAdminUserUpdate(uid) {
       return isSirapAdministrator()
-        ? validSirapAdminUserUpdateBy(
-          currentUserData().administeredSirapIds,
-          sirapIdsOrEmpty(resource.data, 'allowedSirapIds')
+        ? (
+          validSirapAdminUserUpdateBy(
+            currentUserData().administeredSirapIds,
+            sirapIdsOrEmpty(resource.data, 'allowedSirapIds')
+          )
+            ? sirapAdminMayChangeAccessOf(
+              uid,
+              currentUserData().administeredSirapIds,
+              sirapIdsOrEmpty(resource.data, 'allowedSirapIds')
+            )
+            : false
         )
         : false;
+    }
+
+    // Only people canGetUserForSirapAdmin reveals: someone who holds an administered region,
+    // or who has a pending request for each region granted. A write that grants nothing,
+    // such as a denial, needs a pending request for any administered region.
+    function sirapAdminMayChangeAccessOf(uid, administeredSirapIds, previousAllowedSirapIds) {
+      let grantedSirapIds = request.resource.data.allowedSirapIds
+        .toSet()
+        .difference(previousAllowedSirapIds.toSet());
+      return previousAllowedSirapIds.hasAny(administeredSirapIds)
+        || (
+          grantedSirapIds.size() > 0
+            ? pendingRequestCoversGrant(uid, 'orinoquia', grantedSirapIds)
+              && pendingRequestCoversGrant(uid, 'eje-cafetero', grantedSirapIds)
+            : hasPendingSirapRequest(uid, 'orinoquia', administeredSirapIds)
+              || hasPendingSirapRequest(uid, 'eje-cafetero', administeredSirapIds)
+        );
+    }
+
+    function pendingRequestCoversGrant(uid, sirapId, grantedSirapIds) {
+      return sirapId in grantedSirapIds
+        ? pendingSirapRequestExists(
+          /databases/$(database)/documents/sirapAccessRequests/$(uid + '_' + sirapId)
+        )
+        : true;
     }
 
     function validSirapAdminUserUpdateBy(administeredSirapIds, previousAllowedSirapIds) {
@@ -509,7 +542,7 @@ service cloud.firestore {
       allow create: if validSelfUserCreate(uid) || (isSuperAdmin() ? validUserRecord(uid) : false);
       allow update: if (isSuperAdmin() ? validUserRecord(uid) : false)
         || validSuperAdminSirapAccessUpdate()
-        || validSirapAdminUserUpdate()
+        || validSirapAdminUserUpdate(uid)
         || validOwnAuthenticatorSetupStamp(uid);
       allow delete: if false;
 

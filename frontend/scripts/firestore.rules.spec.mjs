@@ -587,20 +587,20 @@ describe('TOTP SIRAP admin', () => {
       getDocs(query(collection(db, 'sirapAccessRequests'), where('sirapId', '==', 'orinoquia'))),
     );
     await assertSucceeds(
-      updateDoc(ownedRequest, {
-        status: 'approved',
-        decidedAt: serverTimestamp(),
-        decidedBy: ACTORS.sirapAdmin.uid,
-        updatedAt: serverTimestamp(),
-      }),
-    );
-    await assertSucceeds(
       updateDoc(doc(db, 'users', ACTORS.target.uid), {
         allowedSirapIds: ['orinoquia'],
         role: 'sirap-user',
         tier: 2,
         updatedAt: serverTimestamp(),
         updatedBy: ACTORS.sirapAdmin.uid,
+      }),
+    );
+    await assertSucceeds(
+      updateDoc(ownedRequest, {
+        status: 'approved',
+        decidedAt: serverTimestamp(),
+        decidedBy: ACTORS.sirapAdmin.uid,
+        updatedAt: serverTimestamp(),
       }),
     );
 
@@ -633,6 +633,10 @@ describe('TOTP SIRAP admin', () => {
           role: 'sirap-user',
           allowedSirapIds: ['eje-cafetero'],
         }),
+      );
+      await setDoc(
+        doc(context.firestore(), 'sirapAccessRequests', sirapRequestId(holder.uid, 'orinoquia')),
+        pendingSirapRequest(holder, 'orinoquia'),
       );
     });
     const db = totpDb(ACTORS.sirapAdmin);
@@ -748,6 +752,153 @@ describe('users a regional admin can see', () => {
     assert.equal(listed.docs.some((userDoc) => userDoc.id === ACTORS.foreign.uid), true);
     await assertSucceeds(getDoc(doc(db, 'users', otherRegionRequester.uid)));
     await assertSucceeds(getDoc(doc(db, 'userDirectory', ACTORS.active.uid)));
+  });
+});
+
+describe('people a regional admin can grant a region to', () => {
+  const bothRegionsAdmin = {
+    uid: 'both-regions-admin',
+    email: 'both-admin@example.com',
+    name: 'Both Regions Admin',
+  };
+  const orinoquiaHolder = {
+    uid: 'orinoquia-holder',
+    email: 'orinoquia-holder@example.com',
+    name: 'Orinoquia Holder',
+  };
+  const ejeRequester = {
+    uid: 'eje-only-requester',
+    email: 'eje-only@example.com',
+    name: 'Eje Only Requester',
+  };
+  const denialRequester = {
+    uid: 'denial-requester',
+    email: 'denial@example.com',
+    name: 'Denial Requester',
+  };
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(
+        doc(db, 'users', bothRegionsAdmin.uid),
+        userRecord(bothRegionsAdmin, {
+          role: 'sirap-admin',
+          allowedSirapIds: ['orinoquia', 'eje-cafetero'],
+          administeredSirapIds: ['orinoquia', 'eje-cafetero'],
+        }),
+      );
+      await setDoc(
+        doc(db, 'users', orinoquiaHolder.uid),
+        userRecord(orinoquiaHolder, { role: 'sirap-user', allowedSirapIds: ['orinoquia'] }),
+      );
+      await setDoc(doc(db, 'users', ejeRequester.uid), userRecord(ejeRequester));
+      await setDoc(
+        doc(db, 'sirapAccessRequests', sirapRequestId(ejeRequester.uid, 'eje-cafetero')),
+        pendingSirapRequest(ejeRequester, 'eje-cafetero'),
+      );
+      await setDoc(doc(db, 'users', denialRequester.uid), userRecord(denialRequester));
+      await setDoc(
+        doc(db, 'sirapAccessRequests', sirapRequestId(denialRequester.uid, 'orinoquia')),
+        pendingSirapRequest(denialRequester, 'orinoquia'),
+      );
+    });
+  });
+
+  function writeRegions(db, admin, person, allowedSirapIds) {
+    return updateDoc(doc(db, 'users', person.uid), {
+      allowedSirapIds,
+      role: allowedSirapIds.length > 0 ? 'sirap-user' : 'user',
+      tier: 2,
+      updatedAt: serverTimestamp(),
+      updatedBy: admin.uid,
+    });
+  }
+
+  async function storedUsers(people) {
+    const stored = {};
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      for (const person of people) {
+        stored[person.uid] = (await getDoc(doc(context.firestore(), 'users', person.uid))).data();
+      }
+    });
+    return stored;
+  }
+
+  it('cannot grant a region to someone who holds none of their regions and has no pending request for it', async () => {
+    const untouched = [ACTORS.active, ACTORS.foreign, ejeRequester];
+    const before = await storedUsers(untouched);
+    const db = totpDb(ACTORS.sirapAdmin);
+
+    // The active user's only Orinoquía request was denied.
+    await assertFails(writeRegions(db, ACTORS.sirapAdmin, ACTORS.active, ['orinoquia']));
+    await assertFails(writeRegions(db, ACTORS.sirapAdmin, ACTORS.active, []));
+    await assertFails(
+      writeRegions(db, ACTORS.sirapAdmin, ACTORS.foreign, ['eje-cafetero', 'orinoquia']),
+    );
+    await assertFails(writeRegions(db, ACTORS.sirapAdmin, ejeRequester, ['orinoquia']));
+    await assertFails(
+      writeRegions(totpDb(bothRegionsAdmin), bothRegionsAdmin, ejeRequester, ['orinoquia']),
+    );
+
+    assert.deepEqual(await storedUsers(untouched), before);
+  });
+
+  it('grants or denies a region for someone whose request for that region is pending', async () => {
+    await assertSucceeds(
+      writeRegions(totpDb(ACTORS.sirapAdmin), ACTORS.sirapAdmin, ACTORS.target, ['orinoquia']),
+    );
+    await assertSucceeds(
+      writeRegions(totpDb(bothRegionsAdmin), bothRegionsAdmin, ejeRequester, ['eje-cafetero']),
+    );
+
+    const db = totpDb(ACTORS.sirapAdmin);
+    const userRef = doc(db, 'users', denialRequester.uid);
+    const requestRef = doc(
+      db,
+      'sirapAccessRequests',
+      sirapRequestId(denialRequester.uid, 'orinoquia'),
+    );
+    await assertSucceeds(
+      runTransaction(db, async (transaction) => {
+        await transaction.get(userRef);
+        transaction.update(requestRef, {
+          status: 'denied',
+          decidedAt: serverTimestamp(),
+          decidedBy: ACTORS.sirapAdmin.uid,
+          updatedAt: serverTimestamp(),
+        });
+        transaction.update(userRef, {
+          allowedSirapIds: [],
+          role: 'user',
+          tier: 2,
+          updatedAt: serverTimestamp(),
+          updatedBy: ACTORS.sirapAdmin.uid,
+        });
+      }),
+    );
+
+    const stored = await storedUsers([ACTORS.target, ejeRequester, denialRequester]);
+    assert.deepEqual(stored[ACTORS.target.uid].allowedSirapIds, ['orinoquia']);
+    assert.deepEqual(stored[ejeRequester.uid].allowedSirapIds, ['eje-cafetero']);
+    assert.deepEqual(stored[denialRequester.uid].allowedSirapIds, []);
+  });
+
+  it('changes access for someone who already holds one of their regions, without a request', async () => {
+    await assertSucceeds(
+      writeRegions(totpDb(bothRegionsAdmin), bothRegionsAdmin, orinoquiaHolder, [
+        'orinoquia',
+        'eje-cafetero',
+      ]),
+    );
+    await assertSucceeds(
+      writeRegions(totpDb(ACTORS.sirapAdmin), ACTORS.sirapAdmin, orinoquiaHolder, [
+        'eje-cafetero',
+      ]),
+    );
+
+    const stored = await storedUsers([orinoquiaHolder]);
+    assert.deepEqual(stored[orinoquiaHolder.uid].allowedSirapIds, ['eje-cafetero']);
   });
 });
 
