@@ -97,9 +97,9 @@ Run every command on the VM unless the step says otherwise. Commands assume the 
 
    ```bash
    sudo install -d -m 0750 -o root -g 10001 backend/secrets
-   sudo install -m 0440 -o root -g 10001 ~/firebase-reader-key.json backend/secrets/firebase-admin.json
+   sudo install -m 0440 -o root -g 10001 ~/firebase-key.json backend/secrets/firebase-admin.json
    sudo install -m 0440 -o root -g 10001 ~/gcs-signer-key.json backend/secrets/gcs-signer.json
-   shred -u ~/firebase-reader-key.json ~/gcs-signer-key.json
+   shred -u ~/firebase-key.json ~/gcs-signer-key.json
    ```
 
    Group `10001` is the container's `appuser`, so the files stay readable if the container later runs as that user. `backend/secrets/` is ignored by Git and by the Docker build, so keys never enter a commit or an image.
@@ -218,24 +218,30 @@ gcloud iam service-accounts keys create gcs-signer-key.json \
 
 If the organization policy `iam.disableServiceAccountKeyCreation` blocks the last command, GTIC needs an exception for this one service account.
 
-### Firebase reader key: Firestore and Authentication read only
+### Firebase key: Firestore and Authentication, no project administration
 
-The service uses the key to read `users/{uid}` in Firestore and, for every new sign-in token, to look up the Firebase Authentication account so a token from an ended session or a disabled account is refused. Grant **Cloud Datastore Viewer** (`roles/datastore.viewer`) and **Firebase Authentication Viewer** (`roles/firebaseauth.viewer`) on the Firebase project to a dedicated service account. Without the second role, every download request returns 503 `session_check_failed`. Do not reuse the default Firebase Admin SDK account, which can write.
+The service uses the key to:
+
+- read `users/{uid}` in Firestore;
+- look up the Firebase Authentication account for every new sign-in token, so a token from an ended session or a disabled account is refused;
+- reset a person's authenticator when a super-admin asks: remove their second factors, end their sessions, and clear `users/{uid}.mfaEnrolledAt`.
+
+Grant **Firebase Authentication Admin** (`roles/firebaseauth.admin`) and **Cloud Datastore User** (`roles/datastore.user`) on the Firebase project to a dedicated service account. Without them, downloads return 503 `session_check_failed` and resets return 503 `account_update_failed`. Do not reuse the default Firebase Admin SDK account, which can also change project settings, security rules, and other Firebase products.
 
 ```bash
-gcloud iam service-accounts create dmt-firestore-reader --project=dises-decision-making-tool \
-  --display-name="DISES Metrics API Firestore reader"
+gcloud iam service-accounts create dmt-metrics-api-firebase --project=dises-decision-making-tool \
+  --display-name="DISES Metrics API Firebase access"
 gcloud projects add-iam-policy-binding dises-decision-making-tool \
-  --member="serviceAccount:dmt-firestore-reader@dises-decision-making-tool.iam.gserviceaccount.com" \
-  --role="roles/datastore.viewer"
+  --member="serviceAccount:dmt-metrics-api-firebase@dises-decision-making-tool.iam.gserviceaccount.com" \
+  --role="roles/firebaseauth.admin"
 gcloud projects add-iam-policy-binding dises-decision-making-tool \
-  --member="serviceAccount:dmt-firestore-reader@dises-decision-making-tool.iam.gserviceaccount.com" \
-  --role="roles/firebaseauth.viewer"
-gcloud iam service-accounts keys create firebase-reader-key.json \
-  --iam-account="dmt-firestore-reader@dises-decision-making-tool.iam.gserviceaccount.com"
+  --member="serviceAccount:dmt-metrics-api-firebase@dises-decision-making-tool.iam.gserviceaccount.com" \
+  --role="roles/datastore.user"
+gcloud iam service-accounts keys create firebase-key.json \
+  --iam-account="dmt-metrics-api-firebase@dises-decision-making-tool.iam.gserviceaccount.com"
 ```
 
-Firestore IAM cannot limit reads to one collection, so these roles can read every Firestore document and Authentication account in the project. They cannot write.
+Firestore IAM cannot limit access to one collection, so these roles can read and write every Firestore document and Authentication account in the project. They cannot deploy security rules, change project settings, or reach other Google Cloud services.
 
 ### Rotating a key with overlap
 
