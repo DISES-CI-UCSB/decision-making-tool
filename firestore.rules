@@ -31,25 +31,36 @@ service cloud.firestore {
         && firebaseTokenClaims().get('sign_in_provider', '') == 'google.com';
     }
 
+    // Firestore evaluates both sides of `&&` when the left side reads a get() document, and every
+    // evaluated expression counts toward the 1000-expression request limit. Gate expensive checks
+    // behind get()-based actor checks with `actorCheck ? checks : false`, which stays lazy. These
+    // gated helpers must not be negated: a ternary returns an error where `&&` might return false.
+    function totpClaimsPresent(claims) {
+      return claims.get('sign_in_second_factor', '') == 'totp'
+        && claims.get('second_factor_identifier', '') is string
+        && claims.get('second_factor_identifier', '').size() > 0;
+    }
+
     function signedInWithTotp() {
-      return signedIn()
-        && firebaseTokenClaims().get('sign_in_second_factor', '') == 'totp'
-        && firebaseTokenClaims().get('second_factor_identifier', '') is string
-        && firebaseTokenClaims().get('second_factor_identifier', '').size() > 0;
+      return signedIn() ? totpClaimsPresent(firebaseTokenClaims()) : false;
     }
 
     function isActiveTotpUser() {
-      return signedInWithTotp() && isActiveUserData(currentUserData());
+      return signedInWithTotp() ? isActiveUserData(currentUserData()) : false;
+    }
+
+    function isActiveSuperAdminData(userData) {
+      return isActiveUserData(userData)
+        && (
+          userData.role == 'super-admin'
+          || userData.get('isSuperAdmin', false) == true
+          || userData.get('isAdmin', false) == true
+          || userData.role == 'admin'
+        );
     }
 
     function isSuperAdmin() {
-      return isActiveTotpUser()
-        && (
-          currentUserData().role == 'super-admin'
-          || currentUserData().get('isSuperAdmin', false) == true
-          || currentUserData().get('isAdmin', false) == true
-          || currentUserData().role == 'admin'
-        );
+      return signedInWithTotp() ? isActiveSuperAdminData(currentUserData()) : false;
     }
 
     function isSirapId(value) {
@@ -72,21 +83,29 @@ service cloud.firestore {
       return field in data && data[field] is list ? data[field] : [];
     }
 
-    function administersSirap(sirapId) {
-      return isActiveTotpUser()
+    function administersSirapData(userData, sirapId) {
+      return isActiveUserData(userData)
         && (
-          isSuperAdmin()
+          isActiveSuperAdminData(userData)
           || (
-            currentUserData().administeredSirapIds is list
-            && sirapId in currentUserData().administeredSirapIds
+            userData.administeredSirapIds is list
+            && sirapId in userData.administeredSirapIds
           )
         );
     }
 
+    function administersSirap(sirapId) {
+      return signedInWithTotp() ? administersSirapData(currentUserData(), sirapId) : false;
+    }
+
+    function isSirapAdministratorData(userData) {
+      return isActiveUserData(userData)
+        && userData.administeredSirapIds is list
+        && userData.administeredSirapIds.size() > 0;
+    }
+
     function isSirapAdministrator() {
-      return isActiveTotpUser()
-        && currentUserData().administeredSirapIds is list
-        && currentUserData().administeredSirapIds.size() > 0;
+      return signedInWithTotp() ? isSirapAdministratorData(currentUserData()) : false;
     }
 
     function canReadActiveUserForSirapAdmin() {
@@ -240,7 +259,15 @@ service cloud.firestore {
     // administer.
     function validSirapAdminUserUpdate() {
       return isSirapAdministrator()
-        && resource.data.status == 'active'
+        ? validSirapAdminUserUpdateBy(
+          currentUserData().administeredSirapIds,
+          sirapIdsOrEmpty(resource.data, 'allowedSirapIds')
+        )
+        : false;
+    }
+
+    function validSirapAdminUserUpdateBy(administeredSirapIds, previousAllowedSirapIds) {
+      return resource.data.status == 'active'
         && !resourceIsSuperAdmin()
         && request.resource.data.role != 'super-admin'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -253,15 +280,15 @@ service cloud.firestore {
         && roleMatchesScopes(request.resource.data)
         && tierMatchesRole(request.resource.data)
         && validSirapIdList(request.resource.data.allowedSirapIds)
-        && validSirapIdList(sirapIdsOrEmpty(resource.data, 'allowedSirapIds'))
+        && validSirapIdList(previousAllowedSirapIds)
         && request.resource.data.allowedSirapIds
           .toSet()
-          .difference(sirapIdsOrEmpty(resource.data, 'allowedSirapIds').toSet())
-          .hasOnly(currentUserData().administeredSirapIds)
-        && sirapIdsOrEmpty(resource.data, 'allowedSirapIds')
+          .difference(previousAllowedSirapIds.toSet())
+          .hasOnly(administeredSirapIds)
+        && previousAllowedSirapIds
           .toSet()
           .difference(request.resource.data.allowedSirapIds.toSet())
-          .hasOnly(currentUserData().administeredSirapIds)
+          .hasOnly(administeredSirapIds)
         && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.updatedAt == request.time;
     }
@@ -270,8 +297,11 @@ service cloud.firestore {
     // list. Retired ids already stored on the user do not have to pass
     // validSirapIdList first. Role, tier, and admin flags stay unchanged.
     function validSuperAdminSirapAccessUpdate() {
-      return isSuperAdmin()
-        && resource.data.status == 'active'
+      return isSuperAdmin() ? validSuperAdminSirapAccessUpdateFields() : false;
+    }
+
+    function validSuperAdminSirapAccessUpdateFields() {
+      return resource.data.status == 'active'
         && (
           (resourceIsSuperAdmin() && request.resource.data.role == 'super-admin')
           || (!resourceIsSuperAdmin() && request.resource.data.role != 'super-admin')
@@ -324,13 +354,6 @@ service cloud.firestore {
       return signedInWithTotp()
         && resource.data.uid == request.auth.uid
         && resource.data.status in ['approved', 'denied']
-        && (
-          resource.data.status == 'denied'
-          || !(
-            resource.data.sirapId
-            in sirapIdsOrEmpty(currentUserData(), 'allowedSirapIds')
-          )
-        )
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status',
           'reason',
@@ -339,13 +362,23 @@ service cloud.firestore {
           'decidedAt',
           'decidedBy'
         ])
-        && validOwnSirapAccessRequest(request.auth.uid);
+        && validOwnSirapAccessRequest(request.auth.uid)
+        && (
+          resource.data.status == 'denied'
+          || !(
+            resource.data.sirapId
+            in sirapIdsOrEmpty(currentUserData(), 'allowedSirapIds')
+          )
+        );
     }
 
     // Nobody approves their own request, including regional admins and super admins.
     function validSirapDecision() {
-      return administersSirap(resource.data.sirapId)
-        && !(
+      return administersSirap(resource.data.sirapId) ? validSirapDecisionFields() : false;
+    }
+
+    function validSirapDecisionFields() {
+      return !(
           request.resource.data.status == 'approved'
           && resource.data.uid == request.auth.uid
         )
@@ -435,8 +468,8 @@ service cloud.firestore {
         || canReadActiveUserForSirapAdmin();
       // A Google-signed-in person may create only their own default account.
       // Super admins may still create or replace a full user record.
-      allow create: if validSelfUserCreate(uid) || (isSuperAdmin() && validUserRecord(uid));
-      allow update: if (isSuperAdmin() && validUserRecord(uid))
+      allow create: if validSelfUserCreate(uid) || (isSuperAdmin() ? validUserRecord(uid) : false);
+      allow update: if (isSuperAdmin() ? validUserRecord(uid) : false)
         || validSuperAdminSirapAccessUpdate()
         || validSirapAdminUserUpdate();
       allow delete: if false;
@@ -466,7 +499,7 @@ service cloud.firestore {
     match /userDirectory/{uid} {
       allow get: if isSelf(uid) || isSuperAdmin() || isSirapAdministrator();
       allow list: if isSuperAdmin() || isSirapAdministrator();
-      allow create: if validSelfDirectoryCreate(uid) || (isSuperAdmin() && validDirectoryRecord(uid));
+      allow create: if validSelfDirectoryCreate(uid) || (isSuperAdmin() ? validDirectoryRecord(uid) : false);
       allow update: if false;
       allow delete: if false;
     }
@@ -487,9 +520,9 @@ service cloud.firestore {
     }
 
     match /manifestStyleRequests/{requestId} {
-      allow create: if hasManifestStyleAccess() && validManifestStyleRequestCreate();
+      allow create: if hasManifestStyleAccess() ? validManifestStyleRequestCreate() : false;
       allow get, list: if isSuperAdmin();
-      allow update: if isSuperAdmin() && validManifestStyleRequestAdminUpdate();
+      allow update: if isSuperAdmin() ? validManifestStyleRequestAdminUpdate() : false;
       allow delete: if false;
     }
 
