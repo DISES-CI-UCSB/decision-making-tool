@@ -285,6 +285,44 @@
       "durationBudgetMs": 4000,
       "fast": false,
       "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-008.api.spec.ts"
+    },
+    {
+      "id": "FBT-022",
+      "name": "A sign-in from before 2-step verification was removed, or before the account was disabled, cannot get download links.",
+      "methodology": "Proves that once an administrator removes someone's 2-step verification and ends their sessions, or disables their account, the ID token they already hold no longer gets download links, even though that token has not expired. File requested: inputs/reference/orinoquia_savannas/v0.1.0/orinoquia_savannas.metadata.json (Orinoquia savannas metadata, listed as restricted to the orinoquia region), once per account; the DMT_TEST_ORINOQUIA_OBJECT environment variable can override the key. Creates two active accounts with role sirap-user and allowedSirapIds ['orinoquia'], enrolls a Time-based One-Time Password (TOTP) authenticator on each, and signs each in again with password plus code, so each holds an ID token that the access rules would accept for that file. Neither token is sent to the service before the change, because the service remembers an accepted token for up to 5 minutes and a remembered token would hide the change; the test therefore checks a token's first use after the change, not one the service already remembers. After waiting 1.5 seconds (Firebase records the session-end time in whole seconds), the Firebase Admin SDK unenrolls the first account's authenticator and revokes its refresh tokens, and POST /downloads/signed-url with the first account's old token must return 401 with reason session_revoked. The Admin SDK then disables the second account, and the same request with its old token must return 401 with reason account_disabled. Neither reply body may contain a url, and no raw reply text may contain X-Goog-Signature. Real: the deployed Metrics API, Firebase Authentication including authenticator enrollment, the second-factor sign-in, session revocation, and account disabling, Firestore, and the download catalog; nothing in the request path is mocked. Test-only: the two Firebase users, created by the Admin SDK with verified @dmt-test.invalid addresses so no email is sent, their Firestore users records, authenticator codes computed in memory from the enrollment secret, the Admin SDK calls standing in for an administrator, and the chosen Orinoquia object key; users and records are deleted afterward. Not checked: how long a token the service already remembers keeps working (up to the 5-minute remembered-token limit), the web app's sign-out or authenticator-reset screens, Firestore status changes (FBT-023 covers those), links issued before the change, or that a fresh sign-in after re-enabling works again.",
+      "category": "feature-behavior",
+      "owner": "F-220",
+      "additionalFeatureAssociations": [],
+      "scope": "integration",
+      "environment": "non-browser",
+      "browserMode": "not-applicable",
+      "regression": false,
+      "bugReference": null,
+      "rootCauseAnalysis": null,
+      "enforcement": "required",
+      "enforcementChange": null,
+      "durationBudgetMs": 12000,
+      "fast": false,
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-022.api.spec.ts"
+    },
+    {
+      "id": "FBT-023",
+      "name": "Removing someone's regional access, or deactivating their account, stops new download links within 2 minutes.",
+      "methodology": "Proves that when an administrator removes a user's regional (SIRAP) grant or deactivates their account in Firestore, the service stops issuing that user new download links within 2 minutes, even though the user keeps the same valid sign-in. Files requested: inputs/reference/orinoquia_savannas/v0.1.0/orinoquia_savannas.metadata.json (Orinoquia savannas metadata, listed as restricted to the orinoquia region) and inputs/reference/eje_cafetero_wetlands/v0.1.0/eje_cafetero_wetlands.metadata.json (Eje Cafetero wetlands metadata, listed as restricted to the eje-cafetero region); the DMT_TEST_ORINOQUIA_OBJECT and DMT_TEST_EJE_CAFETERO_OBJECT environment variables can override the keys. Creates two active sirap-user accounts, one with allowedSirapIds ['orinoquia'] and one with ['eje-cafetero'], enrolls a Time-based One-Time Password (TOTP) authenticator on each, and signs each in again with password plus code. Each account first asks POST /downloads/signed-url for its region file and must get 200 with a link whose ranged GET returns 200 or 206 with bytes, so the service has accepted and remembered that access. The Firebase Admin SDK then empties the first account's allowedSirapIds and sets the second account's status to denied in Firestore. Every 15 seconds the test asks again with the same ID tokens, stopping for each account at its first reply that is not a link; within 130 seconds of the change (the 2-minute promise plus 10 seconds for the last retry's round trip) the first account must get 403 layer_forbidden and the second 403 account_inactive, with no url in either body and no X-Goog-Signature in either raw reply. The measured delay for each change is recorded as a Measured delay annotation; the 15-second retry interval limits its precision. Real: the deployed Metrics API including its access caches, Firebase Authentication including authenticator enrollment and the second-factor sign-in, Firestore, and the Google Cloud Storage (GCS) bucket; nothing in the request path is mocked. Test-only: the two Firebase users, created by the Admin SDK with verified @dmt-test.invalid addresses so no email is sent, their Firestore users records, the Admin SDK Firestore writes standing in for an administrator's access-management screen, authenticator codes computed in memory from the enrollment secret, and the chosen object keys; users and records are deleted afterward. Not checked: links issued before the change, which stay valid until their 15-minute expiry, removing 2-step verification or disabling the Firebase account (FBT-022 covers those), the role change from sirap-user to user, the web app's access-management screens, or delays shorter than the 15-second retry interval.",
+      "category": "feature-behavior",
+      "owner": "F-230",
+      "additionalFeatureAssociations": [],
+      "scope": "integration",
+      "environment": "non-browser",
+      "browserMode": "not-applicable",
+      "regression": false,
+      "bugReference": null,
+      "rootCauseAnalysis": null,
+      "enforcement": "required",
+      "enforcementChange": null,
+      "durationBudgetMs": 160000,
+      "fast": false,
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-230-access-changes-take-effect/behavior/FBT-023.api.spec.ts"
     }
   ]
 }

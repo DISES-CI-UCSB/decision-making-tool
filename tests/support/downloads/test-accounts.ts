@@ -36,8 +36,21 @@ export interface TestAccount {
   idToken: string;
 }
 
+/** Firestore `users/{uid}` fields an administrator changes to grant or end download access. */
+export type AccessRecordChange = {
+  status?: TestAccountOptions['status'] | 'denied';
+  role?: TestAccountOptions['role'];
+  allowedSirapIds?: string[];
+};
+
 export interface TestAccountFactory {
   create(options: TestAccountOptions): Promise<TestAccount>;
+  /** Unenrolls every second factor and ends all sessions, as an administrator resetting a lost authenticator would. */
+  removeAuthenticatorAndEndSessions(uid: string): Promise<void>;
+  /** Disables the Firebase Authentication account. */
+  disableAccount(uid: string): Promise<void>;
+  /** Overwrites fields of the account's Firestore `users/{uid}` record. */
+  updateAccessRecord(uid: string, change: AccessRecordChange): Promise<void>;
   /** Deletes every account this factory created, in Firebase Auth and Firestore. */
   cleanUp(): Promise<void>;
 }
@@ -124,6 +137,29 @@ export function createTestAccountFactory(): TestAccountFactory {
     }
   }
 
+  /** Account changes touch only accounts this factory created, never anything else in the project. */
+  function createdAccountUid(uid: string): string {
+    const account = created.find((candidate) => candidate.uid === uid);
+    if (!account || !DISPOSABLE_EMAIL.test(account.email)) {
+      throw new Error('Only accounts created by this test account factory can be changed.');
+    }
+    return account.uid;
+  }
+
+  async function removeAuthenticatorAndEndSessions(uid: string): Promise<void> {
+    const accountUid = createdAccountUid(uid);
+    await adminAuth.updateUser(accountUid, { multiFactor: { enrolledFactors: null } });
+    await adminAuth.revokeRefreshTokens(accountUid);
+  }
+
+  async function disableAccount(uid: string): Promise<void> {
+    await adminAuth.updateUser(createdAccountUid(uid), { disabled: true });
+  }
+
+  async function updateAccessRecord(uid: string, change: AccessRecordChange): Promise<void> {
+    await firestore.doc(`users/${createdAccountUid(uid)}`).update(change);
+  }
+
   async function cleanUp(): Promise<void> {
     for (const app of clientApps) {
       await deleteApp(app).catch(() => undefined);
@@ -139,5 +175,5 @@ export function createTestAccountFactory(): TestAccountFactory {
     await deleteAdminApp(adminApp).catch(() => undefined);
   }
 
-  return { create, cleanUp };
+  return { create, removeAuthenticatorAndEndSessions, disableAccount, updateAccessRecord, cleanUp };
 }
