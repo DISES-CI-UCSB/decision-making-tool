@@ -27,9 +27,8 @@ const firestoreWriteRequest =
   /^https:\/\/firestore\.googleapis\.com\/(google\.firestore\.v1\.Firestore\/Write\/|v1\/[^?]*:(commit|batchWrite)(\?|$))/;
 
 /**
- * Opening the Admin console as a super-admin backfills `userDirectory` rows for every active account that lacks
- * one, real people included. The walkthrough must not write anyone's data, so the page's Firestore writes are
- * refused from the moment the sign-in is done. Returns the refused requests' paths.
+ * The walkthrough must not write anyone's data, real people included, so the page's Firestore writes are refused
+ * from the moment the sign-in is done. Returns the refused requests' paths.
  */
 async function refuseFirestoreWrites(page: Page): Promise<string[]> {
   const refusedWrites: string[] = [];
@@ -141,7 +140,7 @@ test.describe('FBT-032', () => {
         await expect(sirapAccessButton).toBeVisible();
       });
 
-      await test.step('The Admin console opens and names them a super admin with access to, and administration of, all SIRAPs', async () => {
+      await test.step('The Admin console opens without writing anything and names them a super admin with access to, and administration of, all SIRAPs', async () => {
         refusedWrites = await refuseFirestoreWrites(page);
         await adminConsoleButton.click();
         const adminConsole = page.getByRole('dialog', { name: 'Access management' });
@@ -152,6 +151,10 @@ test.describe('FBT-032', () => {
         await expect(adminConsole.locator('#admin-access-panel-administrator-assignments-value')).toHaveText(
           'All SIRAPs',
         );
+        await whenServicesRespond(async () => {
+          await expect(adminConsole.getByText('Loading access management...')).toHaveCount(0, { timeout: 20_000 });
+        });
+        expect(refusedWrites, 'Firestore writes attempted while the Admin console opened').toEqual([]);
         await adminConsole.getByRole('button', { name: 'Close access requests panel' }).click();
         await expect(adminConsole).toHaveCount(0);
       });
