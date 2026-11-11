@@ -523,7 +523,7 @@ describe('TOTP claim shape', () => {
 });
 
 describe('TOTP super admin', () => {
-  it('can run the approval batch and create or list the user directory', async () => {
+  it("can run the approval batch and list the user directory, but not write someone else's directory row", async () => {
     const db = totpDb(ACTORS.superAdmin);
     const approvedUser = {
       uid: ACTORS.pending.uid,
@@ -549,7 +549,7 @@ describe('TOTP super admin', () => {
     });
     await assertSucceeds(batch.commit());
 
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(db, 'userDirectory', approvedUser.uid), {
         uid: approvedUser.uid,
         email: approvedUser.email,
