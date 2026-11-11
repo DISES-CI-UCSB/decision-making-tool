@@ -46,12 +46,35 @@ export async function fetchFirstBytes(
   return { status: response.status(), byteLength: bytes.byteLength };
 }
 
+function encodeObjectName(objectName: string): string {
+  return objectName.split('/').map(encodeURIComponent).join('/');
+}
+
+/** A bucket file's plain public address, with no signature. */
+export function plainBucketAddress(objectName: string): string {
+  return `https://storage.googleapis.com/${serviceConfig.bucket}/${encodeObjectName(objectName)}`;
+}
+
+/** A file's address on the old public Vercel Blob host. */
+export function publicBlobAddress(objectName: string): string {
+  return `${serviceConfig.publicBlobHost}/${encodeObjectName(objectName)}`;
+}
+
 /** The same bucket file at its plain public address, with no signature. */
 export async function fetchPlainBucketAddress(request: APIRequestContext, objectName: string): Promise<number> {
-  const encoded = objectName.split('/').map(encodeURIComponent).join('/');
-  const response = await request.get(`https://storage.googleapis.com/${serviceConfig.bucket}/${encoded}`);
+  const response = await request.get(plainBucketAddress(objectName));
   await response.body();
   return response.status();
+}
+
+/** Status of an anonymous HEAD request, or the error text when no reply arrived. */
+export async function headStatus(request: APIRequestContext, url: string): Promise<number | string> {
+  try {
+    const response = await request.head(url, { maxRedirects: 0 });
+    return response.status();
+  } catch (error) {
+    return (error as Error).message.split('\n')[0];
+  }
 }
 
 /**
