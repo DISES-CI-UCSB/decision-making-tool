@@ -1,10 +1,16 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
 import type {
   RuntimeCatalogReleaseIndex,
   RuntimeLayerManifest,
   RuntimeSirapManifest,
   RuntimeSolutionManifestEntry,
 } from '@core/models/layer-manifest.model';
+import { AppStateService } from './app-state.service';
 import {
+  LayerManifestService,
+  isSirapCatalogBatch,
   mergeCatalogReleaseBatches,
   mergeRuntimeSolutionBatches,
   validateCatalogReleaseIndex,
@@ -160,5 +166,164 @@ describe('catalog release indexes', () => {
         sirapManifest([solution('national', 'sirap')]),
       ]),
     ).toThrow('Catalog release duplicates solution ID: national');
+  });
+
+  it('recognizes SIRAP batches by their batch ID', () => {
+    const batch = (id: string) => ({
+      id,
+      manifestUrl: 'https://example.test/x.json',
+      expectedSolutionCount: 1,
+    });
+
+    expect(isSirapCatalogBatch(batch('sirap'))).toBe(true);
+    expect(isSirapCatalogBatch(batch('sirap-2026-09-09-v7-endemic'))).toBe(true);
+    expect(isSirapCatalogBatch(batch('national'))).toBe(false);
+    expect(isSirapCatalogBatch(batch('sirapless'))).toBe(false);
+  });
+
+  it('accepts a skipped SIRAP batch and expects only the loaded solution count', () => {
+    const index = catalogIndex();
+
+    const merged = mergeCatalogReleaseBatches(index, [nationalManifest()], [index.batches[0]]);
+
+    expect(merged.solutions.map((item) => item.id)).toEqual(['national']);
+  });
+
+  it('fails closed when a skipped batch is not a SIRAP batch', () => {
+    const index = catalogIndex({
+      expectedSolutionCount: 2,
+      batches: [
+        {
+          id: 'national',
+          manifestUrl: 'https://example.test/national.json',
+          expectedSolutionCount: 1,
+        },
+        { id: 'marine', manifestUrl: 'https://example.test/marine.json', expectedSolutionCount: 1 },
+      ],
+    });
+
+    expect(() =>
+      mergeCatalogReleaseBatches(index, [nationalManifest()], [index.batches[0]]),
+    ).toThrow('Catalog release index did not load every declared batch');
+  });
+
+  it('fails closed when the loaded batches miss the release solution count', () => {
+    const index = catalogIndex({ expectedSolutionCount: 3 });
+
+    expect(() =>
+      mergeCatalogReleaseBatches(index, [nationalManifest()], [index.batches[0]]),
+    ).toThrow('Catalog release index expectedSolutionCount does not match loaded solutions');
+  });
+});
+
+describe('LayerManifestService SIRAP batch access', () => {
+  const indexUrl = 'https://example.test/catalog-release-index.json';
+  const nationalUrl = 'https://example.test/national.json';
+  const sirapUrl = 'https://example.test/sirap.json';
+  const runtimeWindow = globalThis as { __CATALOG_RELEASE_INDEX_BLOB_URL__?: string };
+  let httpMock: HttpTestingController;
+  let appState: AppStateService;
+  let latestSolutionIds: string[] | null;
+
+  const isRequestTo = (url: string) => (request: { url: string }) =>
+    request.url.startsWith(`${url}?`);
+  const expectRequest = (url: string) => httpMock.expectOne(isRequestTo(url));
+  const expectNoRequest = (url: string) => httpMock.expectNone(isRequestTo(url));
+
+  function startLoadingCatalog(): void {
+    TestBed.inject(LayerManifestService)
+      .getManifest()
+      .subscribe((manifest) => {
+        latestSolutionIds = manifest.solutions.map((item) => item.id);
+      });
+    TestBed.tick();
+    expectRequest(indexUrl).flush(catalogIndex());
+    expectRequest(nationalUrl).flush(nationalManifest());
+  }
+
+  function grantSirapAccess(): void {
+    appState.allowedSirapIds$.set(['orinoquia']);
+    TestBed.tick();
+  }
+
+  beforeEach(() => {
+    runtimeWindow.__CATALOG_RELEASE_INDEX_BLOB_URL__ = indexUrl;
+    latestSolutionIds = null;
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    httpMock = TestBed.inject(HttpTestingController);
+    appState = TestBed.inject(AppStateService);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+    delete runtimeWindow.__CATALOG_RELEASE_INDEX_BLOB_URL__;
+  });
+
+  it('loads only national batches for a signed-out visitor', () => {
+    startLoadingCatalog();
+
+    expectNoRequest(sirapUrl);
+    expect(latestSolutionIds).toEqual(['national']);
+  });
+
+  it('loads the SIRAP batch once the user gains SIRAP access, without reloading national data', () => {
+    startLoadingCatalog();
+
+    grantSirapAccess();
+    expectRequest(sirapUrl).flush(sirapManifest([solution('sirap', 'sirap')]));
+
+    expectNoRequest(indexUrl);
+    expectNoRequest(nationalUrl);
+    expect(latestSolutionIds).toEqual(['national', 'sirap']);
+  });
+
+  it('loads the SIRAP batch for a super admin without region grants', () => {
+    startLoadingCatalog();
+
+    appState.userIsSuperAdmin$.set(true);
+    TestBed.tick();
+    expectRequest(sirapUrl).flush(sirapManifest([solution('sirap', 'sirap')]));
+
+    expect(latestSolutionIds).toEqual(['national', 'sirap']);
+  });
+
+  it('drops SIRAP solutions when access ends and requests them again when access returns', () => {
+    startLoadingCatalog();
+    grantSirapAccess();
+    expectRequest(sirapUrl).flush(sirapManifest([solution('sirap', 'sirap')]));
+
+    appState.allowedSirapIds$.set([]);
+    TestBed.tick();
+    expect(latestSolutionIds).toEqual(['national']);
+
+    grantSirapAccess();
+    expectRequest(sirapUrl).flush(sirapManifest([solution('sirap', 'sirap')]));
+    expect(latestSolutionIds).toEqual(['national', 'sirap']);
+  });
+
+  it('cancels an unfinished SIRAP request when access ends', () => {
+    startLoadingCatalog();
+    grantSirapAccess();
+    const sirapRequest = expectRequest(sirapUrl);
+
+    appState.allowedSirapIds$.set([]);
+    TestBed.tick();
+
+    expect(sirapRequest.cancelled).toBe(true);
+    expect(latestSolutionIds).toEqual(['national']);
+  });
+
+  it('keeps national scenarios when the SIRAP batch fails to load', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    startLoadingCatalog();
+
+    grantSirapAccess();
+    expectRequest(sirapUrl).flush('missing', { status: 404, statusText: 'Not Found' });
+
+    expect(latestSolutionIds).toEqual(['national']);
+    expect(error).toHaveBeenCalled();
+    error.mockRestore();
   });
 });
