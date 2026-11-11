@@ -1,5 +1,6 @@
 services:
   backend:
+    # Restarts after a crash or host reboot. The image HEALTHCHECK polls /health.
     restart: unless-stopped
     # VM-local backend/.env (not committed) supplies artifact paths and ops settings.
     env_file:
@@ -28,3 +29,6 @@ services:
     volumes:
       - ./runtime-artifacts:/backend/runtime-artifacts
       - ./runtime-cache:/backend/runtime-cache
+      # Service-account key files (not committed). Point the *_SERVICE_ACCOUNT_FILE
+      # names in backend/.env at /run/secrets/dmt/<file>.
+      - ./secrets:/run/secrets/dmt:ro

@@ -491,6 +491,75 @@ def test_credential_errors_do_not_echo_the_key(monkeypatch: pytest.MonkeyPatch) 
     assert "secret" not in caught.value.message
 
 
+def _write_key(path: Path, client_email: str) -> Path:
+    path.write_text(
+        json.dumps({"private_key": "key-for-tests", "client_email": client_email}),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_mounted_key_file_wins_over_inline_json(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    key_file = _write_key(tmp_path / "gcs-signer.json", "file@example.iam.gserviceaccount.com")
+    monkeypatch.setenv("DMT_GCS_SERVICE_ACCOUNT_FILE", str(key_file))
+    monkeypatch.setenv(
+        "DMT_GCS_SERVICE_ACCOUNT_JSON",
+        json.dumps({"private_key": "inline", "client_email": "inline@example.com"}),
+    )
+
+    info = load_service_account_info(
+        json_env="DMT_GCS_SERVICE_ACCOUNT_JSON",
+        file_env="DMT_GCS_SERVICE_ACCOUNT_FILE",
+    )
+
+    assert info["client_email"] == "file@example.iam.gserviceaccount.com"
+
+
+def test_missing_key_file_is_not_configured_even_with_inline_json(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("DMT_GCS_SERVICE_ACCOUNT_FILE", str(tmp_path / "missing.json"))
+    monkeypatch.setenv(
+        "DMT_GCS_SERVICE_ACCOUNT_JSON",
+        json.dumps({"private_key": "inline", "client_email": "inline@example.com"}),
+    )
+
+    with pytest.raises(BrokerError) as caught:
+        load_service_account_info(
+            json_env="DMT_GCS_SERVICE_ACCOUNT_JSON",
+            file_env="DMT_GCS_SERVICE_ACCOUNT_FILE",
+        )
+
+    assert caught.value.status_code == 503
+    assert caught.value.code == "broker_not_configured"
+
+
+def test_inline_json_key_still_loads_and_warns_without_the_key(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.delenv("DMT_FIREBASE_SERVICE_ACCOUNT_FILE", raising=False)
+    monkeypatch.setenv(
+        "FIREBASE_SERVICE_ACCOUNT_JSON",
+        json.dumps({"private_key": "inline-secret", "client_email": "inline@example.com"}),
+    )
+
+    with caplog.at_level("WARNING", logger="app.downloads.credentials"):
+        info = load_service_account_info(
+            json_env="FIREBASE_SERVICE_ACCOUNT_JSON",
+            file_env="DMT_FIREBASE_SERVICE_ACCOUNT_FILE",
+        )
+
+    assert info["client_email"] == "inline@example.com"
+    assert "FIREBASE_SERVICE_ACCOUNT_JSON" in caplog.text
+    assert "DMT_FIREBASE_SERVICE_ACCOUNT_FILE" in caplog.text
+    assert "inline-secret" not in caplog.text
+
+
 def test_download_forbidden_is_a_security_event(capsys: pytest.CaptureFixture[str]) -> None:
     maybe_log_http_exception(_http_request("/downloads/signed-url", method="POST"), 403)
 
