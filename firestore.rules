@@ -45,10 +45,6 @@ service cloud.firestore {
       return signedIn() ? totpClaimsPresent(firebaseTokenClaims()) : false;
     }
 
-    function isActiveTotpUser() {
-      return signedInWithTotp() ? isActiveUserData(currentUserData()) : false;
-    }
-
     function isActiveSuperAdminData(userData) {
       return isActiveUserData(userData)
         && (
