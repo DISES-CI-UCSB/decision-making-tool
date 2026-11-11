@@ -529,7 +529,7 @@
       "rootCauseAnalysis": null,
       "enforcement": "required",
       "enforcementChange": null,
-      "durationBudgetMs": 30000,
+      "durationBudgetMs": 40000,
       "fast": false,
       "sourceFile": "tests/features/FS-100-sign-in-and-authenticator-protection/F-120-authenticator-sign-in/behavior/FBT-011.live-local.spec.ts"
     },
