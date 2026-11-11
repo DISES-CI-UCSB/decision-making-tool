@@ -4,7 +4,7 @@ import path from 'node:path';
 import { after, before, beforeEach, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
-  assertFails,
+  assertFails as assertFailsForAnyReason,
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
@@ -42,8 +42,31 @@ const ACTORS = {
   foreign: { uid: 'foreign-user', email: 'foreign@example.com', name: 'Foreign User' },
 };
 
+/**
+ * Denial texts the emulator returns when a request runs out of per-request evaluation budget:
+ * 1,000 evaluated expressions, or 10 (20 in a batch) document reads, which surfaces as a failed
+ * get() or exists() service call. Such a denial happens whatever the rules intend.
+ */
+const EVALUATION_LIMIT_DENIALS = [
+  'maximum of 1000 expressions to evaluate has been reached',
+  'Service call error',
+];
+
 /** @type {import('@firebase/rules-unit-testing').RulesTestEnvironment} */
 let testEnv;
+
+/** Like the library's assertFails, but a denial caused by an evaluation limit fails the test. */
+async function assertFails(pendingOperation) {
+  const error = await assertFailsForAnyReason(pendingOperation);
+  const message = String(error?.message ?? '');
+  const limitDenial = EVALUATION_LIMIT_DENIALS.find((text) => message.includes(text));
+  assert.equal(
+    limitDenial,
+    undefined,
+    `Refused by an evaluation limit, not by a rule:\n${message}`,
+  );
+  return error;
+}
 
 function firestoreFor(actor, tokenClaims) {
   return testEnv
