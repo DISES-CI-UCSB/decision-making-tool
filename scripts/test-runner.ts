@@ -254,11 +254,14 @@ function playwrightWorkerCount(project: PlaywrightProject): number {
 
 const testPort = process.env.TNC_TEST_PORT ?? String(42000 + (process.pid % 10000));
 
-/** Environment for one Playwright run. The local web app starts only when a browser project runs. */
+/**
+ * Environment for one Playwright run. The local web app starts only for deterministic browser tests;
+ * live browser tests open the deployed app at DMT_TEST_APP_URL.
+ */
 function playwrightEnvironment(projects: PlaywrightProject[], options: RunOptions): Record<string, string> {
   const browserProjects = projects.filter((project) => project !== 'api');
   return {
-    TNC_WEB_SERVER: browserProjects.length ? 'on' : 'off',
+    TNC_WEB_SERVER: projects.includes('deterministic') ? 'on' : 'off',
     TNC_PLAYWRIGHT_RECORD: options.record ? '1' : '0',
     TNC_TEST_PORT: testPort,
     ...(browserProjects.length === 1

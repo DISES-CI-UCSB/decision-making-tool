@@ -45,10 +45,10 @@
         "//test:browser-deterministic": "Runs browser tests that use saved or mocked data (reproducible, no live services). No browser tests exist yet. Needs the Angular app's dependencies installed in frontend/.",
         "test:browser-deterministic": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-deterministic",
 
-        "//test:browser-live": "Runs browser tests against real services, with one retry. No browser tests exist yet. Needs the Angular app's dependencies installed in frontend/.",
+        "//test:browser-live": "Runs browser tests against the deployed web app and real services, with one retry. The app address defaults to https://decision-making-tool-tau.vercel.app; set DMT_TEST_APP_URL to test a preview deployment or a page server you started yourself.",
         "test:browser-live": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-live",
 
-        "//test:browser-all": "Runs both browser modes (deterministic and live). No browser tests exist yet.",
+        "//test:browser-all": "Runs both browser modes (deterministic and live).",
         "test:browser-all": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-all",
 
         "//test:browser-only": "Alias for test:browser-all.",

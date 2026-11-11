@@ -456,6 +456,25 @@
       "durationBudgetMs": 100000,
       "fast": false,
       "sourceFile": "tests/features/FS-200-private-layer-downloads/F-210-signed-download-links/behavior/FBT-020.api.spec.ts"
+    },
+    {
+      "id": "FBT-029",
+      "name": "A signed-out visitor sees national public layers but no regional layers, regional downloads, or admin tools.",
+      "methodology": "Proves that a visitor who never signs in gets the national map experience and nothing reserved for regional (SIRAP) users or admins, including in what their browser downloads. App opened: the deployed web app at https://decision-making-tool-tau.vercel.app in desktop Chromium with a fresh browser profile; the DMT_TEST_APP_URL environment variable can override the address. What it checks: after closing the welcome video, the header offers Login / Register and shows no SIRAP access, Admin console, or Logout button. The scenario finder shows the Land planning domain with no Scenario scope choice, no SIRAP option, and no Orinoquía or Eje Cafetero region option. Clicking View map loads the default national scenario, and the layer list shows the national RUNAP 2023 protected areas and Ramsar wetlands layers. With the Ecosystems group open, no Orinoquía or Eje Cafetero layer appears, and searching the layer list for each regional layer's Spanish and English name (Sabanas de la Orinoquía, Congriales, Humedales del Eje Cafetero, Estrategias Complementarias de Conservación, and their English labels) finds 0 matches, while a search for RAMSAR finds the national layer each time. No download button or link on the page names a regional layer or region. Last, across the whole visit the browser must not request any file under a SIRAP release (including the SIRAP solutions manifest) or any file whose path names Orinoquía or Eje Cafetero. The public SIRAP boundary outlines (siraps_* layers) are national layers and are allowed. A readiness step that fails during HTTP 429 or 5xx responses, or a network, DNS, TLS, or graphics failure, is reported inconclusive; the absence checks are never downgraded. Real: the deployed web app, Firebase Authentication's signed-out state, the published layer manifests and catalog release index on Vercel Blob, and the ArcGIS basemap; nothing is mocked, and no account signs in. Test-only: nothing; the fresh profile has no saved sign-in. Not checked: signed-in roles (FBT-030 to FBT-032), whether regional files are reachable by direct address (FBT-021), regional map rendering, layer download buttons (not built yet), the marine domain, the About and Guide pages, or what the right-hand analysis panels list.",
+      "category": "feature-behavior",
+      "owner": "F-320",
+      "additionalFeatureAssociations": [],
+      "scope": "end-to-end",
+      "environment": "browser",
+      "browserMode": "live",
+      "regression": false,
+      "bugReference": null,
+      "rootCauseAnalysis": null,
+      "enforcement": "required",
+      "enforcementChange": null,
+      "durationBudgetMs": 20000,
+      "fast": false,
+      "sourceFile": "tests/features/FS-300-account-and-region-access/F-320-what-each-role-sees/behavior/FBT-029.live.spec.ts"
     }
   ]
 }

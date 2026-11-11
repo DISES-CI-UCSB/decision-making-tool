@@ -14,8 +14,17 @@ const artifactDirectory =
 /** `--record` keeps a trace of every test and a video of every browser test. */
 const recording = process.env.TNC_PLAYWRIGHT_RECORD === '1';
 
-/** Projects that open the local web app in a browser. The `api` project only sends HTTP requests. */
-const browserProjectNames = ['deterministic', 'live'];
+/**
+ * Live browser tests open the deployed web app. Set DMT_TEST_APP_URL to target a preview deployment,
+ * or a page server you started yourself, such as `yarn start` in frontend/ on http://localhost:4200.
+ */
+const liveAppUrl = (process.env.DMT_TEST_APP_URL ?? 'https://decision-making-tool-tau.vercel.app').replace(
+  /\/+$/,
+  '',
+);
+
+/** Projects that open the local web app. The `live` project opens the deployed app; `api` only sends HTTP requests. */
+const localAppProjectNames = ['deterministic'];
 
 function projectsNamedOnCommandLine(): string[] {
   const argv = process.argv;
@@ -27,12 +36,12 @@ function projectsNamedOnCommandLine(): string[] {
 }
 
 /**
- * The local Angular app starts only when browser tests run. The test runner sets TNC_WEB_SERVER to
- * `on` or `off`. A direct `npx playwright test` starts it only when --project names a browser project.
+ * The local Angular app starts only when deterministic browser tests run. The test runner sets TNC_WEB_SERVER
+ * to `on` or `off`. A direct `npx playwright test` starts it only when --project names the deterministic project.
  */
 const startWebServer = process.env.TNC_WEB_SERVER
   ? process.env.TNC_WEB_SERVER === 'on'
-  : projectsNamedOnCommandLine().some((name) => browserProjectNames.includes(name));
+  : projectsNamedOnCommandLine().some((name) => localAppProjectNames.includes(name));
 
 function positiveInteger(raw: string | undefined, fallback: number): number {
   const value = Number(raw);
@@ -100,7 +109,7 @@ export default defineConfig<DeterministicProjectOptions>({
       timeout: 90000,
       retries: 1,
       workers: 2,
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], baseURL: liveAppUrl },
     },
   ],
 });
