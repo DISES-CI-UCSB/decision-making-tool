@@ -52,7 +52,10 @@
         "test:browser-all": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-all",
 
         "//test:browser-only": "Alias for test:browser-all.",
-        "test:browser-only": "npm run test:browser-all"
+        "test:browser-only": "npm run test:browser-all",
+
+        "//downloads:build-catalog": "Rebuilds the signing service's download catalog from the latest published manifests and writes backend/runtime-artifacts/download-catalog/download-catalog.json. Every file used only by one region is tagged with that region. Needs Python 3. Reads only; copying the file to the VM is a separate manual step. Pass --output <path> after a double dash to write elsewhere.",
+        "downloads:build-catalog": "node scripts/build-download-catalog.mjs"
     },
     "devDependencies": {
         "@playwright/test": "^1.64.1",
