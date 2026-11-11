@@ -16,6 +16,7 @@ import {
   getDoc,
   getDocs,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -692,6 +693,37 @@ describe('users a regional admin can see', () => {
     );
     await assertSucceeds(getDoc(doc(db, 'users', member.uid)));
     await assertSucceeds(getDoc(doc(db, 'users', ACTORS.target.uid)));
+  });
+
+  it("approves a pending request in a transaction that first reads the requester's record", async () => {
+    const db = totpDb(ACTORS.sirapAdmin);
+    const userRef = doc(db, 'users', ACTORS.target.uid);
+    const requestRef = doc(
+      db,
+      'sirapAccessRequests',
+      sirapRequestId(ACTORS.target.uid, 'orinoquia'),
+    );
+
+    await assertSucceeds(
+      runTransaction(db, async (transaction) => {
+        const requester = await transaction.get(userRef);
+        assert.equal(requester.data().status, 'active');
+        transaction.update(requestRef, {
+          status: 'approved',
+          decidedAt: serverTimestamp(),
+          decidedBy: ACTORS.sirapAdmin.uid,
+          updatedAt: serverTimestamp(),
+        });
+        transaction.update(userRef, {
+          allowedSirapIds: ['orinoquia'],
+          role: 'sirap-user',
+          tier: 2,
+          updatedAt: serverTimestamp(),
+          updatedBy: ACTORS.sirapAdmin.uid,
+        });
+      }),
+    );
+    await assertSucceeds(getDoc(userRef));
   });
 
   it('cannot list or read people who neither hold nor are asking for an administered region', async () => {

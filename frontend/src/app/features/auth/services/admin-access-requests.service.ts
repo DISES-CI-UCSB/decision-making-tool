@@ -150,10 +150,24 @@ export class AdminAccessRequestsService {
         .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
     }
 
-    return (
-      await getDocs(query(collection(firestore, 'users'), where('status', '==', 'active')))
-    ).docs
-      .map((userDoc) => parseAdminManagedUserRecord(userDoc.id, userDoc.data()))
+    // Firestore rules let a regional admin list only active users who hold a region they administer.
+    const regionSnapshots = await Promise.all(
+      administrator.administeredSirapIds.map((sirapId) =>
+        getDocs(
+          query(
+            collection(firestore, 'users'),
+            where('status', '==', 'active'),
+            where('allowedSirapIds', 'array-contains', sirapId),
+          ),
+        ),
+      ),
+    );
+    const usersByUid = new Map(
+      regionSnapshots
+        .flatMap((snapshot) => snapshot.docs)
+        .map((userDoc) => [userDoc.id, parseAdminManagedUserRecord(userDoc.id, userDoc.data())]),
+    );
+    return [...usersByUid.values()]
       .filter((user) => user.role !== 'super-admin')
       .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
   }
