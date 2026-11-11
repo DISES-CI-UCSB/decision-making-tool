@@ -213,6 +213,14 @@ function pendingSirapRequest(actor, sirapId, extras = {}) {
   };
 }
 
+function activeUsersHolding(db, sirapId) {
+  return query(
+    collection(db, 'users'),
+    where('status', '==', 'active'),
+    where('allowedSirapIds', 'array-contains', sirapId),
+  );
+}
+
 function scenarioPayload(scenarioId, extras = {}) {
   return {
     id: scenarioId,
@@ -573,9 +581,7 @@ describe('TOTP SIRAP admin', () => {
     );
 
     await assertSucceeds(getDoc(doc(db, 'users', ACTORS.target.uid)));
-    await assertSucceeds(
-      getDocs(query(collection(db, 'users'), where('status', '==', 'active'))),
-    );
+    await assertSucceeds(getDocs(activeUsersHolding(db, 'orinoquia')));
     await assertSucceeds(
       getDocs(query(collection(db, 'sirapAccessRequests'), where('sirapId', '==', 'orinoquia'))),
     );
@@ -615,7 +621,6 @@ describe('TOTP SIRAP admin', () => {
         updatedBy: ACTORS.sirapAdmin.uid,
       }),
     );
-    await assertSucceeds(getDoc(doc(db, 'users', ACTORS.foreign.uid)));
   });
 
   it('preserves another SIRAP when granting the first administered one', async () => {
@@ -648,6 +653,69 @@ describe('TOTP SIRAP admin', () => {
         updatedBy: ACTORS.sirapAdmin.uid,
       }),
     );
+  });
+});
+
+describe('users a regional admin can see', () => {
+  const member = { uid: 'region-member', email: 'member@example.com', name: 'Region Member' };
+  const otherRegionRequester = {
+    uid: 'eje-requester',
+    email: 'eje-requester@example.com',
+    name: 'Eje Requester',
+  };
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(
+        doc(db, 'users', member.uid),
+        userRecord(member, {
+          role: 'sirap-user',
+          allowedSirapIds: ['orinoquia', 'eje-cafetero'],
+        }),
+      );
+      await setDoc(doc(db, 'users', otherRegionRequester.uid), userRecord(otherRegionRequester));
+      await setDoc(
+        doc(db, 'sirapAccessRequests', sirapRequestId(otherRegionRequester.uid, 'eje-cafetero')),
+        pendingSirapRequest(otherRegionRequester, 'eje-cafetero'),
+      );
+    });
+  });
+
+  it('lists and reads people who hold an administered region, and reads a person asking for it', async () => {
+    const db = totpDb(ACTORS.sirapAdmin);
+
+    const listed = await assertSucceeds(getDocs(activeUsersHolding(db, 'orinoquia')));
+    assert.deepEqual(
+      listed.docs.map((userDoc) => userDoc.id).sort(),
+      [member.uid, ACTORS.sirapAdmin.uid].sort(),
+    );
+    await assertSucceeds(getDoc(doc(db, 'users', member.uid)));
+    await assertSucceeds(getDoc(doc(db, 'users', ACTORS.target.uid)));
+  });
+
+  it('cannot list or read people who neither hold nor are asking for an administered region', async () => {
+    const db = totpDb(ACTORS.sirapAdmin);
+
+    await assertFails(getDocs(query(collection(db, 'users'), where('status', '==', 'active'))));
+    await assertFails(getDocs(activeUsersHolding(db, 'eje-cafetero')));
+    await assertFails(getDoc(doc(db, 'users', ACTORS.foreign.uid)));
+    await assertFails(getDoc(doc(db, 'users', otherRegionRequester.uid)));
+    // The active user's only Orinoquía request was denied.
+    await assertFails(getDoc(doc(db, 'users', ACTORS.active.uid)));
+    await assertFails(getDocs(collection(db, 'userDirectory')));
+    await assertFails(getDoc(doc(db, 'userDirectory', ACTORS.active.uid)));
+  });
+
+  it('still lets a super admin list and read every active user', async () => {
+    const db = totpDb(ACTORS.superAdmin);
+
+    const listed = await assertSucceeds(
+      getDocs(query(collection(db, 'users'), where('status', '==', 'active'))),
+    );
+    assert.equal(listed.docs.some((userDoc) => userDoc.id === ACTORS.foreign.uid), true);
+    await assertSucceeds(getDoc(doc(db, 'users', otherRegionRequester.uid)));
+    await assertSucceeds(getDoc(doc(db, 'userDirectory', ACTORS.active.uid)));
   });
 });
 
