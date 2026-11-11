@@ -334,8 +334,13 @@ service cloud.firestore {
         && validOwnSirapAccessRequest(request.auth.uid);
     }
 
+    // Nobody approves their own request, including regional admins and super admins.
     function validSirapDecision() {
       return administersSirap(resource.data.sirapId)
+        && !(
+          request.resource.data.status == 'approved'
+          && resource.data.uid == request.auth.uid
+        )
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status',
           'decidedAt',
