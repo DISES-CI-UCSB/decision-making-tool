@@ -8,10 +8,11 @@ import sqlite3
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Iterator, TypeVar
 
 
 TERMINAL_STATUSES = {"complete", "failed", "cancelled"}
@@ -523,15 +524,21 @@ class DetailedSpeciesJobQueue:
                 """
             )
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        # A sqlite3 connection's own context manager commits or rolls back but never closes.
         connection = sqlite3.connect(
             self.database_path,
             timeout=5,
             isolation_level=None,
         )
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA busy_timeout = 5000")
-        return connection
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA busy_timeout = 5000")
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
 
 def _runtime_metrics() -> dict[str, Any]:

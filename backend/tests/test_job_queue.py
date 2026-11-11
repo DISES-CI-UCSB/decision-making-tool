@@ -31,6 +31,38 @@ def test_job_queue_coalesces_completed_work(tmp_path: Path) -> None:
         queue.stop()
 
 
+def test_job_queue_closes_every_database_connection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Unclosed connections exhausted the VM's 1024 file descriptors on 2026-11-11.
+    real_connect = sqlite3.connect
+    opened: list[sqlite3.Connection] = []
+
+    def recording_connect(*args, **kwargs) -> sqlite3.Connection:
+        connection = real_connect(*args, **kwargs)
+        opened.append(connection)
+        return connection
+
+    monkeypatch.setattr(sqlite3, "connect", recording_connect)
+    queue = DetailedSpeciesJobQueue(
+        tmp_path / "jobs.sqlite3",
+        lambda payload, _is_cancelled: payload,
+    )
+    queue.start()
+    try:
+        created, _ = queue.enqueue({"value": 7})
+        _wait_for_status(queue, created.job_id, "complete")
+        queue.get(created.job_id)
+    finally:
+        queue.stop()
+
+    assert opened
+    for connection in opened:
+        with pytest.raises(sqlite3.ProgrammingError):
+            connection.execute("SELECT 1")
+
+
 def test_job_queue_reports_capacity_and_cancels_waiting_work(tmp_path: Path) -> None:
     release_worker = threading.Event()
 
