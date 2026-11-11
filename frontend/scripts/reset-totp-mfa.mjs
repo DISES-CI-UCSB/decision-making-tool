@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Remove TOTP MFA from a Firebase user so they can scan a new Eco Plan Tool QR.
+ * Remove TOTP MFA from a Firebase user and sign them out everywhere so they can scan a new Eco Plan Tool QR.
  *
  * Usage:
  *   yarn reset:totp -- you@example.com
@@ -45,6 +45,7 @@ async function main() {
       enrolledFactors: null,
     },
   });
+  await auth.revokeRefreshTokens(user.uid);
   const updated = await auth.getUser(user.uid);
   const remaining = updated.multiFactor?.enrolledFactors?.length ?? 0;
   console.log(
