@@ -538,7 +538,9 @@ service cloud.firestore {
     match /userDirectory/{uid} {
       allow get: if isSelf(uid) || isSuperAdmin();
       allow list: if isSuperAdmin();
-      allow create: if validSelfDirectoryCreate(uid) || (isSuperAdmin() ? validDirectoryRecord(uid) : false);
+      // The web app writes this row only for the signed-in person. Rows for people who have
+      // not signed in since are added by the backfill:user-directory admin script.
+      allow create: if validSelfDirectoryCreate(uid);
       allow update: if false;
       allow delete: if false;
     }

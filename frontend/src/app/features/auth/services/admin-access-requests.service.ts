@@ -144,7 +144,6 @@ export class AdminAccessRequestsService {
       const usersSnapshot = await getDocs(
         query(collection(firestore, 'users'), where('status', '==', 'active')),
       );
-      await this.backfillUserDirectory(usersSnapshot.docs);
       return usersSnapshot.docs
         .map((userDoc) => parseAdminManagedUserRecord(userDoc.id, userDoc.data()))
         .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
@@ -217,31 +216,6 @@ export class AdminAccessRequestsService {
       updatedAt: serverTimestamp(),
       updatedBy: administrator.uid,
     });
-  }
-
-  private async backfillUserDirectory(
-    users: readonly { id: string; data: () => DocumentData }[],
-  ): Promise<void> {
-    const firestore = this.requireFirestore();
-    const directorySnapshot = await getDocs(collection(firestore, 'userDirectory'));
-    const directoryUids = new Set(directorySnapshot.docs.map((directoryDoc) => directoryDoc.id));
-    const missingUsers = users.filter((user) => !directoryUids.has(user.id));
-    if (missingUsers.length === 0) {
-      return;
-    }
-
-    const batch = writeBatch(firestore);
-    for (const user of missingUsers) {
-      const data = user.data();
-      batch.set(doc(firestore, 'userDirectory', user.id), {
-        uid: user.id,
-        email: readDocumentString(data, 'email'),
-        displayName: readDocumentString(data, 'displayName') || readDocumentString(data, 'email'),
-        status: 'active',
-        updatedAt: serverTimestamp(),
-      });
-    }
-    await batch.commit();
   }
 
   async updateUserAccess(uid: string, grant: UserAccessGrant): Promise<void> {
