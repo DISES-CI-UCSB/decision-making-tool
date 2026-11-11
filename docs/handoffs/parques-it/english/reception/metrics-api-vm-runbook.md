@@ -21,7 +21,7 @@ Never paste key contents, tokens, or `.env` values into tickets, chat, logs, or 
 | A DNS name for the API, for example `api.<gtic-domain>` | GTIC | Step 3 and the release gate |
 | The web address of the DISES Web App, for example `https://decision-making-tool-tau.vercel.app` | Spatial Lab | Step 5 (`DMT_CORS_ORIGINS`) and the bucket CORS rule |
 | GCS signer key: JSON key for a service account with only Storage Object Viewer on the Private Layer Bucket | GTIC (bucket owner) | Step 6 |
-| Firebase reader key: JSON key for a service account with only Firestore read access on the Firebase project | Firebase project owner (Spatial Lab today) | Step 6 |
+| Firebase reader key: JSON key for a service account with only Firestore and Authentication read access on the Firebase project | Firebase project owner (Spatial Lab today) | Step 6 |
 | The repository commit to deploy | Spatial Lab | Step 4 |
 
 See [Service-account keys](#service-account-keys) for how to create both keys with the smallest permissions.
@@ -218,9 +218,9 @@ gcloud iam service-accounts keys create gcs-signer-key.json \
 
 If the organization policy `iam.disableServiceAccountKeyCreation` blocks the last command, GTIC needs an exception for this one service account.
 
-### Firebase reader key: Firestore read only
+### Firebase reader key: Firestore and Authentication read only
 
-The service verifies Firebase ID tokens with Google's public certificates, which needs no key. It uses the key only to read `users/{uid}` in Firestore. Grant **Cloud Datastore Viewer** (`roles/datastore.viewer`) on the Firebase project to a dedicated service account. Do not reuse the default Firebase Admin SDK account, which can write.
+The service uses the key to read `users/{uid}` in Firestore and, for every new sign-in token, to look up the Firebase Authentication account so a token from an ended session or a disabled account is refused. Grant **Cloud Datastore Viewer** (`roles/datastore.viewer`) and **Firebase Authentication Viewer** (`roles/firebaseauth.viewer`) on the Firebase project to a dedicated service account. Without the second role, every download request returns 503 `session_check_failed`. Do not reuse the default Firebase Admin SDK account, which can write.
 
 ```bash
 gcloud iam service-accounts create dmt-firestore-reader --project=dises-decision-making-tool \
@@ -228,11 +228,14 @@ gcloud iam service-accounts create dmt-firestore-reader --project=dises-decision
 gcloud projects add-iam-policy-binding dises-decision-making-tool \
   --member="serviceAccount:dmt-firestore-reader@dises-decision-making-tool.iam.gserviceaccount.com" \
   --role="roles/datastore.viewer"
+gcloud projects add-iam-policy-binding dises-decision-making-tool \
+  --member="serviceAccount:dmt-firestore-reader@dises-decision-making-tool.iam.gserviceaccount.com" \
+  --role="roles/firebaseauth.viewer"
 gcloud iam service-accounts keys create firebase-reader-key.json \
   --iam-account="dmt-firestore-reader@dises-decision-making-tool.iam.gserviceaccount.com"
 ```
 
-Firestore IAM cannot limit reads to one collection, so this role can read every Firestore document in the project. It cannot write.
+Firestore IAM cannot limit reads to one collection, so these roles can read every Firestore document and Authentication account in the project. They cannot write.
 
 ### Rotating a key with overlap
 
