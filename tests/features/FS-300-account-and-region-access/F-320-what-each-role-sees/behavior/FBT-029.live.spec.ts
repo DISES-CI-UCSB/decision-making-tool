@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from '../../../../support/browser/vercel-preview-bypass.ts';
 import { observeLiveNetwork } from '../../../../support/network/live-network-telemetry.ts';
 import { approvedExternalDisruptionEvidence } from '../../../../support/network/live-release-evidence.ts';
 import { narrateCatalogTest } from '../../../../support/reporting/test-narration.ts';

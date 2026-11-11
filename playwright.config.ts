@@ -17,6 +17,7 @@ const recording = process.env.TNC_PLAYWRIGHT_RECORD === '1';
 /**
  * Live browser tests open the deployed web app. Set DMT_TEST_APP_URL to target a preview deployment,
  * or a page server you started yourself, such as `yarn start` in frontend/ on http://localhost:4200.
+ * A protected Vercel preview also needs VERCEL_AUTOMATION_BYPASS_SECRET (tests/support/browser/vercel-preview-bypass.ts).
  */
 const liveAppUrl = (process.env.DMT_TEST_APP_URL ?? 'https://decision-making-tool-tau.vercel.app').replace(
   /\/+$/,
