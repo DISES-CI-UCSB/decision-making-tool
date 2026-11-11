@@ -19,6 +19,12 @@ class SecondFactorAdmin(Protocol):
     def remove_second_factors_and_end_sessions(self, uid: str) -> None: ...
 
 
+class AuthenticatorSetupRecords(Protocol):
+    def forget_setup(self, uid: str) -> None:
+        """Delete the saved setup time; an account with no users record has none to delete."""
+        ...
+
+
 class ResetRefused(BrokerError):
     """A refusal after the caller's token was verified, so the security log can name who asked."""
 
@@ -48,10 +54,12 @@ class AuthenticatorReset:
         verifier: TokenVerifier,
         users: UserDirectory,
         second_factors: SecondFactorAdmin,
+        setup_records: AuthenticatorSetupRecords,
     ) -> None:
         self._verifier = verifier
         self._users = users
         self._second_factors = second_factors
+        self._setup_records = setup_records
 
     def reset(self, token: str, target_uid: str) -> AuthenticatorResetResult:
         if not token or len(token) > _MAX_TOKEN_LENGTH:
@@ -92,6 +100,8 @@ class AuthenticatorReset:
                 "No account has that id.",
                 actor_uid=actor_uid,
             )
+        # Setup time first: if that write fails, the authenticator is still in place to retry.
+        self._setup_records.forget_setup(target_uid)
         self._second_factors.remove_second_factors_and_end_sessions(target_uid)
         return AuthenticatorResetResult(
             actor_uid=actor_uid,

@@ -44,9 +44,13 @@ class FakeUsers:
 
 @dataclass
 class FakeSecondFactors:
+    """Firebase Auth's second factors and each users record's setup time, in one change log."""
+
     enrolled: dict[str, int]
     lookups: list[str] = field(default_factory=list)
     removals: list[str] = field(default_factory=list)
+    changes: list[tuple[str, str]] = field(default_factory=list)
+    setup_write_fails: bool = False
 
     def enrolled_second_factor_count(self, uid: str) -> int | None:
         self.lookups.append(uid)
@@ -54,7 +58,13 @@ class FakeSecondFactors:
 
     def remove_second_factors_and_end_sessions(self, uid: str) -> None:
         self.removals.append(uid)
+        self.changes.append(("remove_second_factors", uid))
         self.enrolled[uid] = 0
+
+    def forget_setup(self, uid: str) -> None:
+        if self.setup_write_fails:
+            raise BrokerError(503, "account_update_failed", "The account record could not be updated.")
+        self.changes.append(("forget_setup", uid))
 
 
 @pytest.fixture(autouse=True)
@@ -98,6 +108,7 @@ def _client() -> tuple[TestClient, FakeSecondFactors]:
             verifier=FakeVerifier(identities),
             users=users,
             second_factors=second_factors,
+            setup_records=second_factors,
         )
     )
     application = FastAPI()
@@ -144,6 +155,28 @@ def test_super_admin_with_authenticator_resets_another_person(
         for event in events
     ] == [("authenticator_reset", 200, "super-admin", f"/admin/users/{PERSON}/reset-authenticator")]
     assert ADMIN_TOKEN not in output
+
+
+def test_a_reset_forgets_the_setup_time_so_the_email_scanner_notice_stays_hidden() -> None:
+    client, second_factors = _client()
+
+    assert _reset(client, PERSON, ADMIN_TOKEN).status_code == 200
+
+    assert second_factors.changes == [
+        ("forget_setup", PERSON),
+        ("remove_second_factors", PERSON),
+    ]
+
+
+def test_a_failed_setup_time_write_is_a_retryable_503_that_keeps_the_authenticator() -> None:
+    client, second_factors = _client()
+    second_factors.setup_write_fails = True
+
+    response = _reset(client, PERSON, ADMIN_TOKEN)
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["status"] == "account_update_failed"
+    assert second_factors.removals == []
 
 
 def test_another_super_admin_can_reset_a_super_admin() -> None:
@@ -220,7 +253,7 @@ def test_an_unknown_account_is_404_and_nothing_changes() -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"]["status"] == "user_not_found"
-    assert second_factors.removals == []
+    assert second_factors.changes == []
 
 
 def test_an_overlong_uid_is_404_without_an_account_lookup() -> None:

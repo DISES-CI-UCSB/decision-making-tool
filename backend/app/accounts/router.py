@@ -23,6 +23,7 @@ from ..security_log import (
 )
 from .authenticator_reset import AuthenticatorReset, ResetRefused
 from .second_factors import IdentityToolkitSecondFactorAdmin
+from .setup_records import FirestoreAuthenticatorSetupRecords
 
 router = APIRouter()
 
@@ -78,6 +79,7 @@ def _live_authenticator_reset() -> AuthenticatorReset:
         verifier=FirebaseIdTokenVerifier(project_id, service_account),
         users=FirestoreUserDirectory(project_id, service_account),
         second_factors=IdentityToolkitSecondFactorAdmin(project_id, service_account),
+        setup_records=FirestoreAuthenticatorSetupRecords(project_id, service_account),
     )
     _live_key = key
     return _live_reset
