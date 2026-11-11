@@ -153,6 +153,8 @@ DMT_ARTIFACT_REQUIRED=true docker compose -f backend/docker-compose.yml up -d --
 
 Useful ops: `docker compose ps`, `docker compose logs --tail=100 backend`, `docker compose restart backend`. Details: [backend/README.md](../../../../../backend/README.md#vm-deployment-smoke-operations).
 
+To stand up the Metrics API on a fresh VM, including the Blob URL Signing Service, its key files, the Download Catalog, TLS, and uptime alerting, follow [metrics-api-vm-runbook.md](./metrics-api-vm-runbook.md).
+
 ## UI-only frontend
 
 Use this when you only need the map and known-AOI dashboards, without local rasters.
@@ -239,7 +241,7 @@ There is no automated, tested Blob/Firestore disaster-recovery procedure.
 | No formal staging environment | There is no separate, owned staging stack. Catalog “tested locally” means an operator pointed env URLs at a candidate index. REQ-08 still asks for staging end-to-end tests. |
 | Metrics VM owner pending | DNS, TLS renewal, OS patching, firewall, scaling, and artifact rebuilds have no assigned owner. Confirm before calling the current VM a GTIC service. |
 | Custom domain last probed 404 | As of 7 September 2026 the Vercel app responded; the intended custom domain was 404. Bare `https://decision-making-support-tool.xyz` was also 404 and is not the API. |
-| No centralized monitoring | No uptime monitor, log shipping, or alerting configuration was found in the active repository. |
+| No centralized monitoring | No uptime monitor, log shipping, or alerting is configured. [metrics-api-vm-runbook.md](./metrics-api-vm-runbook.md#uptime) recommends an uptime check with alerting; GTIC still has to choose and enable it. |
 | No tested disaster recovery | Blob backup automation, scheduled Firestore exports, RTO/RPO, and a tested DR procedure have no owner. |
 | Catalog pointer drift | README, Compose, Dockerfile, and architecture cite different default catalog-release versions. Set `CATALOG_RELEASE_INDEX_BLOB_URL` explicitly for any official cutover. |
 | Python 3.11 vs 3.12 | The container is 3.11. CI tests 3.11 and 3.12. Align before treating 3.12 as production. |

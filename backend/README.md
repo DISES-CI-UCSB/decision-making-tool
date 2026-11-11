@@ -156,6 +156,14 @@ Chat #4 VM fixture benchmark on 2026-06-04 after rebuilding commit `3101d003`:
 
 Blob URL Signing Service settings live in `backend/.env.example`. `DMT_GCS_SIGNED_URL_TTL_SECONDS` is capped at 7 days. `DMT_DOWNLOAD_CATALOG_PATH` points at either a published layer manifest or a JSON object map (`{"objects":{"releases/example.tif":{"sirap_id":null}}}`). Firebase and GCS use separate service accounts because they are different Google Cloud projects. The response is `Cache-Control: no-store`. Token checks, user records, allow/deny decisions, and signed URLs are cached in process.
 
+Both service-account keys are read-only files: Compose mounts `backend/secrets/` (ignored by Git and Docker) at `/run/secrets/dmt`, and `DMT_FIREBASE_SERVICE_ACCOUNT_FILE` / `DMT_GCS_SERVICE_ACCOUNT_FILE` point at them. A key file wins over the deprecated inline `FIREBASE_SERVICE_ACCOUNT_JSON` / `DMT_GCS_SERVICE_ACCOUNT_JSON`. Build the Download Catalog from the national and SIRAP manifests with:
+
+```bash
+docker compose -f backend/docker-compose.yml run --rm backend python -m scripts.build_download_catalog
+```
+
+Fresh-VM setup, least-privilege keys, rotation, uptime alerting, and the release-gate check are in the [Metrics API VM runbook](../docs/handoffs/parques-it/english/reception/metrics-api-vm-runbook.md).
+
 ## Shared Metric Adapters
 
 Backend metric adapters live in `app/metric_adapters.py` and import calculator functions plus catalog entries from the existing precompute pipeline under `data/metrics/python/metrics_pipeline`. The backend should wrap those shared functions instead of duplicating metric formulas or metric definitions.
