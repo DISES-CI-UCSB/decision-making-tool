@@ -51,6 +51,13 @@ def resolve_broker(clock=time.time) -> DownloadBroker:
     return live_broker(clock)
 
 
+def active_broker() -> DownloadBroker | None:
+    """The broker already serving requests, without building one."""
+    if _test_broker_installed:
+        return _test_broker
+    return _live_broker
+
+
 def live_broker(clock=time.time) -> DownloadBroker:
     global _live_broker, _live_key
     settings = get_download_settings()

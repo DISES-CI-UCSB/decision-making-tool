@@ -46,6 +46,56 @@ Promote at least two Parques super-admins so one departure cannot lock the appro
 
 Account-level deny: mark `accessRequests/{uid}` as `denied` and do not leave that person as `users/{uid}` with `status: active`. If the in-app console has no account-deny control, a super-admin with Firestore Console access can set the request to `denied` and keep or set the user record inactive/denied.
 
+## Resetting a lost authenticator
+
+A person who loses, wipes, or replaces the phone with their authenticator app cannot get past the code screen. A super-admin resets their authenticator. The person then sets up a new one at their next sign-in. Their role, tier, and SIRAP grants do not change.
+
+### 1. Verify the person's identity first
+
+Anyone can write in claiming to be a staff member. A reset hands the account to whoever signs in next, so confirm the request really comes from the account owner. Use one of these:
+
+- **A reply from their registered email address.** Write to the address shown in Access management and ask them to reply. Do not rely on a message they sent first, and do not send a link for them to click; a reply proves they control the mailbox.
+- **A phone or video call** with someone you recognize, or through a number from the Parques staff directory (not one given in the request).
+
+If neither works, do not reset. Record who verified the request and how in your ticket. Do not paste the person's uid or any codes into the ticket.
+
+### 2. Reset it in the Admin console
+
+1. Sign in as a super-admin with your own authenticator code.
+2. Select **Admin console** in the header, then the **Active Users** tab.
+3. Search for the person's email and expand their card.
+4. In **Lost authenticator**, select **Reset authenticator**.
+5. The confirmation repeats the identity check. Select **OK** only after you have verified them.
+6. The card shows **Authenticator reset.** If it shows an error, nothing was changed; follow its wording (for example, sign out and back in with your own code).
+
+The Spanish interface labels are **Consola de administración**, **Restablecer autenticador**, and **Autenticador restablecido**.
+
+### 3. What the person sees next
+
+- They are signed out on every device. Codes from the old authenticator stop working.
+- At their next Google sign-in, EcoPlan shows the setup screen with a new QR code instead of the code screen. They scan it with their authenticator app and enter the 6-digit code.
+- After that they have their usual access again. Later sign-ins ask for codes from the new authenticator only.
+
+Two limits are worth knowing. Signed download links issued before the reset keep working until they expire (15 minutes by default). The Metrics API also forgets the person's cached sign-in on reset, but only inside the container that handled the reset; the current VM runs one container, so keep it that way or plan for up to 5 minutes of old-session downloads.
+
+### Rules for super-admin accounts
+
+- **Nobody can reset their own authenticator.** The button is hidden on your own card, and the Metrics API refuses the request. A stolen super-admin session must not be able to swap in the thief's authenticator.
+- **A super-admin who loses theirs asks another super-admin** to verify them and reset it. Keep at least two Parques super-admins for this reason.
+- Only an active super-admin who signed in with an authenticator code can reset anyone. Regional SIRAP admins cannot.
+
+### If the last super-admin is locked out
+
+When no other super-admin can sign in, a Firebase **project Owner** removes the authenticator from a workstation with the repository checked out. Verify the person first, exactly as above.
+
+```bash
+cd frontend
+gcloud auth application-default login   # sign in as the project Owner; or set FIREBASE_SERVICE_ACCOUNT_JSON
+yarn reset:totp -- person@example.org
+```
+
+The script removes every enrolled second factor and signs the person out everywhere. It prints the email, uid, and `remainingFactors`; expect `0`. Do not paste that output into a ticket. Because the script does not go through the Metrics API, a session that already downloaded something can keep getting download links for up to 5 minutes (`DMT_AUTH_CACHE_TTL_SECONDS`).
+
 ## Firestore collections
 
 Rules deny unmatched access by default. Client deletes are denied on these collections. Do not paste document contents into tickets.

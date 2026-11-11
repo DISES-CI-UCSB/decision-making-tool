@@ -27,6 +27,7 @@ from .artifacts import (
     warmup_artifacts,
 )
 from .config import get_settings
+from .accounts.router import router as accounts_router
 from .downloads.router import router as downloads_router
 from .coverage_target_validation import normalize_feature_name
 from .models import (
@@ -183,6 +184,7 @@ def cors_origins(extra: str | None = None) -> list[str]:
 
 
 app.include_router(downloads_router)
+app.include_router(accounts_router)
 
 app.add_middleware(
     CORSMiddleware,

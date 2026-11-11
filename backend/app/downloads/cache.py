@@ -36,6 +36,11 @@ class TtlCache:
         with self._lock:
             self._items[key] = _Entry(value, self._clock() + ttl_seconds)
 
+    def discard_where(self, predicate: Callable[[object], bool]) -> None:
+        with self._lock:
+            for key in [key for key, entry in self._items.items() if predicate(entry.value)]:
+                del self._items[key]
+
     def clear(self) -> None:
         with self._lock:
             self._items.clear()

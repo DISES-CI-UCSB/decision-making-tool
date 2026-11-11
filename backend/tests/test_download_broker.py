@@ -811,6 +811,23 @@ def test_deactivation_follows_the_allow_ttl_not_the_auth_ttl() -> None:
     assert denied.json()["detail"]["status"] == "account_inactive"
 
 
+def test_forgetting_a_users_sign_ins_rechecks_only_their_tokens() -> None:
+    broker, verifier, _users, _signer, _clock = _broker()
+    client = _client_for(broker)
+    assert _post(client, "national-token", NATIONAL).status_code == 200
+    assert _post(client, "plain-token", NATIONAL).status_code == 200
+    del verifier.identities["national-token"]
+    verifier.calls.clear()
+
+    broker.forget_sign_ins("national-user")
+
+    revoked = _post(client, "national-token", NATIONAL)
+    assert revoked.status_code == 401
+    assert revoked.json()["detail"]["status"] == "invalid_token"
+    assert _post(client, "plain-token", NATIONAL).status_code == 200
+    assert verifier.calls == ["national-token"]
+
+
 def test_revoked_grant_is_visible_when_the_allow_ttl_elapses() -> None:
     clock = Clock()
     users = FakeUsers(
