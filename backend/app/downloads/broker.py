@@ -101,6 +101,12 @@ class DownloadBroker:
             )
         return self._signed_url(identity.uid, normalized)
 
+    def forget_sign_ins(self, uid: str) -> None:
+        """Drops cached tokens for uid so their next use is checked for revocation."""
+        self._cache.discard_where(
+            lambda value: isinstance(value, VerifiedIdentity) and value.uid == uid
+        )
+
     def _identity(self, token: str) -> VerifiedIdentity:
         if not token or len(token) > _MAX_TOKEN_LENGTH:
             raise BrokerError(401, "invalid_token", "The Firebase ID token is invalid.")

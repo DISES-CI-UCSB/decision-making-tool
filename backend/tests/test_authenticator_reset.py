@@ -16,6 +16,7 @@ from app.accounts.router import (
 from app.accounts.second_factors import IdentityToolkitSecondFactorAdmin
 from app.downloads.access import DownloadPrincipal
 from app.downloads.errors import BrokerError
+from app.downloads.router import install_test_broker, reset_test_broker
 from app.downloads.verifier import VerifiedIdentity
 
 PERSON = "person-who-lost-their-phone"
@@ -59,8 +60,10 @@ class FakeSecondFactors:
 @pytest.fixture(autouse=True)
 def _isolated_reset():
     reset_test_authenticator_reset()
+    reset_test_broker()
     yield
     reset_test_authenticator_reset()
+    reset_test_broker()
 
 
 def _principal(uid: str, role: str, status: str = "active") -> DownloadPrincipal:
@@ -179,6 +182,25 @@ def test_only_an_active_super_admin_signed_in_with_an_authenticator_may_reset(
         ("authenticator_reset_refused", reason)
     ]
     assert token not in output
+
+
+@dataclass
+class SignInForgettingBroker:
+    forgotten: list[str] = field(default_factory=list)
+
+    def forget_sign_ins(self, uid: str) -> None:
+        self.forgotten.append(uid)
+
+
+def test_a_reset_makes_the_download_service_recheck_only_that_persons_tokens() -> None:
+    broker = SignInForgettingBroker()
+    install_test_broker(broker)
+    client, _second_factors = _client()
+
+    assert _reset(client, PERSON, ADMIN_TOKEN).status_code == 200
+    assert _reset(client, PERSON, "regional-admin-totp").status_code == 403
+
+    assert broker.forgotten == [PERSON]
 
 
 def test_a_super_admin_cannot_reset_their_own_authenticator() -> None:

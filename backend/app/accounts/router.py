@@ -5,7 +5,13 @@ from pydantic import BaseModel
 
 from ..downloads.credentials import load_service_account_info
 from ..downloads.errors import BrokerError
-from ..downloads.router import _credential_file_identity, _fingerprint, _http_error, read_bearer
+from ..downloads.router import (
+    _credential_file_identity,
+    _fingerprint,
+    _http_error,
+    active_broker,
+    read_bearer,
+)
 from ..downloads.settings import DownloadSettings, get_download_settings
 from ..downloads.users import FirestoreUserDirectory
 from ..downloads.verifier import FirebaseIdTokenVerifier
@@ -95,6 +101,9 @@ def reset_authenticator(
         raise _http_error(exc) from None
     except BrokerError as exc:
         raise _http_error(exc) from None
+    broker = active_broker()
+    if broker is not None:
+        broker.forget_sign_ins(result.target_uid)
     _log(request, EVENT_AUTHENTICATOR_RESET, 200, result.actor_uid, None)
     return AuthenticatorResetResponse(
         uid=result.target_uid,
