@@ -27,6 +27,21 @@ export const serviceConfig = {
     authDomain: 'dises-decision-making-tool.firebaseapp.com',
     projectId: 'dises-decision-making-tool',
   },
+  /**
+   * Bucket project's signing key, used only by a Metrics API that a test starts on this machine.
+   * Handed to that server by path. Never read or logged by the tests.
+   */
+  gcsSignerKeyFile:
+    process.env.DMT_TEST_GCS_SIGNER_KEY_FILE ??
+    path.join(repositoryRoot, 'pnn-priorizando-la-naturaleza_service_account_key.json'),
+  /** Python that runs a local Metrics API. Defaults to the backend's own virtual environment. */
+  backendPython:
+    process.env.DMT_TEST_BACKEND_PYTHON ??
+    (process.platform === 'win32'
+      ? path.join(repositoryRoot, 'backend', '.venv', 'Scripts', 'python.exe')
+      : path.join(repositoryRoot, 'backend', '.venv', 'bin', 'python')),
+  /** Port for a Metrics API that a test starts on this machine. */
+  localServicePort: Number(process.env.DMT_TEST_LOCAL_SERVICE_PORT ?? 8838),
   bucket: process.env.DMT_TEST_GCS_BUCKET ?? 'pnn-priorizando-la-naturaleza',
   /** Old public Vercel Blob host. A file's address there is this host plus its object key. */
   publicBlobHost: (process.env.DMT_TEST_PUBLIC_BLOB_HOST ?? PUBLIC_BLOB_HOST).replace(/\/+$/, ''),
