@@ -18,6 +18,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  Timestamp,
   arrayRemove,
   arrayUnion,
   updateDoc,
@@ -1022,4 +1023,100 @@ describe('deciding your own SIRAP access request', () => {
       assert.equal(await storedStatus(actor, sirapId), 'denied');
     });
   }
+});
+
+describe('authenticator setup time on users/{uid}', () => {
+  async function storedUser(uid) {
+    let data;
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      data = (await getDoc(doc(context.firestore(), 'users', uid))).data();
+    });
+    return data;
+  }
+
+  it('lets a person save their own setup time after authenticator sign-in, and save it again later', async () => {
+    const before = await storedUser(ACTORS.active.uid);
+    const ownRef = doc(totpDb(ACTORS.active), 'users', ACTORS.active.uid);
+    await assertSucceeds(updateDoc(ownRef, { mfaEnrolledAt: serverTimestamp() }));
+    const first = (await storedUser(ACTORS.active.uid)).mfaEnrolledAt;
+    assert.equal(first instanceof Timestamp, true);
+
+    await assertSucceeds(updateDoc(ownRef, { mfaEnrolledAt: serverTimestamp() }));
+    const { mfaEnrolledAt, ...rest } = await storedUser(ACTORS.active.uid);
+    assert.equal(mfaEnrolledAt.toMillis() >= first.toMillis(), true);
+    assert.deepEqual(rest, before);
+  });
+
+  it('refuses the setup time when any other field rides along, the time is chosen, or no authenticator was used', async () => {
+    const before = await storedUser(ACTORS.active.uid);
+    const ownRef = doc(totpDb(ACTORS.active), 'users', ACTORS.active.uid);
+    await assertFails(
+      updateDoc(ownRef, { mfaEnrolledAt: serverTimestamp(), role: 'super-admin', tier: 3 }),
+    );
+    await assertFails(
+      updateDoc(ownRef, {
+        mfaEnrolledAt: serverTimestamp(),
+        role: 'sirap-user',
+        allowedSirapIds: ['orinoquia'],
+      }),
+    );
+    await assertFails(updateDoc(ownRef, { mfaEnrolledAt: serverTimestamp(), status: 'denied' }));
+    await assertFails(updateDoc(ownRef, { mfaEnrolledAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ownRef, { mfaEnrolledAt: new Date('2026-01-01T00:00:00.000Z') }));
+    await assertFails(updateDoc(ownRef, { mfaEnrolledAt: 'yesterday' }));
+
+    const firstFactorRef = doc(firstFactorDb(ACTORS.active), 'users', ACTORS.active.uid);
+    await assertFails(updateDoc(firstFactorRef, { mfaEnrolledAt: serverTimestamp() }));
+    await assertFails(
+      updateDoc(doc(totpMissingIdentifierDb(ACTORS.active), 'users', ACTORS.active.uid), {
+        mfaEnrolledAt: serverTimestamp(),
+      }),
+    );
+
+    assert.deepEqual(await storedUser(ACTORS.active.uid), before);
+  });
+
+  it("refuses saving a setup time on someone else's record, including by a regional admin or a signed-out visitor", async () => {
+    await assertFails(
+      updateDoc(doc(totpDb(ACTORS.foreign), 'users', ACTORS.active.uid), { mfaEnrolledAt: serverTimestamp() }),
+    );
+    await assertFails(
+      updateDoc(doc(totpDb(ACTORS.sirapAdmin), 'users', ACTORS.target.uid), { mfaEnrolledAt: serverTimestamp() }),
+    );
+    await assertFails(
+      updateDoc(doc(testEnv.unauthenticatedContext().firestore(), 'users', ACTORS.active.uid), {
+        mfaEnrolledAt: serverTimestamp(),
+      }),
+    );
+    assert.equal('mfaEnrolledAt' in (await storedUser(ACTORS.active.uid)), false);
+    assert.equal('mfaEnrolledAt' in (await storedUser(ACTORS.target.uid)), false);
+  });
+
+  it('keeps a super admin role assignment working on a record that holds a setup time', async () => {
+    await assertSucceeds(
+      updateDoc(doc(totpDb(ACTORS.active), 'users', ACTORS.active.uid), { mfaEnrolledAt: serverTimestamp() }),
+    );
+    const adminDb = totpDb(ACTORS.superAdmin);
+    await assertSucceeds(
+      writeBatch(adminDb)
+        .set(
+          doc(adminDb, 'users', ACTORS.active.uid),
+          {
+            role: 'sirap-user',
+            tier: 2,
+            isAdmin: deleteField(),
+            isSuperAdmin: deleteField(),
+            administeredSirapIds: [],
+            allowedSirapIds: ['orinoquia'],
+            updatedAt: serverTimestamp(),
+            updatedBy: ACTORS.superAdmin.uid,
+          },
+          { merge: true },
+        )
+        .commit(),
+    );
+    const stored = await storedUser(ACTORS.active.uid);
+    assert.equal(stored.role, 'sirap-user');
+    assert.equal(stored.mfaEnrolledAt instanceof Timestamp, true);
+  });
 });

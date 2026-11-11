@@ -156,7 +156,8 @@ service cloud.firestore {
         'administeredSirapIds',
         'createdAt',
         'updatedAt',
-        'updatedBy'
+        'updatedBy',
+        'mfaEnrolledAt'
       ];
     }
 
@@ -181,8 +182,18 @@ service cloud.firestore {
           || validSirapIdList(request.resource.data.administeredSirapIds)
         )
         && isOptionalTimestamp(request.resource.data, 'createdAt')
+        && isOptionalTimestamp(request.resource.data, 'mfaEnrolledAt')
         && request.resource.data.updatedAt == request.time
         && isOptionalString(request.resource.data, 'updatedBy');
+    }
+
+    // The web app stamps a confirmed authenticator setup so a later sign-in that
+    // finds no authenticator can explain that an email scanner probably removed it.
+    function validOwnAuthenticatorSetupStamp(uid) {
+      return isSelf(uid)
+        && signedInWithTotp()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mfaEnrolledAt'])
+        && request.resource.data.mfaEnrolledAt == request.time;
     }
 
     // Only the web app's Google sign-in may self-create. Email/password signup
@@ -438,7 +449,8 @@ service cloud.firestore {
       allow create: if validSelfUserCreate(uid) || (isSuperAdmin() && validUserRecord(uid));
       allow update: if (isSuperAdmin() && validUserRecord(uid))
         || validSuperAdminSirapAccessUpdate()
-        || validSirapAdminUserUpdate();
+        || validSirapAdminUserUpdate()
+        || validOwnAuthenticatorSetupStamp(uid);
       allow delete: if false;
 
       match /savedSolutionScenarios/{scenarioId} {

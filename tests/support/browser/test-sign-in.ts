@@ -41,6 +41,7 @@ export const approvedAccessControls = (page: Page) => ({
 
 export const authenticatorSetupScreen = (page: Page) => page.locator('#auth-modal-mfa-enroll');
 export const authenticatorCodeScreen = (page: Page) => page.locator('#auth-modal-mfa-challenge');
+export const scannerRemovalNoticeScreen = (page: Page) => page.locator('#auth-modal-scanner-removal-notice');
 
 /** Opens the app signed out and closes the welcome video, which opens on every page load. */
 export async function openAppSignedOut(page: Page): Promise<void> {
@@ -54,8 +55,9 @@ export async function openAppSignedOut(page: Page): Promise<void> {
 
 /**
  * Opens the sign-in dialog from the header and chooses Continue with Google, then waits for the authenticator
- * setup screen or the code screen. A build without the Test Sign-In Hook opens Google's real popup instead;
- * that is reported as its own error so it is not mistaken for an app failure.
+ * setup screen, the code screen, or the email-scanner notice that comes before setup. A build without the Test
+ * Sign-In Hook opens Google's real popup instead; that is reported as its own error so it is not mistaken for an
+ * app failure.
  */
 export async function signInWithGoogleThroughTestHook(page: Page): Promise<void> {
   let googlePopupOpened = false;
@@ -67,9 +69,9 @@ export async function signInWithGoogleThroughTestHook(page: Page): Promise<void>
   try {
     await headerSignInButton(page).click();
     await page.getByRole('button', { name: 'Continue with Google' }).click();
-    await expect(authenticatorSetupScreen(page).or(authenticatorCodeScreen(page))).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(
+      authenticatorSetupScreen(page).or(authenticatorCodeScreen(page)).or(scannerRemovalNoticeScreen(page)),
+    ).toBeVisible({ timeout: 20_000 });
   } catch (error) {
     if (googlePopupOpened) {
       throw new Error(

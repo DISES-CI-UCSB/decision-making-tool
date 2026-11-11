@@ -16,6 +16,7 @@ import {
 import { AuthService } from '@core/services/auth.service';
 import { FirebaseClientService } from '@core/services/firebase-client.service';
 import { type User } from 'firebase/auth';
+import { environment } from '../../../../environments/environment';
 import { GoogleIdentityService, type GoogleProfile } from '../services/google-identity.service';
 import {
   AUTH_ERROR_CODE_EXPIRED,
@@ -46,7 +47,7 @@ import {
 export const ACCOUNT_NOT_ACTIVE_MESSAGE =
   'This Google account is not active. Contact an administrator for help.';
 
-export type AuthModalState = 'entry' | 'mfaEnroll' | 'mfaChallenge';
+export type AuthModalState = 'entry' | 'scannerRemovalNotice' | 'mfaEnroll' | 'mfaChallenge';
 export type GoogleSignInContinuation = 'first-factor' | 'challenge';
 
 @Component({
@@ -80,6 +81,8 @@ export class AuthModalComponent implements OnDestroy {
   protected readonly loginStatus = signal<string | null>(null);
   protected readonly totpIssuer = TOTP_ISSUER;
   protected readonly enrollmentReplaceWarning = TOTP_ENROLLMENT_REPLACE_WARNING;
+  /** Firebase's account email links, including the undo link a scanner opens, point at this domain. */
+  protected readonly accountEmailLinkDomain = environment.firebase.config.authDomain;
   protected readonly totpCode = signal('');
   protected readonly totpError = signal<string | null>(null);
   protected readonly totpErrorKind = signal<TotpErrorKind | null>(null);
@@ -89,6 +92,8 @@ export class AuthModalComponent implements OnDestroy {
 
   protected readonly modalTitleId = computed(() => {
     switch (this.state()) {
+      case 'scannerRemovalNotice':
+        return 'auth-modal-scanner-removal-notice-title';
       case 'mfaEnroll':
         return 'auth-modal-mfa-enroll-title';
       case 'mfaChallenge':
@@ -134,7 +139,7 @@ export class AuthModalComponent implements OnDestroy {
     if (this.isSubmitting()) {
       return;
     }
-    if (this.state() === 'mfaEnroll') {
+    if (this.state() === 'mfaEnroll' || this.state() === 'scannerRemovalNotice') {
       this.preserveAccountAndClose();
       return;
     }
@@ -175,6 +180,7 @@ export class AuthModalComponent implements OnDestroy {
     this.enrollmentSupportCode.set(null);
     try {
       await this.totpMfa.completeEnrollment(user, session, this.totpCode());
+      await this.recordAuthenticatorSetup(user);
       await this.finishVerifiedEnrollment(true);
     } catch (error) {
       const mapped = isTotpMfaError(error) ? error : toTotpMfaError(error);
@@ -213,6 +219,27 @@ export class AuthModalComponent implements OnDestroy {
 
   protected cancelMfa(): void {
     void this.requestClose();
+  }
+
+  protected async setUpAgainAfterScannerNotice(): Promise<void> {
+    if (this.isSubmitting()) {
+      return;
+    }
+    const user = this.firebase.currentUser;
+    if (!user) {
+      this.state.set('mfaEnroll');
+      this.applyRestartError(TOTP_RESTART_MESSAGE);
+      return;
+    }
+    this.isSubmitting.set(true);
+    try {
+      await this.enterEnrollment(user, user.email || user.displayName || '', {
+        skipFactorCheck: true,
+      });
+    } finally {
+      this.isSubmitting.set(false);
+    }
+    this.requestTotpFocus();
   }
 
   protected async replaceUnconfirmedAuthenticator(): Promise<void> {
@@ -298,6 +325,10 @@ export class AuthModalComponent implements OnDestroy {
     }
     if (this.isMfaState()) {
       this.requestTotpFocus();
+    } else if (this.state() === 'scannerRemovalNotice') {
+      afterNextRender(() => this.focusControl('auth-modal-scanner-removal-notice-setup-btn'), {
+        injector: this.injector,
+      });
     }
   }
 
@@ -340,6 +371,12 @@ export class AuthModalComponent implements OnDestroy {
       await this.authService.logout();
       this.loginError.set(ACCOUNT_NOT_ACTIVE_MESSAGE);
       this.state.set('entry');
+      return;
+    }
+
+    // Firebase holds no factor here, so a saved setup time means the authenticator was removed after setup.
+    if (ensured.authenticatorSetupRecorded) {
+      this.state.set('scannerRemovalNotice');
       return;
     }
 
@@ -535,6 +572,15 @@ export class AuthModalComponent implements OnDestroy {
         TOTP_RECENT_LOGIN_FAILED_MESSAGE,
         AUTH_ERROR_REQUIRES_RECENT_LOGIN,
       );
+    }
+  }
+
+  /** The setup time only feeds the scanner-removal notice, so failing to save it never blocks sign-in. */
+  private async recordAuthenticatorSetup(user: User): Promise<void> {
+    try {
+      await this.firebase.recordAuthenticatorSetup(user.uid);
+    } catch {
+      // Without the saved time, a later removal shows plain setup instead of the notice.
     }
   }
 
