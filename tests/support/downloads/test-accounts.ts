@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { cert, deleteApp as deleteAdminApp, initializeApp as initializeAdminApp } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { deleteApp, initializeApp } from 'firebase/app';
 import {
   getAuth,
@@ -68,6 +68,9 @@ export type AccessRecordChange = {
   allowedSirapIds?: string[];
 };
 
+/** The SIRAP regions an access request may name; the Firestore rules accept only these. */
+export type SirapAccessRequestRegion = 'orinoquia' | 'eje-cafetero';
+
 export interface TestAccountFactory {
   create(options: TestAccountOptions): Promise<TestAccount>;
   /** Reads a document with the Admin SDK, bypassing security rules. Returns undefined when it does not exist. */
@@ -78,6 +81,11 @@ export interface TestAccountFactory {
   disableAccount(uid: string): Promise<void>;
   /** Overwrites fields of the account's Firestore `users/{uid}` record. */
   updateAccessRecord(uid: string, change: AccessRecordChange): Promise<void>;
+  /**
+   * Writes a pending `sirapAccessRequests/{uid}_{sirapId}` document for the account, shaped like the one the app
+   * submits, and returns its document path.
+   */
+  createPendingSirapAccessRequest(uid: string, sirapId: SirapAccessRequestRegion): Promise<string>;
   /**
    * Deletes every account this factory created, in Firebase Auth and Firestore, plus the
    * `userDirectory` row and `sirapAccessRequests` documents each account wrote for itself.
@@ -215,6 +223,24 @@ export function createTestAccountFactory(): TestAccountFactory {
     await firestore.doc(`users/${createdAccountUid(uid)}`).update(change);
   }
 
+  async function createPendingSirapAccessRequest(uid: string, sirapId: SirapAccessRequestRegion): Promise<string> {
+    const accountUid = createdAccountUid(uid);
+    const account = created.find((candidate) => candidate.uid === accountUid)!;
+    // cleanUp finds this document by its uid field, so it is deleted with the account.
+    const requestPath = `sirapAccessRequests/${accountUid}_${sirapId}`;
+    await firestore.doc(requestPath).set({
+      uid: accountUid,
+      email: account.email,
+      displayName: DISPLAY_NAME,
+      sirapId,
+      status: 'pending',
+      reason: null,
+      requestedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return requestPath;
+  }
+
   async function cleanUp(): Promise<void> {
     for (const app of clientApps) {
       await deleteApp(app).catch(() => undefined);
@@ -240,5 +266,13 @@ export function createTestAccountFactory(): TestAccountFactory {
     await deleteAdminApp(adminApp).catch(() => undefined);
   }
 
-  return { create, readAsAdmin, removeAuthenticatorAndEndSessions, disableAccount, updateAccessRecord, cleanUp };
+  return {
+    create,
+    readAsAdmin,
+    removeAuthenticatorAndEndSessions,
+    disableAccount,
+    updateAccessRecord,
+    createPendingSirapAccessRequest,
+    cleanUp,
+  };
 }
