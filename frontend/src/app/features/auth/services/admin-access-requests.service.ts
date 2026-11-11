@@ -25,6 +25,7 @@ import {
   writeBatch,
   type DocumentData,
 } from 'firebase/firestore';
+import { environment } from '../../../../environments/environment';
 
 export interface UserAccessGrant {
   role: AppRole;
@@ -100,9 +101,41 @@ export function nextRegionalReadGrant(
   };
 }
 
+/** A refused reset. `reason` is the Metrics API's `detail.status`, such as `self_reset_forbidden`. */
+export class AuthenticatorResetError extends Error {
+  constructor(
+    readonly httpStatus: number,
+    readonly reason: string | null,
+  ) {
+    super(`Authenticator reset failed with HTTP ${httpStatus}${reason ? ` (${reason})` : ''}.`);
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminAccessRequestsService {
   private readonly firebase = inject(FirebaseClientService);
+  private readonly metricsApiBaseUrl = environment.metricsApiBaseUrl.replace(/\/$/, '');
+
+  /**
+   * Asks the Metrics API to remove every second factor on the account and end its sessions.
+   * The API allows only an active super-admin signed in with an authenticator, and never for their own account.
+   */
+  async resetAuthenticator(uid: string): Promise<void> {
+    const user = this.firebase.currentUser;
+    if (!user) {
+      throw new AuthenticatorResetError(401, null);
+    }
+    const response = await fetch(
+      `${this.metricsApiBaseUrl}/admin/users/${encodeURIComponent(uid)}/reset-authenticator`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+      },
+    );
+    if (!response.ok) {
+      throw new AuthenticatorResetError(response.status, await readRefusalReason(response));
+    }
+  }
 
   async listActiveUsers(): Promise<AdminManagedUserRecord[]> {
     const firestore = this.requireFirestore();
@@ -289,6 +322,15 @@ export class AdminAccessRequestsService {
 
   private userDisplayLabel(user: AdminManagedUserRecord): string {
     return user.displayName || user.email || user.uid;
+  }
+}
+
+async function readRefusalReason(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { detail?: { status?: unknown } } | null;
+    return typeof body?.detail?.status === 'string' ? body.detail.status : null;
+  } catch {
+    return null;
   }
 }
 

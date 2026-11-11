@@ -1,6 +1,16 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import {
+  provideTranslateLoader,
+  provideTranslateService,
+  TranslateNoOpLoader,
+  TranslateService,
+} from '@ngx-translate/core';
 import { UserTier } from '@core/models';
-import { AdminAccessRequestsService } from '../services/admin-access-requests.service';
+import { FirebaseClientService } from '@core/services/firebase-client.service';
+import {
+  AdminAccessRequestsService,
+  AuthenticatorResetError,
+} from '../services/admin-access-requests.service';
 import { SirapAccessService } from '../services/sirap-access.service';
 import { AdminAccessRequestsPanelComponent } from './admin-access-requests-panel';
 import { setForceAppendFakeDemoDataForTests } from './admin-access-requests-panel.fake-demo-data';
@@ -23,6 +33,7 @@ describe('AdminAccessRequestsPanelComponent', () => {
     listActiveUsers: vi.fn().mockResolvedValue([activeUser]),
     updateUserAccess: vi.fn(),
     updateRegionalUserAccess: vi.fn(),
+    resetAuthenticator: vi.fn(),
   };
   const sirapAccess = {
     getCurrentAdministrator: vi.fn().mockResolvedValue({
@@ -35,15 +46,39 @@ describe('AdminAccessRequestsPanelComponent', () => {
     revokeUserAccess: vi.fn(),
   };
 
+  const firebase = { currentUser: null as { uid: string; email: string } | null };
+
   beforeEach(async () => {
     setForceAppendFakeDemoDataForTests(false);
+    firebase.currentUser = null;
+    adminRequests.resetAuthenticator.mockReset();
     await TestBed.configureTestingModule({
       imports: [AdminAccessRequestsPanelComponent],
       providers: [
         { provide: AdminAccessRequestsService, useValue: adminRequests },
         { provide: SirapAccessService, useValue: sirapAccess },
+        { provide: FirebaseClientService, useValue: firebase },
+        provideTranslateService({
+          lang: 'en',
+          fallbackLang: 'en',
+          loader: provideTranslateLoader(TranslateNoOpLoader),
+        }),
       ],
     }).compileComponents();
+    TestBed.inject(TranslateService).setTranslation('en', {
+      adminAccessPanel: {
+        authenticatorReset: {
+          button: 'Reset authenticator',
+          ownAccount: 'To reset your own authenticator, ask another super-admin.',
+          confirm: 'Reset the authenticator for {{name}} ({{email}})?',
+          success: 'Authenticator reset. {{name}} sets up a new one at their next sign-in.',
+          errors: {
+            selfResetForbidden: 'To reset your own authenticator, ask another super-admin.',
+            generic: 'The authenticator could not be reset (HTTP {{status}}). Try again.',
+          },
+        },
+      },
+    });
     fixture = TestBed.createComponent(AdminAccessRequestsPanelComponent);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -238,5 +273,70 @@ describe('AdminAccessRequestsPanelComponent', () => {
         '#admin-access-panel-current-sirap-revoke-user-1-orinoquia',
       ),
     ).not.toBeNull();
+  });
+
+  function openActiveUser(uid: string): HTMLElement {
+    fixture.nativeElement.querySelector('#admin-access-panel-users-tab').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector(`#admin-access-panel-user-toggle-${uid}`).click();
+    fixture.detectChanges();
+    return fixture.nativeElement.querySelector(`#admin-access-panel-user-card-${uid}`);
+  }
+
+  function resetButtonIn(card: HTMLElement): HTMLButtonElement | undefined {
+    return [...card.querySelectorAll('button')].find(
+      (button) => button.textContent?.trim() === 'Reset authenticator',
+    );
+  }
+
+  it('resets an authenticator only after the super-admin confirms, then reports it', async () => {
+    adminRequests.resetAuthenticator.mockResolvedValueOnce(undefined);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const card = openActiveUser('user-1');
+
+    resetButtonIn(card)?.click();
+    await fixture.whenStable();
+    expect(confirm).toHaveBeenLastCalledWith(
+      'Reset the authenticator for User One (user@example.com)?',
+    );
+    expect(adminRequests.resetAuthenticator).not.toHaveBeenCalled();
+
+    resetButtonIn(card)?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(adminRequests.resetAuthenticator).toHaveBeenCalledWith('user-1');
+    expect(card.querySelector('[role="status"]')?.textContent?.trim()).toBe(
+      'Authenticator reset. User One sets up a new one at their next sign-in.',
+    );
+    confirm.mockRestore();
+  });
+
+  it('explains a refused reset in place of the success message', async () => {
+    adminRequests.resetAuthenticator.mockRejectedValueOnce(new AuthenticatorResetError(503, null));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+    const card = openActiveUser('user-1');
+
+    resetButtonIn(card)?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(card.querySelector('[role="status"]')?.textContent?.trim()).toBe(
+      'The authenticator could not be reset (HTTP 503). Try again.',
+    );
+    confirm.mockRestore();
+  });
+
+  it("offers no reset on the super-admin's own account", async () => {
+    adminRequests.listActiveUsers.mockResolvedValueOnce([{ ...activeUser, uid: 'admin-1' }]);
+    firebase.currentUser = { uid: 'admin-1', email: 'admin@example.com' };
+    await fixture.componentInstance.ngOnInit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const card = openActiveUser('admin-1');
+
+    expect(resetButtonIn(card)).toBeUndefined();
+    expect(card.textContent).toContain('To reset your own authenticator, ask another super-admin.');
   });
 });
