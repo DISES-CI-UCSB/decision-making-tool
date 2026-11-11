@@ -326,4 +326,61 @@ describe('LayerManifestService SIRAP batch access', () => {
     expect(error).toHaveBeenCalled();
     error.mockRestore();
   });
+
+  describe('SIRAP load failure flag', () => {
+    const sirapLoadFailed = () => TestBed.inject(LayerManifestService).sirapCatalogLoadFailed();
+
+    beforeEach(() => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('stays off for a visitor and after a successful SIRAP load', () => {
+      startLoadingCatalog();
+      expect(sirapLoadFailed()).toBe(false);
+
+      grantSirapAccess();
+      expectRequest(sirapUrl).flush(sirapManifest([solution('sirap', 'sirap')]));
+
+      expect(sirapLoadFailed()).toBe(false);
+    });
+
+    it('turns on when the SIRAP batch request fails for a user with access', () => {
+      startLoadingCatalog();
+
+      grantSirapAccess();
+      expectRequest(sirapUrl).flush('missing', { status: 404, statusText: 'Not Found' });
+
+      expect(sirapLoadFailed()).toBe(true);
+    });
+
+    it('turns on when the loaded SIRAP batch fails validation', () => {
+      startLoadingCatalog();
+
+      grantSirapAccess();
+      expectRequest(sirapUrl).flush(sirapManifest([solution('national', 'sirap')]));
+
+      expect(latestSolutionIds).toEqual(['national']);
+      expect(sirapLoadFailed()).toBe(true);
+    });
+
+    it('turns off when access ends and stays off once a later SIRAP load succeeds', () => {
+      startLoadingCatalog();
+      grantSirapAccess();
+      expectRequest(sirapUrl).flush('missing', { status: 404, statusText: 'Not Found' });
+      expect(sirapLoadFailed()).toBe(true);
+
+      appState.allowedSirapIds$.set([]);
+      TestBed.tick();
+      expect(sirapLoadFailed()).toBe(false);
+
+      grantSirapAccess();
+      expectRequest(sirapUrl).flush(sirapManifest([solution('sirap', 'sirap')]));
+      expect(latestSolutionIds).toEqual(['national', 'sirap']);
+      expect(sirapLoadFailed()).toBe(false);
+    });
+  });
 });

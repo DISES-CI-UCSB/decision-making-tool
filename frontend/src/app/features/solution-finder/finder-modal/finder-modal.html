@@ -137,6 +137,22 @@
         </div>
       }
     </div>
+    @if (selectedScope === 'sirap' && sirapCatalogLoadFailed()) {
+      <div class="border-b border-slate-200 bg-white/80 px-6 py-2.5">
+        <div
+          id="solution-finder-modal-sirap-load-error"
+          class="rounded-md border border-amber-200 bg-amber-50 px-3 py-3"
+          role="status"
+        >
+          <p class="text-sm font-semibold text-amber-900">
+            {{ 'solutionControls.finder.scopeBar.sirapLoadErrorTitle' | translate }}
+          </p>
+          <p class="mt-1 text-sm text-amber-700">
+            {{ 'solutionControls.finder.scopeBar.sirapLoadErrorDescription' | translate }}
+          </p>
+        </div>
+      </div>
+    }
   }
 
   <section

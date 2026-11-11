@@ -31,6 +31,7 @@ import {
   shareReplay,
   switchMap,
   take,
+  tap,
   throwError,
   type Observable,
 } from 'rxjs';
@@ -186,6 +187,9 @@ export class LayerManifestService {
   private readonly speciesManifestCache = new Map<string, Observable<RuntimeSpeciesManifest>>();
   private readonly prefetchedSpeciesManifestUrls = new Set<string>();
   readonly stylePreviewManifest$ = signal<RuntimeLayerManifest | null>(null);
+  private readonly sirapCatalogLoadFailedState = signal(false);
+  /** True while a user with SIRAP access sees only national scenarios because regional ones failed to load. */
+  readonly sirapCatalogLoadFailed = this.sirapCatalogLoadFailedState.asReadonly();
   private readonly resolvedManifestUrl = this.resolveManifestUrl();
   private readonly resolvedCatalogReleaseIndexUrl = this.resolveCatalogReleaseIndexUrl();
   private readonly resolvedSirapManifestUrl = this.resolveSirapManifestUrl();
@@ -294,13 +298,15 @@ export class LayerManifestService {
       this.loadManifestWithFallback(this.buildManifestUrlCandidates()),
       this.canAccessSirapScope$,
     ]).pipe(
-      switchMap(([nationalManifest, canAccessSirapScope]) =>
-        canAccessSirapScope
-          ? this.loadOptionalSirapManifest(this.resolvedSirapManifestUrl).pipe(
-              map((sirapManifest) => mergeRuntimeSolutionBatches(nationalManifest, sirapManifest)),
-            )
-          : of(nationalManifest),
-      ),
+      switchMap(([nationalManifest, canAccessSirapScope]) => {
+        if (!canAccessSirapScope) {
+          this.sirapCatalogLoadFailedState.set(false);
+          return of(nationalManifest);
+        }
+        return this.loadOptionalSirapManifest(this.resolvedSirapManifestUrl).pipe(
+          map((sirapManifest) => mergeRuntimeSolutionBatches(nationalManifest, sirapManifest)),
+        );
+      }),
     );
   }
 
@@ -325,6 +331,7 @@ export class LayerManifestService {
           mergeCatalogReleaseBatches(index, nationalManifests, nationalBatches);
         const sirapBatches = index.batches.filter(isSirapCatalogBatch);
         if (!canAccessSirapScope || sirapBatches.length === 0) {
+          this.sirapCatalogLoadFailedState.set(false);
           return of(nationalCatalog());
         }
 
@@ -336,11 +343,13 @@ export class LayerManifestService {
               [...nationalBatches, ...sirapBatches],
             ),
           ),
+          tap(() => this.sirapCatalogLoadFailedState.set(false)),
           catchError((error) => {
             console.error(
               'Unable to load SIRAP catalog batches; showing national scenarios only',
               error,
             );
+            this.sirapCatalogLoadFailedState.set(true);
             return of(nationalCatalog());
           }),
         );
@@ -373,11 +382,14 @@ export class LayerManifestService {
 
   private loadOptionalSirapManifest(url: string | null): Observable<RuntimeSirapManifest | null> {
     if (!url) {
+      this.sirapCatalogLoadFailedState.set(false);
       return of(null);
     }
     return this.http.get<RuntimeSirapManifest>(this.toManifestRequestUrl(url)).pipe(
+      tap(() => this.sirapCatalogLoadFailedState.set(false)),
       catchError((error) => {
         console.error(`Unable to load optional SIRAP manifest from ${url}`, error);
+        this.sirapCatalogLoadFailedState.set(true);
         return of(null);
       }),
     );

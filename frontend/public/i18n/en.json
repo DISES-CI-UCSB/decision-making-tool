@@ -1246,6 +1246,8 @@
         "sirap": "SIRAP",
         "selectRegion": "— Select SIRAP region —",
         "regionalBadge": "Regional scenarios",
+        "sirapLoadErrorTitle": "Regional scenarios couldn't load.",
+        "sirapLoadErrorDescription": "National scenarios still work. Reload the page to try again, or contact the DISES admin if it keeps happening.",
         "regions": {
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",
