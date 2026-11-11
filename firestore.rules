@@ -45,10 +45,6 @@ service cloud.firestore {
       return signedIn() ? totpClaimsPresent(firebaseTokenClaims()) : false;
     }
 
-    function isActiveTotpUser() {
-      return signedInWithTotp() ? isActiveUserData(currentUserData()) : false;
-    }
-
     function isActiveSuperAdminData(userData) {
       return isActiveUserData(userData)
         && (
@@ -108,8 +104,39 @@ service cloud.firestore {
       return signedInWithTotp() ? isSirapAdministratorData(currentUserData()) : false;
     }
 
-    function canReadActiveUserForSirapAdmin() {
-      return isSirapAdministrator() && resource.data.status == 'active';
+    // A list query must itself constrain status and allowedSirapIds (array-contains an
+    // administered id), because list rules cannot read other documents per result.
+    function canListUserForSirapAdmin() {
+      return isSirapAdministrator()
+        ? resource.data.status == 'active'
+          && resource.data.allowedSirapIds.hasAny(currentUserData().administeredSirapIds)
+        : false;
+    }
+
+    // Also covers a person with a pending request for an administered region, whose record
+    // the regional admin's decision reads before it grants the region.
+    function canGetUserForSirapAdmin(uid) {
+      return isSirapAdministrator()
+        ? resource.data.status == 'active'
+          && (
+            sirapIdsOrEmpty(resource.data, 'allowedSirapIds')
+              .hasAny(currentUserData().administeredSirapIds)
+            || hasPendingSirapRequest(uid, 'orinoquia', currentUserData().administeredSirapIds)
+            || hasPendingSirapRequest(uid, 'eje-cafetero', currentUserData().administeredSirapIds)
+          )
+        : false;
+    }
+
+    function hasPendingSirapRequest(uid, sirapId, administeredSirapIds) {
+      return sirapId in administeredSirapIds
+        ? pendingSirapRequestExists(
+          /databases/$(database)/documents/sirapAccessRequests/$(uid + '_' + sirapId)
+        )
+        : false;
+    }
+
+    function pendingSirapRequestExists(path) {
+      return exists(path) ? get(path).data.status == 'pending' : false;
     }
 
     function hasManifestStyleAccess() {
@@ -474,9 +501,9 @@ service cloud.firestore {
     match /users/{uid} {
       allow get: if isSelf(uid)
         || isSuperAdmin()
-        || canReadActiveUserForSirapAdmin();
+        || canGetUserForSirapAdmin(uid);
       allow list: if isSuperAdmin()
-        || canReadActiveUserForSirapAdmin();
+        || canListUserForSirapAdmin();
       // A Google-signed-in person may create only their own default account.
       // Super admins may still create or replace a full user record.
       allow create: if validSelfUserCreate(uid) || (isSuperAdmin() ? validUserRecord(uid) : false);
@@ -509,9 +536,11 @@ service cloud.firestore {
     }
 
     match /userDirectory/{uid} {
-      allow get: if isSelf(uid) || isSuperAdmin() || isSirapAdministrator();
-      allow list: if isSuperAdmin() || isSirapAdministrator();
-      allow create: if validSelfDirectoryCreate(uid) || (isSuperAdmin() ? validDirectoryRecord(uid) : false);
+      allow get: if isSelf(uid) || isSuperAdmin();
+      allow list: if isSuperAdmin();
+      // The web app writes this row only for the signed-in person. Rows for people who have
+      // not signed in since are added by the backfill:user-directory admin script.
+      allow create: if validSelfDirectoryCreate(uid);
       allow update: if false;
       allow delete: if false;
     }
