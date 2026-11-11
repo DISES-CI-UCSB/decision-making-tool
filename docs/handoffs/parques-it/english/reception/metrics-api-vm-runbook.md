@@ -111,7 +111,7 @@ Run every command on the VM unless the step says otherwise. Commands assume the 
    docker compose -f backend/docker-compose.yml run --rm backend hydrate
    ```
 
-8. **Build the Download Catalog.** This merges the national 3.7.1 and SIRAP v7-endemic manifests from public Vercel Blob into `backend/runtime-artifacts/download-catalog.json`, which `DMT_DOWNLOAD_CATALOG_PATH` points at.
+8. **Build the Download Catalog.** This merges every manifest in the web app's catalog release index (today the national 3.7.1 and SIRAP v7-endemic manifests) from public Vercel Blob into `backend/runtime-artifacts/download-catalog.json`, which `DMT_DOWNLOAD_CATALOG_PATH` points at.
 
    ```bash
    docker compose -f backend/docker-compose.yml run --rm backend python -m scripts.build_download_catalog

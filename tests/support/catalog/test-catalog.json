@@ -285,6 +285,25 @@
       "durationBudgetMs": 4000,
       "fast": false,
       "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-008.api.spec.ts"
+    },
+    {
+      "id": "FBT-021",
+      "name": "Every file the app shows only to regional users can be opened only through a signed link.",
+      "methodology": "Proves that every file the web app shows only to regional (SIRAP) users, meaning map layers, metadata, metrics, and solutions, opens only through a temporary signed link from the signing service, never from its plain bucket address or its old public Vercel Blob address. Files requested: every regional-only file in the published manifests. The test reads the catalog release index the production web app loads (catalog-releases/3.7.1/catalog-release-index.json today, from frontend/shared/runtime-manifest.constants.mjs; DMT_TEST_CATALOG_RELEASE_INDEX_URL can override it) and every manifest it lists. A layer or solution with a nonempty sirapId is regional; every string in it that names a stored file (a public Vercel Blob or storage.googleapis.com address, a gs:// address, or a relative *Path value) is a reference. A file is regional-only when only records of one region reference it. Left out and listed in the attached findings: files a national record also references, files reached only through the Colombia-wide fields mecNationalDenominator, speciesGoalsCatalog, and speciesGoalsTargetOverlay, and files used by more than one region. What it checks: for each regional-only file, an anonymous HEAD of its old public Vercel Blob address returns 404 or 403; an anonymous HEAD of its plain storage.googleapis.com address returns 401 or 403; POST /downloads/signed-url on the deployed Metrics API refuses an active authenticator-signed-in account with no region grant (403 or 404, no url, no X-Goog-Signature); and the download catalog tags the file with its own region. The service does not expose its catalog, so the tag is read from its decisions: the no-grant account must get 403 layer_forbidden (tagged regional, not national, not missing), and an account granted only the file's region must get a link (tagged with that region, not the other one). For each region, the first file by key whose granted link was issued is downloaded with a ranged GET of 1024 bytes and must return 200 or 206 with bytes. Checks run with at most 16 requests in flight per host (DMT_TEST_BULK_CHECK_CONCURRENCY), every result is collected before asserting, and each check reports its failure count, counts by status, and the first five object keys; an attached JSON lists every failing key with statuses and never a signed link. A 429, a 5xx, or no reply is inconclusive with its reason; the test reports INCONCLUSIVE only when nothing failed outright. Real: the published manifests, Vercel Blob, the Google Cloud Storage (GCS) bucket, the deployed Metrics API and its download catalog, Firebase Authentication including authenticator enrollment and second-factor sign-in, and Firestore; nothing in the request path is mocked. Test-only: one active account with role user and no grant, and one sirap-user account per region granted only that region, each created by the Admin SDK with a verified @dmt-test.invalid address so no email is sent, each with an authenticator enrolled and codes computed in memory; accounts and records are deleted afterward. Not checked: files inside nested manifests such as the species manifest, whether every regional file exists in the bucket (only one sample per region is downloaded), the web app's own requests or download button, super-admin access, password-only sign-in, server cache timing, or the 15-minute link expiry.",
+      "category": "feature-behavior",
+      "owner": "F-220",
+      "additionalFeatureAssociations": [],
+      "scope": "integration",
+      "environment": "non-browser",
+      "browserMode": "not-applicable",
+      "regression": false,
+      "bugReference": null,
+      "rootCauseAnalysis": null,
+      "enforcement": "required",
+      "enforcementChange": null,
+      "durationBudgetMs": 30000,
+      "fast": false,
+      "sourceFile": "tests/features/FS-200-private-layer-downloads/F-220-download-access-rules/behavior/FBT-021.api.spec.ts"
     }
   ]
 }

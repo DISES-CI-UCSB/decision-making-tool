@@ -1,5 +1,9 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  PUBLIC_BLOB_HOST,
+  RUNTIME_CATALOG_RELEASE_INDEX_BLOB_URL,
+} from '../../../frontend/shared/runtime-manifest.constants.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -24,6 +28,12 @@ export const serviceConfig = {
     projectId: 'dises-decision-making-tool',
   },
   bucket: process.env.DMT_TEST_GCS_BUCKET ?? 'pnn-priorizando-la-naturaleza',
+  /** Old public Vercel Blob host. A file's address there is this host plus its object key. */
+  publicBlobHost: (process.env.DMT_TEST_PUBLIC_BLOB_HOST ?? PUBLIC_BLOB_HOST).replace(/\/+$/, ''),
+  /** The catalog release index the production web app loads; it lists every published manifest. */
+  catalogReleaseIndexUrl: process.env.DMT_TEST_CATALOG_RELEASE_INDEX_URL ?? RUNTIME_CATALOG_RELEASE_INDEX_BLOB_URL,
+  /** Most requests one bulk check keeps in flight at once against a single host. */
+  bulkCheckConcurrency: Number(process.env.DMT_TEST_BULK_CHECK_CONCURRENCY ?? 16),
   /**
    * Object keys that the deployed download catalog must contain (national, Orinoquia, Eje Cafetero)
    * and one real bucket object that the catalog must leave out. Verified 2026-10-16 against bucket
