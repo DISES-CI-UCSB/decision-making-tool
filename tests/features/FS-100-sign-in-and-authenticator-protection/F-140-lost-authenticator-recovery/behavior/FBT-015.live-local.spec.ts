@@ -175,13 +175,21 @@ test.describe('FBT-015', () => {
             codeScreen,
             totpCode(adminAuthenticator.secretKey, adminAuthenticator.parameters, Date.now()),
           );
+          const usersSection = page.locator('#admin-access-panel-users-section');
+          const personToggle = page.locator(`#admin-access-panel-user-toggle-${personWhoLostTheirPhone.uid}`);
           await adminReadiness.whenServicesRespond(async () => {
             await expect(codeScreen).toHaveCount(0, { timeout: 20_000 });
             await page.locator('#foundation-header-admin-access-button').click();
-            await page.getByRole('tab', { name: 'Active Users' }).click({ timeout: 30_000 });
+            // The panel can re-render while the new sign-in's access profile settles, which resets its tab and search.
+            await expect(async () => {
+              await page.getByRole('tab', { name: 'Active Users' }).click({ timeout: 5_000 });
+              await usersSection.getByRole('searchbox', { name: 'Search by name' }).fill(personWhoLostTheirPhone.email);
+              if ((await personToggle.getAttribute('aria-expanded', { timeout: 5_000 })) !== 'true') {
+                await personToggle.click({ timeout: 5_000 });
+              }
+              await expect(personToggle).toHaveAttribute('aria-expanded', 'true', { timeout: 1_000 });
+            }).toPass({ timeout: 45_000 });
           });
-          await page.getByRole('searchbox', { name: 'Search by name' }).fill(personWhoLostTheirPhone.email);
-          await page.locator(`#admin-access-panel-user-toggle-${personWhoLostTheirPhone.uid}`).click();
         });
 
         await test.step('Clicking Reset authenticator asks the super-admin to confirm the person\'s identity first, then reports the reset', async () => {
