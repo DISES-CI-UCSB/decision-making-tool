@@ -1246,6 +1246,8 @@
         "sirap": "SIRAP",
         "selectRegion": "— Seleccionar región SIRAP —",
         "regionalBadge": "Escenarios regionales",
+        "sirapLoadErrorTitle": "No se pudieron cargar los escenarios regionales.",
+        "sirapLoadErrorDescription": "Los escenarios nacionales siguen funcionando. Recargue la página para intentarlo de nuevo o contacte al administrador de DISES si el problema continúa.",
         "regions": {
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",

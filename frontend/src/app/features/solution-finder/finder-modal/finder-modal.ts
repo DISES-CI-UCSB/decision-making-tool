@@ -36,6 +36,7 @@ import type {
 } from '@core/services/app-state.service';
 import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 import { AppStateService } from '@core/services/app-state.service';
+import { LayerManifestService } from '@core/services/layer-manifest.service';
 import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { FEATURE_FLAGS } from '@feature-flags';
@@ -108,6 +109,7 @@ type TargetLevelsByType = Partial<Record<FinderTargetType, 17 | 30>>;
 export class FinderModalComponent implements OnDestroy, OnInit {
   private readonly appState = inject(AppStateService);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly layerManifest = inject(LayerManifestService);
   private readonly savedSolutionScenariosService = inject(SavedSolutionScenariosService);
   private readonly solutionCatalog = inject(SolutionCatalogService);
   private readonly translate = inject(TranslateService);
@@ -204,6 +206,7 @@ export class FinderModalComponent implements OnDestroy, OnInit {
   @Output() readonly solutionApplied = new EventEmitter<SolutionMatch>();
 
   protected readonly showScopeBar = this.appState.canAccessSirapScope;
+  protected readonly sirapCatalogLoadFailed = this.layerManifest.sirapCatalogLoadFailed;
   protected readonly activeSolution = this.appState.activeSolution$;
   protected readonly savedSolutionScenarios = this.appState.savedSolutionScenarios$;
   protected readonly finderSelectionMemory = this.appState.finderSelectionMemory$;
