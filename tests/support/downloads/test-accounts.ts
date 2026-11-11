@@ -14,7 +14,7 @@ import {
 } from 'firebase/auth';
 import { getFirestore as getClientFirestore, type Firestore } from 'firebase/firestore';
 import { serviceConfig } from './service-config.ts';
-import { millisUntilFreshCode, totpCode } from './totp.ts';
+import { millisUntilFreshCode, totpCode, type TotpParameters } from './totp.ts';
 
 /** Addresses end in `.invalid`, a reserved suffix, so no email can ever reach a real inbox. */
 const DISPOSABLE_EMAIL = /^dmt-test-[0-9a-f]{16}@dmt-test\.invalid$/;
@@ -31,14 +31,32 @@ export interface TestAccountOptions {
   administeredSirapIds?: string[];
   /** When true, enroll an authenticator and sign in with a code, so the ID token is marked second-factor TOTP. */
   authenticator: boolean;
+  /**
+   * With `authenticator: true`, false skips the sign-in with a code after enrollment. The ID token then comes from
+   * the enrollment sign-in, and a browser test can use the very next code window instead of waiting for a second one.
+   * Defaults to true.
+   */
+  signInWithAuthenticator?: boolean;
+}
+
+export interface TestAccountAuthenticator {
+  /** Base32 authenticator secret. Treat it as a secret and never log it. */
+  secretKey: string;
+  parameters: TotpParameters;
+  /** When the last code Firebase accepted was computed. Firebase rejects a reused code, so the next one must come later. */
+  lastCodeAcceptedAtMs: number;
 }
 
 export interface TestAccount {
   uid: string;
   email: string;
   displayName: string;
+  /** Email-and-password credential for this throwaway account. Treat it as a secret and never log it. */
+  password: string;
   /** A real Firebase ID token for this account. Treat it as a secret and never log it. */
   idToken: string;
+  /** The enrolled authenticator, or null when the account has none. */
+  authenticator: TestAccountAuthenticator | null;
   /** Client Firestore signed in as this account, so every read and write goes through the deployed security rules. */
   firestore: Firestore;
 }
@@ -113,11 +131,12 @@ export function createTestAccountFactory(): TestAccountFactory {
       uid: record.uid,
       email,
       displayName: DISPLAY_NAME,
+      password,
       firestore: getClientFirestore(clientApp),
     };
     const credential = await signInWithEmailAndPassword(auth, email, password);
     if (!options.authenticator) {
-      return { ...identity, idToken: await credential.user.getIdToken() };
+      return { ...identity, idToken: await credential.user.getIdToken(), authenticator: null };
     }
 
     const session = await multiFactor(credential.user).getSession();
@@ -132,6 +151,15 @@ export function createTestAccountFactory(): TestAccountFactory {
       TotpMultiFactorGenerator.assertionForEnrollment(secret, totpCode(secret.secretKey, parameters, enrolledAt)),
       'Authenticator app',
     );
+    if (options.signInWithAuthenticator === false) {
+      const idToken = await credential.user.getIdToken();
+      await signOut(auth);
+      return {
+        ...identity,
+        idToken,
+        authenticator: { secretKey: secret.secretKey, parameters, lastCodeAcceptedAtMs: enrolledAt },
+      };
+    }
     await signOut(auth);
 
     // Firebase rejects a code it has already accepted, so wait for the next code window.
@@ -148,10 +176,15 @@ export function createTestAccountFactory(): TestAccountFactory {
       if (!hint) {
         throw new Error('The sign-in challenge offered no authenticator factor.');
       }
+      const signedInAt = Date.now();
       const signedIn = await resolver.resolveSignIn(
-        TotpMultiFactorGenerator.assertionForSignIn(hint.uid, totpCode(secret.secretKey, parameters, Date.now())),
+        TotpMultiFactorGenerator.assertionForSignIn(hint.uid, totpCode(secret.secretKey, parameters, signedInAt)),
       );
-      return { ...identity, idToken: await signedIn.user.getIdToken() };
+      return {
+        ...identity,
+        idToken: await signedIn.user.getIdToken(),
+        authenticator: { secretKey: secret.secretKey, parameters, lastCodeAcceptedAtMs: signedInAt },
+      };
     }
   }
 

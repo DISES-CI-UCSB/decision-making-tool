@@ -22,3 +22,9 @@ Canonical names for architecture concepts. Use these names in diagrams, docs, in
 | **Signed-In User** | A person with a Firebase session in the DISES Web App. Their access data lives in a Firestore user record, not in the session token. | — | `frontend/src/app/core/services/firebase-client.service.ts` |
 
 Reason codes, not architecture concepts: `broker_not_configured` means the service is missing configuration and returns HTTP 503; `token_certs_unavailable` means Google's token certificates could not be fetched and returns HTTP 503.
+
+## Testing
+
+| Term | Meaning | Aliases | Evidence |
+| --- | --- | --- | --- |
+| **Test Sign-In Hook** | Build-time-only replacement for the Google popup's first-factor sign-in, used for disposable `@dmt-test.invalid` accounts. It exists only in the `e2e` Angular build configuration, which swaps the production stub for the hook; everything after the first factor (authenticator setup, the code screen, access rules) stays the app's real code. | — | `frontend/src/app/core/services/test-sign-in-hook.e2e.ts`; the `e2e` configuration in `frontend/angular.json`; FST-002 checks production builds leave it out |

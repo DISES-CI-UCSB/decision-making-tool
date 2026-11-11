@@ -18,6 +18,8 @@
  *
  * Runners: *.test.ts files run on Vitest. *.api.spec.ts files (non-browser HTTP tests) run in the
  * Playwright `api` project; *.deterministic.spec.ts and *.live.spec.ts files run in the browser projects.
+ * *.live-local.spec.ts files are live browser tests that open this checkout's app, served locally with the
+ * `e2e` Angular configuration, which adds the Test Sign-In Hook. *.live.spec.ts files open the deployed app.
  */
 import { spawn } from 'node:child_process';
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -71,7 +73,7 @@ interface Execution {
   results: NormalizedResult[];
 }
 
-type PlaywrightProject = 'api' | 'deterministic' | 'live';
+type PlaywrightProject = 'api' | 'deterministic' | 'live' | 'live-local';
 
 interface RunOptions {
   headed: boolean;
@@ -82,7 +84,10 @@ const isExecutable = (test: CatalogTest) => test.enforcement !== 'disabled';
 
 /** The Playwright project that runs a test, or null for a Vitest test. */
 function playwrightProjectFor(test: CatalogTest): PlaywrightProject | null {
-  if (test.environment === 'browser') return test.browserMode === 'live' ? 'live' : 'deterministic';
+  if (test.environment === 'browser' && test.browserMode === 'live') {
+    return test.sourceFile.endsWith('.live-local.spec.ts') ? 'live-local' : 'live';
+  }
+  if (test.environment === 'browser') return 'deterministic';
   return test.sourceFile.endsWith('.api.spec.ts') ? 'api' : null;
 }
 
@@ -255,13 +260,15 @@ function playwrightWorkerCount(project: PlaywrightProject): number {
 const testPort = process.env.TNC_TEST_PORT ?? String(42000 + (process.pid % 10000));
 
 /**
- * Environment for one Playwright run. The local web app starts only for deterministic browser tests;
- * live browser tests open the deployed app at DMT_TEST_APP_URL.
+ * Environment for one Playwright run. The local web app starts only for deterministic and live-local browser
+ * tests, with the e2e Angular configuration when live-local tests run; live browser tests open the deployed
+ * app at DMT_TEST_APP_URL.
  */
 function playwrightEnvironment(projects: PlaywrightProject[], options: RunOptions): Record<string, string> {
   const browserProjects = projects.filter((project) => project !== 'api');
   return {
-    TNC_WEB_SERVER: projects.includes('deterministic') ? 'on' : 'off',
+    TNC_WEB_SERVER: projects.includes('deterministic') || projects.includes('live-local') ? 'on' : 'off',
+    TNC_WEB_SERVER_CONFIGURATION: projects.includes('live-local') ? 'e2e' : 'development',
     TNC_PLAYWRIGHT_RECORD: options.record ? '1' : '0',
     TNC_TEST_PORT: testPort,
     ...(browserProjects.length === 1
@@ -395,7 +402,7 @@ async function execute(
     console.log('--headed has no effect here: no browser test is selected.');
   }
   const runs = [await runVitest(vitestTests, runKey)];
-  for (const project of ['api', 'deterministic', 'live'] as const) {
+  for (const project of ['api', 'deterministic', 'live', 'live-local'] as const) {
     runs.push(
       await runPlaywright(
         selected.filter((test) => playwrightProjectFor(test) === project),

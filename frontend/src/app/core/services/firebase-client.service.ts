@@ -42,6 +42,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
+import { testFirstFactorSignIn } from './test-sign-in-hook';
 
 export interface EnsuredSelfUserRecord {
   created: boolean;
@@ -186,7 +187,7 @@ export class FirebaseClientService {
 
   async signInWithGooglePopup(): Promise<UserCredential> {
     return signInWithGoogleSelectAccountPopup(this.requireAuth(), {
-      signInWithPopup,
+      signInWithPopup: testFirstFactorSignIn() ?? signInWithPopup,
       signOut: firebaseSignOut,
     });
   }
