@@ -268,6 +268,8 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     expect(
       fixture.nativeElement
         .querySelector('#aoi-biodiversity-open-species-inventory-button')
