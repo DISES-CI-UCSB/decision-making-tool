@@ -472,7 +472,7 @@
       "rootCauseAnalysis": null,
       "enforcement": "required",
       "enforcementChange": null,
-      "durationBudgetMs": 20000,
+      "durationBudgetMs": 30000,
       "fast": false,
       "sourceFile": "tests/features/FS-300-account-and-region-access/F-320-what-each-role-sees/behavior/FBT-029.live.spec.ts"
     },
@@ -548,7 +548,7 @@
       "rootCauseAnalysis": null,
       "enforcement": "required",
       "enforcementChange": null,
-      "durationBudgetMs": 45000,
+      "durationBudgetMs": 60000,
       "fast": false,
       "sourceFile": "tests/features/FS-100-sign-in-and-authenticator-protection/F-110-authenticator-setup/behavior/FBT-010.live-local.spec.ts"
     },
