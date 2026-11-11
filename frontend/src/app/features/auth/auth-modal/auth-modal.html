@@ -135,6 +135,76 @@
       }
 
       <!-- ------------------------------------------------------------------ -->
+      <!-- Authenticator removed after setup (likely an email link scanner)  -->
+      <!-- ------------------------------------------------------------------ -->
+      @case ('scannerRemovalNotice') {
+        <section id="auth-modal-scanner-removal-notice" class="p-7">
+          <header class="mb-4 pr-12">
+            <h2
+              id="auth-modal-scanner-removal-notice-title"
+              class="text-lg font-semibold text-slate-900"
+            >
+              Your authenticator was removed
+            </h2>
+          </header>
+
+          <div class="mb-5 space-y-2 text-sm leading-relaxed text-slate-700">
+            <p>
+              You set up an authenticator for this account, but it has since been removed. Your
+              organization&rsquo;s email security most likely removed it.
+            </p>
+            <p>
+              After setup, you get an email with a link to undo the change. Some email security
+              tools open every link in an email to check it, and opening that link removes the
+              authenticator. You did nothing wrong.
+            </p>
+          </div>
+
+          <aside
+            aria-labelledby="auth-modal-scanner-removal-notice-steps-title"
+            class="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-slate-800"
+          >
+            <h3
+              id="auth-modal-scanner-removal-notice-steps-title"
+              class="mb-2 font-semibold text-slate-900"
+            >
+              What to do now
+            </h3>
+            <ul class="list-disc space-y-2 pl-5">
+              <li>
+                Set up your authenticator again now. You don&rsquo;t need to wait for the email or
+                open it.
+              </li>
+              <li>
+                Ask your IT team to exclude links to
+                <span class="font-mono text-xs break-all">{{ accountEmailLinkDomain }}</span>
+                from email link scanning. Until they do, this can happen again.
+              </li>
+              <li>If your authenticator keeps disappearing, contact the DISES administrator.</li>
+            </ul>
+          </aside>
+
+          <button
+            id="auth-modal-scanner-removal-notice-setup-btn"
+            type="button"
+            class="mb-2 flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
+            [disabled]="isSubmitting()"
+            (click)="setUpAgainAfterScannerNotice()"
+          >
+            Set up authenticator again
+          </button>
+          <button
+            type="button"
+            class="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
+            [disabled]="isSubmitting()"
+            (click)="cancelMfa()"
+          >
+            Cancel
+          </button>
+        </section>
+      }
+
+      <!-- ------------------------------------------------------------------ -->
       <!-- TOTP enrollment                                                    -->
       <!-- ------------------------------------------------------------------ -->
       @case ('mfaEnroll') {

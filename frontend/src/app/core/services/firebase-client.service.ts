@@ -39,6 +39,7 @@ import {
   onSnapshot,
   runTransaction,
   serverTimestamp,
+  updateDoc,
   type Firestore,
 } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
@@ -47,6 +48,8 @@ import { testFirstFactorSignIn } from './test-sign-in-hook';
 export interface EnsuredSelfUserRecord {
   created: boolean;
   status: string;
+  /** The record holds `mfaEnrolledAt`, so this account finished authenticator setup at least once. */
+  authenticatorSetupRecorded: boolean;
 }
 
 /** Directory rows are only for people who are being created or are already active. */
@@ -258,6 +261,8 @@ export class FirebaseClientService {
       return {
         created: !userSnapshot.exists(),
         status: typeof storedStatus === 'string' ? storedStatus : 'active',
+        authenticatorSetupRecorded:
+          userSnapshot.exists() && userSnapshot.data()['mfaEnrolledAt'] != null,
       };
     });
 
@@ -277,6 +282,18 @@ export class FirebaseClientService {
     }
 
     return ensured;
+  }
+
+  /**
+   * Saves the server time of a confirmed authenticator setup on the person's own record. Firestore rules
+   * accept this write only from an authenticator-verified sign-in and only for `mfaEnrolledAt`.
+   */
+  async recordAuthenticatorSetup(uid: string): Promise<void> {
+    const firestore = this.firestore;
+    if (!firestore) {
+      throw new Error('Firestore is not configured.');
+    }
+    await updateDoc(doc(firestore, 'users', uid), { mfaEnrolledAt: serverTimestamp() });
   }
 
   subscribeToUserDocument(
