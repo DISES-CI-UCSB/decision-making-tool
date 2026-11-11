@@ -77,15 +77,13 @@ def build_live_broker(settings: DownloadSettings, clock=time.time) -> DownloadBr
             "broker_not_configured",
             "The download catalog is not available.",
         )
+    firebase_service_account = load_service_account_info(
+        json_env="FIREBASE_SERVICE_ACCOUNT_JSON",
+        file_env="DMT_FIREBASE_SERVICE_ACCOUNT_FILE",
+    )
     return DownloadBroker(
-        verifier=FirebaseIdTokenVerifier(settings.firebase_project_id),
-        users=FirestoreUserDirectory(
-            settings.firebase_project_id,
-            load_service_account_info(
-                json_env="FIREBASE_SERVICE_ACCOUNT_JSON",
-                file_env="DMT_FIREBASE_SERVICE_ACCOUNT_FILE",
-            ),
-        ),
+        verifier=FirebaseIdTokenVerifier(settings.firebase_project_id, firebase_service_account),
+        users=FirestoreUserDirectory(settings.firebase_project_id, firebase_service_account),
         catalog=catalog,
         signer=GcsV4Signer(
             settings.gcs_bucket,

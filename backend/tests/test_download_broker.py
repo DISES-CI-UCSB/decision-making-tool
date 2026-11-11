@@ -820,31 +820,144 @@ def test_issuer_matches_project_and_subject_uid_uses_sub_only() -> None:
     assert subject_uid({"sub": "x" * 129}) is None
 
 
+def _verifier_with_firebase_check(
+    monkeypatch: pytest.MonkeyPatch,
+    outcome: Exception | dict[str, object],
+) -> tuple[FirebaseIdTokenVerifier, list[dict[str, object]]]:
+    """A verifier whose Firebase Admin token check returns claims or raises, without a network."""
+    calls: list[dict[str, object]] = []
+
+    def verify_id_token(token: str, **kwargs: object) -> dict[str, object]:
+        calls.append({"token": token, **kwargs})
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr("firebase_admin.auth.verify_id_token", verify_id_token)
+    monkeypatch.setattr(FirebaseIdTokenVerifier, "_app", lambda _self: "test-app")
+    return FirebaseIdTokenVerifier("dises-decision-making-tool", {}), calls
+
+
+def _firebase_claims(**overrides: object) -> dict[str, object]:
+    return {
+        "iss": "https://securetoken.google.com/dises-decision-making-tool",
+        "sub": "orinoquia-user",
+        "exp": 1_700_003_600,
+        "firebase": {"sign_in_second_factor": "totp", "second_factor_identifier": "factor-1"},
+        **overrides,
+    }
+
+
 def test_token_certificate_fetch_failure_returns_503_token_certs_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from google.auth.exceptions import TransportError
+    from firebase_admin import auth
 
-    def unavailable(*_args: object, **_kwargs: object) -> None:
-        raise TransportError("certificate fetch failed for sample-token")
-
-    monkeypatch.setattr("google.oauth2.id_token.verify_firebase_token", unavailable)
+    verifier, _calls = _verifier_with_firebase_check(
+        monkeypatch,
+        auth.CertificateFetchError("certificate fetch failed for sample-token", None),
+    )
     with pytest.raises(BrokerError) as certs:
-        FirebaseIdTokenVerifier("dises-decision-making-tool").verify("sample-token")
+        verifier.verify("sample-token")
 
     assert certs.value.status_code == 503
     assert certs.value.code == "token_certs_unavailable"
     assert "sample-token" not in certs.value.message
 
-    def invalid(*_args: object, **_kwargs: object) -> None:
-        raise ValueError("sample-token")
-
-    monkeypatch.setattr("google.oauth2.id_token.verify_firebase_token", invalid)
+    verifier, _calls = _verifier_with_firebase_check(
+        monkeypatch,
+        auth.InvalidIdTokenError("sample-token"),
+    )
     with pytest.raises(BrokerError) as rejected:
-        FirebaseIdTokenVerifier("dises-decision-making-tool").verify("sample-token")
+        verifier.verify("sample-token")
 
     assert rejected.value.status_code == 401
     assert rejected.value.code == "invalid_token"
+
+
+def test_ended_session_and_disabled_account_are_refused_with_401(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from firebase_admin import auth
+
+    verifier, calls = _verifier_with_firebase_check(
+        monkeypatch,
+        auth.RevokedIdTokenError("The Firebase ID token has been revoked."),
+    )
+    with pytest.raises(BrokerError) as revoked:
+        verifier.verify("sample-token")
+
+    assert calls[0]["check_revoked"] is True
+    assert revoked.value.status_code == 401
+    assert revoked.value.code == "session_revoked"
+
+    verifier, _calls = _verifier_with_firebase_check(
+        monkeypatch,
+        auth.UserDisabledError("The user record is disabled."),
+    )
+    with pytest.raises(BrokerError) as disabled:
+        verifier.verify("sample-token")
+
+    assert disabled.value.status_code == 401
+    assert disabled.value.code == "account_disabled"
+
+
+def test_deleted_account_is_401_and_a_failed_session_lookup_is_a_retryable_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from firebase_admin import auth, exceptions
+
+    verifier, _calls = _verifier_with_firebase_check(
+        monkeypatch,
+        auth.UserNotFoundError("No user record found for sample-token."),
+    )
+    with pytest.raises(BrokerError) as deleted:
+        verifier.verify("sample-token")
+
+    assert deleted.value.status_code == 401
+    assert deleted.value.code == "invalid_token"
+
+    verifier, _calls = _verifier_with_firebase_check(
+        monkeypatch,
+        exceptions.UnavailableError("lookup for sample-token timed out"),
+    )
+    with pytest.raises(BrokerError) as unavailable:
+        verifier.verify("sample-token")
+
+    assert unavailable.value.status_code == 503
+    assert unavailable.value.code == "session_check_failed"
+    assert "sample-token" not in unavailable.value.message
+
+
+def test_live_session_keeps_its_identity_and_authenticator_claim(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    verifier, _calls = _verifier_with_firebase_check(monkeypatch, _firebase_claims())
+
+    identity = verifier.verify("sample-token")
+
+    assert identity == VerifiedIdentity(uid="orinoquia-user", expires_at=1_700_003_600.0, totp=True)
+
+
+def test_ended_session_stops_new_links_once_the_token_memory_expires() -> None:
+    clock = Clock()
+    broker, verifier, _users, _signer, _clock = _broker(clock=clock, auth_ttl=300)
+    client = _client_for(broker)
+
+    assert _post(client, "orinoquia-token", ORINOQUIA).status_code == 200
+
+    def ended(token: str) -> VerifiedIdentity:
+        verifier.calls.append(token)
+        raise BrokerError(401, "session_revoked", "This sign-in has ended. Sign in again.")
+
+    verifier.verify = ended  # type: ignore[method-assign]
+    clock.now += 299
+    assert _post(client, "orinoquia-token", ORINOQUIA).status_code == 200
+    clock.now += 1
+    refused = _post(client, "orinoquia-token", ORINOQUIA)
+    assert refused.status_code == 401
+    assert refused.json()["detail"]["status"] == "session_revoked"
+    assert "url" not in refused.json()
 
 
 def test_deny_ttl_is_clamped_shorter_than_a_positive_allow_ttl(
