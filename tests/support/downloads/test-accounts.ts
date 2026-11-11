@@ -12,6 +12,7 @@ import {
   signOut,
   TotpMultiFactorGenerator,
 } from 'firebase/auth';
+import { getFirestore as getClientFirestore, type Firestore } from 'firebase/firestore';
 import { serviceConfig } from './service-config.ts';
 import { millisUntilFreshCode, totpCode } from './totp.ts';
 
@@ -21,24 +22,35 @@ const DISPLAY_NAME = 'DMT TEST ACCOUNT';
 
 export interface TestAccountOptions {
   /** Firestore `users/{uid}.status`. The service only issues links for `active`. */
-  status: 'active' | 'pending';
+  status: 'active' | 'pending' | 'denied';
   /** Firestore `users/{uid}.role`. */
-  role: 'user' | 'sirap-user' | 'super-admin';
+  role: 'user' | 'sirap-user' | 'sirap-admin' | 'super-admin';
   /** Firestore `users/{uid}.allowedSirapIds`. */
   allowedSirapIds: string[];
+  /** Firestore `users/{uid}.administeredSirapIds`. Defaults to none. */
+  administeredSirapIds?: string[];
   /** When true, enroll an authenticator and sign in with a code, so the ID token is marked second-factor TOTP. */
   authenticator: boolean;
 }
 
 export interface TestAccount {
   uid: string;
+  email: string;
+  displayName: string;
   /** A real Firebase ID token for this account. Treat it as a secret and never log it. */
   idToken: string;
+  /** Client Firestore signed in as this account, so every read and write goes through the deployed security rules. */
+  firestore: Firestore;
 }
 
 export interface TestAccountFactory {
   create(options: TestAccountOptions): Promise<TestAccount>;
-  /** Deletes every account this factory created, in Firebase Auth and Firestore. */
+  /** Reads a document with the Admin SDK, bypassing security rules. Returns undefined when it does not exist. */
+  readAsAdmin(documentPath: string): Promise<Record<string, unknown> | undefined>;
+  /**
+   * Deletes every account this factory created, in Firebase Auth and Firestore, plus the
+   * `userDirectory` row and `sirapAccessRequests` documents each account wrote for itself.
+   */
   cleanUp(): Promise<void>;
 }
 
@@ -78,15 +90,21 @@ export function createTestAccountFactory(): TestAccountFactory {
       status: options.status,
       role: options.role,
       allowedSirapIds: options.allowedSirapIds,
-      administeredSirapIds: [],
+      administeredSirapIds: options.administeredSirapIds ?? [],
     });
 
     const clientApp = initializeApp(serviceConfig.firebaseWebConfig, `dmt-test-client-${randomBytes(4).toString('hex')}`);
     clientApps.push(clientApp);
     const auth = getAuth(clientApp);
+    const identity = {
+      uid: record.uid,
+      email,
+      displayName: DISPLAY_NAME,
+      firestore: getClientFirestore(clientApp),
+    };
     const credential = await signInWithEmailAndPassword(auth, email, password);
     if (!options.authenticator) {
-      return { uid: record.uid, idToken: await credential.user.getIdToken() };
+      return { ...identity, idToken: await credential.user.getIdToken() };
     }
 
     const session = await multiFactor(credential.user).getSession();
@@ -120,8 +138,12 @@ export function createTestAccountFactory(): TestAccountFactory {
       const signedIn = await resolver.resolveSignIn(
         TotpMultiFactorGenerator.assertionForSignIn(hint.uid, totpCode(secret.secretKey, parameters, Date.now())),
       );
-      return { uid: record.uid, idToken: await signedIn.user.getIdToken() };
+      return { ...identity, idToken: await signedIn.user.getIdToken() };
     }
+  }
+
+  async function readAsAdmin(documentPath: string): Promise<Record<string, unknown> | undefined> {
+    return (await firestore.doc(documentPath).get()).data();
   }
 
   async function cleanUp(): Promise<void> {
@@ -133,11 +155,21 @@ export function createTestAccountFactory(): TestAccountFactory {
       if (!DISPOSABLE_EMAIL.test(account.email)) {
         continue;
       }
+      // Requests are matched by this throwaway account's uid, so no real person's request can match.
+      const ownRequests = await firestore
+        .collection('sirapAccessRequests')
+        .where('uid', '==', account.uid)
+        .get()
+        .catch(() => undefined);
+      for (const request of ownRequests?.docs ?? []) {
+        await request.ref.delete().catch(() => undefined);
+      }
+      await firestore.doc(`userDirectory/${account.uid}`).delete().catch(() => undefined);
       await firestore.doc(`users/${account.uid}`).delete().catch(() => undefined);
       await adminAuth.deleteUser(account.uid).catch(() => undefined);
     }
     await deleteAdminApp(adminApp).catch(() => undefined);
   }
 
-  return { create, cleanUp };
+  return { create, readAsAdmin, cleanUp };
 }
