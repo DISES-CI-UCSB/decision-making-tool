@@ -29,6 +29,8 @@ test.describe('FBT-027', () => {
       factory.create({ status: 'active', role: 'user', allowedSirapIds: [], authenticator: false }),
       factory.create({ status: 'active', role: 'super-admin', allowedSirapIds: [], authenticator: false }),
     ]);
+    // A regional admin may grant a region only to someone who holds one of theirs or asked for that region.
+    await factory.createPendingSirapAccessRequest(ordinaryUser.uid, 'orinoquia');
     superAdminRecordBefore = await factory.readAsAdmin(`users/${superAdmin.uid}`);
   });
 
