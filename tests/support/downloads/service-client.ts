@@ -11,18 +11,20 @@ export interface SignedUrlReply {
 
 /**
  * Every call goes through Playwright's `request` fixture so it appears in the test's trace.
- * Calls `POST /downloads/signed-url` on the deployed service. Pass no token to send no Authorization header.
+ * Calls `POST /downloads/signed-url` on the deployed service, or on `serviceUrl` when given.
+ * Pass no token to send no Authorization header.
  */
 export async function requestSignedUrl(
   request: APIRequestContext,
   objectName: string,
   idToken?: string,
+  serviceUrl: string = serviceConfig.serviceUrl,
 ): Promise<SignedUrlReply> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (idToken !== undefined) {
     headers.Authorization = `Bearer ${idToken}`;
   }
-  const response = await request.post(`${serviceConfig.serviceUrl}/downloads/signed-url`, {
+  const response = await request.post(`${serviceUrl}/downloads/signed-url`, {
     headers,
     data: JSON.stringify({ object_name: objectName }),
   });
@@ -40,10 +42,21 @@ export async function requestSignedUrl(
 export async function fetchFirstBytes(
   request: APIRequestContext,
   url: string,
-): Promise<{ status: number; byteLength: number }> {
+): Promise<{ status: number; byteLength: number; bytes: Buffer }> {
   const response = await request.get(url, { headers: { Range: 'bytes=0-1023' } });
   const bytes = await response.body();
-  return { status: response.status(), byteLength: bytes.byteLength };
+  return { status: response.status(), byteLength: bytes.byteLength, bytes };
+}
+
+/** Sends a write method to a link that was signed only for GET. */
+export async function sendWriteToSignedLink(
+  request: APIRequestContext,
+  url: string,
+  method: 'PUT' | 'DELETE',
+  data?: Buffer,
+): Promise<{ status: number; text: string }> {
+  const response = await request.fetch(url, { method, data });
+  return { status: response.status(), text: await response.text() };
 }
 
 /** The same bucket file at its plain public address, with no signature. */
