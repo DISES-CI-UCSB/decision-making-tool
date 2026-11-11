@@ -42,10 +42,10 @@
         "//test:fast-only": "Runs only quick tests that need no browser and no network (fast: true in the catalog). Today that means the shared supporting tests. Good for a seconds-long check while editing.",
         "test:fast-only": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts fast-only",
 
-        "//test:browser-deterministic": "Runs browser tests that use saved or mocked data (reproducible, no live services). No browser tests exist yet. Needs the Angular app's dependencies installed in frontend/.",
+        "//test:browser-deterministic": "Runs browser tests that use saved or mocked data (reproducible, no live services). None exist yet. Needs the Angular app's dependencies installed in frontend/.",
         "test:browser-deterministic": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-deterministic",
 
-        "//test:browser-live": "Runs browser tests against the deployed web app and real services, with one retry. The app address defaults to https://decision-making-tool-tau.vercel.app; set DMT_TEST_APP_URL to test a preview deployment or a page server you started yourself.",
+        "//test:browser-live": "Runs live browser tests against real services, with one retry. *.live.spec.ts tests open the deployed web app at https://decision-making-tool-tau.vercel.app (set DMT_TEST_APP_URL to test a preview deployment or a page server you started yourself). *.live-local.spec.ts tests, such as the sign-in tests FBT-009 to FBT-011, start this checkout's app locally with ng serve --configuration e2e, which adds the Test Sign-In Hook; they need frontend dependencies installed.",
         "test:browser-live": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-live",
 
         "//test:browser-all": "Runs both browser modes (deterministic and live).",
