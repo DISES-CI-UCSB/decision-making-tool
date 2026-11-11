@@ -562,7 +562,8 @@ def _runtime_metrics() -> dict[str, Any]:
             pass
     try:
         load_average_1m = os.getloadavg()[0]
-    except OSError:
+    except (AttributeError, OSError):
+        # os.getloadavg does not exist on Windows.
         load_average_1m = None
     return {
         "process_rss_mb": process_rss_mb,
