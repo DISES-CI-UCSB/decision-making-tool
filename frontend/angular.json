@@ -74,6 +74,14 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "e2e": {
+              "fileReplacements": [
+                {
+                  "replace": "src/app/core/services/test-sign-in-hook.ts",
+                  "with": "src/app/core/services/test-sign-in-hook.e2e.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -89,6 +97,9 @@
             },
             "development": {
               "buildTarget": "eco-plan:build:development"
+            },
+            "e2e": {
+              "buildTarget": "eco-plan:build:development,e2e"
             }
           },
           "defaultConfiguration": "development"
