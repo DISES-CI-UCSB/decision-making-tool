@@ -6,7 +6,7 @@ import { millisUntilFreshCode, totpCode, type TotpParameters } from '../download
  * Signs a throwaway `@dmt-test.invalid` account into the local web app through the Test Sign-In Hook.
  * The hook exists only in the `e2e` Angular build configuration
  * (frontend/src/app/core/services/test-sign-in-hook.e2e.ts). It reads `window.__dmtTestSignIn` and replaces only
- * Google's popup sign-in; the authenticator setup and code screens that follow are the app's real ones.
+ * Google's popup sign-in and re-authentication; the authenticator setup and code screens are the app's real ones.
  */
 
 /** The window property the Test Sign-In Hook reads. */

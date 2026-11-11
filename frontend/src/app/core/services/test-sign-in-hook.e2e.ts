@@ -1,7 +1,16 @@
-import { signInWithEmailAndPassword, type Auth, type signInWithPopup } from 'firebase/auth';
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  signInWithEmailAndPassword,
+  type Auth,
+  type reauthenticateWithPopup,
+  type signInWithPopup,
+  type User,
+} from 'firebase/auth';
 
 /** Declared here, not imported: in the e2e build, './test-sign-in-hook' resolves to this file. */
 export type FirstFactorSignIn = typeof signInWithPopup;
+export type Reauthentication = typeof reauthenticateWithPopup;
 
 /**
  * Test Sign-In Hook, e2e build only. The `e2e` Angular build configuration swaps this file in for
@@ -23,12 +32,8 @@ interface TestSignInWindow {
   __dmtTestSignIn?: TestSignInCredentials;
 }
 
-/**
- * Returns a replacement for Google's popup that signs a disposable account in with email and password on the
- * app's own Auth instance, so Firebase's real authenticator challenge reaches the app's real screens.
- * Returns null, and Google's popup is used, unless the app runs on this machine and the email is a disposable one.
- */
-export function testFirstFactorSignIn(): FirstFactorSignIn | null {
+/** The test credentials, only when the app runs on this machine and the email is a disposable one. */
+function permittedTestCredentials(): TestSignInCredentials | null {
   const credentials = (window as TestSignInWindow).__dmtTestSignIn;
   if (!credentials) {
     return null;
@@ -39,5 +44,39 @@ export function testFirstFactorSignIn(): FirstFactorSignIn | null {
     );
     return null;
   }
+  return credentials;
+}
+
+/**
+ * Returns a replacement for Google's popup that signs a disposable account in with email and password on the
+ * app's own Auth instance, so Firebase's real authenticator challenge reaches the app's real screens.
+ * Returns null, and Google's popup is used, unless the app runs on this machine and the email is a disposable one.
+ */
+export function testFirstFactorSignIn(): FirstFactorSignIn | null {
+  const credentials = permittedTestCredentials();
+  if (!credentials) {
+    return null;
+  }
   return (auth: Auth) => signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+}
+
+/**
+ * Returns a replacement for Google's re-authentication popup that re-authenticates the signed-in disposable
+ * account with its email and password, for Firebase's auth/requires-recent-login during authenticator setup.
+ * Returns null, and Google's popup is used, under the same conditions as testFirstFactorSignIn.
+ */
+export function testReauthentication(
+  authApi: { reauthenticateWithCredential: typeof reauthenticateWithCredential } = {
+    reauthenticateWithCredential,
+  },
+): Reauthentication | null {
+  const credentials = permittedTestCredentials();
+  if (!credentials) {
+    return null;
+  }
+  return (user: User) =>
+    authApi.reauthenticateWithCredential(
+      user,
+      EmailAuthProvider.credential(credentials.email, credentials.password),
+    );
 }

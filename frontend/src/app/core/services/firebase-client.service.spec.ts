@@ -4,6 +4,7 @@ import {
   browserPopupRedirectResolver,
   browserSessionPersistence,
   indexedDBLocalPersistence,
+  reauthenticateWithPopup,
   type Auth,
   type GoogleAuthProvider,
   type User,
@@ -12,6 +13,7 @@ import {
 import {
   browserAuthSettings,
   createGoogleSelectAccountProvider,
+  googleReauthentication,
   initializeBrowserAuth,
   isAuthAlreadyInitialized,
   reauthenticateWithGoogleSelectAccountPopup,
@@ -187,5 +189,24 @@ describe('Google popup sign-in', () => {
     expect(reauthenticateWithPopup).toHaveBeenCalledWith(user, provider);
     expect(provider.setCustomParameters).toHaveBeenCalledWith({ prompt: 'select_account' });
     expect(createProvider).toHaveBeenCalledOnce();
+  });
+
+  it("reauthenticates with Google's popup when the build has only the production hook stub", () => {
+    expect(googleReauthentication()).toBe(reauthenticateWithPopup);
+    expect(googleReauthentication(null)).toBe(reauthenticateWithPopup);
+  });
+
+  it("reauthenticates through the Test Sign-In Hook instead of Google's popup when the hook applies", async () => {
+    const user = { uid: 'enrolling-user' } as User;
+    const testHook = vi.fn<typeof reauthenticateWithPopup>(async () => credential);
+
+    await expect(
+      reauthenticateWithGoogleSelectAccountPopup(user, {
+        reauthenticateWithPopup: googleReauthentication(testHook),
+        createProvider: fakeProvider,
+      }),
+    ).resolves.toBe(credential);
+    expect(testHook).toHaveBeenCalledOnce();
+    expect(testHook.mock.calls[0][0]).toBe(user);
   });
 });
