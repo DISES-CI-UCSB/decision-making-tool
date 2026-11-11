@@ -26,6 +26,11 @@ service cloud.firestore {
       return request.auth.token.get('firebase', {});
     }
 
+    function signedInWithGoogle() {
+      return signedIn()
+        && firebaseTokenClaims().get('sign_in_provider', '') == 'google.com';
+    }
+
     function signedInWithTotp() {
       return signedIn()
         && firebaseTokenClaims().get('sign_in_second_factor', '') == 'totp'
@@ -180,8 +185,11 @@ service cloud.firestore {
         && isOptionalString(request.resource.data, 'updatedBy');
     }
 
+    // Only the web app's Google sign-in may self-create. Email/password signup
+    // is open in Firebase Auth and does not prove the email belongs to the caller.
     function validSelfUserCreate(uid) {
       return isSelf(uid)
+        && signedInWithGoogle()
         && request.resource.data.keys().hasOnly([
           'uid',
           'email',
@@ -425,8 +433,8 @@ service cloud.firestore {
         || canReadActiveUserForSirapAdmin();
       allow list: if isSuperAdmin()
         || canReadActiveUserForSirapAdmin();
-      // A signed-in person may create only their own default account. Super
-      // admins may still create or replace a full user record.
+      // A Google-signed-in person may create only their own default account.
+      // Super admins may still create or replace a full user record.
       allow create: if validSelfUserCreate(uid) || (isSuperAdmin() && validUserRecord(uid));
       allow update: if (isSuperAdmin() && validUserRecord(uid))
         || validSuperAdminSirapAccessUpdate()
