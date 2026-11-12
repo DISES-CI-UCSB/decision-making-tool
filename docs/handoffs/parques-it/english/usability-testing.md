@@ -54,7 +54,7 @@ flowchart LR
 - Compare two solutions and correctly explain overlap, unique areas, and a meaningful trade-off (when comparison is in release scope).
 - Switch between Spanish and English without losing workflow state or creating inconsistent terminology, labels, or units.
 - Recover from empty results, missing data, loading delays, unavailable layers, validation errors, and interrupted workflows.
-- Complete sign-in or an access request and verify the expected role-gated capability (when authentication is in release scope).
+- Complete sign-in, authenticator setup, or a SIRAP access request and verify the expected role-gated capability (when authentication is in release scope).
 
 ## Measures and initial acceptance signals
 
@@ -102,15 +102,15 @@ See the [Top decisions table](./README.md#top-decisions-parques-it-must-make) in
 
 UAT needs five accounts, including Guest. The national product works without login; Guest is required even though the other four roles are signed-in. Admins open **Access management** from the header (Pending SIRAP Requests, Current SIRAP Access, Active Users). Today SIRAP catalog and data grants exist for Orinoquía and Eje Cafetero only.
 
-A SIRAP admin cannot appoint other SIRAP admins. Administrator-assignment checkboxes, Super admin, new-account approval, and app tier 2 versus 3 are super-admin only.
+A SIRAP admin cannot appoint other SIRAP admins. Administrator-assignment checkboxes, the role selector (including Super admin), and authenticator resets are super-admin only. No account needs approval: a first Google sign-in creates the account, and every account sets up an authenticator before it gets access beyond Guest.
 
 | Role | How it is recognized | What this account can do | What this account cannot do |
 | --- | --- | --- | --- |
 | Guest | Not signed in | National Finder, map, AOI, and analysis | Save named scenarios (saves are Firestore); see SIRAP catalogs; open admin |
-| Regular signed-in user | Google account, no SIRAP grant | Guest capabilities plus save, rename, recall, and remove named solutions (maximum 12) in Firestore. The left-sidebar label is what gets stored. | See SIRAP catalogs; open admin |
+| Regular signed-in user | Google account with an authenticator set up, no SIRAP grant | Guest capabilities plus save, rename, recall, and remove named solutions (maximum 12) in Firestore. The left-sidebar label is what gets stored. | See SIRAP catalogs; open admin |
 | SIRAP user | `allowedSirapIds` has at least one region (Orinoquía and/or Eje Cafetero) | SIRAP solutions for the granted region(s), plus regular-user saves | Open admin; use regions that were not granted |
-| SIRAP admin | `administeredSirapIds` has at least one region, and the account is not super-admin | Approve or deny SIRAP access requests for assigned region(s); grant or revoke SIRAP **data** access (`allowedSirapIds`) for those regions only | Appoint other SIRAP admins; tick Super admin; approve brand-new accounts; set app tier 2 versus 3. The Administrator assignments UI is wrapped in `isSuperAdmin()` and is not shown to SIRAP admins. |
-| Super-admin | `isSuperAdmin` | Approve new accounts; set Tier 2 versus Tier 3; assign SIRAP regional admins (`administeredSirapIds`); grant any SIRAP data access; see all regions | — |
+| SIRAP admin | `administeredSirapIds` has at least one region, and the account is not super-admin | Approve or deny SIRAP access requests for assigned region(s); grant or revoke SIRAP **data** access (`allowedSirapIds`) for those regions only | Appoint other SIRAP admins; choose the Super admin role; change any role directly; reset an authenticator; approve their own request. The Administrator assignments UI is wrapped in `isSuperAdmin()` and is not shown to SIRAP admins. |
+| Super-admin | `role: super-admin` | Change any user's role; assign SIRAP regional admins (`administeredSirapIds`); grant any SIRAP data access; reset another person's lost authenticator; see all regions | Approve their own SIRAP request; reset their own authenticator |
 
 ## Screens already available to script
 
@@ -130,7 +130,7 @@ This list is not the UAT definition. UAT is the role-based pass/fail in **UAT ac
 Do not fail testers for these. They are shipped product facts, not defects, unless a freeze script treats them otherwise.
 
 - **National works without signing in.** Guest users can run Finder, map, AOI, and national analysis. Google sign-in is required to request and use SIRAP scopes, not to use the national product.
-- **Email login and email “request access” are UI demos.** They are not connected to Firebase. Production identity is Google. Testers who avoid Google will see a dead email path; that is not a production auth outage.
+- **Email login is not offered.** The sign-in dialog states that a Google account is required and email and password sign-in is not available. Production identity is Google. Testers who avoid Google will find no email path; that is not a production auth outage.
 - **Existing-protected versus new-coverage split is on by default** when a solution is on the map. Layer appearance can recolor those two classes. The split itself is not an opt-in.
 - **National land Finder requires Human Footprint 2022 or 2030** as the cost choice. A Carbon Opportunity Cost card is visible and always disabled; that is intentional unavailability, not a broken control.
 - **Known administrative AOIs (department, municipality, SIRAP, RUNAP, OMEC) show empty land-use bars** (“not available yet”) on GTIC production `catalog-releases/3.0.5` (compact still lacks `land_use_*_pct_of_aoi`). Live CLC land-use bars work on **drawn** custom polygons. Do not fail GTIC UAT for empty known-AOI land-use. This branch’s local `catalog-releases/3.0.6` (land-use-aoi-TEST) can fill those bars and is not the GTIC freeze.

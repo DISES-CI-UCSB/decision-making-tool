@@ -22,7 +22,7 @@ Four pieces make the running system. Only the first two can be installed on a GT
 | --- | --- | --- | --- |
 | Angular SPA (single-page application) | Map, solution finder, dashboards, sign-in UI | Local: Docker nginx on port 8080, or `yarn start` on port 4200. Production: Vercel static hosting. | Build and serve. Production is not the Docker image. |
 | FastAPI metrics API | Live metrics, area profiles, and species-coverage jobs for drawn custom AOIs (areas of interest) | Local: Docker on port 8000. Production: Docker Compose on a separate VM (virtual machine). | Hydrate the raster volume, then run the container. |
-| Firebase Authentication and Firestore | Google sign-in, access requests, approved-user tiers | Google Cloud project `dises-decision-making-tool` | Configure client keys and authorized domains. Nothing is installed on the app VM. See [cybersecurity.md](../cybersecurity.md#firebase-project-transfer-checklist). |
+| Firebase Authentication and Firestore | Google sign-in, authenticator (TOTP) setup, user roles and SIRAP region grants | Google Cloud project `dises-decision-making-tool` | Configure client keys and authorized domains. Nothing is installed on the app VM. See [cybersecurity.md](../cybersecurity.md#firebase-project-transfer-checklist). |
 | Vercel Blob | Public manifests, GeoTIFFs, boundaries, solutions, precomputed metrics | Store `decision-making-tool-blob` at `https://aagibolq28slyfof.public.blob.vercel-storage.com` | Point catalog/hydrate URLs at published paths. A write token is for publishing, not first boot. |
 
 Known administrative AOIs read precomputed JSON from Blob. Drawn custom polygons call the FastAPI service, which reads rasters from its local volume. Optimization (Prioritizr) is offline and is not installed with this app. The archived stack under `legacy-r-shiny-app/` is out of scope.
@@ -81,7 +81,7 @@ Two pointers are easy to mix up. Set both explicitly. Committed defaults differ 
 | `FIREBASE_MESSAGING_SENDER_ID` | Firebase web client |
 | `FIREBASE_APP_ID` | Firebase web client |
 | `FIREBASE_MEASUREMENT_ID` | Optional Analytics measurement id |
-| `ACCESS_REQUEST_NOTIFICATION_EMAIL` | Optional access-request notification |
+| `ACCESS_REQUEST_NOTIFICATION_EMAIL` | Unused. The Docker build passes it through, but no app code reads it now that account approval no longer exists. Leave empty. |
 | `GOOGLE_CLIENT_ID` | Optional Google client id |
 | `SIRAP_MANIFEST_BLOB_URL` | Optional SIRAP (Sistema Regional de Áreas Protegidas) batch override |
 | `BLOB_ASSET_PROXY_PATH` | Optional Blob proxy hook; no complete institutional proxy implementation was found |

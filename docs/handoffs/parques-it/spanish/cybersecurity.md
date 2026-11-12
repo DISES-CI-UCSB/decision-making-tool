@@ -44,6 +44,7 @@ flowchart TB
 
 - El inicio de sesión con Google mediante Firebase proporciona la identidad del usuario; los registros de usuarios de Firestore determinan el nivel de la aplicación y los privilegios administrativos. (El servicio de inicio de sesión con Google también contiene una ruta alternativa de demostración/simulación que se usa únicamente cuando Firebase está deshabilitado; esa ruta alternativa no es la ruta de producción y no debe citarse como evidencia de una autenticación real).
 - Las reglas de seguridad de Firestore validan la estructura de los registros protegidos y deniegan de forma predeterminada todo acceso que no coincida.
+- Toda cuenta nueva debe configurar un autenticador (TOTP, un código de 6 dígitos basado en el tiempo) antes de obtener acceso más allá del producto público. Nadie puede aprobar su propia solicitud SIRAP, ni siquiera los administradores, y solo los super-admins cambian los roles y el estado de las cuentas.
 - El endpoint de publicación de manifiestos verifica un token de identidad de Firebase, comprueba el rol correspondiente en Firestore y exige indicadores explícitos de despliegue antes de permitir una escritura.
 - Se espera que las credenciales privilegiadas de Blob y del servidor de Firebase se suministren mediante variables de entorno y se excluyan del control de código fuente. Las credenciales y otros valores de configuración confidenciales nunca deben copiarse en la documentación de la entrega técnica.
 - La publicación de manifiestos crea versiones archivadas que permiten revertir el manifiesto activo.
@@ -111,7 +112,7 @@ Hay dos roles de «propietario» distintos, y Parques necesita ambos:
 | Capa | Qué controla | Dónde reside |
 | --- | --- | --- |
 | Google Cloud / Firebase **project Owner** | Facturación, dominios autorizados, proveedores de Auth, despliegues de reglas de Firestore, exportaciones, IAM | Firebase Console / Google Cloud IAM |
-| **super-admin** de la aplicación | Aprobar cuentas nuevas, asignar roles de personal, asignar administradores regionales SIRAP | Cloud Firestore `users/{uid}` |
+| **super-admin** de la aplicación | Asignar roles y regiones SIRAP, nombrar administradores regionales SIRAP, restablecer autenticadores perdidos | Cloud Firestore `users/{uid}` |
 
 ### 1. Agregar a Parques como Owner del proyecto
 
@@ -149,32 +150,35 @@ Cuando la lista sea correcta, pida a un Owner de Parques que complete un inicio 
 
 | Colección | Propósito |
 | --- | --- |
-| `accessRequests/{uid}` | Solicitudes pendientes o revisadas de personas que iniciaron sesión pero aún no están aprobadas como usuarias de la aplicación |
-| `users/{uid}` | Registros de usuarios aprobados: `status`, `tier`, `role`, `isAdmin` / `isSuperAdmin`, concesiones SIRAP |
-| `userDirectory/{uid}` | Fila con el nombre y el correo de cada usuario activo, que la propia persona escribe al iniciar sesión |
+| `accessRequests/{uid}` | Solicitudes retiradas de aprobación de cuentas. Los documentos antiguos permanecen almacenados; las reglas deniegan todo acceso del cliente |
+| `users/{uid}` | Registros de usuarios: `status`, `tier`, `role`, concesiones SIRAP, `mfaEnrolledAt` (la hora en que la propia persona configuró su autenticador) |
+| `userDirectory/{uid}` | Fila con el nombre y el correo de cada usuario activo, que escribe únicamente la propia persona al iniciar sesión |
 | `sirapAccessRequests/{uid}_{sirapId}` | Solicitudes de acceso a datos SIRAP por región |
 | `users/{uid}/savedSolutionScenarios/{id}` | Escenarios guardados de las personas con sesión iniciada (datos de usuario; incluirlos en las copias de seguridad) |
-| `mail` | Documentos opcionales de notificación a administradores; las reglas deniegan las escrituras del cliente |
+| `mail` | Reservada para documentos de notificación a administradores; nada en la aplicación la escribe hoy y las reglas deniegan el acceso del cliente |
 
 - Las credenciales privilegiadas del servidor (Firebase Admin / cuentas de servicio) permanecen en una bóveda de secretos de Parques. Rote cualquier clave que Spatial Lab haya tenido antes del retiro.
+- La Metrics API lee Firebase con su propia cuenta de servicio dedicada, `dmt-metrics-api-firebase`, que solo tiene Firebase Authentication Admin y Cloud Datastore User. La configuración y la rotación están en la guía operativa de la VM de la Metrics API (disponible solo en inglés: `docs/handoffs/parques-it/english/reception/metrics-api-vm-runbook.md`).
 
-### 5. Aprobar o denegar usuarios
+### 5. Cómo obtienen acceso las cuentas
 
-La identidad de Google y el acceso a la aplicación son independientes. Una persona puede iniciar sesión y seguir pendiente.
+La identidad de Google y el acceso a la aplicación son independientes. Nadie aprueba las cuentas ordinarias.
 
-- **Cuentas nuevas.** La persona inicia sesión con Google y envía `accessRequests/{uid}`. Solo un **super-admin** de la aplicación puede aprobar esa solicitud en `users/{uid}` con `status: active`. Hasta entonces la aplicación permanece en el nivel público.
-- **Acceso a datos SIRAP.** Después de que la cuenta está activa, la persona puede solicitar Orinoquía y/o Eje Cafetero. Un super-admin, o un administrador regional de ese SIRAP, aprueba o deniega la región. La denegación quita esa región de `allowedSirapIds` sin eliminar la cuenta de Google.
-- **Denegación a nivel de cuenta.** Las reglas de Firestore permiten marcar `accessRequests/{uid}` como `denied`. No deje a una persona denegada como `users/{uid}` con `status: active`. Si la consola de la aplicación no tiene un control de denegación de cuenta, un super-admin con acceso a Firestore Console puede poner la solicitud en `denied` y mantener o establecer el registro de usuario como inactivo/denegado.
-- Los administradores regionales SIRAP **no pueden** aprobar cuentas nuevas de Firebase. Solo pueden conceder o revocar las regiones SIRAP que administran.
+- **Cuentas nuevas.** La persona inicia sesión con Google, lo que crea su propio registro predeterminado `users/{uid}` (`role: user`, `tier: 2`, `status: active`, sin regiones). Luego debe configurar un autenticador antes de obtener acceso más allá del nivel público. Las reglas permiten que una persona cree solo ese registro predeterminado, y nadie puede aprobarse a sí mismo, ni siquiera los administradores.
+- **Roles y estado de la cuenta.** Solo los super-admins cambian los roles y el estado de la cuenta.
+- **Acceso a datos SIRAP.** Después de la configuración, la persona puede solicitar Orinoquía y/o Eje Cafetero. Un super-admin, o un administrador regional de ese SIRAP, aprueba o deniega la región. Un administrador regional solo puede conceder una región a una persona que ya tenga una de sus regiones o que tenga una solicitud pendiente para esa región. La denegación quita esa región de `allowedSirapIds` sin eliminar la cuenta de Google.
+- **Bloqueo a nivel de cuenta.** Establezca `users/{uid}.status` en `denied`; el siguiente inicio de sesión de la persona termina con un mensaje de «cuenta no activa». La consola de administración no tiene un control para esto, por lo que un super-admin o un Owner del proyecto lo hace en Firestore Console. No deje como `status: active` a quien quiera bloquear.
+- **Autenticador perdido o eliminado.** Un super-admin lo restablece desde la consola de administración después de verificar la identidad. Los pasos están en la versión en inglés: `docs/handoffs/parques-it/english/reception/service-users-and-permissions.md`.
+- Los administradores regionales SIRAP **no pueden** cambiar roles ni restablecer autenticadores. Solo pueden conceder o revocar las regiones SIRAP que administran.
 
 ### 6. Promover al personal de Parques
 
-Hágalo después de que al menos un operador de Parques pueda iniciar sesión.
+Hágalo después de que al menos un operador de Parques pueda iniciar sesión y configurar un autenticador.
 
-- Si Spatial Lab todavía tiene un super-admin de la aplicación, esa persona promueve la primera cuenta de personal de Parques desde las herramientas de administración (nivel, indicador de super-admin, asignaciones SIRAP).
-- Si no queda ningún super-admin de la aplicación, un Owner del proyecto de Firebase arranca el primer super-admin de Parques en Firestore Console sobre `users/{uid}` **después de que esa persona haya iniciado sesión una vez** (para que exista el uid de Auth): `status: active`, `isSuperAdmin: true`, `isAdmin: true`, `role: admin`, `tier: 3`. Luego ese super-admin de Parques promueve a las demás personas. No comparta ese uid en este documento.
-- Promueva al menos a dos super-admins de Parques para que una salida no bloquee la cola de aprobaciones.
-- Use Manager (`tier` 3 / `science_publisher`) solo para el personal que deba recibir privilegios de producto a nivel de publicación. Las personas aprobadas ordinarias son Decision Maker (`tier` 2 / `authorized_viewer`).
+- Si Spatial Lab todavía tiene un super-admin de la aplicación, esa persona promueve la primera cuenta de personal de Parques desde la consola de administración, eligiendo el rol **Super admin**.
+- Si no queda ningún super-admin de la aplicación, un Owner del proyecto de Firebase arranca el primer super-admin de Parques editando el registro `users/{uid}` de esa persona en Firestore Console **después de que haya iniciado sesión una vez** (el primer inicio de sesión crea el registro): `role: super-admin`, `tier: 3`, `status: active`. Luego ese super-admin de Parques promueve a las demás personas. No comparta ese uid en este documento.
+- Promueva al menos a dos super-admins de Parques para que una salida no bloquee los cambios de rol ni los restablecimientos de autenticador.
+- El nivel 3 (Manager) pertenece solo a los super-admins; cualquier otro rol activo es nivel 2 (Decision Maker). El rol separado `science_publisher` está retirado.
 
 ### 7. Administradores regionales SIRAP frente al administrador global
 
@@ -182,9 +186,9 @@ Estos son roles de la aplicación en `users/{uid}`, no roles de IAM de Google Cl
 
 | Rol | Señales en Firestore | Qué pueden hacer | Qué no pueden hacer |
 | --- | --- | --- | --- |
-| Administrador global / super-admin | Usuario activo con `isSuperAdmin`, `isAdmin` o `role: admin` | Aprobar cuentas nuevas, asignar niveles, asignar otros super-admins, asignar administradores regionales, conceder o revocar cualquier SIRAP | — |
-| Administrador regional SIRAP | Usuario activo con `administeredSirapIds` definido (y que no sea super-admin) | Ver usuarios que tienen, o han solicitado, un SIRAP que administran; aprobar, denegar o revocar el acceso SIRAP **solo** para esas regiones | Aprobar cuentas nuevas de Google/Firebase; cambiar el nivel global o los indicadores de super-admin; administrar un SIRAP que no se les asignó |
-| Usuario SIRAP aprobado | Usuario activo solo con `allowedSirapIds` | Usar la línea de producto SIRAP para las regiones concedidas | Administrar a nadie más |
+| Administrador global / super-admin | Usuario activo con `role: super-admin` (registros antiguos: `isSuperAdmin`, `isAdmin` o `role: admin`) | Cambiar roles y el estado de las cuentas, asignar otros super-admins, asignar administradores regionales, conceder o revocar cualquier SIRAP, restablecer el autenticador perdido de otra persona | Aprobar su propia solicitud SIRAP; restablecer su propio autenticador |
+| Administrador regional SIRAP | Usuario activo con `role: sirap-admin` y `administeredSirapIds` definido (y que no sea super-admin) | Listar usuarios activos que tienen un SIRAP que administran y leer a quien tenga una solicitud pendiente para él; conceder una región solo a quien ya tenga una de las suyas o tenga una solicitud pendiente para ella; denegar o revocar el acceso SIRAP **solo** para esas regiones | Cambiar roles directamente o los indicadores de super-admin; restablecer autenticadores; administrar un SIRAP que no se les asignó |
+| Usuario SIRAP | Usuario activo con `role: sirap-user` y solo `allowedSirapIds` | Usar la línea de producto SIRAP para las regiones concedidas | Administrar a nadie más |
 
 Asigne administradores regionales escribiendo `administeredSirapIds` como `orinoquia` y/o `eje-cafetero`. Existen ocho etiquetas SIRAP en el producto; **solo Orinoquía y Eje Cafetero tienen datos publicados actualmente**, y las reglas de Firestore solo aceptan esos dos ID.
 
@@ -209,7 +213,7 @@ Solo después de que un Owner de Parques haya demostrado todo lo siguiente:
 - Ejecutar una exportación de Firestore a un bucket de Parques
 - Iniciar sesión en la aplicación de producción
 - Promover al menos a un integrante adicional del personal de Parques
-- Aprobar una solicitud de acceso de prueba y conceder/revocar una región SIRAP
+- Decidir una solicitud de acceso SIRAP de prueba y conceder/revocar una región SIRAP
 
 Después:
 

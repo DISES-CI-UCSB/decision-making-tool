@@ -34,7 +34,7 @@ Platform ownership (Vercel project settings, VM, DNS, TLS) still needs Parques c
 
 ### 3. How does login work?
 
-**Identity** is Firebase Authentication with **Google** sign-in. **Authorization** is Cloud Firestore (`users/{uid}`). A person can sign in and still be pending until a super-admin approves `accessRequests/{uid}` into an active user record.
+**Identity** is Firebase Authentication with **Google** sign-in. **Authorization** is Cloud Firestore (`users/{uid}`). Nobody approves ordinary accounts: a person's first Google sign-in creates their own default user record, and they get access beyond the public product once they set up an authenticator. Super-admins and regional admins then widen access by changing the role or granting SIRAP regions.
 
 The national product works **without** signing in (Guest). Google is required to request and use SIRAP (Sistema Regional de Áreas Protegidas) scopes and to save named scenarios.
 
@@ -158,13 +158,13 @@ Each item is a **shipped or measured** fact from the repo, not a hypothetical.
 
 [`usability-testing.md`](../usability-testing.md#guest-finder-and-empty-state-quirks-testers-will-hit) · [`adding-solutions.md`](../data-operations/adding-solutions.md#incremental-metric-backfill)
 
-### Email login does nothing useful
+### Email login is not offered
 
-**Symptom.** Testers who avoid Google use the email sign-in or email “request access” UI and get a dead path.
+**Symptom.** Testers who avoid Google look for an email sign-in or an email “request access” option and find none.
 
-**Cause.** **Email login and email request-access are interface demos.** They are not connected to Firebase. Production identity is Google.
+**Cause.** The sign-in dialog states that a Google account is required and email and password sign-in is not available. Production identity is Google.
 
-**What to do.** Use Google sign-in. Treat a dead email path as expected, not a production authentication outage. The Google service also has a stub fallback used only when Firebase is **disabled** — that is not the production path.
+**What to do.** Use Google sign-in. Treat the missing email path as expected, not a production authentication outage. The Google service also has a stub fallback used only when Firebase is **disabled** — that is not the production path.
 
 [`usability-testing.md`](../usability-testing.md#guest-finder-and-empty-state-quirks-testers-will-hit) · [`cybersecurity.md`](../cybersecurity.md#controls-confirmed-in-the-repository)
 
@@ -177,6 +177,16 @@ Each item is a **shipped or measured** fact from the repo, not a hypothetical.
 **What to do.** Verify their identity by a reply from their registered email or a phone or video call. Then a super-admin selects **Reset authenticator** on their card in **Admin console → Active Users**. Super-admins cannot reset themselves; another super-admin does it. If the last super-admin is locked out, a project Owner runs `yarn reset:totp`.
 
 [`service-users-and-permissions.md`](./service-users-and-permissions.md#resetting-a-lost-authenticator)
+
+### The sign-in says the authenticator was removed
+
+**Symptom.** A person who already set up an authenticator signs in and sees a notice that it was removed and that their organization's email security probably removed it.
+
+**Cause.** Per the app's notice, the email sent after setup holds a link that undoes it, and some email security tools open every link in an email. Opening that link removes the authenticator.
+
+**What to do.** The person selects the notice's button to set up a new authenticator at once; no super-admin is needed. Ask their IT team to exclude links to `dises-decision-making-tool.firebaseapp.com` from link scanning, or it can happen again.
+
+[`service-users-and-permissions.md`](./service-users-and-permissions.md#if-an-authenticator-disappears-after-setup)
 
 ### Browser reports a CORS error talking to the metrics API
 
