@@ -44,6 +44,7 @@ flowchart TB
 
 - Firebase Google sign-in supplies user identity; Firestore user records determine application tier and administrative privileges. (The Google sign-in service also contains a demo/stub fallback path used only when Firebase is disabled — that fallback is not the production path and should not be cited as evidence of real authentication.)
 - Firestore security rules validate protected record shapes and deny unmatched access by default.
+- Every new account must set up an authenticator (TOTP, a time-based 6-digit code) before getting access beyond the public product. Nobody can approve their own SIRAP request, admins included, and only super-admins change roles and account status.
 - The leftover manifest-publishing endpoint (retired style editor) still verifies a Firebase identity token, checks the corresponding Firestore role, and requires explicit deployment flags before allowing a write. It is not a GTIC operator workflow.
 - Privileged Blob and Firebase server credentials are expected through environment variables and excluded from source control. Credentials and other confidential configuration values must never be copied into handoff documentation.
 - Manifest publication creates archived versions that support rollback of the active manifest.
@@ -111,7 +112,7 @@ There are two different “owner” roles, and Parques needs both:
 | Layer | What it controls | Where it lives |
 | --- | --- | --- |
 | Google Cloud / Firebase **project Owner** | Billing, authorized domains, Auth providers, Firestore rules deploys, exports, IAM | Firebase Console / Google Cloud IAM |
-| In-app **super-admin** | Approve new accounts, assign staff roles, assign SIRAP regional admins | Cloud Firestore `users/{uid}` |
+| In-app **super-admin** | Assign roles and SIRAP regions, appoint SIRAP regional admins, reset lost authenticators | Cloud Firestore `users/{uid}` |
 
 ### 1. Add Parques as project Owner
 
@@ -149,32 +150,35 @@ After the list is correct, have a Parques Owner complete a Google sign-in on pro
 
 | Collection | Purpose |
 | --- | --- |
-| `accessRequests/{uid}` | Pending or reviewed requests from people who signed in but are not yet approved as app users |
-| `users/{uid}` | Approved user records: `status`, `tier`, `role`, `isAdmin` / `isSuperAdmin`, SIRAP grants |
-| `userDirectory/{uid}` | Name and email row for each active user, written by that person at sign-in |
+| `accessRequests/{uid}` | Retired account-approval requests. Old documents stay stored; rules deny all client access |
+| `users/{uid}` | User records: `status`, `tier`, `role`, SIRAP grants, `mfaEnrolledAt` (the person's own authenticator-setup time) |
+| `userDirectory/{uid}` | Name and email row for each active user, written only by that person at sign-in |
 | `sirapAccessRequests/{uid}_{sirapId}` | Per-region SIRAP data-access requests |
 | `users/{uid}/savedSolutionScenarios/{id}` | Signed-in users’ saved scenarios (user data; include in backups) |
-| `mail` | Optional admin-notification documents; client writes are denied by rules |
+| `mail` | Reserved for admin-notification documents; nothing in the app writes it now, and client access is denied by rules |
 
 - Privileged server credentials (Firebase Admin / service accounts) stay in a Parques secrets vault. Rotate any key that Spatial Lab previously held before step-down.
+- The Metrics API reads Firebase with its own dedicated service account, `dmt-metrics-api-firebase`, which holds only Firebase Authentication Admin and Cloud Datastore User. Setup and rotation are in the [Metrics API VM runbook](./reception/metrics-api-vm-runbook.md#service-account-keys).
 
-### 5. Approve or deny users
+### 5. How accounts get access
 
-Google identity and application access are separate. A person can sign in and still be pending.
+Google identity and application access are separate. Nobody approves ordinary accounts.
 
-- **New accounts.** The user signs in with Google and submits `accessRequests/{uid}`. Only an in-app **super-admin** can approve that request into `users/{uid}` with `status: active`. Until then the app stays on the public tier.
-- **SIRAP data access.** After the account is active, the user can request Orinoquía and/or Eje Cafetero. A super-admin, or a regional admin for that SIRAP, approves or denies the region. Denial removes that region from `allowedSirapIds` without deleting the Google account.
-- **Account-level deny.** Firestore rules allow `accessRequests/{uid}` to be marked `denied`. Do not leave a denied person as `users/{uid}` with `status: active`. If the in-app console has no account-deny control, a super-admin with Firestore Console access can set the request to `denied` and keep or set the user record inactive/denied.
-- Regional SIRAP admins **cannot** approve brand-new Firebase accounts. They can only grant or revoke SIRAP regions they administer.
+- **New accounts.** The user signs in with Google, which creates their own default `users/{uid}` record (`role: user`, `tier: 2`, `status: active`, no regions). They must then set up an authenticator before getting access beyond the public tier. Rules let a person create only that default record, and nobody can approve themselves, admins included.
+- **Roles and account status.** Only super-admins change roles and account status.
+- **SIRAP data access.** After setup, the user can request Orinoquía and/or Eje Cafetero. A super-admin, or a regional admin for that SIRAP, approves or denies the region. A regional admin can grant a region only to someone who already holds one of their regions or has a pending request for it. Denial removes that region from `allowedSirapIds` without deleting the Google account.
+- **Account-level block.** Set `users/{uid}.status` to `denied`; the person's next sign-in ends with an “account is not active” message. The Admin console has no control for it, so a super-admin or project Owner does it in Firestore Console. Do not leave someone you mean to block as `status: active`.
+- **Lost or removed authenticator.** A super-admin resets it from the Admin console after verifying identity. See [Resetting a lost authenticator](./reception/service-users-and-permissions.md#resetting-a-lost-authenticator).
+- Regional SIRAP admins **cannot** change roles or reset authenticators. They can only grant or revoke SIRAP regions they administer.
 
 ### 6. Promote Parques staff
 
-Do this after at least one Parques operator can sign in.
+Do this after at least one Parques operator can sign in and set up an authenticator.
 
-- If Spatial Lab still has an in-app super-admin, that person promotes the first Parques staff account from the admin tools (tier, super-admin flag, SIRAP assignments).
-- If no in-app super-admin remains, a Firebase project Owner bootstraps the first Parques super-admin in Firestore Console on `users/{uid}` **after that person has signed in once** (so the Auth uid exists): `status: active`, `isSuperAdmin: true`, `isAdmin: true`, `role: admin`, `tier: 3`. Then that Parques super-admin promotes everyone else. Do not share that uid in this document.
-- Promote at least two Parques super-admins so one departure cannot lock the approval queue.
-- Use Manager (`tier` 3 / `science_publisher`) only for staff who should receive publisher-level product privileges. Ordinary approved users are Decision Maker (`tier` 2 / `authorized_viewer`).
+- If Spatial Lab still has an in-app super-admin, that person promotes the first Parques staff account from the Admin console by choosing the **Super admin** role.
+- If no in-app super-admin remains, a Firebase project Owner bootstraps the first Parques super-admin by editing that person's `users/{uid}` record in Firestore Console **after that person has signed in once** (the first sign-in creates the record): `role: super-admin`, `tier: 3`, `status: active`. Then that Parques super-admin promotes everyone else. Do not share that uid in this document.
+- Promote at least two Parques super-admins so one departure cannot lock role changes and authenticator resets.
+- Tier 3 (Manager) belongs to super-admins only; every other active role is tier 2 (Decision Maker). The separate `science_publisher` role is retired.
 
 ### 7. SIRAP regional admins versus global admin
 
@@ -182,9 +186,9 @@ These are application roles in `users/{uid}`, not Google Cloud IAM roles.
 
 | Role | Firestore signals | What they can do | What they cannot do |
 | --- | --- | --- | --- |
-| Global / super-admin | Active user with `isSuperAdmin`, `isAdmin`, or `role: admin` | Approve new accounts, assign tiers, assign other super-admins, assign regional admins, grant or revoke any SIRAP | — |
-| SIRAP regional admin | Active user with `administeredSirapIds` set (and not a super-admin) | See users who hold, or have a pending request for, an administered SIRAP; approve, deny, or revoke SIRAP access **only** for those regions | Approve new Google/Firebase accounts; change global tier or super-admin flags; administer a SIRAP they were not assigned |
-| Approved SIRAP user | Active user with `allowedSirapIds` only | Use the SIRAP product line for granted regions | Administer anyone else |
+| Global / super-admin | Active user with `role: super-admin` (older records: `isSuperAdmin`, `isAdmin`, or `role: admin`) | Change roles and account status, assign other super-admins, assign regional admins, grant or revoke any SIRAP, reset another person's lost authenticator | Approve their own SIRAP request; reset their own authenticator |
+| SIRAP regional admin | Active user with `role: sirap-admin` and `administeredSirapIds` set (and not a super-admin) | List active users who hold an administered SIRAP and read one with a pending request for it; grant a region only to someone who holds one of theirs or has a pending request for it; deny or revoke SIRAP access **only** for those regions | Change roles directly or super-admin flags; reset authenticators; administer a SIRAP they were not assigned |
+| SIRAP user | Active user with `role: sirap-user` and `allowedSirapIds` only | Use the SIRAP product line for granted regions | Administer anyone else |
 
 Assign regional admins by writing `administeredSirapIds` to `orinoquia` and/or `eje-cafetero`. Eight SIRAP labels exist in the product; **only Orinoquía and Eje Cafetero currently have published data**, and Firestore rules only accept those two IDs.
 
@@ -211,7 +215,7 @@ Only after a Parques Owner has demonstrated all of the following:
 - Run a Firestore export to a Parques bucket
 - Sign in to the production app
 - Promote at least one additional Parques staff user
-- Approve a test access request and grant/revoke one SIRAP region
+- Decide a test SIRAP access request and grant/revoke one SIRAP region
 
 Then:
 

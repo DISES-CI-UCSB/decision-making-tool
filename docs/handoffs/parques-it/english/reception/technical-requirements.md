@@ -74,17 +74,17 @@ GTIC should treat concurrent-user capacity as **unrated** until Parques approves
 
 **Client type:** Web SPA in a modern browser (Canvas and WebGL). There is no installed desktop client and no native mobile app.
 
-Identity is Firebase Authentication (Google sign-in). Authorization is Cloud Firestore on project `dises-decision-making-tool`. Signing in does not by itself grant SIRAP or admin privileges. TOTP (Time-based One-Time Password) multi-factor enrollment is required in-app once the user’s tier is Decision Maker or higher.
+Identity is Firebase Authentication (Google sign-in). Authorization is Cloud Firestore on project `dises-decision-making-tool`. Signing in does not by itself grant SIRAP or admin privileges. A person's first Google sign-in creates their own default user record without anyone approving it. TOTP (Time-based One-Time Password) multi-factor enrollment, a time-based 6-digit code from an authenticator app, is required in-app before any access beyond the public product.
 
 Five product roles (same set UAT will use):
 
 | Role | How it is recognized | What they can do | What they cannot do |
 | --- | --- | --- | --- |
 | Guest | Not signed in | National Finder, map, AOI, and analysis | Save named scenarios; see SIRAP catalogs; open admin |
-| Signed-in user | Google account, no SIRAP grant | Guest capabilities plus save / rename / recall / remove named solutions (maximum 12) in Firestore | See SIRAP catalogs; open admin |
+| Signed-in user | Google account with an authenticator set up, no SIRAP grant | Guest capabilities plus save / rename / recall / remove named solutions (maximum 12) in Firestore | See SIRAP catalogs; open admin |
 | SIRAP user | `allowedSirapIds` has Orinoquía and/or Eje Cafetero | SIRAP solutions for granted region(s), plus signed-in saves | Open admin; use regions that were not granted |
-| SIRAP regional admin | `administeredSirapIds` set, and not super-admin | Approve, deny, or revoke SIRAP **data** access for assigned region(s) only | Approve new Google/Firebase accounts; appoint other SIRAP admins; set global tier or super-admin flags |
-| Super-admin | `isSuperAdmin` (also `isAdmin` / `role: admin` in Firestore) | Approve new accounts; set tier 2 vs 3; assign regional admins; grant any SIRAP data access | — |
+| SIRAP regional admin | `administeredSirapIds` set, and not super-admin | Decide SIRAP access requests, and grant or revoke SIRAP **data** access, for assigned region(s) only (a grant only to someone who holds one of those regions or has a pending request for it) | Change roles directly; appoint other SIRAP admins; set super-admin; reset authenticators |
+| Super-admin | `role: super-admin` (older records: `isSuperAdmin`, `isAdmin`, or `role: admin`) | Change roles and account status; assign regional admins; grant any SIRAP data access; reset another person's lost authenticator | Approve their own SIRAP request; reset their own authenticator |
 
 Eight SIRAP labels exist in the product. **Only Orinoquía and Eje Cafetero currently have published catalog/access data.** Firestore rules accept only those two region IDs.
 
@@ -101,7 +101,7 @@ Actors and the trust boundary they sit on:
 | User browser | Untrusted client. Talks HTTPS to the SPA host, Firebase/Google identity, Firestore, public Blob URLs, ArcGIS / CDN dependencies, and (for drawn AOIs) the metrics API via the Vercel `/metrics-api` rewrite or the API origin. |
 | Vercel (Angular SPA) | Presentation host. Serves static files. Rewrites `/metrics-api/*` to `https://api.decision-making-support-tool.xyz`. |
 | Firebase Authentication | Identity provider (Google sign-in). Auth host: `dises-decision-making-tool.firebaseapp.com`. |
-| Cloud Firestore | Authorization and user records (`users`, `accessRequests`, SIRAP grants, saved scenarios). |
+| Cloud Firestore | Authorization and user records (`users`, `userDirectory`, `sirapAccessRequests`, SIRAP grants, saved scenarios). |
 | Vercel Blob | Public-read object storage for manifests, rasters, solutions, and precomputed metrics. Reads are reachable without application authentication. |
 | Metrics VM (FastAPI) | Custom-AOI compute. No application authentication or production rate-limit evidence on the custom-polygon path. Species jobs: 1 worker, ~10 queued, then HTTP 429. |
 
@@ -149,7 +149,7 @@ Special requirements: HTTPS route to port 8000; read-only national (and optional
 | --- | --- | --- | --- |
 | Runtime catalog and assets | Vercel Blob (public-read) | Manifests, Cloud Optimized GeoTIFFs, solution rasters, precomputed metric JSON | Vercel Inc. |
 | Identity | Firebase Authentication | Google sign-in | Google LLC |
-| Authorization / user data | Cloud Firestore | Tiers, SIRAP grants, access requests, saved scenarios | Google LLC |
+| Authorization / user data | Cloud Firestore | Roles and tiers, SIRAP grants and requests, saved scenarios | Google LLC |
 | Job state | SQLite on the metrics VM | Species-coverage queue (`DMT_CUSTOM_POLYGON_JOB_DB`) | Public-domain SQLite |
 | Custom-AOI rasters | Local volume on the metrics VM | National + optional SIRAP artifact bundles | Operator-managed files (not a separate DBMS product) |
 
@@ -195,7 +195,7 @@ Honest reception answers. “Partial” means a control or integration exists bu
 
 | Topic | Status | Evidence |
 | --- | --- | --- |
-| Authentication / authorization | **Partial** | Google sign-in + Firestore roles + in-app TOTP for Decision Maker and above. Metrics API has no application authentication. Institutional SSO is an open Parques decision. Privileged writes are server-checked; most geospatial **reads** are public-by-URL. |
+| Authentication / authorization | **Partial** | Google sign-in + Firestore roles + in-app TOTP required of every signed-in user before access beyond the public product. Metrics API has no application authentication. Institutional SSO is an open Parques decision. Privileged writes are server-checked; most geospatial **reads** are public-by-URL. |
 | Backup | **No** | No Blob backup automation, no scheduled Firestore export owner, no documented restore drill. Manifest publication archives the previous manifest (rollback of the active manifest only). |
 | Disaster recovery | **No** | No RTO / RPO, no tested DR procedure, no ANS (REQ-14). No centralized error reporting, uptime monitor, log shipping, or alerting found in the active repository. |
 | Interoperability | **Partial** | Runtime interop is Vercel + Firebase/Firestore + Vercel Blob + Esri ArcGIS + the FastAPI metrics host. **No documented interoperability with PNNC institutional systems** (identity, network, records, monitoring) — REQ-05 still needs a Parques inventory and tests. |

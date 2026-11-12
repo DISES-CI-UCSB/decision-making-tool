@@ -19,45 +19,26 @@ Field names and allowed values below come from [`firestore.rules`](../../../../.
 
 ## 1. Firestore (authorization and user records)
 
-Identity is **Firebase Authentication** (Google sign-in). Authorization is **Cloud Firestore**. Signing in does not by itself grant Decision Maker, Manager, or admin privileges.
+Identity is **Firebase Authentication** (Google sign-in). Authorization is **Cloud Firestore**. Signing in does not by itself grant Decision Maker or admin privileges: a person's first sign-in creates their own default user record, and access beyond the public product starts once they set up an authenticator.
 
 Principal collections (document IDs in braces):
 
 | Collection | Purpose |
 | --- | --- |
-| `accessRequests/{uid}` | Pending or reviewed requests from people who signed in but are not yet approved as app users |
-| `users/{uid}` | Approved user records: `status`, `tier`, `role`, `isAdmin` / `isSuperAdmin`, SIRAP (Sistema Regional de Áreas Protegidas) grants |
-| `userDirectory/{uid}` | Name and email row for each active user, written by that person at sign-in |
+| `users/{uid}` | User records: `status`, `tier`, `role`, SIRAP (Sistema Regional de Áreas Protegidas) grants, and `mfaEnrolledAt`, the person's own authenticator-setup time |
+| `userDirectory/{uid}` | Name and email row for each active user, written only by that person at sign-in |
 | `sirapAccessRequests/{uid}_{sirapId}` | Per-region SIRAP data-access requests |
 | `users/{uid}/savedSolutionScenarios/{id}` | Signed-in users’ saved scenarios (user data; include in backups) |
-| `mail` | Optional admin-notification documents; client writes are denied by rules |
+| `mail` | Reserved for admin-notification documents; nothing in the app writes it now, and client access is denied by rules |
 
-`firestore.rules` also define `manifestStyleRequests`. That collection belongs to the **retired** in-app style editor, not a GTIC operator workflow, and is omitted from the diagram.
+`firestore.rules` also define `manifestStyleRequests`. That collection belongs to the **retired** in-app style editor, not a GTIC operator workflow, and is omitted from the diagram. `accessRequests/{uid}` is the retired account-approval collection: old documents stay stored, rules deny all client access, and it is omitted from the diagram.
 
-Rules deny unmatched access by default. Super-admin and saved-scenario writes additionally require a Time-based One-Time Password (TOTP) second factor (`sign_in_second_factor` / `second_factor_identifier` on the Firebase token). Those token claims are not Firestore fields.
+Rules deny unmatched access by default. Super-admin, regional-admin, SIRAP-request, and saved-scenario writes additionally require a Time-based One-Time Password (TOTP) second factor (`sign_in_second_factor` / `second_factor_identifier` on the Firebase token). Those token claims are not Firestore fields.
 
 ### Firestore ERD
 
 ```mermaid
 erDiagram
-    accessRequests {
-        string uid PK
-        string email
-        string displayName
-        string avatarInitials
-        string provider
-        string status
-        string organization
-        string reason
-        int submittedAt
-        timestamp requestedAt
-        timestamp updatedAt
-        timestamp approvedAt
-        string approvedBy
-        timestamp deniedAt
-        string deniedBy
-    }
-
     users {
         string uid PK
         string email
@@ -72,6 +53,7 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
         string updatedBy
+        timestamp mfaEnrolledAt
     }
 
     userDirectory {
@@ -107,7 +89,6 @@ erDiagram
     mail {
     }
 
-    users ||--o| accessRequests : "same Auth uid"
     users ||--o| userDirectory : "directory row for uid"
     users ||--o{ sirapAccessRequests : "uid plus sirapId"
     users ||--o{ savedSolutionScenarios : "subcollection"
@@ -121,17 +102,17 @@ erDiagram
 
 | Field | Allowed values in `firestore.rules` |
 | --- | --- |
-| `accessRequests.provider` | `google`, `local` |
-| `accessRequests.status` (admin update) | `pending`, `approved`, `denied` |
-| `users.status` | `active`, `denied` |
-| `users.role` | `authorized_viewer`, `science_publisher`, `admin` |
-| `users.tier` | `1`, `2`, `3` |
+| `users.status` | `active`, `denied` (a person's own first record must be `active`) |
+| `users.role` | `user`, `sirap-user`, `sirap-admin`, `super-admin`. A person's own first record must be `user`. |
+| `users.tier` | `3` for `super-admin`, `2` for every other role |
+| `users.isAdmin` / `users.isSuperAdmin` | Absent or `false` in writes; older records may still hold `true` |
+| `users.mfaEnrolledAt` | Server time of the record owner's confirmed authenticator setup; the owner may write only this field |
 | `allowedSirapIds` / `administeredSirapIds` | list, size ≤ 6, members only `orinoquia` and/or `eje-cafetero` |
 | `sirapAccessRequests.status` (owner create) | `pending` |
 | `sirapAccessRequests.status` (admin decision) | `approved` or `denied` from `pending`; `denied` from `approved` |
 | `savedSolutionScenarios.label` | string, length 1–80 |
 
-Application-tier wording used in the handoff: ordinary approved users are Decision Maker (`tier` 2 / `authorized_viewer`); Manager is `tier` 3 / `science_publisher`. See [`cybersecurity.md`](../cybersecurity.md#firebase-project-transfer-checklist).
+Application-tier wording used in the handoff: every active user who is not a super-admin is Decision Maker (`tier` 2); Manager is `tier` 3, for super-admins only. See [`cybersecurity.md`](../cybersecurity.md#firebase-project-transfer-checklist).
 
 ---
 

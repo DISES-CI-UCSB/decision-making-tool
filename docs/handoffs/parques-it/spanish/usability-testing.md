@@ -51,7 +51,7 @@ flowchart LR
 - Comparar dos soluciones y explicar correctamente la superposición, las áreas exclusivas y una disyuntiva significativa (cuando la comparación esté incluida en el alcance de la versión).
 - Cambiar entre español e inglés sin perder el estado del flujo de trabajo ni crear incoherencias en la terminología, las etiquetas o las unidades.
 - Recuperarse de resultados vacíos, datos faltantes, demoras de carga, capas no disponibles, errores de validación y flujos de trabajo interrumpidos.
-- Completar el inicio de sesión o una solicitud de acceso y verificar la funcionalidad esperada restringida por rol (cuando la autenticación esté incluida en el alcance de la versión).
+- Completar el inicio de sesión, la configuración del autenticador o una solicitud de acceso SIRAP y verificar la funcionalidad esperada restringida por rol (cuando la autenticación esté incluida en el alcance de la versión).
 
 ## Medidas y señales iniciales de aceptación
 
@@ -99,22 +99,22 @@ Consulte la [tabla de decisiones principales](./README.md#top-decisions-parques-
 
 Las UAT necesitan cinco cuentas, incluida la de invitado. El producto nacional funciona sin iniciar sesión; la cuenta de invitado es obligatoria aunque los otros cuatro roles inicien sesión. Quienes administran abren **Gestión de acceso** en el encabezado (Solicitudes SIRAP pendientes, Acceso SIRAP actual, Usuarios activos). Hoy el catálogo y las concesiones de datos SIRAP existen solo para Orinoquía y Eje Cafetero.
 
-Un administrador SIRAP no puede nombrar a otras personas como administradoras SIRAP. Las casillas de asignación de administradores, Superadmin, la aprobación de cuentas nuevas y el nivel de la aplicación 2 frente a 3 son exclusivos de superadmin.
+Un administrador SIRAP no puede nombrar a otras personas como administradoras SIRAP. Las casillas de asignación de administradores, el selector de rol (incluido Superadmin) y los restablecimientos de autenticador son exclusivos de superadmin. Ninguna cuenta necesita aprobación: el primer inicio de sesión con Google crea la cuenta y toda cuenta configura un autenticador antes de obtener acceso más allá del de invitado.
 
 | Rol | Cómo se reconoce | Qué puede hacer esta cuenta | Qué no puede hacer esta cuenta |
 | --- | --- | --- | --- |
 | Invitado | Sin iniciar sesión | Finder nacional, mapa, AOI y análisis | Guardar escenarios con nombre (los guardados están en Firestore); ver catálogos SIRAP; abrir administración |
-| Usuario con sesión iniciada | Cuenta de Google, sin concesión SIRAP | Capacidades de invitado más guardar, renombrar, recuperar y eliminar soluciones con nombre (máximo 12) en Firestore. La etiqueta de la barra lateral izquierda es lo que se almacena. | Ver catálogos SIRAP; abrir administración |
+| Usuario con sesión iniciada | Cuenta de Google con autenticador configurado, sin concesión SIRAP | Capacidades de invitado más guardar, renombrar, recuperar y eliminar soluciones con nombre (máximo 12) en Firestore. La etiqueta de la barra lateral izquierda es lo que se almacena. | Ver catálogos SIRAP; abrir administración |
 | Usuario SIRAP | `allowedSirapIds` tiene al menos una región (Orinoquía y/o Eje Cafetero) | Soluciones SIRAP de la(s) región(es) concedida(s), más los guardados de usuario regular | Abrir administración; usar regiones que no le fueron concedidas |
-| Administrador SIRAP | `administeredSirapIds` tiene al menos una región y la cuenta no es superadmin | Aprobar o denegar solicitudes de acceso SIRAP de la(s) región(es) asignada(s); conceder o revocar el acceso a **datos** SIRAP (`allowedSirapIds`) solo para esas regiones | Nombrar a otras personas como administradoras SIRAP; marcar Superadmin; aprobar cuentas nuevas; fijar el nivel de la aplicación 2 frente a 3. La interfaz de asignaciones de administrador está envuelta en `isSuperAdmin()` y no se muestra a administradores SIRAP. |
-| Superadmin | `isSuperAdmin` | Aprobar cuentas nuevas; fijar Nivel 2 frente a Nivel 3; asignar administradores regionales SIRAP (`administeredSirapIds`); conceder cualquier acceso a datos SIRAP; ver todas las regiones | — |
+| Administrador SIRAP | `administeredSirapIds` tiene al menos una región y la cuenta no es superadmin | Aprobar o denegar solicitudes de acceso SIRAP de la(s) región(es) asignada(s); conceder o revocar el acceso a **datos** SIRAP (`allowedSirapIds`) solo para esas regiones | Nombrar a otras personas como administradoras SIRAP; elegir el rol Superadmin; cambiar directamente cualquier rol; restablecer un autenticador; aprobar su propia solicitud. La interfaz de asignaciones de administrador está envuelta en `isSuperAdmin()` y no se muestra a administradores SIRAP. |
+| Superadmin | `role: super-admin` | Cambiar el rol de cualquier persona usuaria; asignar administradores regionales SIRAP (`administeredSirapIds`); conceder cualquier acceso a datos SIRAP; restablecer el autenticador perdido de otra persona; ver todas las regiones | Aprobar su propia solicitud SIRAP; restablecer su propio autenticador |
 
 ## Particularidades de invitado, Finder y estados vacíos que encontrarán quienes prueben
 
 No repruebe a quienes prueban por estos hechos. Son hechos del producto publicado, no defectos, salvo que un guion de congelamiento los trate de otro modo.
 
 - **Lo nacional funciona sin iniciar sesión.** Las personas invitadas pueden usar Finder, mapa, AOI y el análisis nacional. El inicio de sesión con Google se exige para solicitar y usar ámbitos SIRAP, no para usar el producto nacional.
-- **El inicio de sesión por correo y el «solicitar acceso» por correo son demostraciones de interfaz.** No están conectados a Firebase. La identidad de producción es Google. Quien evite Google verá una ruta de correo inerte; eso no es una caída de autenticación en producción.
+- **El inicio de sesión por correo no se ofrece.** El cuadro de inicio de sesión indica que se requiere una cuenta de Google y que no está disponible el inicio de sesión con correo y contraseña. La identidad de producción es Google. Quien evite Google no encontrará una ruta de correo; eso no es una caída de autenticación en producción.
 - **La separación entre cobertura existente protegida y cobertura nueva está activa por defecto** cuando hay una solución en el mapa. La apariencia de capas puede recolorear esas dos clases. La separación en sí no es optativa.
 - **El Finder terrestre nacional exige Huella Humana 2022 o 2030** como elección de costo. Una tarjeta de Carbon Opportunity Cost es visible y siempre está deshabilitada; es una indisponibilidad intencional, no un control roto.
 - **Las AOI administrativas conocidas (departamento, municipio, SIRAP, RUNAP, OMEC) muestran barras de uso del suelo vacías en la producción GTIC** («aún no disponible»). El compacto de producción (`catalog-releases/3.0.5` → `manifest/manifest.json`) no incluye `land_use_*_pct_of_aoi`. Las barras CLC de uso del suelo en vivo funcionan en polígonos personalizados **dibujados**. Esta rama / 3.0.6 usa el índice de prueba `land-use-aoi-test` (mismas cifras); las barras locales pueden llenarse. Eso no es producción GTIC. No repruebe una UAT por uso del suelo vacío en AOI conocidas de producción.
