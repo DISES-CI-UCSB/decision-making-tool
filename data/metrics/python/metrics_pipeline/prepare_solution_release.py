@@ -431,7 +431,7 @@ def _write_json(path: Path, value: Any) -> None:
         raise ReleasePreparationError(f"generated path already differs: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
-    temporary.write_text(content, encoding="utf-8")
+    temporary.write_text(content, encoding="utf-8", newline="\n")
     temporary.replace(path)
 
 

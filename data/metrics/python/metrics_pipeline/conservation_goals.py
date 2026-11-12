@@ -793,7 +793,7 @@ def _utc_now_iso() -> str:
 def _write_json_atomic(target: Path, doc: dict[str, Any]) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_name(f".{target.name}.tmp")
-    with tmp.open("w", encoding="utf-8") as handle:
+    with tmp.open("w", encoding="utf-8", newline="\n") as handle:
         json.dump(doc, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
     tmp.replace(target)

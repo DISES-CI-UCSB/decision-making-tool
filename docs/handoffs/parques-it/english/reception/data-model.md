@@ -27,7 +27,7 @@ Principal collections (document IDs in braces):
 | --- | --- |
 | `accessRequests/{uid}` | Pending or reviewed requests from people who signed in but are not yet approved as app users |
 | `users/{uid}` | Approved user records: `status`, `tier`, `role`, `isAdmin` / `isSuperAdmin`, SIRAP (Sistema Regional de Áreas Protegidas) grants |
-| `userDirectory/{uid}` | Directory listing used when a regional SIRAP admin cannot read every `users` document |
+| `userDirectory/{uid}` | Name and email row for each active user, written by that person at sign-in |
 | `sirapAccessRequests/{uid}_{sirapId}` | Per-region SIRAP data-access requests |
 | `users/{uid}/savedSolutionScenarios/{id}` | Signed-in users’ saved scenarios (user data; include in backups) |
 | `mail` | Optional admin-notification documents; client writes are denied by rules |

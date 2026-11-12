@@ -1,4 +1,7 @@
 .git
+.env*
+*service_account*.json
+*firebase-adminsdk*.json
 .venv
 .venv-species-display-cogs
 backend

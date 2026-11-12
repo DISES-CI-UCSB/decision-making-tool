@@ -550,7 +550,8 @@ def load_runtime_species_index(matrices: dict[str, Any]) -> RuntimeSpeciesIndex:
             groups[group] = _load_species_group_index(group, Path(matrix.path), cache_dir)
         return RuntimeSpeciesIndex(groups=groups, cache_dir=cache_dir)
     except Exception:
-        shutil.rmtree(cache_dir, ignore_errors=True)
+        # Windows cannot delete cache files while their memmaps are still open.
+        RuntimeSpeciesIndex(groups=groups, cache_dir=cache_dir).close()
         raise
 
 

@@ -1171,7 +1171,7 @@ def run_backfill(args: argparse.Namespace, *, repo_root: Path | None = None) -> 
     catalog_by_id = load_runtime_catalog_solutions(runtime_manifest)
     endemic_by_name = load_endemic_flags(DEFAULT_ENDEMIC_CSV)
     species_catalog = json.loads(
-        (release_root / "species-goals/catalog/v1/catalog.json").read_text()
+        (release_root / "species-goals/catalog/v1/catalog.json").read_text(encoding="utf-8")
     )
     scientific_names = load_scientific_names(species_catalog)
     catalog_rows = species_catalog["rows"]

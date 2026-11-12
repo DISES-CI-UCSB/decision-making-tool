@@ -10,8 +10,12 @@ EVENT_UNAUTHORIZED_CANCEL = "unauthorized_cancel"
 EVENT_OVERSIZED_POLYGON = "oversized_polygon"
 EVENT_RATE_LIMITED = "rate_limited"
 EVENT_REPEAT_BLOCKED = "repeat_blocked"
+EVENT_DOWNLOAD_FORBIDDEN = "download_forbidden"
+EVENT_AUTHENTICATOR_RESET = "authenticator_reset"
+EVENT_AUTHENTICATOR_RESET_REFUSED = "authenticator_reset_refused"
 
 JOB_CANCEL_PATH_PREFIX = "/area-profile/custom-polygon/species-coverage/jobs/"
+DOWNLOADS_PATH_PREFIX = "/downloads/"
 _OVERSIZED_POLYGON_PREFIXES = (
     "too_many_vertices:",
     "area_exceeds_national_territory:",
@@ -43,14 +47,21 @@ def emit_security_event(
     status_code: int,
     client_ip: str,
     timestamp: str | None = None,
+    actor_uid: str | None = None,
+    reason: str | None = None,
 ) -> None:
-    payload = {
+    """Print one JSON line. actor_uid is the Firebase uid that made the request, never a token."""
+    payload: dict[str, object] = {
         "timestamp": timestamp or utc_timestamp(),
         "client_ip": client_ip,
         "event_type": event_type,
         "resource": resource,
         "status_code": int(status_code),
     }
+    if actor_uid is not None:
+        payload["actor_uid"] = actor_uid
+    if reason is not None:
+        payload["reason"] = reason
     print(json.dumps(payload), flush=True)
 
 
@@ -80,3 +91,6 @@ def maybe_log_http_exception(request: Request, status_code: int) -> None:
         return
     if status_code == 403 and is_job_cancel_path(request.url.path):
         log_unauthorized_cancel(request)
+        return
+    if status_code == 403 and request.url.path.startswith(DOWNLOADS_PATH_PREFIX):
+        emit_from_request(request, EVENT_DOWNLOAD_FORBIDDEN, 403)

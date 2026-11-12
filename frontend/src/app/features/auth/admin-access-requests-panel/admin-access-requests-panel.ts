@@ -21,8 +21,10 @@ import {
   type SirapRegionId,
   UserTier,
 } from '@core/models';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import {
   AdminAccessRequestsService,
+  AuthenticatorResetError,
   type AdminManagedUserRecord,
   type UserAccessGrant,
 } from '../services/admin-access-requests.service';
@@ -55,10 +57,23 @@ interface CurrentSirapAccessGroup {
 
 type AccessManagementTab = 'requests' | 'access' | 'users';
 
+interface AuthenticatorResetOutcome {
+  succeeded: boolean;
+  message: string;
+}
+
+/** Translation keys under adminAccessPanel.authenticatorReset.errors for the Metrics API's refusal reasons. */
+const AUTHENTICATOR_RESET_ERROR_KEYS: Readonly<Record<string, string>> = {
+  super_admin_required: 'superAdminRequired',
+  mfa_required: 'mfaRequired',
+  self_reset_forbidden: 'selfResetForbidden',
+  user_not_found: 'userNotFound',
+};
+
 @Component({
   selector: 'app-admin-access-requests-panel',
   standalone: true,
-  imports: [],
+  imports: [TranslatePipe],
   templateUrl: './admin-access-requests-panel.html',
   styleUrl: './admin-access-requests-panel.scss',
 })
@@ -71,6 +86,7 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   private readonly adminRequests = inject(AdminAccessRequestsService);
   private readonly sirapAccess = inject(SirapAccessService);
   private readonly firebase = inject(FirebaseClientService);
+  private readonly translate = inject(TranslateService);
   protected readonly UserTier = UserTier;
   protected readonly sirapRegions = SIRAP_ACCESS_REGIONS;
 
@@ -103,6 +119,10 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   protected readonly loadingError = signal<string | null>(null);
   protected readonly updatingUserUid = signal<string | null>(null);
   protected readonly decidingSirapRequestId = signal<string | null>(null);
+  protected readonly resettingAuthenticatorUid = signal<string | null>(null);
+  protected readonly authenticatorResetOutcomes = signal<Record<string, AuthenticatorResetOutcome>>(
+    {},
+  );
   protected readonly filteredSirapRequestGroups = computed(() => {
     const query = this.sirapSearchQuery().trim().toLowerCase();
     const groups = this.sirapRequestGroups();
@@ -529,6 +549,56 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
     }
   }
 
+  protected isSignedInAdministrator(user: AdminManagedUserRecord): boolean {
+    return user.uid === this.firebase.currentUser?.uid;
+  }
+
+  protected async resetAuthenticator(user: AdminManagedUserRecord): Promise<void> {
+    if (this.hasPendingWrite() || isFakeActiveUser(user.uid)) {
+      return;
+    }
+    const confirmed = window.confirm(
+      this.translate.instant('adminAccessPanel.authenticatorReset.confirm', {
+        name: user.displayName || user.email,
+        email: user.email,
+      }),
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    this.resettingAuthenticatorUid.set(user.uid);
+    let outcome: AuthenticatorResetOutcome;
+    try {
+      await this.adminRequests.resetAuthenticator(user.uid);
+      outcome = {
+        succeeded: true,
+        message: this.translate.instant('adminAccessPanel.authenticatorReset.success', {
+          name: user.displayName || user.email,
+        }),
+      };
+    } catch (error) {
+      outcome = { succeeded: false, message: this.authenticatorResetErrorMessage(error) };
+    } finally {
+      this.resettingAuthenticatorUid.set(null);
+    }
+    this.authenticatorResetOutcomes.update((outcomes) => ({ ...outcomes, [user.uid]: outcome }));
+  }
+
+  private authenticatorResetErrorMessage(error: unknown): string {
+    const prefix = 'adminAccessPanel.authenticatorReset.errors';
+    if (!(error instanceof AuthenticatorResetError)) {
+      return this.translate.instant(`${prefix}.unreachable`);
+    }
+    if (error.httpStatus === 401) {
+      return this.translate.instant(`${prefix}.signInAgain`);
+    }
+    const key = error.reason ? AUTHENTICATOR_RESET_ERROR_KEYS[error.reason] : undefined;
+    return key
+      ? this.translate.instant(`${prefix}.${key}`)
+      : this.translate.instant(`${prefix}.generic`, { status: error.httpStatus });
+  }
+
   protected userGrantFor(user: AdminManagedUserRecord): UserAccessGrant {
     return (
       this.userGrants()[user.uid] ?? {
@@ -797,7 +867,11 @@ export class AdminAccessRequestsPanelComponent implements OnInit {
   }
 
   private hasPendingWrite(): boolean {
-    return !!this.updatingUserUid() || !!this.decidingSirapRequestId();
+    return (
+      !!this.updatingUserUid() ||
+      !!this.decidingSirapRequestId() ||
+      !!this.resettingAuthenticatorUid()
+    );
   }
 
   private hasDirtyUserDrafts(): boolean {

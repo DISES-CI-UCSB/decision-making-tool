@@ -50,6 +50,8 @@ def _run_one(payload: dict[str, Any]) -> dict[str, Any]:
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     result: dict[str, Any] = {
         "scenario": solution.stem,

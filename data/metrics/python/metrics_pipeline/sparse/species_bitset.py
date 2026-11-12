@@ -298,6 +298,7 @@ def _write_metadata(
         )
         + "\n",
         encoding="utf-8",
+        newline="\n",
     )
 
 

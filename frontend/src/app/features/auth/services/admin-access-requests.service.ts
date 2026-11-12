@@ -25,6 +25,7 @@ import {
   writeBatch,
   type DocumentData,
 } from 'firebase/firestore';
+import { environment } from '../../../../environments/environment';
 
 export interface UserAccessGrant {
   role: AppRole;
@@ -100,9 +101,41 @@ export function nextRegionalReadGrant(
   };
 }
 
+/** A refused reset. `reason` is the Metrics API's `detail.status`, such as `self_reset_forbidden`. */
+export class AuthenticatorResetError extends Error {
+  constructor(
+    readonly httpStatus: number,
+    readonly reason: string | null,
+  ) {
+    super(`Authenticator reset failed with HTTP ${httpStatus}${reason ? ` (${reason})` : ''}.`);
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminAccessRequestsService {
   private readonly firebase = inject(FirebaseClientService);
+  private readonly metricsApiBaseUrl = environment.metricsApiBaseUrl.replace(/\/$/, '');
+
+  /**
+   * Asks the Metrics API to remove every second factor on the account and end its sessions.
+   * The API allows only an active super-admin signed in with an authenticator, and never for their own account.
+   */
+  async resetAuthenticator(uid: string): Promise<void> {
+    const user = this.firebase.currentUser;
+    if (!user) {
+      throw new AuthenticatorResetError(401, null);
+    }
+    const response = await fetch(
+      `${this.metricsApiBaseUrl}/admin/users/${encodeURIComponent(uid)}/reset-authenticator`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+      },
+    );
+    if (!response.ok) {
+      throw new AuthenticatorResetError(response.status, await readRefusalReason(response));
+    }
+  }
 
   async listActiveUsers(): Promise<AdminManagedUserRecord[]> {
     const firestore = this.requireFirestore();
@@ -111,16 +144,29 @@ export class AdminAccessRequestsService {
       const usersSnapshot = await getDocs(
         query(collection(firestore, 'users'), where('status', '==', 'active')),
       );
-      await this.backfillUserDirectory(usersSnapshot.docs);
       return usersSnapshot.docs
         .map((userDoc) => parseAdminManagedUserRecord(userDoc.id, userDoc.data()))
         .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
     }
 
-    return (
-      await getDocs(query(collection(firestore, 'users'), where('status', '==', 'active')))
-    ).docs
-      .map((userDoc) => parseAdminManagedUserRecord(userDoc.id, userDoc.data()))
+    // Firestore rules let a regional admin list only active users who hold a region they administer.
+    const regionSnapshots = await Promise.all(
+      administrator.administeredSirapIds.map((sirapId) =>
+        getDocs(
+          query(
+            collection(firestore, 'users'),
+            where('status', '==', 'active'),
+            where('allowedSirapIds', 'array-contains', sirapId),
+          ),
+        ),
+      ),
+    );
+    const usersByUid = new Map(
+      regionSnapshots
+        .flatMap((snapshot) => snapshot.docs)
+        .map((userDoc) => [userDoc.id, parseAdminManagedUserRecord(userDoc.id, userDoc.data())]),
+    );
+    return [...usersByUid.values()]
       .filter((user) => user.role !== 'super-admin')
       .sort((a, b) => this.userDisplayLabel(a).localeCompare(this.userDisplayLabel(b)));
   }
@@ -170,31 +216,6 @@ export class AdminAccessRequestsService {
       updatedAt: serverTimestamp(),
       updatedBy: administrator.uid,
     });
-  }
-
-  private async backfillUserDirectory(
-    users: readonly { id: string; data: () => DocumentData }[],
-  ): Promise<void> {
-    const firestore = this.requireFirestore();
-    const directorySnapshot = await getDocs(collection(firestore, 'userDirectory'));
-    const directoryUids = new Set(directorySnapshot.docs.map((directoryDoc) => directoryDoc.id));
-    const missingUsers = users.filter((user) => !directoryUids.has(user.id));
-    if (missingUsers.length === 0) {
-      return;
-    }
-
-    const batch = writeBatch(firestore);
-    for (const user of missingUsers) {
-      const data = user.data();
-      batch.set(doc(firestore, 'userDirectory', user.id), {
-        uid: user.id,
-        email: readDocumentString(data, 'email'),
-        displayName: readDocumentString(data, 'displayName') || readDocumentString(data, 'email'),
-        status: 'active',
-        updatedAt: serverTimestamp(),
-      });
-    }
-    await batch.commit();
   }
 
   async updateUserAccess(uid: string, grant: UserAccessGrant): Promise<void> {
@@ -289,6 +310,15 @@ export class AdminAccessRequestsService {
 
   private userDisplayLabel(user: AdminManagedUserRecord): string {
     return user.displayName || user.email || user.uid;
+  }
+}
+
+async function readRefusalReason(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { detail?: { status?: unknown } } | null;
+    return typeof body?.detail?.status === 'string' ? body.detail.status : null;
+  } catch {
+    return null;
   }
 }
 

@@ -31,7 +31,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
 import time
 import urllib.error
@@ -39,6 +38,9 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
+
+from console_encoding import use_utf8_console_streams
+from vercel_cli import VercelCliNotFoundError, require_vercel_cli, run_vercel
 
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 BLOB_TOKEN_ENV_VAR = "BLOB_READ_WRITE_TOKEN"
@@ -192,7 +194,6 @@ def delete_test_blob(token: str, blob_path: str) -> None:
     """Delete a test-prefix blob so a later put can replace it without --force."""
     assert_test_blob_path(blob_path)
     command = [
-        "vercel",
         "blob",
         "del",
         blob_path,
@@ -202,7 +203,14 @@ def delete_test_blob(token: str, blob_path: str) -> None:
     ]
     if "--force" in command:
         raise RuntimeError("internal error: --force must never be passed")
-    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    completed = run_vercel(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
     output = _redact(f"{completed.stdout}\n{completed.stderr}", token).strip()
     if completed.returncode != 0:
         raise RuntimeError(output or f"vercel blob del failed with code {completed.returncode}")
@@ -219,7 +227,6 @@ def put_blob(
     # Do NOT pass --add-random-suffix. The Vercel CLI treats any provided
     # value, including "false", as truthy and appends a suffix.
     command = [
-        "vercel",
         "blob",
         "put",
         str(local_path),
@@ -235,7 +242,14 @@ def put_blob(
         command.extend(["--cache-control-max-age", str(cache_control_max_age)])
     if "--force" in command:
         raise RuntimeError("internal error: --force must never be passed")
-    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    completed = run_vercel(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
     output = _redact(f"{completed.stdout}\n{completed.stderr}", token).strip()
     if completed.returncode != 0:
         raise RuntimeError(output or f"vercel blob put failed with code {completed.returncode}")
@@ -546,6 +560,7 @@ def publish_sirap(args: argparse.Namespace) -> int:
     test_manifest_path.write_text(
         json.dumps(test_manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     current_test_index = fetch_json(public_url(TEST_CATALOG_INDEX_PATH))
     test_index = patch_test_index_sirap_batch(current_test_index)
@@ -553,6 +568,7 @@ def publish_sirap(args: argparse.Namespace) -> int:
     test_index_path.write_text(
         json.dumps(test_index, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     print(f"[sirap-land-use-aoi-test] wrote {test_manifest_path}")
     print(f"[sirap-land-use-aoi-test] wrote {test_index_path}")
@@ -642,6 +658,12 @@ def publish_sirap(args: argparse.Namespace) -> int:
 
 def main() -> int:
     args = parse_args()
+    if not args.dry_run:
+        try:
+            require_vercel_cli()
+        except VercelCliNotFoundError as exc:
+            print(f"[land-use-aoi-test] ERROR: {exc}", file=sys.stderr)
+            return 2
     if args.sirap:
         return publish_sirap(args)
     repo_root = find_repo_root()
@@ -683,12 +705,14 @@ def main() -> int:
     test_manifest_path.write_text(
         json.dumps(test_manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     test_index = build_test_index()
     test_index_path = work_dir / "test-catalog-release-index.json"
     test_index_path.write_text(
         json.dumps(test_index, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     print(f"[land-use-aoi-test] wrote {test_manifest_path}")
     print(f"[land-use-aoi-test] wrote {test_index_path}")
@@ -775,6 +799,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    use_utf8_console_streams()
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:

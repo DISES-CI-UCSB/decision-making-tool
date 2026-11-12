@@ -45,6 +45,26 @@
     "tierChip": "Tier {{tier}}",
     "pendingAccess": "Signed in · Account is not active"
   },
+  "adminAccessPanel": {
+    "authenticatorReset": {
+      "title": "Lost authenticator",
+      "description": "If this person lost their phone or authenticator app, reset it. Their next sign-in asks them to set up a new one.",
+      "button": "Reset authenticator",
+      "resetting": "Resetting…",
+      "ownAccount": "To reset your own authenticator, ask another super-admin.",
+      "confirm": "Reset the authenticator for {{name}} ({{email}})?\n\nFirst confirm the request really comes from this person: a reply from their registered email address (a reply, not a link they clicked), or a phone or video call.\n\nResetting removes their authenticator and signs them out everywhere. At their next sign-in they set up a new one, and codes from the old one stop working.",
+      "success": "Authenticator reset. {{name}} sets up a new one at their next sign-in.",
+      "errors": {
+        "signInAgain": "Your sign-in has ended. Sign in again, then retry the reset.",
+        "superAdminRequired": "Only an active super-admin can reset an authenticator.",
+        "mfaRequired": "Sign in again with your authenticator, then retry the reset.",
+        "selfResetForbidden": "To reset your own authenticator, ask another super-admin.",
+        "userNotFound": "This account no longer exists in Firebase Authentication.",
+        "unreachable": "The Metrics API could not be reached, so nothing changed. Try again.",
+        "generic": "The authenticator could not be reset (HTTP {{status}}). Try again."
+      }
+    }
+  },
   "about": {
     "kicker": "About the collaboration",
     "title": "Organizations supporting conservation planning in Colombia",
@@ -1246,6 +1266,8 @@
         "sirap": "SIRAP",
         "selectRegion": "— Select SIRAP region —",
         "regionalBadge": "Regional scenarios",
+        "sirapLoadErrorTitle": "Regional scenarios couldn't load.",
+        "sirapLoadErrorDescription": "National scenarios still work. Reload the page to try again, or contact the DISES admin if it keeps happening.",
         "regions": {
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",

@@ -8,7 +8,7 @@ The Spanish end-user manual is still missing (REQ-16). Formal vulnerability anal
 
 | Document | Status | Location |
 | --- | --- | --- |
-| Installation/Configuration Manual | EXISTS | [installation-configuration.md](./installation-configuration.md) (also root `README.md`, `backend/README.md`, `frontend/README.md`, `.env.example`) |
+| Installation/Configuration Manual | EXISTS | [installation-configuration.md](./installation-configuration.md) (also root `README.md`, `backend/README.md`, `frontend/README.md`, `.env.example`). Fresh Metrics API VM setup: [metrics-api-vm-runbook.md](./metrics-api-vm-runbook.md) |
 | Technical Requirements Manual | EXISTS | [technical-requirements.md](./technical-requirements.md) (depth: [architecture.md](../architecture.md)) |
 | System Administration Manual | EXISTS | [system-administration.md](./system-administration.md) (also [cybersecurity.md](../cybersecurity.md) and [data-operations/](../data-operations/)) |
 | Entity Relationship Model | EXISTS | [data-model.md](./data-model.md) (Firestore ERD plus Blob/SQLite stores; not a raster 3NF model) |

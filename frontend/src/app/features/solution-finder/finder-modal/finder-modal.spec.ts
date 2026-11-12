@@ -7,6 +7,7 @@ import {
 } from '@ngx-translate/core';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import { AppStateService } from '@core/services/app-state.service';
+import { LayerManifestService } from '@core/services/layer-manifest.service';
 import type { CatalogSolution } from '@core/models/solution-catalog.model';
 import { FinderModalComponent } from './finder-modal';
 
@@ -16,6 +17,7 @@ describe('FinderModalComponent', () => {
     getAll: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
   };
+  let layerManifest: { sirapCatalogLoadFailed: ReturnType<typeof signal<boolean>> };
 
   beforeEach(async () => {
     localStorage.clear();
@@ -24,11 +26,13 @@ describe('FinderModalComponent', () => {
       getAll: vi.fn(() => []),
       getById: vi.fn(() => null),
     };
+    layerManifest = { sirapCatalogLoadFailed: signal(false) };
 
     await TestBed.configureTestingModule({
       imports: [FinderModalComponent],
       providers: [
         { provide: SolutionCatalogService, useValue: catalog },
+        { provide: LayerManifestService, useValue: layerManifest },
         provideTranslateService({
           lang: 'en',
           fallbackLang: 'en',
@@ -1327,6 +1331,44 @@ describe('FinderModalComponent', () => {
     ) as HTMLSelectElement;
 
     expect([...regionSelect.options].map((option) => option.value)).toEqual(['', 'orinoquia']);
+  });
+
+  it('tells a regional user in SIRAP scope that regional scenarios failed to load', () => {
+    TestBed.inject(AppStateService).allowedSirapIds$.set(['orinoquia']);
+    layerManifest.sirapCatalogLoadFailed.set(true);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const notice = () => compiled.querySelector('#solution-finder-modal-sirap-load-error');
+
+    expect(notice()).toBeNull();
+
+    (compiled.querySelector('#solution-finder-modal-scope-btn-sirap') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(notice()?.getAttribute('role')).toBe('status');
+    expect(notice()?.textContent).toContain('solutionControls.finder.scopeBar.sirapLoadErrorTitle');
+    expect(notice()?.textContent).toContain(
+      'solutionControls.finder.scopeBar.sirapLoadErrorDescription',
+    );
+
+    (compiled.querySelector('#solution-finder-modal-scope-btn-nacional') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(notice()).toBeNull();
+  });
+
+  it('shows no regional load notice in SIRAP scope when regional scenarios loaded', () => {
+    TestBed.inject(AppStateService).allowedSirapIds$.set(['orinoquia']);
+    const fixture = TestBed.createComponent(FinderModalComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (compiled.querySelector('#solution-finder-modal-scope-btn-sirap') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('#solution-finder-modal-scope-bar-sirap-region-select')).not.toBeNull();
+    expect(compiled.querySelector('#solution-finder-modal-sirap-load-error')).toBeNull();
   });
 
   it('renders Eje target features as individual controls and exposes only 10 certified tuples', () => {

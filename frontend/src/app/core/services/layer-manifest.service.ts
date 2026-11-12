@@ -1,9 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import {
   buildManifestSidebarLayerGroups,
   groupManifestLayersBySidebarCategory,
   type LayerLocale,
+  type RuntimeCatalogReleaseBatch,
   type RuntimeCatalogReleaseIndex,
   type ManifestSidebarLayerGroup,
   type ManifestSidebarLayersByCategory,
@@ -17,16 +19,19 @@ import {
   RUNTIME_CATALOG_RELEASE_INDEX_BLOB_URL,
   RUNTIME_MANIFEST_BLOB_URL,
 } from '@core/config/runtime-manifest.constants';
+import { AppStateService } from './app-state.service';
 import { environment } from '../../../environments/environment';
 import {
   EMPTY,
   catchError,
+  combineLatest,
   forkJoin,
   map,
   of,
   shareReplay,
   switchMap,
   take,
+  tap,
   throwError,
   type Observable,
 } from 'rxjs';
@@ -79,11 +84,27 @@ export function validateCatalogReleaseIndex(value: unknown): RuntimeCatalogRelea
   return index as RuntimeCatalogReleaseIndex;
 }
 
+/** SIRAP batches hold regional solutions and load only for users with SIRAP access. */
+export function isSirapCatalogBatch(batch: RuntimeCatalogReleaseBatch): boolean {
+  return /^sirap(-|$)/.test(batch.id);
+}
+
+/**
+ * Merges loaded batch manifests in `loadedBatches` order. Only SIRAP batches may be left out of
+ * `loadedBatches`; the expected solution count drops by the skipped batches' declared counts.
+ */
 export function mergeCatalogReleaseBatches(
   index: RuntimeCatalogReleaseIndex,
   manifests: (RuntimeLayerManifest | RuntimeSirapManifest)[],
+  loadedBatches: readonly RuntimeCatalogReleaseBatch[] = index.batches,
 ): RuntimeLayerManifest {
-  if (manifests.length !== index.batches.length) {
+  const loadedBatchIds = new Set(loadedBatches.map((batch) => batch.id));
+  const skippedBatches = index.batches.filter((batch) => !loadedBatchIds.has(batch.id));
+  if (
+    manifests.length !== loadedBatches.length ||
+    loadedBatchIds.size + skippedBatches.length !== index.batches.length ||
+    skippedBatches.some((batch) => !isSirapCatalogBatch(batch))
+  ) {
     throw new Error('Catalog release index did not load every declared batch');
   }
   const primaryManifest = manifests[0];
@@ -94,17 +115,16 @@ export function mergeCatalogReleaseBatches(
   const solutionIds = new Set<string>();
   const solutions: RuntimeSolutionManifestEntry[] = [];
   manifests.forEach((manifest, batchIndex) => {
+    const batch = loadedBatches[batchIndex];
     if (!Array.isArray(manifest?.solutions)) {
-      throw new Error(`Catalog batch "${index.batches[batchIndex].id}" has no solutions array`);
+      throw new Error(`Catalog batch "${batch.id}" has no solutions array`);
     }
-    if (manifest.solutions.length !== index.batches[batchIndex].expectedSolutionCount) {
-      throw new Error(`Catalog batch "${index.batches[batchIndex].id}" solution count is invalid`);
+    if (manifest.solutions.length !== batch.expectedSolutionCount) {
+      throw new Error(`Catalog batch "${batch.id}" solution count is invalid`);
     }
     for (const solution of manifest.solutions) {
       if (!isNonEmptyString(solution?.id)) {
-        throw new Error(
-          `Catalog batch "${index.batches[batchIndex].id}" contains an invalid solution`,
-        );
+        throw new Error(`Catalog batch "${batch.id}" contains an invalid solution`);
       }
       if (solutionIds.has(solution.id)) {
         throw new Error(`Catalog release duplicates solution ID: ${solution.id}`);
@@ -114,7 +134,11 @@ export function mergeCatalogReleaseBatches(
     }
   });
 
-  if (solutions.length !== index.expectedSolutionCount) {
+  const skippedSolutionCount = skippedBatches.reduce(
+    (count, batch) => count + batch.expectedSolutionCount,
+    0,
+  );
+  if (solutions.length !== index.expectedSolutionCount - skippedSolutionCount) {
     throw new Error('Catalog release index expectedSolutionCount does not match loaded solutions');
   }
 
@@ -158,9 +182,14 @@ export function mergeRuntimeSolutionBatches(
 @Injectable({ providedIn: 'root' })
 export class LayerManifestService {
   private readonly http = inject(HttpClient);
+  private readonly appState = inject(AppStateService);
+  private readonly canAccessSirapScope$ = toObservable(this.appState.canAccessSirapScope);
   private readonly speciesManifestCache = new Map<string, Observable<RuntimeSpeciesManifest>>();
   private readonly prefetchedSpeciesManifestUrls = new Set<string>();
   readonly stylePreviewManifest$ = signal<RuntimeLayerManifest | null>(null);
+  private readonly sirapCatalogLoadFailedState = signal(false);
+  /** True while a user with SIRAP access sees only national scenarios because regional ones failed to load. */
+  readonly sirapCatalogLoadFailed = this.sirapCatalogLoadFailedState.asReadonly();
   private readonly resolvedManifestUrl = this.resolveManifestUrl();
   private readonly resolvedCatalogReleaseIndexUrl = this.resolveCatalogReleaseIndexUrl();
   private readonly resolvedSirapManifestUrl = this.resolveSirapManifestUrl();
@@ -265,28 +294,73 @@ export class LayerManifestService {
       return this.loadCatalogRelease(this.resolvedCatalogReleaseIndexUrl);
     }
 
-    return this.loadManifestWithFallback(this.buildManifestUrlCandidates()).pipe(
-      switchMap((nationalManifest) =>
-        this.loadOptionalSirapManifest(this.resolvedSirapManifestUrl).pipe(
+    return combineLatest([
+      this.loadManifestWithFallback(this.buildManifestUrlCandidates()),
+      this.canAccessSirapScope$,
+    ]).pipe(
+      switchMap(([nationalManifest, canAccessSirapScope]) => {
+        if (!canAccessSirapScope) {
+          this.sirapCatalogLoadFailedState.set(false);
+          return of(nationalManifest);
+        }
+        return this.loadOptionalSirapManifest(this.resolvedSirapManifestUrl).pipe(
           map((sirapManifest) => mergeRuntimeSolutionBatches(nationalManifest, sirapManifest)),
-        ),
-      ),
+        );
+      }),
     );
   }
 
+  /**
+   * National batches load once. SIRAP batches load each time SIRAP access is gained, and the
+   * merged catalog drops them when access ends, so visitors never request a regional manifest.
+   */
   private loadCatalogRelease(indexUrl: string): Observable<RuntimeLayerManifest> {
-    return this.http.get<unknown>(this.toManifestRequestUrl(indexUrl)).pipe(
+    const nationalRelease$ = this.http.get<unknown>(this.toManifestRequestUrl(indexUrl)).pipe(
       map((index) => validateCatalogReleaseIndex(index)),
-      switchMap((index) =>
-        forkJoin(
-          index.batches.map((batch) =>
-            this.http
-              .get<RuntimeLayerManifest>(this.toManifestRequestUrl(batch.manifestUrl))
-              .pipe(map((manifest) => this.withProxiedBlobUrls(manifest))),
-          ),
-        ).pipe(map((manifests) => mergeCatalogReleaseBatches(index, manifests))),
-      ),
+      switchMap((index) => {
+        const nationalBatches = index.batches.filter((batch) => !isSirapCatalogBatch(batch));
+        return forkJoin(nationalBatches.map((batch) => this.loadCatalogBatch(batch))).pipe(
+          map((nationalManifests) => ({ index, nationalBatches, nationalManifests })),
+        );
+      }),
     );
+
+    return combineLatest([nationalRelease$, this.canAccessSirapScope$]).pipe(
+      switchMap(([{ index, nationalBatches, nationalManifests }, canAccessSirapScope]) => {
+        const nationalCatalog = () =>
+          mergeCatalogReleaseBatches(index, nationalManifests, nationalBatches);
+        const sirapBatches = index.batches.filter(isSirapCatalogBatch);
+        if (!canAccessSirapScope || sirapBatches.length === 0) {
+          this.sirapCatalogLoadFailedState.set(false);
+          return of(nationalCatalog());
+        }
+
+        return forkJoin(sirapBatches.map((batch) => this.loadCatalogBatch(batch))).pipe(
+          map((sirapManifests) =>
+            mergeCatalogReleaseBatches(
+              index,
+              [...nationalManifests, ...sirapManifests],
+              [...nationalBatches, ...sirapBatches],
+            ),
+          ),
+          tap(() => this.sirapCatalogLoadFailedState.set(false)),
+          catchError((error) => {
+            console.error(
+              'Unable to load SIRAP catalog batches; showing national scenarios only',
+              error,
+            );
+            this.sirapCatalogLoadFailedState.set(true);
+            return of(nationalCatalog());
+          }),
+        );
+      }),
+    );
+  }
+
+  private loadCatalogBatch(batch: RuntimeCatalogReleaseBatch): Observable<RuntimeLayerManifest> {
+    return this.http
+      .get<RuntimeLayerManifest>(this.toManifestRequestUrl(batch.manifestUrl))
+      .pipe(map((manifest) => this.withProxiedBlobUrls(manifest)));
   }
 
   private loadManifestWithFallback(manifestUrls: string[]): Observable<RuntimeLayerManifest> {
@@ -308,11 +382,14 @@ export class LayerManifestService {
 
   private loadOptionalSirapManifest(url: string | null): Observable<RuntimeSirapManifest | null> {
     if (!url) {
+      this.sirapCatalogLoadFailedState.set(false);
       return of(null);
     }
     return this.http.get<RuntimeSirapManifest>(this.toManifestRequestUrl(url)).pipe(
+      tap(() => this.sirapCatalogLoadFailedState.set(false)),
       catchError((error) => {
         console.error(`Unable to load optional SIRAP manifest from ${url}`, error);
+        this.sirapCatalogLoadFailedState.set(true);
         return of(null);
       }),
     );

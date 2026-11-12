@@ -38,6 +38,7 @@
     "test:secrets-probe": "node --test ./scripts/secrets-probe.spec.mjs",
     "test:firestore-rules": "node ./scripts/run-firestore-rules-tests.mjs",
     "reset:totp": "node ./scripts/reset-totp-mfa.mjs",
+    "backfill:user-directory": "node ./scripts/backfill-user-directory.mjs",
     "test:auth:totp:live": "node ./scripts/live-totp-enroll.mjs",
     "test:auth:totp:offline": "node --test ./scripts/live-totp-enroll.spec.mjs",
     "check:layer-manifest": "yarn test:layer-manifest && yarn validate:layer-manifest:example",

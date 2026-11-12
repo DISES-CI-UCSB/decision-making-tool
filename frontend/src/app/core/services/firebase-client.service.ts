@@ -39,13 +39,17 @@ import {
   onSnapshot,
   runTransaction,
   serverTimestamp,
+  updateDoc,
   type Firestore,
 } from 'firebase/firestore';
 import { environment } from '../../../environments/environment';
+import { testFirstFactorSignIn, testReauthentication, type Reauthentication } from './test-sign-in-hook';
 
 export interface EnsuredSelfUserRecord {
   created: boolean;
   status: string;
+  /** The record holds `mfaEnrolledAt`, so this account finished authenticator setup at least once. */
+  authenticatorSetupRecorded: boolean;
 }
 
 /** Directory rows are only for people who are being created or are already active. */
@@ -132,6 +136,13 @@ export async function reauthenticateWithGoogleSelectAccountPopup(
   );
 }
 
+/** The Test Sign-In Hook's re-authentication when it applies (e2e builds only); Google's popup otherwise. */
+export function googleReauthentication(
+  testHook: Reauthentication | null = testReauthentication(),
+): Reauthentication {
+  return testHook ?? reauthenticateWithPopup;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FirebaseClientService {
   private app: FirebaseApp | null = null;
@@ -186,14 +197,14 @@ export class FirebaseClientService {
 
   async signInWithGooglePopup(): Promise<UserCredential> {
     return signInWithGoogleSelectAccountPopup(this.requireAuth(), {
-      signInWithPopup,
+      signInWithPopup: testFirstFactorSignIn() ?? signInWithPopup,
       signOut: firebaseSignOut,
     });
   }
 
   async reauthenticateWithGooglePopup(user: User): Promise<UserCredential> {
     return reauthenticateWithGoogleSelectAccountPopup(user, {
-      reauthenticateWithPopup,
+      reauthenticateWithPopup: googleReauthentication(),
     });
   }
 
@@ -257,6 +268,8 @@ export class FirebaseClientService {
       return {
         created: !userSnapshot.exists(),
         status: typeof storedStatus === 'string' ? storedStatus : 'active',
+        authenticatorSetupRecorded:
+          userSnapshot.exists() && userSnapshot.data()['mfaEnrolledAt'] != null,
       };
     });
 
@@ -276,6 +289,18 @@ export class FirebaseClientService {
     }
 
     return ensured;
+  }
+
+  /**
+   * Saves the server time of a confirmed authenticator setup on the person's own record. Firestore rules
+   * accept this write only from an authenticator-verified sign-in and only for `mfaEnrolledAt`.
+   */
+  async recordAuthenticatorSetup(uid: string): Promise<void> {
+    const firestore = this.firestore;
+    if (!firestore) {
+      throw new Error('Firestore is not configured.');
+    }
+    await updateDoc(doc(firestore, 'users', uid), { mfaEnrolledAt: serverTimestamp() });
   }
 
   subscribeToUserDocument(

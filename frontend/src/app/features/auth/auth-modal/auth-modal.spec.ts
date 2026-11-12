@@ -84,7 +84,12 @@ describe('AuthModalComponent launch authentication', () => {
   const firebase = {
     currentUser: firebaseUser,
     reauthenticateWithGooglePopup: vi.fn().mockResolvedValue({ user: firebaseUser }),
-    ensureSelfUserRecord: vi.fn().mockResolvedValue({ created: true, status: 'active' }),
+    ensureSelfUserRecord: vi.fn().mockResolvedValue({
+      created: true,
+      status: 'active',
+      authenticatorSetupRecorded: false,
+    }),
+    recordAuthenticatorSetup: vi.fn().mockResolvedValue(undefined),
   };
 
   let fixture: ComponentFixture<AuthModalComponent>;
@@ -119,7 +124,13 @@ describe('AuthModalComponent launch authentication', () => {
     authService.logout.mockResolvedValue(undefined);
     authService.mfaEnrollmentRequired$.set(false);
     firebase.reauthenticateWithGooglePopup.mockResolvedValue({ user: firebaseUser });
-    firebase.ensureSelfUserRecord.mockResolvedValue({ created: true, status: 'active' });
+    firebase.ensureSelfUserRecord.mockResolvedValue({
+      created: true,
+      status: 'active',
+      authenticatorSetupRecorded: false,
+    });
+    firebase.recordAuthenticatorSetup.mockReset();
+    firebase.recordAuthenticatorSetup.mockResolvedValue(undefined);
     await TestBed.configureTestingModule({
       imports: [AuthModalComponent],
       providers: [
@@ -1051,6 +1062,144 @@ describe('AuthModalComponent launch authentication', () => {
     expect(authService.logout).not.toHaveBeenCalled();
     expect(authService.refreshCurrentUserTier).not.toHaveBeenCalled();
     expect(closed).toHaveBeenCalledOnce();
+  });
+
+  describe('email-scanner removal notice', () => {
+    function buttonNamed(name: string): HTMLButtonElement | undefined {
+      return Array.from(element().querySelectorAll<HTMLButtonElement>('button')).find(
+        (button) => button.textContent?.trim() === name,
+      );
+    }
+
+    it('explains a likely scanner removal before setup when a saved setup time has no authenticator', async () => {
+      firebase.ensureSelfUserRecord.mockResolvedValueOnce({
+        created: false,
+        status: 'active',
+        authenticatorSetupRecorded: true,
+      });
+
+      click('#auth-modal-entry-google-btn');
+      await flush();
+
+      const notice = element().querySelector('#auth-modal-scanner-removal-notice');
+      expect(notice).not.toBeNull();
+      expect(element().querySelector('#auth-modal-overlay')?.getAttribute('aria-labelledby')).toBe(
+        'auth-modal-scanner-removal-notice-title',
+      );
+      expect(notice?.querySelector('h2')?.textContent?.trim()).toBe(
+        'Your authenticator was removed',
+      );
+      expect(notice?.textContent).toContain('email security');
+      const steps = Array.from(notice?.querySelectorAll('li') ?? []).map(
+        (item) => item.textContent ?? '',
+      );
+      expect(steps).toHaveLength(3);
+      expect(steps[0]).toContain('Set up your authenticator again');
+      expect(steps[1]).toContain('dises-decision-making-tool.firebaseapp.com');
+      expect(steps[2]).toContain('DISES administrator');
+      expect(element().querySelector('#auth-modal-mfa-enroll')).toBeNull();
+      expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
+      expect(authService.logout).not.toHaveBeenCalled();
+    });
+
+    it('opens setup with a new QR code when the person chooses to set up again', async () => {
+      firebase.ensureSelfUserRecord.mockResolvedValueOnce({
+        created: false,
+        status: 'active',
+        authenticatorSetupRecorded: true,
+      });
+      click('#auth-modal-entry-google-btn');
+      await flush();
+
+      click('#auth-modal-scanner-removal-notice-setup-btn');
+      await flush();
+
+      expect(element().querySelector('#auth-modal-scanner-removal-notice')).toBeNull();
+      expect(element().querySelector('#auth-modal-mfa-enroll-qr')).not.toBeNull();
+      expect(totpMfa.beginEnrollment).toHaveBeenCalledOnce();
+      expect(totpMfa.beginEnrollment).toHaveBeenCalledWith(firebaseUser, 'google@example.com', {
+        skipEnrolledCheck: true,
+      });
+    });
+
+    it('goes straight to setup for a returning account that never saved a setup time', async () => {
+      firebase.ensureSelfUserRecord.mockResolvedValueOnce({
+        created: false,
+        status: 'active',
+        authenticatorSetupRecorded: false,
+      });
+
+      click('#auth-modal-entry-google-btn');
+      await flush();
+
+      expect(element().querySelector('#auth-modal-scanner-removal-notice')).toBeNull();
+      expect(element().querySelector('#auth-modal-mfa-enroll')).not.toBeNull();
+      expect(element().textContent).not.toContain('email security');
+    });
+
+    it('keeps the account signed in when the notice is cancelled', async () => {
+      const closed = vi.fn();
+      fixture.componentInstance.closeRequested.subscribe(closed);
+      firebase.ensureSelfUserRecord.mockResolvedValueOnce({
+        created: false,
+        status: 'active',
+        authenticatorSetupRecorded: true,
+      });
+      click('#auth-modal-entry-google-btn');
+      await flush();
+
+      buttonNamed('Cancel')?.click();
+      await flush();
+
+      expect(authService.logout).not.toHaveBeenCalled();
+      expect(closed).toHaveBeenCalledOnce();
+      expect(totpMfa.beginEnrollment).not.toHaveBeenCalled();
+    });
+
+    it('saves the setup time once enrollment is confirmed', async () => {
+      click('#auth-modal-entry-google-btn');
+      await flush();
+      await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
+      click('#auth-modal-mfa-enroll-submit-btn');
+      await flush();
+
+      expect(firebase.recordAuthenticatorSetup).toHaveBeenCalledOnce();
+      expect(firebase.recordAuthenticatorSetup).toHaveBeenCalledWith('google-user');
+    });
+
+    it('finishes enrollment and closes even when saving the setup time fails', async () => {
+      const closed = vi.fn();
+      fixture.componentInstance.closeRequested.subscribe(closed);
+      firebase.recordAuthenticatorSetup.mockRejectedValueOnce({ code: 'permission-denied' });
+
+      click('#auth-modal-entry-google-btn');
+      await flush();
+      await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
+      click('#auth-modal-mfa-enroll-submit-btn');
+      await flush();
+
+      expect(authService.refreshCurrentUserTier).toHaveBeenCalledWith({
+        totpEnrollmentConfirmed: true,
+      });
+      expect(authService.logout).not.toHaveBeenCalled();
+      expect(closed).toHaveBeenCalledOnce();
+      expect(element().querySelector('#auth-modal-mfa-enroll-error')).toBeNull();
+    });
+
+    it('does not save a setup time when the enrollment code is refused', async () => {
+      totpMfa.completeEnrollment.mockRejectedValueOnce(
+        new TotpMfaError('retry', 'auth/invalid-verification-code', TOTP_RETRY_MESSAGE),
+      );
+
+      click('#auth-modal-entry-google-btn');
+      await flush();
+      await typeCode('#auth-modal-mfa-enroll-code-input', '123456');
+      click('#auth-modal-mfa-enroll-submit-btn');
+      await flush();
+
+      expect(firebase.recordAuthenticatorSetup).not.toHaveBeenCalled();
+      expect(element().querySelector('#auth-modal-mfa-enroll-error')).not.toBeNull();
+    });
   });
 
   it('returns to Google sign-in after a restart error', async () => {

@@ -168,6 +168,16 @@ Each item is a **shipped or measured** fact from the repo, not a hypothetical.
 
 [`usability-testing.md`](../usability-testing.md#guest-finder-and-empty-state-quirks-testers-will-hit) · [`cybersecurity.md`](../cybersecurity.md#controls-confirmed-in-the-repository)
 
+### Someone lost the phone with their authenticator
+
+**Symptom.** A person signs in with Google and cannot get past the 6-digit code screen because their authenticator app is gone.
+
+**Cause.** Their TOTP (Time-based One-Time Password) second factor lives only on the lost device. Nobody can read it back.
+
+**What to do.** Verify their identity by a reply from their registered email or a phone or video call. Then a super-admin selects **Reset authenticator** on their card in **Admin console → Active Users**. Super-admins cannot reset themselves; another super-admin does it. If the last super-admin is locked out, a project Owner runs `yarn reset:totp`.
+
+[`service-users-and-permissions.md`](./service-users-and-permissions.md#resetting-a-lost-authenticator)
+
 ### Browser reports a CORS error talking to the metrics API
 
 **Symptom.** The browser blocks `POST` / `GET` to the FastAPI origin with a Cross-Origin Resource Sharing (CORS) error.

@@ -27,6 +27,7 @@ backend/**/__pycache__
 backend/runtime-artifacts/*
 !backend/runtime-artifacts/.gitkeep
 backend/runtime-cache
+backend/secrets
 
 # Heavy or generated data that is not copied into images
 data/metrics/cache

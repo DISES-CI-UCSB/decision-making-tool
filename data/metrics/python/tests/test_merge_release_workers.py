@@ -110,7 +110,7 @@ def _worker(
             "selectedBeforeChunk": 2,
             "selectedForChunk": 1,
         },
-        "entries": [{"solutionId": solution_id, "cachePath": str(artifact)}],
+        "entries": [{"solutionId": solution_id, "cachePath": artifact.as_posix()}],
         "failures": [],
     }
     (worker / "publish-report.json").write_text(
@@ -259,7 +259,7 @@ def _domain_worker(
             ),
             encoding="utf-8",
         )
-        entries.append({"solutionId": solution_id, "cachePath": str(artifact)})
+        entries.append({"solutionId": solution_id, "cachePath": artifact.as_posix()})
     domain_inventory = {
         "format": "metrics-domain-alignment-inventory-v1",
         "domain": domain,

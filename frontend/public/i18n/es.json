@@ -45,6 +45,26 @@
     "tierChip": "Nivel {{tier}}",
     "pendingAccess": "Sesión iniciada · La cuenta no está activa"
   },
+  "adminAccessPanel": {
+    "authenticatorReset": {
+      "title": "Autenticador perdido",
+      "description": "Si esta persona perdió su teléfono o su aplicación de autenticación, restablézcalo. En su próximo inicio de sesión se le pedirá configurar uno nuevo.",
+      "button": "Restablecer autenticador",
+      "resetting": "Restableciendo…",
+      "ownAccount": "Para restablecer su propio autenticador, pídaselo a otro superadministrador.",
+      "confirm": "¿Restablecer el autenticador de {{name}} ({{email}})?\n\nPrimero confirme que la solicitud viene realmente de esta persona: una respuesta desde su correo electrónico registrado (una respuesta, no un enlace en el que hizo clic) o una llamada telefónica o videollamada.\n\nAl restablecerlo se elimina su autenticador y se cierra su sesión en todos los dispositivos. En su próximo inicio de sesión configurará uno nuevo, y los códigos del anterior dejarán de funcionar.",
+      "success": "Autenticador restablecido. {{name}} configurará uno nuevo en su próximo inicio de sesión.",
+      "errors": {
+        "signInAgain": "Su sesión terminó. Inicie sesión de nuevo y vuelva a intentar el restablecimiento.",
+        "superAdminRequired": "Solo un superadministrador activo puede restablecer un autenticador.",
+        "mfaRequired": "Inicie sesión de nuevo con su autenticador y vuelva a intentar el restablecimiento.",
+        "selfResetForbidden": "Para restablecer su propio autenticador, pídaselo a otro superadministrador.",
+        "userNotFound": "Esta cuenta ya no existe en Firebase Authentication.",
+        "unreachable": "No se pudo contactar la Metrics API, así que no cambió nada. Inténtelo de nuevo.",
+        "generic": "No se pudo restablecer el autenticador (HTTP {{status}}). Inténtelo de nuevo."
+      }
+    }
+  },
   "about": {
     "kicker": "Sobre la colaboración",
     "title": "Organizaciones que apoyan la planificación de la conservación en Colombia",
@@ -1246,6 +1266,8 @@
         "sirap": "SIRAP",
         "selectRegion": "— Seleccionar región SIRAP —",
         "regionalBadge": "Escenarios regionales",
+        "sirapLoadErrorTitle": "No se pudieron cargar los escenarios regionales.",
+        "sirapLoadErrorDescription": "Los escenarios nacionales siguen funcionando. Recargue la página para intentarlo de nuevo o contacte al administrador de DISES si el problema continúa.",
         "regions": {
           "caribe": "SIRAP Caribe",
           "pacifico": "SIRAP Pacífico",

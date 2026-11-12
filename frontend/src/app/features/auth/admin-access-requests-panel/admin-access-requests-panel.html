@@ -1314,6 +1314,56 @@
                               </fieldset>
                             }
                           </div>
+
+                          @if (isSuperAdmin() && !isFakeActiveUser(user.uid)) {
+                            <section
+                              class="mt-4 flex flex-col gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div class="min-w-0">
+                                <h4 class="text-xs font-semibold text-slate-800">
+                                  {{ 'adminAccessPanel.authenticatorReset.title' | translate }}
+                                </h4>
+                                <p class="mt-1 text-xs text-slate-600">
+                                  {{
+                                    (isSignedInAdministrator(user)
+                                      ? 'adminAccessPanel.authenticatorReset.ownAccount'
+                                      : 'adminAccessPanel.authenticatorReset.description'
+                                    ) | translate
+                                  }}
+                                </p>
+                                <p
+                                  class="text-xs font-semibold"
+                                  [class.mt-1]="!!authenticatorResetOutcomes()[user.uid]"
+                                  [class.text-emerald-700]="authenticatorResetOutcomes()[user.uid]?.succeeded"
+                                  [class.text-rose-700]="
+                                    authenticatorResetOutcomes()[user.uid]?.succeeded === false
+                                  "
+                                  role="status"
+                                >
+                                  {{ authenticatorResetOutcomes()[user.uid]?.message }}
+                                </p>
+                              </div>
+                              @if (!isSignedInAdministrator(user)) {
+                                <button
+                                  type="button"
+                                  class="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                  [disabled]="
+                                    !!resettingAuthenticatorUid() ||
+                                    !!updatingUserUid() ||
+                                    !!decidingSirapRequestId()
+                                  "
+                                  (click)="resetAuthenticator(user)"
+                                >
+                                  {{
+                                    (resettingAuthenticatorUid() === user.uid
+                                      ? 'adminAccessPanel.authenticatorReset.resetting'
+                                      : 'adminAccessPanel.authenticatorReset.button'
+                                    ) | translate
+                                  }}
+                                </button>
+                              }
+                            </section>
+                          }
                         </div>
                       </article>
                     }

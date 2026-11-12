@@ -607,6 +607,7 @@ def main() -> int:
     args.output.write_text(
         json.dumps(evidence, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     checksum = {
         "format": "weighted-boundary-fanout-counterbalanced-ab-checksum-v2",
@@ -616,6 +617,7 @@ def main() -> int:
     args.checksum_output.write_text(
         json.dumps(checksum, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     print(
         json.dumps(

@@ -39,12 +39,62 @@ Only an in-app super-admin may create an approved `users/{uid}` record. Clients 
 | **Decision Maker / `authorized_viewer`** | Active user, `tier` 2 / `role: authorized_viewer` (and TOTP enrolled) | Guest capabilities plus save, rename, recall, and remove named solutions (maximum 12) in `users/{uid}/savedSolutionScenarios`. The left-sidebar label is what gets stored. Request Orinoquía and/or Eje Cafetero SIRAP data access. | See SIRAP catalogs until a region is granted. Open admin. Change anyone else’s roles. |
 | **Manager / `science_publisher`** | Active user, `tier` 3 / `role: science_publisher` (and TOTP enrolled) | Decision Maker capabilities, plus the publisher-level product privilege that Firestore still checks (`hasManifestStyleAccess`). Assign this tier only to staff who should receive those privileges. | Approve new accounts, assign super-admins, or administer SIRAP regions unless they also hold those flags. The leftover manifest style-editor publisher is **not** a GTIC operator workflow. |
 | **SIRAP user** | Active user whose `allowedSirapIds` contains at least one accepted region | SIRAP solutions for the granted region(s), plus Decision Maker saves. | Open admin. Use a region that was not granted. Administer anyone else. |
-| **SIRAP regional admin** | Active user with `administeredSirapIds` set, and **not** a super-admin | See overlapping users (via `users` where SIRAP grants intersect, and `userDirectory`). Approve, deny, or revoke SIRAP **data** access (`allowedSirapIds`) **only** for administered regions. Decide matching `sirapAccessRequests`. | Approve brand-new Google / Firebase accounts. Appoint other SIRAP admins. Tick Super admin. Set app tier 2 versus 3. Administer a SIRAP they were not assigned. The Administrator-assignments UI is super-admin only. |
+| **SIRAP regional admin** | Active user with `administeredSirapIds` set, and **not** a super-admin | See active users who hold an administered SIRAP, or who have a pending request for one. Approve, deny, or revoke SIRAP **data** access (`allowedSirapIds`) **only** for administered regions. Decide matching `sirapAccessRequests`. | Approve brand-new Google / Firebase accounts. Appoint other SIRAP admins. Tick Super admin. Set app tier 2 versus 3. Administer a SIRAP they were not assigned. The Administrator-assignments UI is super-admin only. |
 | **Super-admin** | Active user with `isSuperAdmin`, `isAdmin`, or `role: admin` (and TOTP enrolled) | Approve or deny new accounts into `users/{uid}`. Set Tier 2 versus Tier 3. Assign SIRAP regional admins (`administeredSirapIds`). Grant or revoke any accepted SIRAP. List access requests, users, and directory records. See all regions. | — |
 
 Promote at least two Parques super-admins so one departure cannot lock the approval queue. Use Manager only for staff who need publisher-level privileges. Ordinary approved users are Decision Maker.
 
 Account-level deny: mark `accessRequests/{uid}` as `denied` and do not leave that person as `users/{uid}` with `status: active`. If the in-app console has no account-deny control, a super-admin with Firestore Console access can set the request to `denied` and keep or set the user record inactive/denied.
+
+## Resetting a lost authenticator
+
+A person who loses, wipes, or replaces the phone with their authenticator app cannot get past the code screen. A super-admin resets their authenticator. The person then sets up a new one at their next sign-in. Their role, tier, and SIRAP grants do not change.
+
+### 1. Verify the person's identity first
+
+Anyone can write in claiming to be a staff member. A reset hands the account to whoever signs in next, so confirm the request really comes from the account owner. Use one of these:
+
+- **A reply from their registered email address.** Write to the address shown in Access management and ask them to reply. Do not rely on a message they sent first, and do not send a link for them to click; a reply proves they control the mailbox.
+- **A phone or video call** with someone you recognize, or through a number from the Parques staff directory (not one given in the request).
+
+If neither works, do not reset. Record who verified the request and how in your ticket. Do not paste the person's uid or any codes into the ticket.
+
+### 2. Reset it in the Admin console
+
+1. Sign in as a super-admin with your own authenticator code.
+2. Select **Admin console** in the header, then the **Active Users** tab.
+3. Search for the person's email and expand their card.
+4. In **Lost authenticator**, select **Reset authenticator**.
+5. The confirmation repeats the identity check. Select **OK** only after you have verified them.
+6. The card shows **Authenticator reset.** If it shows an error, nothing was changed; follow its wording (for example, sign out and back in with your own code).
+
+The Spanish interface labels are **Consola de administración**, **Restablecer autenticador**, and **Autenticador restablecido**.
+
+### 3. What the person sees next
+
+- They are signed out on every device. Codes from the old authenticator stop working.
+- At their next Google sign-in, EcoPlan shows the setup screen with a new QR code instead of the code screen. They scan it with their authenticator app and enter the 6-digit code.
+- After that they have their usual access again. Later sign-ins ask for codes from the new authenticator only.
+
+Two limits are worth knowing. Signed download links issued before the reset keep working until they expire (15 minutes by default). The Metrics API also forgets the person's cached sign-in on reset, but only inside the container that handled the reset; the current VM runs one container, so keep it that way or plan for up to 5 minutes of old-session downloads.
+
+### Rules for super-admin accounts
+
+- **Nobody can reset their own authenticator.** The button is hidden on your own card, and the Metrics API refuses the request. A stolen super-admin session must not be able to swap in the thief's authenticator.
+- **A super-admin who loses theirs asks another super-admin** to verify them and reset it. Keep at least two Parques super-admins for this reason.
+- Only an active super-admin who signed in with an authenticator code can reset anyone. Regional SIRAP admins cannot.
+
+### If the last super-admin is locked out
+
+When no other super-admin can sign in, a Firebase **project Owner** removes the authenticator from a workstation with the repository checked out. Verify the person first, exactly as above.
+
+```bash
+cd frontend
+gcloud auth application-default login   # sign in as the project Owner; or set FIREBASE_SERVICE_ACCOUNT_JSON
+yarn reset:totp -- person@example.org
+```
+
+The script removes every enrolled second factor and signs the person out everywhere. It prints the email, uid, and `remainingFactors`; expect `0`. Do not paste that output into a ticket. Because the script does not go through the Metrics API, a session that already downloaded something can keep getting download links for up to 5 minutes (`DMT_AUTH_CACHE_TTL_SECONDS`).
 
 ## Firestore collections
 
@@ -53,8 +103,8 @@ Rules deny unmatched access by default. Client deletes are denied on these colle
 | Collection | Purpose | Who can read | Who can write |
 | --- | --- | --- | --- |
 | `accessRequests/{uid}` | Pending or reviewed requests from people who signed in but are not yet approved | Self, or super-admin (list is super-admin only) | Self creates/updates a valid pending request. Super-admin updates status to `pending` / `approved` / `denied`. |
-| `users/{uid}` | Approved user records: `status`, `tier`, `role`, admin flags, SIRAP grants | Self; super-admin; SIRAP regional admin when SIRAP grants overlap | Super-admin creates/updates a valid user record. Regional admin may change only `allowedSirapIds` for regions they administer. |
-| `userDirectory/{uid}` | Directory listing used when a regional SIRAP admin cannot read every `users` document | Self, super-admin, or any SIRAP administrator | Super-admin create only. Updates and deletes denied. |
+| `users/{uid}` | Approved user records: `status`, `tier`, `role`, admin flags, SIRAP grants | Self; super-admin; SIRAP regional admin when the user holds an administered SIRAP or has a pending request for one. A regional admin's list query must filter on one administered SIRAP. | Super-admin creates/updates a valid user record. Regional admin may change only `allowedSirapIds` for regions they administer. |
+| `userDirectory/{uid}` | Name and email row for each active user | Self or super-admin | The person creates their own row at sign-in; `yarn backfill:user-directory` adds missing rows. Updates and deletes denied. |
 | `sirapAccessRequests/{uid}_{sirapId}` | Per-region SIRAP data-access requests | The requester, or someone who administers that `sirapId` | Requester creates a pending request (or re-requests after deny / lost grant). Administrator records approve/deny. |
 | `users/{uid}/savedSolutionScenarios/{id}` | Signed-in users’ saved scenarios (user data; include in backups) | The owning user, with TOTP | The owning user, with TOTP. Fields: `id`, `solutionId`, `label` (1–80 chars), `solutionName`, `updatedAt`. |
 | `mail` | Optional admin-notification documents | None from the client | None from the client. Rules `allow read, write: if false`. |

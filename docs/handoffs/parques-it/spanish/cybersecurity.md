@@ -151,7 +151,7 @@ Cuando la lista sea correcta, pida a un Owner de Parques que complete un inicio 
 | --- | --- |
 | `accessRequests/{uid}` | Solicitudes pendientes o revisadas de personas que iniciaron sesión pero aún no están aprobadas como usuarias de la aplicación |
 | `users/{uid}` | Registros de usuarios aprobados: `status`, `tier`, `role`, `isAdmin` / `isSuperAdmin`, concesiones SIRAP |
-| `userDirectory/{uid}` | Listado de directorio que se usa cuando un administrador regional SIRAP no puede leer todos los documentos de `users` |
+| `userDirectory/{uid}` | Fila con el nombre y el correo de cada usuario activo, que la propia persona escribe al iniciar sesión |
 | `sirapAccessRequests/{uid}_{sirapId}` | Solicitudes de acceso a datos SIRAP por región |
 | `users/{uid}/savedSolutionScenarios/{id}` | Escenarios guardados de las personas con sesión iniciada (datos de usuario; incluirlos en las copias de seguridad) |
 | `mail` | Documentos opcionales de notificación a administradores; las reglas deniegan las escrituras del cliente |
@@ -183,7 +183,7 @@ Estos son roles de la aplicación en `users/{uid}`, no roles de IAM de Google Cl
 | Rol | Señales en Firestore | Qué pueden hacer | Qué no pueden hacer |
 | --- | --- | --- | --- |
 | Administrador global / super-admin | Usuario activo con `isSuperAdmin`, `isAdmin` o `role: admin` | Aprobar cuentas nuevas, asignar niveles, asignar otros super-admins, asignar administradores regionales, conceder o revocar cualquier SIRAP | — |
-| Administrador regional SIRAP | Usuario activo con `administeredSirapIds` definido (y que no sea super-admin) | Ver usuarios superpuestos; aprobar, denegar o revocar el acceso SIRAP **solo** para esas regiones | Aprobar cuentas nuevas de Google/Firebase; cambiar el nivel global o los indicadores de super-admin; administrar un SIRAP que no se les asignó |
+| Administrador regional SIRAP | Usuario activo con `administeredSirapIds` definido (y que no sea super-admin) | Ver usuarios que tienen, o han solicitado, un SIRAP que administran; aprobar, denegar o revocar el acceso SIRAP **solo** para esas regiones | Aprobar cuentas nuevas de Google/Firebase; cambiar el nivel global o los indicadores de super-admin; administrar un SIRAP que no se les asignó |
 | Usuario SIRAP aprobado | Usuario activo solo con `allowedSirapIds` | Usar la línea de producto SIRAP para las regiones concedidas | Administrar a nadie más |
 
 Asigne administradores regionales escribiendo `administeredSirapIds` como `orinoquia` y/o `eje-cafetero`. Existen ocho etiquetas SIRAP en el producto; **solo Orinoquía y Eje Cafetero tienen datos publicados actualmente**, y las reglas de Firestore solo aceptan esos dos ID.

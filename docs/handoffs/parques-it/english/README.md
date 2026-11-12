@@ -27,7 +27,7 @@ A reviewer with ten minutes should read this README and the **Top decisions** ta
 
 - **Data Operations** is an index of operator runbooks, not a procedure. Start at [`data-operations/README.md`](./data-operations/README.md) and open one runbook from there.
 - **SIRAP regional solutions** live on a Google Doc tab, not in the national runbooks: [SIRAP Regional Solutions](https://docs.google.com/document/d/1mThmI_KmTT8kE2s02s_ymhdHL-BUxyIl8lxuwXJ76aM/edit?tab=t.oqw67lnj8o9t).
-- **E3-FO-35 reception manuals** live in [`reception/`](./reception/): [installation](./reception/installation-configuration.md), [technical requirements](./reception/technical-requirements.md), [system administration](./reception/system-administration.md) (includes hardware sizing), [service users and permissions](./reception/service-users-and-permissions.md), [data model](./reception/data-model.md), [FAQ and troubleshooting](./reception/faq-and-troubleshooting.md). Performance protocol: [`performance-testing.md`](./performance-testing.md).
+- **E3-FO-35 reception manuals** live in [`reception/`](./reception/): [installation](./reception/installation-configuration.md), [Metrics API VM runbook](./reception/metrics-api-vm-runbook.md), [technical requirements](./reception/technical-requirements.md), [system administration](./reception/system-administration.md) (includes hardware sizing), [service users and permissions](./reception/service-users-and-permissions.md), [data model](./reception/data-model.md), [FAQ and troubleshooting](./reception/faq-and-troubleshooting.md). Performance protocol: [`performance-testing.md`](./performance-testing.md).
 
 ## Status legend
 

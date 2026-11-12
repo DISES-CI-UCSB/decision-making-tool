@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { By } from '@angular/platform-browser';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
@@ -267,6 +267,8 @@ describe('PanelSwitcherComponent', () => {
         '#aoi-biodiversity-open-species-inventory-button',
       ) as HTMLButtonElement
     ).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(
       fixture.nativeElement
@@ -2969,7 +2971,7 @@ describe('PanelSwitcherComponent', () => {
     ecosystemCoverageButton.click();
     fixture.detectChanges();
     await fixture.whenStable();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
     expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'siraps');
     expect(
@@ -3066,7 +3068,7 @@ describe('PanelSwitcherComponent', () => {
       'analysis.overview.goalsWidget.modal.sirapEcosystemsTitle',
     );
     expect(component.getGoalsModalTitleParams()).toEqual({ sirapName: 'SIRAP Orinoquía' });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
     const ecosystemGroupRow = compiled.querySelector(
       '#conservation-goals-modal-ecosystem-virtual-heading-group-row',
@@ -3221,7 +3223,7 @@ describe('PanelSwitcherComponent', () => {
     ).click();
     fixture.detectChanges();
     await fixture.whenStable();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(component.goalsModalRows()).toHaveLength(3);
@@ -3299,7 +3301,7 @@ describe('PanelSwitcherComponent', () => {
       }
     ).openGoalsModal('species', 'overview');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
@@ -3354,7 +3356,7 @@ describe('PanelSwitcherComponent', () => {
       }
     ).openGoalsModal('species', 'overview');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(apiServiceSpy.createDetailedSpeciesCoverageJob).not.toHaveBeenCalled();
@@ -4671,7 +4673,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(compiled.querySelector('#conservation-goals-modal-description')?.textContent).toContain(
@@ -4745,7 +4747,7 @@ describe('PanelSwitcherComponent', () => {
       'colombia',
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect((compiled.querySelector('#conservation-goals-modal') as HTMLDialogElement).open).toBe(
@@ -4820,7 +4822,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(component.goalsModalRows().map((row) => row.name)).toEqual([
@@ -4976,7 +4978,7 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     component.openGoalsModal('species', 'aoi');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
@@ -5085,7 +5087,7 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     component.openGoalsModal('species', 'aoi');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     const renderedNames = () =>
@@ -5196,7 +5198,7 @@ describe('PanelSwitcherComponent', () => {
     fixture.detectChanges();
     component.openGoalsModal('species', 'aoi');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
@@ -5249,7 +5251,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(
@@ -5360,7 +5362,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     const viewport = fixture.debugElement.query(By.directive(CdkVirtualScrollViewport))
@@ -5414,7 +5416,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     const firstRenderedName = () =>
@@ -5470,7 +5472,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(component.goalsModalRows()).toHaveLength(8_300);
@@ -5534,7 +5536,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -5661,7 +5663,7 @@ describe('PanelSwitcherComponent', () => {
     expect(button.title).toBe('');
     button.click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
@@ -5707,7 +5709,7 @@ describe('PanelSwitcherComponent', () => {
       }
     ).openGoalsModal('species', 'aoi');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'national', 'colombia');
@@ -5800,7 +5802,7 @@ describe('PanelSwitcherComponent', () => {
       }
     ).openGoalsModal('species', 'aoi');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(apiServiceSpy.createDetailedSpeciesCoverageJob).toHaveBeenCalledWith({
@@ -5874,7 +5876,7 @@ describe('PanelSwitcherComponent', () => {
       }
     ).openGoalsModal('species', 'aoi');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(
@@ -5917,7 +5919,7 @@ describe('PanelSwitcherComponent', () => {
       }
     ).openGoalsModal('species', 'aoi');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(speciesGoalsLoaderSpy.load).toHaveBeenCalledWith(solution.id, 'siraps', 'eje-cafetero');
@@ -5946,7 +5948,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(compiled.querySelector('#conservation-goals-modal-species-loading')).not.toBeNull();
@@ -5988,7 +5990,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenCalledWith(solution.id, 'national');
@@ -6175,7 +6177,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(mecMetricsLoaderSpy.loadMecMetrics).toHaveBeenLastCalledWith(solution.id, 'national');
@@ -6220,7 +6222,7 @@ describe('PanelSwitcherComponent', () => {
       }
     ).openGoalsModal('species', 'aoi');
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(component.goalsModalOpen()).toBe(true);
@@ -6292,7 +6294,7 @@ describe('PanelSwitcherComponent', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await waitForGoalsModalContent(fixture);
     fixture.detectChanges();
 
     expect(
@@ -6440,7 +6442,7 @@ describe('PanelSwitcherComponent', () => {
         ) as HTMLButtonElement
       ).click();
       fixture.detectChanges();
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await waitForGoalsModalContent(fixture);
       fixture.detectChanges();
 
       expect(
@@ -6668,6 +6670,16 @@ describe('PanelSwitcherComponent', () => {
     });
   });
 });
+
+/**
+ * The goals modal reveals its table one animation frame plus one `setTimeout(0)` after opening,
+ * then the virtual-scroll viewport renders rows in later scheduled change-detection passes.
+ * jsdom frames tick every ~16.7 ms and Windows timers are coarse, so a fixed sleep races it.
+ */
+async function waitForGoalsModalContent(fixture: ComponentFixture<unknown>): Promise<void> {
+  await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+  await fixture.whenStable();
+}
 
 function buildTestSolution(): Solution {
   return {

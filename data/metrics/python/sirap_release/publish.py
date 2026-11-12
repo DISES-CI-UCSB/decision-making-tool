@@ -6,13 +6,14 @@ import argparse
 import hashlib
 import json
 import os
-import subprocess
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
 from main import PUBLIC_BLOB_HOST, blob_path, validate
+from metrics_pipeline.console_encoding import use_utf8_console_streams
+from metrics_pipeline.vercel_cli import require_vercel_cli, run_vercel
 
 
 def sha256_file(path: Path) -> str:
@@ -35,11 +36,13 @@ def public_url(path: str) -> str:
 
 
 def upload(token: str, source: Path, destination: str) -> None:
-    completed = subprocess.run(
-        ["vercel", "blob", "put", str(source), "--pathname", destination, "--rw-token", token, "--no-color"],
+    completed = run_vercel(
+        ["blob", "put", str(source), "--pathname", destination, "--rw-token", token, "--no-color"],
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if completed.returncode:
         raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
@@ -71,6 +74,7 @@ def main() -> None:
     parser.add_argument("--release-root", type=Path, required=True)
     parser.add_argument("--repo-root", type=Path, required=True)
     args = parser.parse_args()
+    require_vercel_cli()
     release_root = args.release_root.resolve()
     validate(release_root)
     inventory = json.loads((release_root / "release-artifact-inventory.json").read_text(encoding="utf-8"))
@@ -100,9 +104,12 @@ def main() -> None:
         "manifestUrl": public_url(blob_path(release_id, Path("manifest.json"))),
         "entries": results,
     }
-    (release_root / "remote-verification.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    (release_root / "remote-verification.json").write_text(
+        json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
     print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":
+    use_utf8_console_streams()
     main()

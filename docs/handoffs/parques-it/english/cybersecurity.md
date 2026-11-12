@@ -151,7 +151,7 @@ After the list is correct, have a Parques Owner complete a Google sign-in on pro
 | --- | --- |
 | `accessRequests/{uid}` | Pending or reviewed requests from people who signed in but are not yet approved as app users |
 | `users/{uid}` | Approved user records: `status`, `tier`, `role`, `isAdmin` / `isSuperAdmin`, SIRAP grants |
-| `userDirectory/{uid}` | Directory listing used when a regional SIRAP admin cannot read every `users` document |
+| `userDirectory/{uid}` | Name and email row for each active user, written by that person at sign-in |
 | `sirapAccessRequests/{uid}_{sirapId}` | Per-region SIRAP data-access requests |
 | `users/{uid}/savedSolutionScenarios/{id}` | Signed-in users’ saved scenarios (user data; include in backups) |
 | `mail` | Optional admin-notification documents; client writes are denied by rules |
@@ -183,7 +183,7 @@ These are application roles in `users/{uid}`, not Google Cloud IAM roles.
 | Role | Firestore signals | What they can do | What they cannot do |
 | --- | --- | --- | --- |
 | Global / super-admin | Active user with `isSuperAdmin`, `isAdmin`, or `role: admin` | Approve new accounts, assign tiers, assign other super-admins, assign regional admins, grant or revoke any SIRAP | — |
-| SIRAP regional admin | Active user with `administeredSirapIds` set (and not a super-admin) | See overlapping users; approve, deny, or revoke SIRAP access **only** for those regions | Approve new Google/Firebase accounts; change global tier or super-admin flags; administer a SIRAP they were not assigned |
+| SIRAP regional admin | Active user with `administeredSirapIds` set (and not a super-admin) | See users who hold, or have a pending request for, an administered SIRAP; approve, deny, or revoke SIRAP access **only** for those regions | Approve new Google/Firebase accounts; change global tier or super-admin flags; administer a SIRAP they were not assigned |
 | Approved SIRAP user | Active user with `allowedSirapIds` only | Use the SIRAP product line for granted regions | Administer anyone else |
 
 Assign regional admins by writing `administeredSirapIds` to `orinoquia` and/or `eje-cafetero`. Eight SIRAP labels exist in the product; **only Orinoquía and Eje Cafetero currently have published data**, and Firestore rules only accept those two IDs.
