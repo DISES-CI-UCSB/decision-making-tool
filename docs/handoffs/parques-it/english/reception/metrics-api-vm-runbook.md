@@ -21,7 +21,7 @@ Never paste key contents, tokens, or `.env` values into tickets, chat, logs, or 
 | A DNS name for the API, for example `api.<gtic-domain>` | GTIC | Step 3 and the release gate |
 | The web address of the DISES Web App, for example `https://decision-making-tool-tau.vercel.app` | Spatial Lab | Step 5 (`DMT_CORS_ORIGINS`) and the bucket CORS rule |
 | GCS signer key: JSON key for a service account with only Storage Object Viewer on the Private Layer Bucket | GTIC (bucket owner) | Step 6 |
-| Firebase reader key: JSON key for a service account with only Firestore and Authentication read access on the Firebase project | Firebase project owner (Spatial Lab today) | Step 6 |
+| Firebase key: JSON key for the dedicated `dmt-metrics-api-firebase` service account with only Firebase Authentication Admin and Cloud Datastore User on the Firebase project | Firebase project owner (Spatial Lab today) | Step 6 |
 | The repository commit to deploy | Spatial Lab | Step 4 |
 
 See [Service-account keys](#service-account-keys) for how to create both keys with the smallest permissions.
@@ -34,7 +34,7 @@ See [Service-account keys](#service-account-keys) for how to create both keys wi
 | Size | Minimum 4 vCPU and 8 GB RAM. Recommended 8 vCPU and 16 GB RAM. See [system-administration.md](./system-administration.md#hardware-sizing). |
 | Disk | At least 40 GB: about 20 GB of runtime artifacts plus the Docker image and OS |
 | Inbound ports | `22` from the admin network only, `80` and `443` from anywhere. Do not expose `8000`. |
-| Outbound | HTTPS (443) to the internet. The service calls `www.googleapis.com`, `oauth2.googleapis.com`, `firestore.googleapis.com`, and `aagibolq28slyfof.public.blob.vercel-storage.com`. Image builds also reach Docker Hub and PyPI. |
+| Outbound | HTTPS (443) to the internet. The service calls `www.googleapis.com`, `oauth2.googleapis.com`, `firestore.googleapis.com`, `identitytoolkit.googleapis.com` (authenticator resets), and `aagibolq28slyfof.public.blob.vercel-storage.com`. Image builds also reach Docker Hub and PyPI. |
 | Clock | NTP (Network Time Protocol) sync on. Signed links and token checks use the server clock. |
 
 Block port `8000` in the cloud provider's firewall. Docker-published ports bypass `ufw` on the VM itself, so a `ufw` rule alone does not close it.
@@ -302,7 +302,7 @@ Any external monitor works if it alerts a named person, for example UptimeRobot 
 Not run yet. It needs GTIC's GCS signer key and a fresh VM. Steps:
 
 1. Create a throwaway Ubuntu VM with the [VM shape](#vm-shape) above.
-2. Follow [Setup steps](#setup-steps) 1 to 10 exactly as written, with GTIC's GCS signer key and a Firebase reader key. Note the time each step takes and any command that needed changing.
+2. Follow [Setup steps](#setup-steps) 1 to 10 exactly as written, with GTIC's GCS signer key and a Firebase key. Note the time each step takes and any command that needed changing.
 3. If no DNS name is ready, skip steps 3 and 11. Open port `8000` to the tester's IP only, and run the gate with `DMT_TEST_SERVICE_URL=http://<vm-ip>:8000`.
 4. Run the release gate. Record the result and total duration.
 5. Fix this runbook wherever a step was wrong or missing.
