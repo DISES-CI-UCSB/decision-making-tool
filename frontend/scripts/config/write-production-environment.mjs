@@ -9,13 +9,12 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendRoot = path.resolve(__dirname, '../..');
-const repoRoot = path.resolve(frontendRoot, '..');
 const productionEnvironmentPath = path.resolve(
   frontendRoot,
   'src/environments/environment.production.ts',
 );
 
-const optionalLocalEnvPath = path.resolve(repoRoot, '.env.production.local');
+const optionalLocalEnvPath = path.resolve(frontendRoot, '.env.production.local');
 
 await loadLocalEnvIfPresent(optionalLocalEnvPath);
 

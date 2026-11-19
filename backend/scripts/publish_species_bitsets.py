@@ -21,8 +21,7 @@ from pathlib import Path
 from typing import Any
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = BACKEND_ROOT.parent
-METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
+METRICS_PIPELINE = BACKEND_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
 for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
     if str(_import_root) not in sys.path:
         sys.path.insert(0, str(_import_root))
@@ -185,7 +184,7 @@ def publish_kit(
 
 def main() -> None:
     args = parse_args()
-    token = load_token_from_env_file(REPO_ROOT / ".env.local")
+    token = load_token_from_env_file(BACKEND_ROOT / ".env.local")
     print(f"BLOB_READ_WRITE_TOKEN present: {bool(token)}", flush=True)
     args.staging_dir.mkdir(parents=True, exist_ok=True)
     kit_order = ("eje-cafetero", "orinoquia", "national")

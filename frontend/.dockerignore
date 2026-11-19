@@ -1,0 +1,17 @@
+# Build context is this folder. Only what the Angular build needs goes in.
+.git
+node_modules
+dist
+.angular
+.yarn/cache
+.yarn/install-state.gz
+feature-tests
+development-artifacts
+docs
+**/.DS_Store
+**/*.local
+**/.env
+**/.env.*
+!**/.env.example
+*_service_account_key.json
+*firebase-adminsdk*.json

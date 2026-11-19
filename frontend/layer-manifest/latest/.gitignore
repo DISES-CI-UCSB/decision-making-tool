@@ -1,3 +1,0 @@
-# Keep this folder tracked, but keep local snapshots untracked.
-*
-!.gitignore

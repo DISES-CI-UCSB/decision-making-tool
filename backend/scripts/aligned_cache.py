@@ -24,8 +24,8 @@ import rasterio
 from rasterio.transform import Affine
 from rasterio.warp import Resampling, reproject
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+METRICS_PIPELINE = BACKEND_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
 if str(METRICS_PIPELINE) not in sys.path:
     sys.path.insert(0, str(METRICS_PIPELINE))
 

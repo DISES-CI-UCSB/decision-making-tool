@@ -46,7 +46,7 @@ from sparse.format import SparseMetadata, SpeciesMatrixEntry, encode_species_mat
 
 PUBLIC_BLOB_HOST = builder.PUBLIC_BLOB_HOST
 PARITY_CONTRACT_PATH = (
-    Path(__file__).resolve().parents[2]
+    Path(__file__).resolve().parents[1]
     / "data/metrics/release-specs/solutions-v3-0-0/coverage-parity-contract.json"
 )
 

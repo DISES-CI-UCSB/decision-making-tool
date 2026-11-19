@@ -28,8 +28,8 @@ from typing import Any, Iterator
 
 import numpy as np
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+METRICS_PIPELINE = BACKEND_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
 if str(METRICS_PIPELINE) not in sys.path:
     sys.path.insert(0, str(METRICS_PIPELINE))
 
@@ -344,13 +344,13 @@ def verify(
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    default_validation = REPO_ROOT / "data" / "metrics" / "cache" / "sparse" / "validation-9377"
+    default_validation = BACKEND_ROOT / "data" / "metrics" / "cache" / "sparse" / "validation-9377"
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--overlap-cache-dir", type=Path, required=True)
     parser.add_argument(
         "--matrix-dir",
         type=Path,
-        default=REPO_ROOT / "data" / "metrics" / "cache" / "sparse" / "matrices-9377",
+        default=BACKEND_ROOT / "data" / "metrics" / "cache" / "sparse" / "matrices-9377",
     )
     parser.add_argument(
         "--report", type=Path, default=default_validation / "conversion-report.json"

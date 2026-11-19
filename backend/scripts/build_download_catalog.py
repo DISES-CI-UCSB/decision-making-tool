@@ -30,7 +30,6 @@ from pathlib import Path
 from typing import Any
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
-REPOSITORY_ROOT = BACKEND_ROOT.parent
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
@@ -38,7 +37,7 @@ from app.downloads.access import CONFLICTING_SIRAP  # noqa: E402
 from app.downloads.catalog import index_catalog_document  # noqa: E402
 from app.downloads.object_names import object_name_from_reference  # noqa: E402
 
-RUNTIME_MANIFEST_CONSTANTS = REPOSITORY_ROOT / "frontend" / "shared" / "runtime-manifest.constants.mjs"
+RUNTIME_MANIFEST_CONSTANTS = BACKEND_ROOT / "layer-manifest" / "shared" / "runtime-manifest.constants.mjs"
 # Used when the frontend constants file is absent, as in the backend Docker image.
 FALLBACK_RELEASE_INDEX_URL = (
     "https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.7.1/catalog-release-index.json"

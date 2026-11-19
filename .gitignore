@@ -1,132 +1,22 @@
-.Rproj.user
-.Rhistory
-.RData
-.RDataTmp
-.Ruserdata
-/server/.env
-/app/
+# Workspace-level ignores. Each side keeps its own rules in frontend/.gitignore
+# and backend/.gitignore, because those folders are published as standalone repos.
+
 .env
-azure.env
+.env*.local
 *.local
 .DS_Store
-azure-deployment-info.txt
-AZURE_DEPLOYMENT_README.md
-USER_INSTRUCTIONS_DRAFT.md
-USER_INSTRUCTIONS_SPANISH.md
-ADMIN_FEATURES_GUIDE.md
-ADMIN_FEATURES_GUID E_SPANISH.md
-branch-3-decision-making-tool.code-workspace
-
-# Cambio_Global data files in the legacy R/Shiny app; keep scripts and docs.
-legacy-r-shiny-app/Cambio_Global/*.Rproj
-legacy-r-shiny-app/Cambio_Global/**/*.tif
-legacy-r-shiny-app/Cambio_Global/**/*.fst
-legacy-r-shiny-app/Cambio_Global/**/*.xlsx
-legacy-r-shiny-app/Cambio_Global/**/*.csv
-legacy-r-shiny-app/Cambio_Global/**/*.xml
-legacy-r-shiny-app/Cambio_Global/**/*.ovr
-legacy-r-shiny-app/Cambio_Global/**/*.zip
-legacy-r-shiny-app/Cambio_Global/**/*.cpg
-legacy-r-shiny-app/Cambio_Global/**/*.dbf
-legacy-r-shiny-app/Cambio_Global/**/*.prj
-legacy-r-shiny-app/Cambio_Global/**/*.shp
-legacy-r-shiny-app/Cambio_Global/**/*.shx
-legacy-r-shiny-app/Cambio_Global/**/*.sbx
-legacy-r-shiny-app/Cambio_Global/**/*.sbn
-legacy-r-shiny-app/Cambio_Global/**/*.tfw
-legacy-r-shiny-app/Cambio_Global/**/*.lock
-# Data policy: ignore binary/large files by default, track docs + deploy assets + CSVs.
-/data/**
-!/data/**/
-!/data/README.md
-!/data/input_layers_in_use.csv
-!/data/input_layers_required.csv
-!/data/**/*.md
-!/data/**/*.csv
-# Local source rasters stay ignored by default; published layer assets move through Vercel Blob.
-!/data/solutions/
-!/data/solutions/**/*.tif
-!/data/solutions/**/*.csv
-!/data/solutions/**/*.rds
-!/data/solutions/**/*.json
-!/data/boundaries/
-!/data/boundaries/**
-/data/boundaries/SIRAPS/
-!/data/**/*.py
-!/data/metrics/python/mesa_parity/*.R
-# Tracked Python script dependency files.
-!/data/scripts/**/requirements.txt
-# Reference-layer pipeline source is tracked; downloaded snapshots and outputs stay local.
-!/data/scripts/reference-layers/.gitignore
-/data/scripts/reference-layers/work/
-# Local virtualenvs created next to a tracked script (artifacts only).
-/data/scripts/**/.venv/
-# Metrics pipeline: track source + fixtures, ignore generated artifacts and raster cache.
-/data/metrics/generated/
-/data/metrics/cache/
-/data/metrics/python/data/metrics/cache/
-/data/metrics/python/**/.venv/
-# Tracked metrics pipeline dependency files, test config, and shared fixtures.
-!/data/metrics/python/requirements.txt
-!/data/metrics/python/pytest.ini
-!/data/metrics/fixtures/*.json
-# Versioned release policy exceptions are governed source contracts, not generated artifacts.
-!/data/metrics/release-specs/**/*.json
-!/data/**/.gitkeep
-# Frontend deploy assets (bundled into Vercel build)
-!/data/frontend_deploy/
-!/data/frontend_deploy/**
-!/data/frontend_deploy/**/*.tif
-!/data/frontend_deploy/**/*.csv
-!/data/frontend_deploy/**/*.mjs
-!/data/frontend_deploy/**/*.json
-/frontend/node_modules/
-/frontend/dist/
-/frontend/.angular/
-# Development-only cache refreshed from the Blob layer manifest.
-/frontend/public/data/layer-manifest/manifest.json
-# Local preview mount for unpublished species-goals artifacts.
-/frontend/public/releases/
-# Development-only goals previews generated from published summary CSVs.
-/frontend/public/data/metrics/goals/
-# Development-only styled manifest drafts saved from the local editor.
-/frontend/development-artifacts/layer-manifest/manual-edits/
-# Species secondary manifest is generated locally and published to Blob; not tracked (app loads from speciesManifestUrl).
-/frontend/public/data/layer-manifest/species.manifest.json
 .vercel
-.env*.local
-
-# Generated outputs from exploratory development artifacts
-/development-artifacts/experiments/**/artifacts/
-/development-artifacts/experiments/**/cache/
-/development-artifacts/experiments/**/results*.json
-
-# Rolling manifest archive — history is in git log on manifest.json itself
-/development-artifacts/layer-manifest/archive/
-
-# Python generated files
-__pycache__/
-*.py[cod]
-
-# Large species lookup CSV — kept in Vercel Blob at inputs/metadata/biomod_spp_ranges_updatedIUCN.csv
-data/biomod_spp_ranges_updatedIUCN.csv
 branch-*-decision-making-tool.code-workspace
 
-# Backend API local/runtime artifacts
-/backend/.venv/
-/backend/.pytest_cache/
-/backend/runtime-artifacts/*
-!/backend/runtime-artifacts/.gitkeep
-/backend/runtime-cache/*
-!/backend/runtime-cache/.gitkeep
-/backend/secrets/
-
+# Key material kept next to the checkout
 *_service_account_key.json
-dises-decision-making-tool-firebase-adminsdk-fbsvc-e3654dc485.json
-# Feature test system (generated)
+*firebase-adminsdk*.json
+
+# Tooling caches
+node_modules/
+__pycache__/
+*.py[cod]
 .test-cache/
 .test-results/
 playwright-report/
 test-results/
-
-node_modules/

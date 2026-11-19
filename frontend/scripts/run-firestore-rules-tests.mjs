@@ -10,9 +10,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const frontendRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const repoRoot = path.dirname(frontendRoot);
 const firebaseCli = path.join(frontendRoot, 'node_modules', 'firebase-tools', 'lib', 'bin', 'firebase.js');
-const firebaseConfig = path.join(repoRoot, 'firebase.json');
+const firebaseConfig = path.join(frontendRoot, 'firebase.json');
 /**
  * emulators:exec runs this through a shell in frontendRoot, so a relative path with no spaces
  * needs no quoting in cmd.exe, PowerShell, or sh.

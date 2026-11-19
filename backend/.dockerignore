@@ -1,6 +1,27 @@
+# Build context is this folder. Only the service, its tests, and the metrics
+# pipeline pieces the image copies (code, fixtures, release specs) go in.
+.git
 .venv/
-__pycache__/
 .pytest_cache/
 secrets/
 runtime-artifacts/*
 !runtime-artifacts/.gitkeep
+runtime-cache/
+node_modules/
+.env
+.env.*
+!.env.example
+*.local
+docs/
+development-artifacts/
+layer-manifest/
+package.json
+package-lock.json
+
+data/**
+!data/metrics/python/metrics_pipeline/**
+!data/metrics/fixtures/**
+!data/metrics/release-specs/**
+
+# Last so it also applies inside the re-included pipeline folders.
+**/__pycache__

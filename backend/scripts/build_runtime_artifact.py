@@ -22,11 +22,10 @@ DOWNLOAD_CHUNK_BYTES = 1024 * 1024
 DOWNLOAD_PROGRESS_INTERVAL_BYTES = 8 * 1024 * 1024
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = BACKEND_ROOT.parent
 METRICS_PIPELINE = Path(
     os.getenv(
         "DMT_METRICS_PIPELINE_PATH",
-        str(REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"),
+        str(BACKEND_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"),
     )
 )
 for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
@@ -84,7 +83,7 @@ DEFAULT_V3_PARITY_CONTRACT = (
     Path(
         os.getenv(
             "DMT_RELEASE_SPECS_DIR",
-            str(REPO_ROOT / "data" / "metrics" / "release-specs"),
+            str(BACKEND_ROOT / "data" / "metrics" / "release-specs"),
         )
     )
     / "solutions-v3-0-0"
@@ -92,7 +91,7 @@ DEFAULT_V3_PARITY_CONTRACT = (
 )
 SPECIES_CSV_PATH = METRICS_PIPELINE / "artifacts" / "species" / "biomod_spp_ranges_updatedIUCN.csv"
 DEFAULT_SPECIES_OVERLAP_CACHE = (
-    REPO_ROOT
+    BACKEND_ROOT
     / "data"
     / "metrics"
     / "cache"
@@ -101,7 +100,7 @@ DEFAULT_SPECIES_OVERLAP_CACHE = (
     / "species-overlap"
 )
 DEFAULT_SPECIES_EXCEPTION = (
-    REPO_ROOT
+    BACKEND_ROOT
     / "data"
     / "metrics"
     / "release-specs"

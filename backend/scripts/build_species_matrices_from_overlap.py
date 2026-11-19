@@ -54,8 +54,8 @@ from typing import Any, Callable, Iterable, Sequence
 
 import numpy as np
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+METRICS_PIPELINE = BACKEND_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
 if str(METRICS_PIPELINE) not in sys.path:
     sys.path.insert(0, str(METRICS_PIPELINE))
 
@@ -63,9 +63,9 @@ from species_data import CLASS_BUCKETS, SpeciesRecord, load_species_records  # n
 from sparse.format import SMSP_MAGIC, SparseMetadata  # noqa: E402
 
 SPECIES_CSV_PATH = METRICS_PIPELINE / "artifacts" / "species" / "biomod_spp_ranges_updatedIUCN.csv"
-DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "metrics" / "cache" / "sparse" / "matrices-9377"
+DEFAULT_OUTPUT_DIR = BACKEND_ROOT / "data" / "metrics" / "cache" / "sparse" / "matrices-9377"
 DEFAULT_REPORT_PATH = (
-    REPO_ROOT / "data" / "metrics" / "cache" / "sparse" / "validation-9377" / "conversion-report.json"
+    BACKEND_ROOT / "data" / "metrics" / "cache" / "sparse" / "validation-9377" / "conversion-report.json"
 )
 
 SPECIES_MATRIX_GROUPS: tuple[str, ...] = (*CLASS_BUCKETS, "threatened")

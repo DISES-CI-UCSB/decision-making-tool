@@ -13,10 +13,10 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt ./requirements.txt
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ ./
+COPY . ./
 COPY data/metrics/python/metrics_pipeline /metrics_pipeline
 COPY data/metrics/fixtures /data/metrics/fixtures
 COPY data/metrics/release-specs /data/metrics/release-specs

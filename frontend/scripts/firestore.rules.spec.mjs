@@ -30,7 +30,7 @@ import {
 const PROJECT_ID = 'demo-dises';
 const RULES_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../firestore.rules',
+  '../firestore.rules',
 );
 
 const ACTORS = {

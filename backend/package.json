@@ -1,0 +1,35 @@
+{
+  "name": "dmt-backend-release-tooling",
+  "private": true,
+  "type": "module",
+  "description": "Node tooling that builds, validates, publishes, and rolls back the layer catalog in Vercel Blob. The Python service does not need it.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test:layer-manifest": "node --test ./layer-manifest/*.spec.mjs ./layer-manifest/lib/*.spec.mjs ./layer-manifest/shared/*.spec.mjs",
+    "validate:layer-manifest": "node ./layer-manifest/validate-manifest.mjs",
+    "validate:layer-manifest:example": "node ./layer-manifest/validate-manifest.mjs ./layer-manifest/manifest.example.json",
+    "check:layer-manifest": "npm run test:layer-manifest && npm run validate:layer-manifest:example",
+    "catalog": "node ./layer-manifest/catalog.mjs",
+    "generate:layer-manifest": "node ./layer-manifest/generate-manifest.mjs --register-solution-prefix solutions/marine/ && node ./layer-manifest/sync-latest-manifest.mjs",
+    "generate:release-layer-manifest": "node ./layer-manifest/build-release-manifest.mjs",
+    "generate:display-cog-release": "node ./layer-manifest/build-display-cog-release.mjs",
+    "generate:species-manifest": "node ./layer-manifest/generate-species-manifest.mjs",
+    "sync:latest-layer-manifest": "node ./layer-manifest/sync-latest-manifest.mjs",
+    "publish:layer-manifest": "node ./layer-manifest/publish-manifest.mjs",
+    "publish:styled-manifest": "node ./layer-manifest/publish-styled-manifest.mjs --publish",
+    "rollback:layer-manifest": "node ./layer-manifest/rollback-manifest.mjs",
+    "upload:species-tifs": "node ./layer-manifest/data-deploy/upload-species-tifs-to-blob.mjs",
+    "upload:species-tifs:manifest": "npm run upload:species-tifs && npm run generate:species-manifest",
+    "upload:solutions-cogs": "node ./layer-manifest/data-deploy/upload-solutions-cogs-to-blob.mjs",
+    "publish:solution-cog-manifest": "node ./layer-manifest/data-deploy/publish-solution-cog-manifest.mjs",
+    "publish:ecosystem-classification-summary": "node ./layer-manifest/data-deploy/ecosystems/publish-classification-summary.mjs",
+    "downloads:build-catalog": "node ./scripts/build-download-catalog.mjs"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.3.3",
+    "firebase": "^12.13.0",
+    "geotiff": "^3.0.5"
+  }
+}

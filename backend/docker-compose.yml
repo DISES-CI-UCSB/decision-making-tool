@@ -7,11 +7,13 @@ services:
       - path: .env
         required: false
     build:
-      context: ..
-      dockerfile: backend/Dockerfile
+      context: .
+      dockerfile: Dockerfile
     environment:
       DMT_ARTIFACT_DIR: ${DMT_ARTIFACT_DIR:-/backend/runtime-artifacts}
       DMT_ARTIFACT_MANIFEST: ${DMT_ARTIFACT_MANIFEST:-/backend/runtime-artifacts/manifest.json}
+      DMT_SIRAP_ARTIFACT_ROOT: ${DMT_SIRAP_ARTIFACT_ROOT:-/backend/runtime-artifacts/sirap}
+      DMT_SPECIES_BITSET_INDEX_URL: ${DMT_SPECIES_BITSET_INDEX_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/runtime-artifacts/species-bitsets/index.json}
       DMT_ARTIFACT_REQUIRED: ${DMT_ARTIFACT_REQUIRED:-true}
       DMT_MESA_COVERAGE_REQUIRED: ${DMT_MESA_COVERAGE_REQUIRED:-false}
       DMT_EXPECTED_COVERAGE_RELEASE_ID: ${DMT_EXPECTED_COVERAGE_RELEASE_ID:-}
@@ -19,6 +21,7 @@ services:
       DMT_SOLUTION_CACHE_DIR: ${DMT_SOLUTION_CACHE_DIR:-/backend/runtime-cache/solutions}
       DMT_CUSTOM_POLYGON_JOB_DB: ${DMT_CUSTOM_POLYGON_JOB_DB:-/backend/runtime-cache/jobs.sqlite3}
       DMT_OPS_TOKEN: ${DMT_OPS_TOKEN:-}
+      DMT_CORS_ORIGINS: ${DMT_CORS_ORIGINS:-}
       DMT_MAX_POLYGON_VERTICES: ${DMT_MAX_POLYGON_VERTICES:-5000}
       DMT_MAX_POLYGON_AREA_KM2: ${DMT_MAX_POLYGON_AREA_KM2:-2200000}
       DMT_RATE_LIMIT_PER_MINUTE: ${DMT_RATE_LIMIT_PER_MINUTE:-30}

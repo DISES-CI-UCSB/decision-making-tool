@@ -1,0 +1,49 @@
+name: Publish to Gitea
+
+# Off until the repository variable GITEA_PUBLISH_ENABLED is set to "true".
+# Needs secrets GITEA_SSH_PRIVATE_KEY (a deploy key with write access to both
+# Gitea repositories) and GITEA_SSH_KNOWN_HOSTS (output of
+# `ssh-keyscan -p 23 gitea.parquesnacionales.gov.co`).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "backend/**"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which repository to publish
+        type: choice
+        options: [all, frontend, backend]
+        default: all
+
+concurrency:
+  group: publish-gitea
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish frontend/ and backend/ to Gitea
+    if: vars.GITEA_PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Gitea SSH access
+        env:
+          GITEA_SSH_PRIVATE_KEY: ${{ secrets.GITEA_SSH_PRIVATE_KEY }}
+          GITEA_SSH_KNOWN_HOSTS: ${{ secrets.GITEA_SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$GITEA_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$GITEA_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Publish
+        run: bash .github/scripts/publish-to-gitea.sh "${{ inputs.target || 'all' }}"

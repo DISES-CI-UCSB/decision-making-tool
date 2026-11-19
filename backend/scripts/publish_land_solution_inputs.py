@@ -29,8 +29,7 @@ from pathlib import Path
 from typing import Any
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = BACKEND_ROOT.parent
-METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
+METRICS_PIPELINE = BACKEND_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
 for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
     if str(_import_root) not in sys.path:
         sys.path.insert(0, str(_import_root))
@@ -62,8 +61,8 @@ from scripts.land_solution_inputs import (  # noqa: E402
 )
 
 SPECIES_GROUPS = ("amphibians", "birds", "mammals", "plants", "reptiles", "threatened")
-DEFAULT_SPECIES_MATRIX_DIR = REPO_ROOT / "data" / "metrics" / "cache" / "sparse" / "matrices-9377"
-DEFAULT_STAGING_DIR = REPO_ROOT / "backend" / "runtime-artifacts" / "publish-staging"
+DEFAULT_SPECIES_MATRIX_DIR = BACKEND_ROOT / "data" / "metrics" / "cache" / "sparse" / "matrices-9377"
+DEFAULT_STAGING_DIR = BACKEND_ROOT / "runtime-artifacts" / "publish-staging"
 
 # Outputs of the 4326 ingestion that are not reprojected onto the land grid.
 # Kept for the audit trail but moved out of ``outputs`` so nothing in the 9377
@@ -85,7 +84,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--species-matrix-dir", type=Path, default=DEFAULT_SPECIES_MATRIX_DIR)
     parser.add_argument("--staging-dir", type=Path, default=DEFAULT_STAGING_DIR)
-    parser.add_argument("--env-file", type=Path, default=REPO_ROOT / ".env.local")
+    parser.add_argument("--env-file", type=Path, default=BACKEND_ROOT / ".env.local")
     parser.add_argument(
         "--dry-run",
         action="store_true",

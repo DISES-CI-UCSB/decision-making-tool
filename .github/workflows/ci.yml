@@ -61,8 +61,8 @@ jobs:
       - name: Verify secrets-probe GET is hidden
         run: yarn test:secrets-probe
 
-      - name: Test and validate layer manifest
-        run: yarn check:layer-manifest
+      - name: Test local preview manifest scripts
+        run: yarn test:manifest-preview
 
       - name: Run Chromium Map Layers smoke
         run: yarn test:browser:map-layers
@@ -92,17 +92,41 @@ jobs:
           cache: pip
           cache-dependency-path: |
             backend/requirements.txt
-            data/metrics/python/requirements.txt
+            backend/data/metrics/python/requirements.txt
 
       - name: Install Python dependencies
-        run: python -m pip install -r requirements.txt -r ../data/metrics/python/requirements.txt
+        run: python -m pip install -r requirements.txt -r data/metrics/python/requirements.txt
 
       - name: Run backend tests
         run: python -m pytest
 
       - name: Run scientific pipeline tests
-        working-directory: data/metrics/python
+        working-directory: backend/data/metrics/python
         run: python -m pytest
+
+  release-tooling:
+    name: Backend layer-manifest release tooling
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install release tooling dependencies
+        run: npm ci
+
+      - name: Test and validate layer manifest
+        run: npm run check:layer-manifest
 
   docker:
     name: Docker image builds
@@ -111,8 +135,8 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Build backend image
-        run: docker build -f backend/Dockerfile -t dmt-backend .
+      - name: Build backend image from backend/ alone
+        run: docker build -t dmt-backend backend
 
       - name: Smoke backend /health and /ready against the tiny fixture
         run: |
@@ -133,5 +157,5 @@ jobs:
           curl -fsS http://127.0.0.1:8000/ready
           docker rm -f dmt-backend
 
-      - name: Build frontend image
-        run: docker build -f frontend/Dockerfile -t dmt-frontend .
+      - name: Build frontend image from frontend/ alone
+        run: docker build -t dmt-frontend frontend

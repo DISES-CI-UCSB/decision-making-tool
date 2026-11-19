@@ -54,8 +54,29 @@ testem.log
 __screenshots__/
 /public/data/solutions/*
 
+# Development-only cache refreshed from the Blob layer manifest.
+/public/data/layer-manifest/manifest.json
+# Species secondary manifest is generated and published to Blob; the app loads it from speciesManifestUrl.
+/public/data/layer-manifest/species.manifest.json
+# Local preview mount for unpublished species-goals artifacts.
+/public/releases/
+# Development-only goals previews generated from published summary CSVs.
+/public/data/metrics/goals/
+
+# Feature test system (generated)
+node_modules/
+.test-cache/
+.test-results/
+playwright-report/
+test-results/
+
+# Key material
+*_service_account_key.json
+*firebase-adminsdk*.json
+
 # System files
 .DS_Store
 Thumbs.db
 .vercel
+.env
 .env*.local

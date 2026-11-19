@@ -20,7 +20,7 @@ def _install_metrics_pipeline_path() -> None:
     if configured:
         candidates.append(Path(configured))
     candidates.append(
-        Path(__file__).resolve().parents[2]
+        Path(__file__).resolve().parents[1]
         / "data"
         / "metrics"
         / "python"

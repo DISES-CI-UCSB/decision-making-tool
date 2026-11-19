@@ -22,8 +22,8 @@ def _install_metrics_pipeline_path() -> Path:
     if configured_path:
         candidates.append(Path(configured_path))
 
-    repo_root = Path(__file__).resolve().parents[2]
-    candidates.append(repo_root / "data" / "metrics" / "python" / "metrics_pipeline")
+    backend_root = Path(__file__).resolve().parents[1]
+    candidates.append(backend_root / "data" / "metrics" / "python" / "metrics_pipeline")
 
     for candidate in candidates:
         if (candidate / "sparse" / "format.py").exists():

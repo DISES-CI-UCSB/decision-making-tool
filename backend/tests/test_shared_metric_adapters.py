@@ -17,7 +17,7 @@ from app.metric_adapters import (
 )
 from calculators.area import national_contribution_pct, selected_area_km2
 
-FIXTURE_DIR = Path(__file__).resolve().parents[2] / "data" / "metrics" / "fixtures"
+FIXTURE_DIR = Path(__file__).resolve().parents[1] / "data" / "metrics" / "fixtures"
 
 
 def load_fixture(name: str) -> dict:

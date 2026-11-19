@@ -22,11 +22,10 @@ from rasterio.enums import Resampling
 from rasterio.warp import reproject
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = BACKEND_ROOT.parent
 METRICS_PIPELINE = Path(
     os.getenv(
         "DMT_METRICS_PIPELINE_PATH",
-        str(REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"),
+        str(BACKEND_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"),
     )
 )
 for _import_root in (BACKEND_ROOT, METRICS_PIPELINE):
@@ -54,7 +53,7 @@ from scripts.build_runtime_artifact import (  # noqa: E402
 
 PUBLIC_BLOB_HOST = "https://aagibolq28slyfof.public.blob.vercel-storage.com"
 DEFAULT_RELEASE_ID = "sirap-2026-09-02-v6"
-DEFAULT_ARTIFACT_DIR = REPO_ROOT / "backend" / "runtime-artifacts" / "sirap"
+DEFAULT_ARTIFACT_DIR = BACKEND_ROOT / "runtime-artifacts" / "sirap"
 SUPPORTED_SIRAP_IDS = {
     "eje-cafetero": 40,
     "orinoquia": 16,

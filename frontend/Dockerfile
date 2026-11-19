@@ -1,5 +1,3 @@
-# Build context is the repository root so `build:vercel` can sync
-# `data/solutions` and `data/boundaries`. Vercel still uses `frontend/` only.
 FROM node:22-bookworm-slim AS build
 
 WORKDIR /src
@@ -40,22 +38,19 @@ ENV FIREBASE_API_KEY=$FIREBASE_API_KEY \
     METRICS_API_BASE_URL=$METRICS_API_BASE_URL \
     ENABLE_MANIFEST_EDITOR=$ENABLE_MANIFEST_EDITOR
 
-COPY frontend/package.json frontend/yarn.lock frontend/.yarnrc.yml frontend/
-COPY frontend/.yarn/releases frontend/.yarn/releases
-RUN cd frontend && corepack enable && yarn install --immutable
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn/releases .yarn/releases
+RUN corepack enable && yarn install --immutable
 
-COPY frontend/ frontend/
-COPY data/solutions/nacional/ data/solutions/nacional/
-COPY data/boundaries/sirap_regions.geojson data/boundaries/sirap_regions.geojson
+COPY . .
 
-WORKDIR /src/frontend
 RUN yarn build:vercel \
     && test -f dist/eco-plan/browser/index.html
 
 FROM nginx:1.27-alpine AS runtime
 
-COPY frontend/docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
-COPY --from=build /src/frontend/dist/eco-plan/browser /usr/share/nginx/html
+COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /src/dist/eco-plan/browser /usr/share/nginx/html
 
 RUN sed -i '/^user /d' /etc/nginx/nginx.conf \
     && mkdir -p /var/cache/nginx /var/run \

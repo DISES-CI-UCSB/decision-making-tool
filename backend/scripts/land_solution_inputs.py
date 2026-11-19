@@ -43,8 +43,7 @@ from pathlib import Path
 import rasterio
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = BACKEND_ROOT.parent
-METRICS_PIPELINE = REPO_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
+METRICS_PIPELINE = BACKEND_ROOT / "data" / "metrics" / "python" / "metrics_pipeline"
 if str(METRICS_PIPELINE) not in sys.path:
     sys.path.insert(0, str(METRICS_PIPELINE))
 
