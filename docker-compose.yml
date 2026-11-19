@@ -1,5 +1,0 @@
-# Runs both halves together on one Compose network. Each included file resolves its
-# paths and its .env from its own folder, exactly as it does when run alone.
-include:
-  - backend/docker-compose.yml
-  - frontend/docker-compose.yml

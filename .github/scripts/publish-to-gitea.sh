@@ -9,7 +9,7 @@
 set -euo pipefail
 
 GITEA_SSH_BASE="${GITEA_SSH_BASE:-ssh://git@gitea.parquesnacionales.gov.co:23/priorizando-naturaleza}"
-GITEA_BRANCH="${GITEA_BRANCH:-master}"
+GITEA_BRANCH="${GITEA_BRANCH:-test}"
 SOURCE_REF="${SOURCE_REF:-HEAD}"
 
 target="${1:-all}"

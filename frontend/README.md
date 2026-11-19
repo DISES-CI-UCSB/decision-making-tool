@@ -15,7 +15,6 @@ Dashboard numbers for **known** areas (national, departments, municipalities, an
 | `public/data/layer-manifest/` | Development-only copy of the published Blob layer manifest (ignored by Git) |
 | `scripts/manifest/` | Downloads and checks that local preview copy |
 | `scripts/config/` | Writes the production environment file from build-time variables |
-| `docker/`, `Dockerfile`, `docker-compose.yml` | The frontend container (nginx serving the built app) |
 | `feature-tests/` | Feature Behavior Tests, test runner, and test catalog (own `package.json`) |
 | `docs/` | Product design docs, mockup notes, and team feedback |
 | `firestore.rules`, `firebase.json` | Firestore security rules and their emulator config |
@@ -53,9 +52,9 @@ Open `http://localhost:4200/`. Firebase Auth is tied to `localhost`; `127.0.0.1`
 
 ## Configuration
 
-Copy `.env.example` → `.env` (Docker) or `.env.production.local` (`yarn build:vercel`). Every value is optional; empty values keep the committed production Firebase config and catalog defaults.
+Copy `.env.example` → `.env.production.local` for local builds; in CI, set the same names as build variables. Every value is optional; empty values keep the committed production Firebase config and catalog defaults.
 
-**Which catalog the app shows** is one pointer: `CATALOG_RELEASE_INDEX_BLOB_URL` for Docker and Vercel builds, and `catalogReleaseIndexBlobUrl` in `src/environments/environment.ts` for `yarn start`. Keep the two in sync unless you are deliberately previewing another catalog. The backend repository publishes the catalogs and explains how they fit together ("What 'the catalog' is" in its README).
+**Which catalog the app shows** is one pointer: `CATALOG_RELEASE_INDEX_BLOB_URL` for production builds, and `catalogReleaseIndexBlobUrl` in `src/environments/environment.ts` for `yarn start`. Keep the two in sync unless you are deliberately previewing another catalog. The backend repository publishes the catalogs and explains how they fit together ("What 'the catalog' is" in its README).
 
 **Known exception:** if a catalog release introduces a layer ID the left sidebar hasn't seen before, also update `LAYER_ID_SYNONYM_GROUPS` in `src/app/features/left-sidebar/map-layers-panel/map-layers-panel.utils.ts`. That alias table is hardcoded, not manifest-driven.
 
@@ -85,32 +84,17 @@ A few download tests start a local Metrics API. They expect the backend checkout
 yarn build:vercel
 ```
 
-This writes the production environment file from build-time variables, then runs `ng build` into `dist/eco-plan/browser/`. `METRICS_API_BASE_URL` points custom-polygon requests at the Metrics API. If it is omitted, production uses the same-origin `/metrics-api` path, which Vercel rewrites and the Docker image proxies.
-
-## Docker
-
-```bash
-docker compose up --build
-```
-
-Or without Compose:
-
-```bash
-docker build -t dmt-frontend .
-docker run --rm -p 8080:8080 -e METRICS_API_UPSTREAM=http://host.docker.internal:8000 dmt-frontend
-```
-
-Open `http://localhost:8080/`. nginx serves the app and proxies `/metrics-api/` to `METRICS_API_UPSTREAM` (this one can change without rebuilding). Its default, `http://backend:8000`, only resolves on a Compose network that also runs the backend; otherwise set it to the backend's URL. Firebase and manifest URLs are build-time args read from `.env`.
-
-The Docker image disables the Vercel-only manifest editor (`ENABLE_MANIFEST_EDITOR=false`).
+This writes the production environment file from build-time variables, then runs `ng build` into `dist/eco-plan/browser/`. `METRICS_API_BASE_URL` points custom-polygon requests at the Metrics API's full origin (for example `https://test-priorizandolanaturaleza-api.parquesnacionales.gov.co`). The backend must list this app's origin in its `DMT_CORS_ORIGINS`. If `METRICS_API_BASE_URL` is omitted, production uses the same-origin `/metrics-api` path, which only Vercel rewrites (`vercel.json`).
 
 ## Deployment
 
-Vercel auto-deploys this folder on push (`vercel.json`, `.vercelignore`). The Docker image above is the self-host path.
+The frontend is a static site, not a container. Any CI/CD pipeline needs only:
 
-```bash
-docker build --platform linux/amd64 -t dmt-frontend:amd64 .
-```
+1. `yarn install --immutable` (Node.js 22, Yarn 4 through Corepack; `yarn.lock` is committed)
+2. `yarn build:vercel` with the build variables from `.env.example` set in the environment
+3. Serve `dist/eco-plan/browser/` as static files, answering every unknown path with `index.html` (the app does client-side routing)
+
+Vercel does this automatically on push (`vercel.json`, `.vercelignore`).
 
 ## Git hooks
 

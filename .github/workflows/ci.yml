@@ -129,7 +129,7 @@ jobs:
         run: npm run check:layer-manifest
 
   docker:
-    name: Docker image builds
+    name: Backend Docker image build
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -156,6 +156,3 @@ jobs:
           curl -fsS http://127.0.0.1:8000/health
           curl -fsS http://127.0.0.1:8000/ready
           docker rm -f dmt-backend
-
-      - name: Build frontend image from frontend/ alone
-        run: docker build -t dmt-frontend frontend

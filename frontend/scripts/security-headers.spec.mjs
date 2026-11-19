@@ -42,22 +42,4 @@ describe('baseline HTTP security headers (SEC-06)', () => {
       'strict Content-Security-Policy stays deferred so ArcGIS, Firebase, and Blob keep working',
     );
   });
-
-  it('sets the same baseline headers on the Docker Nginx template without a CSP', () => {
-    const nginxConfig = readFrontendFile('docker/nginx/default.conf.template');
-
-    for (const [name, value] of Object.entries(REQUIRED_HEADERS)) {
-      assert.match(
-        nginxConfig,
-        new RegExp(`add_header ${name} "${value}" always;`),
-        `Nginx template is missing ${name}: ${value}`,
-      );
-    }
-
-    assert.doesNotMatch(
-      nginxConfig,
-      /add_header Content-Security-Policy/,
-      'strict Content-Security-Policy stays deferred so ArcGIS, Firebase, and Blob keep working',
-    );
-  });
 });

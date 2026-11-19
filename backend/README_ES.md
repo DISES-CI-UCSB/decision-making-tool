@@ -63,7 +63,7 @@ docker compose up -d --build
 
 Hydrate sin flags usa la grilla de solución terrestre EPSG:9377. Flags opcionales: `--production-v3` (build de producción Mesa / inmutable) y `--reference-grid ecosistemas` (EPSG:4326 legado).
 
-**Conectar el frontend:** el contenedor del frontend hace proxy de `/metrics-api/` hacia su `METRICS_API_UPSTREAM`. Apúntalo a la URL de esta API, **o** integra en el build del frontend `METRICS_API_BASE_URL` con el origen completo de esta API y agrega el origen del frontend en `DMT_CORS_ORIGINS` aquí.
+**Conectar el frontend:** el frontend es un sitio estático compilado con `METRICS_API_BASE_URL` igual al origen completo de esta API. Los navegadores llaman entonces directamente a esta API, así que agrega el origen del frontend en `DMT_CORS_ORIGINS` aquí (para el entorno de pruebas: `DMT_CORS_ORIGINS=https://test-priorizandolanaturaleza.parquesnacionales.gov.co`).
 
 ## Qué es "el catálogo"
 

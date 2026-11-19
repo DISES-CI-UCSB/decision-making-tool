@@ -15,7 +15,6 @@ Los números del panel para áreas **conocidas** (nacional, departamentos, munic
 | `public/data/layer-manifest/` | Copia local, solo de desarrollo, del manifiesto de capas publicado (ignorada por Git) |
 | `scripts/manifest/` | Descarga y revisa esa copia local |
 | `scripts/config/` | Escribe el archivo de entorno de producción a partir de variables de build |
-| `docker/`, `Dockerfile`, `docker-compose.yml` | El contenedor del frontend (nginx sirviendo la app compilada) |
 | `feature-tests/` | Pruebas de comportamiento (Feature Behavior Tests), su ejecutor y su catálogo (con su propio `package.json`) |
 | `docs/` | Documentos de diseño de producto, notas de maquetas y retroalimentación |
 | `firestore.rules`, `firebase.json` | Reglas de seguridad de Firestore y su configuración de emulador |
@@ -53,9 +52,9 @@ Los polígonos personalizados pasan por `proxy.conf.json` hacia la API de métri
 
 ## Configuración
 
-Copia `.env.example` → `.env` (Docker) o `.env.production.local` (`yarn build:vercel`). Todos los valores son opcionales; los vacíos mantienen la configuración de Firebase de producción registrada y los catálogos por defecto.
+Copia `.env.example` → `.env.production.local` para builds locales; en CI, define los mismos nombres como variables de compilación. Todos los valores son opcionales; los vacíos mantienen la configuración de Firebase de producción registrada y los catálogos por defecto.
 
-**Qué catálogo muestra la app** es un solo puntero: `CATALOG_RELEASE_INDEX_BLOB_URL` para builds de Docker y Vercel, y `catalogReleaseIndexBlobUrl` en `src/environments/environment.ts` para `yarn start`. Mantenlos sincronizados. El repositorio backend publica los catálogos y explica cómo encajan ("Qué es 'el catálogo'" en su README).
+**Qué catálogo muestra la app** es un solo puntero: `CATALOG_RELEASE_INDEX_BLOB_URL` para builds de producción, y `catalogReleaseIndexBlobUrl` en `src/environments/environment.ts` para `yarn start`. Mantenlos sincronizados. El repositorio backend publica los catálogos y explica cómo encajan ("Qué es 'el catálogo'" en su README).
 
 **Excepción conocida:** si un lanzamiento introduce un ID de capa que la barra lateral izquierda no conoce, actualiza también `LAYER_ID_SYNONYM_GROUPS` en `src/app/features/left-sidebar/map-layers-panel/map-layers-panel.utils.ts`. Esa tabla de alias está codificada a mano.
 
@@ -85,26 +84,17 @@ Algunas pruebas de descargas inician una API de métricas local. Esperan el chec
 yarn build:vercel
 ```
 
-Escribe el archivo de entorno de producción y corre `ng build` hacia `dist/eco-plan/browser/`. `METRICS_API_BASE_URL` apunta las solicitudes de polígonos a la API de métricas; si se omite, producción usa la ruta `/metrics-api` del mismo origen, que Vercel reescribe y la imagen Docker redirige.
-
-## Docker
-
-```bash
-docker compose up --build
-```
-
-O sin Compose:
-
-```bash
-docker build -t dmt-frontend .
-docker run --rm -p 8080:8080 -e METRICS_API_UPSTREAM=http://host.docker.internal:8000 dmt-frontend
-```
-
-Abre `http://localhost:8080/`. nginx sirve la app y hace proxy de `/metrics-api/` hacia `METRICS_API_UPSTREAM` (se puede cambiar sin reconstruir). Su valor por defecto, `http://backend:8000`, solo funciona en una red Compose que también corre el backend; si no, apúntalo a la URL del backend.
+Escribe el archivo de entorno de producción y corre `ng build` hacia `dist/eco-plan/browser/`. `METRICS_API_BASE_URL` apunta las solicitudes de polígonos a la API de métricas; si se omite, producción usa la ruta `/metrics-api` del mismo origen, que solo Vercel reescribe (`vercel.json`). Usa el origen completo de la API (por ejemplo `https://test-priorizandolanaturaleza-api.parquesnacionales.gov.co`); el backend debe listar el origen de esta app en su `DMT_CORS_ORIGINS`.
 
 ## Despliegue
 
-Vercel despliega esta carpeta automáticamente en cada push (`vercel.json`, `.vercelignore`). La imagen Docker es la ruta de auto-hospedaje.
+El frontend es un sitio estático, no un contenedor. Un pipeline de CI/CD solo necesita:
+
+1. `yarn install --immutable` (Node.js 22, Yarn 4 mediante Corepack; `yarn.lock` está registrado en Git)
+2. `yarn build:vercel` con las variables de compilación de `.env.example` definidas en el entorno
+3. Servir `dist/eco-plan/browser/` como archivos estáticos, respondiendo `index.html` a cualquier ruta desconocida (la app usa enrutamiento del lado del cliente)
+
+Vercel lo hace automáticamente en cada push (`vercel.json`, `.vercelignore`).
 
 ## Hooks de Git
 

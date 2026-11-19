@@ -63,7 +63,7 @@ docker compose up -d --build
 
 Flagless hydrate uses the EPSG:9377 land-solution grid. Optional hydrate flags: `--production-v3` (Mesa / immutable production build) and `--reference-grid ecosistemas` (legacy EPSG:4326).
 
-**Connecting the frontend:** the frontend container proxies `/metrics-api/` to its `METRICS_API_UPSTREAM`. Point that at this API's URL, **or** bake the frontend's `METRICS_API_BASE_URL` to this API's full origin and list the frontend's origin in `DMT_CORS_ORIGINS` here.
+**Connecting the frontend:** the frontend is a static site built with `METRICS_API_BASE_URL` set to this API's full origin. Browsers then call this API directly, so list the frontend's origin in `DMT_CORS_ORIGINS` here (for the test environment: `DMT_CORS_ORIGINS=https://test-priorizandolanaturaleza.parquesnacionales.gov.co`).
 
 Hydrate only needs outbound HTTPS to public Blob. A write token is for publishing later.
 
