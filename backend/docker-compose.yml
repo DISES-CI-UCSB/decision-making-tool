@@ -25,8 +25,8 @@ services:
       DMT_MAX_POLYGON_VERTICES: ${DMT_MAX_POLYGON_VERTICES:-5000}
       DMT_MAX_POLYGON_AREA_KM2: ${DMT_MAX_POLYGON_AREA_KM2:-2200000}
       DMT_RATE_LIMIT_PER_MINUTE: ${DMT_RATE_LIMIT_PER_MINUTE:-30}
-      MANIFEST_BLOB_URL: ${MANIFEST_BLOB_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-2-0/manifest.json}
-      DMT_MANIFEST_URL: ${DMT_MANIFEST_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-2-0/manifest.json}
+      MANIFEST_BLOB_URL: ${MANIFEST_BLOB_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json}
+      DMT_MANIFEST_URL: ${DMT_MANIFEST_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json}
     ports:
       - "8000:8000"
     volumes:

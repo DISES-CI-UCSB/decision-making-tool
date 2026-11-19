@@ -6,7 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DMT_METRICS_PIPELINE_PATH=/metrics_pipeline \
     DMT_RELEASE_SPECS_DIR=/data/metrics/release-specs \
     DMT_ARTIFACT_DIR=/backend/runtime-artifacts \
-    DMT_CORS_ORIGINS=https://test-priorizandolanaturaleza.parquesnacionales.gov.co
+    DMT_CORS_ORIGINS=https://test-priorizandolanaturaleza.parquesnacionales.gov.co \
+    MANIFEST_BLOB_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json \
+    DMT_MANIFEST_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json
 
 WORKDIR /backend
 
