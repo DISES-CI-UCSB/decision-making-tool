@@ -21,7 +21,7 @@ services:
       DMT_SOLUTION_CACHE_DIR: ${DMT_SOLUTION_CACHE_DIR:-/backend/runtime-cache/solutions}
       DMT_CUSTOM_POLYGON_JOB_DB: ${DMT_CUSTOM_POLYGON_JOB_DB:-/backend/runtime-cache/jobs.sqlite3}
       DMT_OPS_TOKEN: ${DMT_OPS_TOKEN:-}
-      DMT_CORS_ORIGINS: ${DMT_CORS_ORIGINS:-}
+      DMT_CORS_ORIGINS: ${DMT_CORS_ORIGINS:-https://test-priorizandolanaturaleza.parquesnacionales.gov.co}
       DMT_MAX_POLYGON_VERTICES: ${DMT_MAX_POLYGON_VERTICES:-5000}
       DMT_MAX_POLYGON_AREA_KM2: ${DMT_MAX_POLYGON_AREA_KM2:-2200000}
       DMT_RATE_LIMIT_PER_MINUTE: ${DMT_RATE_LIMIT_PER_MINUTE:-30}

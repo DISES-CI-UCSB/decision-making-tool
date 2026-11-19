@@ -5,7 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/backend \
     DMT_METRICS_PIPELINE_PATH=/metrics_pipeline \
     DMT_RELEASE_SPECS_DIR=/data/metrics/release-specs \
-    DMT_ARTIFACT_DIR=/backend/runtime-artifacts
+    DMT_ARTIFACT_DIR=/backend/runtime-artifacts \
+    DMT_CORS_ORIGINS=https://test-priorizandolanaturaleza.parquesnacionales.gov.co
 
 WORKDIR /backend
 
