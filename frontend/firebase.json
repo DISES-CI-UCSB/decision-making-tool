@@ -10,5 +10,18 @@
     "ui": {
       "enabled": false
     }
-  }
+  },
+  "hosting": [
+    {
+      "target": "test",
+      "public": "dist/eco-plan/browser",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ]
 }

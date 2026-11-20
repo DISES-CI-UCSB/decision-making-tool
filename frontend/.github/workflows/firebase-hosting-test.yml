@@ -1,0 +1,41 @@
+name: Deploy to test environment
+
+on:
+  push:
+    branches:
+      - test
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      job-status: ${{ job.status }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+      - name: Enable Corepack
+        run: corepack enable
+      - run: yarn install --immutable
+      - run: yarn build:test
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        continue-on-error: true
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_CO_PARQUESNACIONALES_CLD_01A }}'
+          channelId: live
+          projectId: co-parquesnacionales-cld-01a
+          target: test
+
+  notify:
+    needs: build-deploy
+    if: always()
+    uses: parquesnacionales/actions/.github/workflows/slack-notification.yml@master
+    with:
+      deploy-job-status: ${{ needs.build-deploy.outputs.job-status }}
+      env-name: pruebas
+      url: https://test-priorizandolanaturaleza.parquesnacionales.gov.co
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

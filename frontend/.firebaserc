@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "co-parquesnacionales-cld-01a"
+  },
+  "targets": {
+    "co-parquesnacionales-cld-01a": {
+      "hosting": {
+        "test": [
+          "test-priorizandolanaturaleza"
+        ]
+      }
+    }
+  }
+}

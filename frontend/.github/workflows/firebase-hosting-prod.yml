@@ -1,0 +1,40 @@
+name: Deploy to production environment
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      job-status: ${{ job.status }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '24'
+          cache: 'yarn'
+      - run: yarn install
+      - run: yarn build:prod
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        continue-on-error: true
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_CO_PARQUESNACIONALES_CLD_01A }}'
+          channelId: live
+          projectId: co-parquesnacionales-cld-01a
+          target: prod
+
+  notify:
+    needs: build-deploy
+    if: always()
+    uses: parquesnacionales/actions/.github/workflows/slack-notification.yml@master
+    with:
+      deploy-job-status: ${{ needs.build-deploy.outputs.job-status }}
+      env-name: producción
+      url: https://priorizandolanaturaleza.parquesnacionales.gov.co
+    secrets:
+      slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
