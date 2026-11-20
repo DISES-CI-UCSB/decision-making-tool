@@ -6,6 +6,10 @@
 # `git subtree split` is deterministic, so each publish is a fast-forward of the previous one.
 # The push never forces: a rejected push means Gitea has commits that did not come from here,
 # and someone must reconcile them by hand.
+#
+# Fetch first. A join commit in this repo records the Gitea tip as `git-subtree-split`.
+# That object lives on Gitea, not in the GitHub history, and the split fails closed if it
+# cannot resolve the recorded hash.
 set -euo pipefail
 
 GITEA_SSH_BASE="${GITEA_SSH_BASE:-ssh://git@gitea.parquesnacionales.gov.co:23/priorizando-naturaleza}"
@@ -22,9 +26,12 @@ case "$target" in
 esac
 
 for side in "${sides[@]}"; do
+  remote_url="$GITEA_SSH_BASE/$side.git"
+  echo "Fetching $side ($GITEA_BRANCH) from $remote_url..."
+  git fetch "$remote_url" "+refs/heads/$GITEA_BRANCH:refs/remotes/gitea-$side/$GITEA_BRANCH"
+
   echo "Splitting $side/ from $SOURCE_REF..."
   split_commit="$(git subtree split --prefix="$side" "$SOURCE_REF")"
-  remote_url="$GITEA_SSH_BASE/$side.git"
 
   if [[ "$dry_run" == "--dry-run" ]]; then
     echo "Dry run: would push $split_commit to $remote_url ($GITEA_BRANCH)"
