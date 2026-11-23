@@ -1,0 +1,38 @@
+steps:
+  - id: "initialization"
+    name: "technosophos/slack-notify"
+    env:
+      - 'SLACK_WEBHOOK=$_SLACK_WEBHOOK'
+      - 'SLACK_CHANNEL=$_SLACK_CHANNEL'
+      - 'SLACK_MESSAGE=Iniciando el despliegue del back-end de $_APPLICATION_LABEL (ambiente de $_ENVIRONMENT_LABEL, commit: $COMMIT_SHA)...'
+
+  # Build with caching
+  - id: "docker-build"
+    name: "gcr.io/kaniko-project/executor:latest"
+    args:
+      - --dockerfile=$_DOCKERFILE_DIR$_DOCKERFILE_NAME
+      - --destination=$_REGISTRY_DOMAIN/$PROJECT_ID/$_ENVIRONMENT/$_DEPLOYMENT_NAME:$COMMIT_SHA
+      - --destination=$_REGISTRY_DOMAIN/$PROJECT_ID/$_ENVIRONMENT/$_DEPLOYMENT_NAME:latest
+      - --cache=true
+      - --cache-repo=$_REGISTRY_DOMAIN/$PROJECT_ID/cache/$_DEPLOYMENT_NAME
+      - --cache-ttl=720h
+
+  - id: "gke-deploy"
+    name: "gcr.io/cloud-builders/kubectl"
+    args: ['set', 'image', 'deployment/$_ENVIRONMENT-$_DEPLOYMENT_NAME', '$_ENVIRONMENT-$_DEPLOYMENT_NAME=$_REGISTRY_DOMAIN/$PROJECT_ID/$_ENVIRONMENT/$_DEPLOYMENT_NAME:$COMMIT_SHA']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=$_GKE_LOCATION'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=$_GKE_CLUSTER'
+
+  - id: "ending"
+    name: "technosophos/slack-notify"
+    env:
+      - 'SLACK_WEBHOOK=$_SLACK_WEBHOOK'
+      - 'SLACK_CHANNEL=$_SLACK_CHANNEL'
+      - 'SLACK_MESSAGE=Finalizó el despliegue del back-end de $_APPLICATION_LABEL (ambiente de $_ENVIRONMENT_LABEL, commit: $COMMIT_SHA)'
+
+timeout: 1200s
+
+tags:
+  - gcp-cloud-build-deploy
+  - $_ENVIRONMENT-$_DEPLOYMENT_NAME
