@@ -63,10 +63,20 @@ SIRAP_SPECIES_GOALS_COVERAGE_POLICY = {
     "areaScale": "regional-grid-cell-area-km2",
     "nationalRange": "catalog-nationalRangeKm2",
 }
-DEFAULT_TERRESTRIAL_TEMPLATE_PATH = (
-    Path(__file__).resolve().parents[4]
-    / "data/metrics/cache/mesa-v3/parity-inputs/template_terrestre.tif"
-)
+def _default_terrestrial_template_path() -> Path:
+    """Repo-local MESA template when the pipeline lives under data/metrics.
+
+    Docker copies this module to /metrics_pipeline, which is too shallow for
+    parents[4]. Return a non-existent path there; callers already check is_file().
+    """
+    try:
+        backend_root = Path(__file__).resolve().parents[4]
+    except IndexError:
+        return Path("/nonexistent/mesa-v3/parity-inputs/template_terrestre.tif")
+    return backend_root / "data/metrics/cache/mesa-v3/parity-inputs/template_terrestre.tif"
+
+
+DEFAULT_TERRESTRIAL_TEMPLATE_PATH = _default_terrestrial_template_path()
 CATALOG_DIRECTORY = Path("species-goals/catalog/v1")
 COMPACT_DIRECTORY = Path("species-goals/compact/v1")
 CATALOG_ROW_LAYOUT = (

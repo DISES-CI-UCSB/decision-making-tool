@@ -35,7 +35,20 @@ TARGET_DIMENSIONS = (
 STRATEGIC_ECOSYSTEM_FEATURE_IDS = frozenset(
     {"paramos", "bosque_seco", "humedales", "wetlands", "manglares"}
 )
-MARINE_METADATA_DIRECTORY = Path(__file__).resolve().parents[3] / "solutions" / "marine"
+def _marine_metadata_directory() -> Path:
+    """Repo-local marine solution metadata when the pipeline lives under data/metrics.
+
+    Docker copies this module to /metrics_pipeline, which is too shallow for
+    parents[3]. Return a non-existent path there; this release CLI runs from the repo.
+    """
+    try:
+        metrics_root = Path(__file__).resolve().parents[3]
+    except IndexError:
+        return Path("/nonexistent/solutions/marine")
+    return metrics_root / "solutions" / "marine"
+
+
+MARINE_METADATA_DIRECTORY = _marine_metadata_directory()
 MARINE_TARGET_FEATURE_SET = "marine_ecosystems_and_mangroves"
 MARINE_TARGET_PERCENTS = frozenset({30, 50})
 MARINE_FEATURE_LAYER_IDS = {

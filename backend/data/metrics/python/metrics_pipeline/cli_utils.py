@@ -11,16 +11,22 @@ from local_io import DEFAULT_OUTPUT_DIR
 BLOB_TOKEN_ENV_VAR = "BLOB_READ_WRITE_TOKEN"
 _URL_RE = re.compile(r"https://\S+")
 _BACKEND_ROOT_MARKER = Path("data/metrics/python/metrics_pipeline")
-_BACKEND_ROOT = Path(__file__).resolve().parents[4]
 
 
 def find_repo_root(start: Path | None = None) -> Path:
-    """Return the backend repository root, which holds data/, layer-manifest/, and app/."""
+    """Return the backend repository root, which holds data/, layer-manifest/, and app/.
+
+    Searches upward from ``start`` (default: cwd), then from this module. Docker copies
+    this module to /metrics_pipeline, outside any backend tree, so neither search may
+    match there; fall back to the starting directory.
+    """
     current = (start or Path.cwd()).resolve()
-    for candidate in [current, *current.parents]:
-        if (candidate / _BACKEND_ROOT_MARKER).is_dir():
-            return candidate
-    return _BACKEND_ROOT
+    module_directory = Path(__file__).resolve().parent
+    for origin in (current, module_directory):
+        for candidate in [origin, *origin.parents]:
+            if (candidate / _BACKEND_ROOT_MARKER).is_dir():
+                return candidate
+    return current
 
 
 def load_env_value(repo_root: Path, key: str) -> str | None:
