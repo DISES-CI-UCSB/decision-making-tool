@@ -48,6 +48,9 @@
         "//test:browser-live": "Runs live browser tests against real services, with one retry. *.live.spec.ts tests open the deployed web app at https://decision-making-tool-tau.vercel.app (set DMT_TEST_APP_URL to test a preview deployment or a page server you started yourself). *.live-local.spec.ts tests, such as the sign-in tests FBT-009 to FBT-011, start this checkout's app locally with ng serve --configuration e2e, which adds the Test Sign-In Hook; they need frontend dependencies installed.",
         "test:browser-live": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-live",
 
+        "//test:wait-for-deploy": "Waits until the deployed site's /version.json reports the newest gitea-frontend test commit (or DMT_EXPECTED_COMMIT). Run it before live tests aimed at the GTIC test site.",
+        "test:wait-for-deploy": "node scripts/wait-for-deployed-build.mjs",
+
         "//test:browser-all": "Runs both browser modes (deterministic and live).",
         "test:browser-all": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/test-runner.ts browser-all",
 

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 
+import { PrivateLayerFileService } from '@core/services/private-layer-file.service';
 import { SolutionCatalogService } from '@core/services/solution-catalog.service';
 import type {
   LoadedSolution,
@@ -39,6 +40,7 @@ function toPositiveInteger(value: unknown): number | null {
 @Injectable({ providedIn: 'root' })
 export class GeoTiffLoaderService {
   private readonly catalog = inject(SolutionCatalogService);
+  private readonly privateFiles = inject(PrivateLayerFileService);
   private readonly fallbackWidth = 1200;
   private readonly fallbackHeight = 800;
   private readonly fallbackBbox: [number, number, number, number] = [-79.0, -4.5, -66.0, 13.5];
@@ -56,7 +58,7 @@ export class GeoTiffLoaderService {
     const url = getSolutionRasterDataUrl(solution);
 
     try {
-      const response = await fetch(url);
+      const response = await this.privateFiles.fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to fetch ${url}: ${response.status}`);
       }
@@ -168,7 +170,7 @@ export class GeoTiffLoaderService {
   }
 
   private async countValidCellsFromRasterUrl(url: string): Promise<number> {
-    const response = await fetch(url);
+    const response = await this.privateFiles.fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch ${url}: ${response.status}`);
     }

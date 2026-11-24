@@ -6,5 +6,13 @@
     "pathRewrite": {
       "^/metrics-api": ""
     }
+  },
+  "/private-files": {
+    "target": "https://storage.googleapis.com",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/private-files": "/pnn-priorizando-la-naturaleza"
+    }
   }
 }

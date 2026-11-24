@@ -57,6 +57,8 @@ export interface LayerControlRow {
   mapUnavailable?: boolean;
   hideAddButton?: boolean;
   metadataUrl?: string | null;
+  /** The layer's source file as the Runtime Catalog lists it; a Private Layer Bucket address needs a signed link. */
+  downloadUrl?: string | null;
   mapSync?: MapSyncDescriptor;
 }
 
@@ -257,6 +259,7 @@ function buildManifestRow(
     hasColorControl: rendering.renderMode !== 'categorical',
     mapUnavailable: !isLiveRenderable,
     metadataUrl: manifestRow.metadataUrl,
+    downloadUrl: manifestRowDownloadUrl(manifestRow),
     mapSync:
       isLiveRenderable && displayUrl
         ? {
@@ -439,6 +442,7 @@ function applyManifestToManagementOverlay(
       ...existingOverlay,
       name: manifestRow.name,
       mapUnavailable: true,
+      downloadUrl: manifestRowDownloadUrl(manifestRow),
       mapSync: undefined,
     };
   }
@@ -467,6 +471,7 @@ function applyManifestToManagementOverlay(
     hasStyleControls: true,
     mapUnavailable: false,
     metadataUrl: manifestRow.metadataUrl,
+    downloadUrl: manifestRowDownloadUrl(manifestRow),
     mapSync: {
       type: 'manifest-raster',
       layerId: existingOverlay.id,
@@ -584,6 +589,10 @@ function manifestRowFallbackColor(sidebarGroupId: string, index: number): string
     return palette?.fallbackColor ?? '#475569';
   }
   return palette.colors[index % palette.colors.length] ?? palette.fallbackColor;
+}
+
+function manifestRowDownloadUrl(row: ManifestSidebarLayerRow): string | null {
+  return row.displayUrl || row.displayCogUrl || null;
 }
 
 function isManifestRowLiveRenderable(row: ManifestSidebarLayerRow): boolean {

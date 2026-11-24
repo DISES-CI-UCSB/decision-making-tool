@@ -10,7 +10,7 @@ The Metrics API is ready when the release tests pass against the new host:
 DMT_TEST_SERVICE_URL=https://<api-host> npm run test:gate
 ```
 
-Terms follow the [architecture glossary](../../../../architecture/glossary.md). The Private Layer Bucket is the Google Cloud Storage (GCS) bucket `pnn-priorizando-la-naturaleza`. The Download Catalog is the server-side list of file keys the service may sign.
+Terms follow the [architecture glossary](../../../../architecture/glossary.md). The Private Layer Bucket is the Google Cloud Storage (GCS) bucket `pnn-priorizando-la-naturaleza`. The Signable File Registry (formerly "Download Catalog") is the server-side list of file keys the service may sign, each tagged national or one SIRAP region. The Runtime Catalog is the published JSON the web app loads to find its files. The registry's file name, `download-catalog.json`, and its setting, `DMT_DOWNLOAD_CATALOG_PATH`, keep the old name for now.
 
 Never paste key contents, tokens, or `.env` values into tickets, chat, logs, or this repository. Refer to variables by name only.
 
@@ -111,7 +111,7 @@ Run every command on the VM unless the step says otherwise. Commands assume the 
    docker compose -f backend/docker-compose.yml run --rm backend hydrate
    ```
 
-8. **Build the Download Catalog.** This merges every manifest in the web app's catalog release index (today the national 3.7.1 and SIRAP v7-endemic manifests) from public Vercel Blob into `backend/runtime-artifacts/download-catalog.json`, which `DMT_DOWNLOAD_CATALOG_PATH` points at.
+8. **Build the Signable File Registry.** This merges every Runtime Catalog listed in the Runtime Catalog Release Index (today the national 3.7.1 and SIRAP v7-endemic manifests) from public Vercel Blob into `backend/runtime-artifacts/download-catalog.json`, which `DMT_DOWNLOAD_CATALOG_PATH` points at.
 
    ```bash
    docker compose -f backend/docker-compose.yml run --rm backend python -m scripts.build_download_catalog
@@ -119,7 +119,7 @@ Run every command on the VM unless the step says otherwise. Commands assume the 
 
    Expect a last line like `wrote /backend/runtime-artifacts/download-catalog.json: objects=4054 eje-cafetero=804 national=2926 orinoquia=324` (counts measured 11 November 2026). Any `conflicting=` count means a key is tagged with two regions; those keys are always refused. Report it to Spatial Lab.
 
-   If Spatial Lab sends a catalog file instead, copy it to `backend/runtime-artifacts/download-catalog.json`. The service reloads the catalog when the file changes; no restart is needed.
+   If Spatial Lab sends a registry file instead, copy it to `backend/runtime-artifacts/download-catalog.json`. The service reloads the registry when the file changes; no restart is needed.
 
 9. **Start the service.**
 

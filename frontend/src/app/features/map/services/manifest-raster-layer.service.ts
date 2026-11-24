@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import Extent from '@arcgis/core/geometry/Extent';
 import GeoJSONLayer from '@arcgis/core/layers/GeoJSONLayer';
 import MediaLayer from '@arcgis/core/layers/MediaLayer';
@@ -11,6 +11,7 @@ import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 import type ArcGISMap from '@arcgis/core/Map';
 import type ImageryTileLayer from '@arcgis/core/layers/ImageryTileLayer';
 import type { RuntimeLayerManifestRenderingConfig } from '@core/models/layer-manifest.model';
+import { PrivateLayerFileService } from '@core/services/private-layer-file.service';
 
 /**
  * The OMEC and RUNAP overlays are special-cased: instead of rendering their
@@ -241,6 +242,7 @@ function hexToRgb(hexColor: string): [number, number, number] | null {
 
 @Injectable({ providedIn: 'root' })
 export class ManifestRasterLayerService {
+  private readonly privateFiles = inject(PrivateLayerFileService);
   private map: InstanceType<typeof ArcGISMap> | null = null;
   private readonly layersById = new Map<
     string,
@@ -499,7 +501,7 @@ export class ManifestRasterLayerService {
     }
 
     const loadingPromise = (async () => {
-      const response = await fetch(displayUrl);
+      const response = await this.privateFiles.fetch(displayUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch ${displayUrl}: ${response.status}`);
       }

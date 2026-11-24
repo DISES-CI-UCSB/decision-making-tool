@@ -8,7 +8,7 @@ The shortest version is: Blob stores the large files, the manifest tells the app
 
 ## Mental Model
 
-The app is manifest-first. The browser does not list Blob prefixes or infer available assets on its own. Instead, generation scripts list Blob, reconcile those files with source registries and solution metadata, publish a small JSON manifest, and let the frontend consume that manifest as the runtime catalog.
+The app is manifest-first. The browser does not list Blob prefixes or infer available assets on its own. Instead, generation scripts list Blob, reconcile those files with source registries and solution metadata, publish a small JSON manifest, and let the frontend consume that manifest as the Runtime Catalog (see the [glossary](./glossary.md)).
 
 There are three related manifest concepts:
 

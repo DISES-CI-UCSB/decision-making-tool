@@ -24,6 +24,9 @@ export const environment = {
   blobAssetProxyPath: '',
   solutionCapabilityOverrides: {},
   metricsApiBaseUrl: '/metrics-api',
+  privateLayerBucketUrl: 'https://storage.googleapis.com/pnn-priorizando-la-naturaleza/',
+  // Same-origin path to the Private Layer Bucket. Empty reads signed links directly, which needs a bucket CORS rule.
+  privateFileProxyPath: '/private-files/',
   // Retired: the manifest style editor is archived; layer appearance in the map layers panel is the supported styling path.
   ENABLE_MANIFEST_EDITOR: false,
   bypassLoginForDevelopment: false,

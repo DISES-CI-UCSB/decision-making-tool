@@ -126,7 +126,11 @@ def signed_url(
 ) -> SignedUrlResponse:
     response.headers["Cache-Control"] = "no-store"
     try:
-        signed = resolve_broker().issue(read_bearer(authorization), body.object_name)
+        signed = resolve_broker().issue(
+            read_bearer(authorization),
+            body.object_name,
+            body.expires_in_seconds,
+        )
     except BrokerError as exc:
         raise _http_error(exc) from None
     return _response(signed)

@@ -70,7 +70,12 @@ class DownloadBroker:
         self._access_deny_ttl_seconds = access_deny_ttl_seconds
         self._cache = TtlCache(clock)
 
-    def issue(self, token: str, object_name: str) -> SignedDownload:
+    def issue(
+        self,
+        token: str,
+        object_name: str,
+        expires_in_seconds: int | None = None,
+    ) -> SignedDownload:
         identity = self._identity(token)
         principal = self._principal(identity.uid)
         if principal.status != "active":
@@ -99,7 +104,7 @@ class DownloadBroker:
                 "layer_forbidden",
                 "This account cannot download that object.",
             )
-        return self._signed_url(identity.uid, normalized)
+        return self._signed_url(identity.uid, normalized, expires_in_seconds)
 
     def forget_sign_ins(self, uid: str) -> None:
         """Drops cached tokens for uid so their next use is checked for revocation."""
@@ -177,8 +182,22 @@ class DownloadBroker:
         )
         return allowed
 
-    def _signed_url(self, uid: str, object_name: str) -> SignedDownload:
-        key = _hashed_cache_key("signed", uid, self._bucket_name, object_name)
+    def _signed_url(
+        self,
+        uid: str,
+        object_name: str,
+        expires_in_seconds: int | None = None,
+    ) -> SignedDownload:
+        # A caller may shorten a link's life, never lengthen it.
+        ttl_seconds = (
+            self._signed_url_ttl_seconds
+            if expires_in_seconds is None
+            else min(expires_in_seconds, self._signed_url_ttl_seconds)
+        )
+        key_parts = [uid, self._bucket_name, object_name]
+        if ttl_seconds != self._signed_url_ttl_seconds:
+            key_parts.append(str(ttl_seconds))
+        key = _hashed_cache_key("signed", *key_parts)
         cached = self._cache.get(key)
         now = self._clock()
         if (
@@ -188,11 +207,7 @@ class DownloadBroker:
         ):
             return cached
         try:
-            url, expires_epoch = self._signer.sign(
-                object_name,
-                self._signed_url_ttl_seconds,
-                now,
-            )
+            url, expires_epoch = self._signer.sign(object_name, ttl_seconds, now)
         except BrokerError:
             raise
         except Exception:

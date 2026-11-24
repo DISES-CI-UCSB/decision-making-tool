@@ -411,6 +411,50 @@ def test_signed_url_cache_is_per_user() -> None:
     assert signer.calls == [ORINOQUIA, ORINOQUIA]
 
 
+def _post_with_life(client: TestClient, token: str, object_name: str, expires_in_seconds: int):
+    return client.post(
+        "/downloads/signed-url",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"object_name": object_name, "expires_in_seconds": expires_in_seconds},
+    )
+
+
+def _seconds_left(response, clock: Clock) -> float:
+    from datetime import datetime
+
+    expires_at = datetime.fromisoformat(response.json()["expires_at"].replace("Z", "+00:00"))
+    return expires_at.timestamp() - clock.now
+
+
+def test_a_request_can_shorten_a_link_but_never_lengthen_it() -> None:
+    broker, _verifier, _users, _signer, clock = _broker()
+    client = _client_for(broker)
+
+    shortened = _post_with_life(client, "orinoquia-token", ORINOQUIA, 150)
+    lengthened = _post_with_life(client, "national-token", NATIONAL, 86_400)
+    too_short = _post_with_life(client, "national-token", NATIONAL, 59)
+
+    assert shortened.status_code == 200
+    assert _seconds_left(shortened, clock) == 150
+    assert lengthened.status_code == 200
+    assert _seconds_left(lengthened, clock) == 900
+    assert too_short.status_code == 422
+
+
+def test_a_shortened_link_and_a_full_life_link_never_stand_in_for_each_other() -> None:
+    broker, _verifier, _users, signer, clock = _broker()
+    client = _client_for(broker)
+
+    full_life = _post(client, "admin-token", ORINOQUIA)
+    shortened = _post_with_life(client, "admin-token", ORINOQUIA, 150)
+    full_life_again = _post(client, "admin-token", ORINOQUIA)
+
+    assert _seconds_left(shortened, clock) == 150
+    assert shortened.json()["url"] != full_life.json()["url"]
+    assert full_life_again.json()["url"] == full_life.json()["url"]
+    assert signer.calls == [ORINOQUIA, ORINOQUIA]
+
+
 def test_allow_and_deny_decisions_expire_on_their_own_ttls() -> None:
     clock = Clock()
     users = FakeUsers(

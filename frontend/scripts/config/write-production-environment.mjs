@@ -54,6 +54,12 @@ export const environment = {
   blobAssetProxyPath: ${toTsString(readOptionalEnv('BLOB_ASSET_PROXY_PATH'))},
   solutionCapabilityOverrides: {},
   metricsApiBaseUrl: ${toTsString(readOptionalEnv('METRICS_API_BASE_URL') || '/metrics-api')},
+  privateLayerBucketUrl: ${toTsString(
+    readOptionalEnv('PRIVATE_LAYER_BUCKET_URL') ||
+      'https://storage.googleapis.com/pnn-priorizando-la-naturaleza/',
+  )},
+  // Same-origin path to the Private Layer Bucket. Empty reads signed links directly, which needs a bucket CORS rule.
+  privateFileProxyPath: ${toTsString(process.env.PRIVATE_FILE_PROXY_PATH?.trim() ?? '/private-files/')},
   // Retired: the manifest style editor is archived; layer appearance in the map layers panel is the supported styling path.
   ENABLE_MANIFEST_EDITOR: ${readBooleanEnv('ENABLE_MANIFEST_EDITOR', false)},
   bypassLoginForDevelopment: false,

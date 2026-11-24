@@ -24,6 +24,10 @@
       "destination": "https://api.decision-making-support-tool.xyz/:path*"
     },
     {
+      "source": "/private-files/:path*",
+      "destination": "https://storage.googleapis.com/pnn-priorizando-la-naturaleza/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

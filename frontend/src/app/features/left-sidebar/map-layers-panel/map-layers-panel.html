@@ -1433,6 +1433,26 @@
                         </span>
                       }
                     </div>
+                    @if (overlay.downloadUrl; as downloadUrl) {
+                      <button
+                        type="button"
+                        class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                        [attr.aria-label]="
+                          'mapLayersPanel.downloadLayer' | translate: { name: overlay.name }
+                        "
+                        [title]="
+                          'mapLayersPanel.downloadLayer' | translate: { name: overlay.name }
+                        "
+                        [attr.aria-describedby]="
+                          layerFileDownloads.refusalFor(overlay.id)
+                            ? 'map-layers-download-refusal-' + overlay.id
+                            : null
+                        "
+                        (click)="layerFileDownloads.download(overlay.id, downloadUrl)"
+                      >
+                        <i class="fas fa-download text-[11px]" aria-hidden="true"></i>
+                      </button>
+                    }
                     <button
                       [id]="'map-layers-overlay-selected-button-' + overlay.id"
                       type="button"
@@ -1453,6 +1473,15 @@
                       }}
                     </button>
                   </div>
+                  @if (layerFileDownloads.refusalFor(overlay.id); as refusal) {
+                    <p
+                      [id]="'map-layers-download-refusal-' + overlay.id"
+                      role="alert"
+                      class="px-3 pb-2.5 text-[11px] leading-4 text-red-700"
+                    >
+                      {{ layerDownloadRefusalMessageKeys[refusal] | translate }}
+                    </p>
+                  }
                 </article>
               }
             </div>
@@ -1725,6 +1754,26 @@
                               </span>
                             }
                           </div>
+                          @if (row.downloadUrl; as downloadUrl) {
+                            <button
+                              type="button"
+                              class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                              [attr.aria-label]="
+                                'mapLayersPanel.downloadLayer' | translate: { name: row.name }
+                              "
+                              [title]="
+                                'mapLayersPanel.downloadLayer' | translate: { name: row.name }
+                              "
+                              [attr.aria-describedby]="
+                                layerFileDownloads.refusalFor(row.id)
+                                  ? 'map-layers-download-refusal-' + group.id + '-' + row.id
+                                  : null
+                              "
+                              (click)="layerFileDownloads.download(row.id, downloadUrl)"
+                            >
+                              <i class="fas fa-download text-[11px]" aria-hidden="true"></i>
+                            </button>
+                          }
                           @if (!row.hideAddButton) {
                             <button
                               [id]="
@@ -1786,6 +1835,15 @@
                             </button>
                           }
                         </div>
+                        @if (layerFileDownloads.refusalFor(row.id); as refusal) {
+                          <p
+                            [id]="'map-layers-download-refusal-' + group.id + '-' + row.id"
+                            role="alert"
+                            class="px-3 pb-2.5 text-[11px] leading-4 text-red-700"
+                          >
+                            {{ layerDownloadRefusalMessageKeys[refusal] | translate }}
+                          </p>
+                        }
                       </article>
                     }
 
@@ -2330,6 +2388,26 @@
                               </span>
                             }
                           </div>
+                          @if (row.downloadUrl; as downloadUrl) {
+                            <button
+                              type="button"
+                              class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                              [attr.aria-label]="
+                                'mapLayersPanel.downloadLayer' | translate: { name: row.name }
+                              "
+                              [title]="
+                                'mapLayersPanel.downloadLayer' | translate: { name: row.name }
+                              "
+                              [attr.aria-describedby]="
+                                layerFileDownloads.refusalFor(row.id)
+                                  ? 'map-layers-download-refusal-' + group.id + '-' + row.id
+                                  : null
+                              "
+                              (click)="layerFileDownloads.download(row.id, downloadUrl)"
+                            >
+                              <i class="fas fa-download text-[11px]" aria-hidden="true"></i>
+                            </button>
+                          }
                           @if (!row.hideAddButton) {
                             <button
                               [id]="
@@ -2390,6 +2468,15 @@
                             </button>
                           }
                         </div>
+                        @if (layerFileDownloads.refusalFor(row.id); as refusal) {
+                          <p
+                            [id]="'map-layers-download-refusal-' + group.id + '-' + row.id"
+                            role="alert"
+                            class="px-3 pb-2.5 text-[11px] leading-4 text-red-700"
+                          >
+                            {{ layerDownloadRefusalMessageKeys[refusal] | translate }}
+                          </p>
+                        }
                       </article>
                     }
                   }

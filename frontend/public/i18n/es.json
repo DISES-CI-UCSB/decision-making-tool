@@ -1600,6 +1600,15 @@
     "notConsideredInRun": "No considerada en el escenario",
     "addedButton": "Mostrado",
     "addButton": "Mostrar",
+    "downloadLayer": "Descargar {{name}}",
+    "downloadRefusal": {
+      "needsRegionAccess": "Su cuenta no tiene acceso a esta región. Solicite acceso regional para descargar este archivo.",
+      "needsAuthenticator": "Los archivos regionales requieren iniciar sesión con autenticador. Cierre sesión y vuelva a ingresar con su código de autenticador.",
+      "needsSignIn": "Su sesión expiró. Inicie sesión de nuevo para descargar este archivo.",
+      "accountInactive": "Su cuenta no está activa, así que no puede descargar este archivo.",
+      "fileUnavailable": "Este archivo todavía no está disponible para descarga.",
+      "serviceUnavailable": "El servicio de descargas no está disponible en este momento. Intente de nuevo en un minuto."
+    },
     "layerSingular": "capa",
     "layerPlural": "capas",
     "comingSoon": "Próximamente",

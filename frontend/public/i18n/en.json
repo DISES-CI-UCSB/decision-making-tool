@@ -1600,6 +1600,15 @@
     "notConsideredInRun": "Not considered in scenario",
     "addedButton": "Displayed",
     "addButton": "Display",
+    "downloadLayer": "Download {{name}}",
+    "downloadRefusal": {
+      "needsRegionAccess": "Your account does not have access to this region. Request regional access to download this file.",
+      "needsAuthenticator": "Regional files need an authenticator sign-in. Sign out, then sign in again with your authenticator code.",
+      "needsSignIn": "Your sign-in has expired. Sign in again to download this file.",
+      "accountInactive": "Your account is not active, so this file cannot be downloaded.",
+      "fileUnavailable": "This file is not available for download yet.",
+      "serviceUnavailable": "The download service is unavailable right now. Try again in a minute."
+    },
     "layerSingular": "layer",
     "layerPlural": "layers",
     "comingSoon": "Coming soon",

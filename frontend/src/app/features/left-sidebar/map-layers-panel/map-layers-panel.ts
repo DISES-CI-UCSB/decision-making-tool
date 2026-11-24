@@ -58,6 +58,10 @@ import { InfoIconComponent } from '@core/shared/info-icon/info-icon';
 import { useOverlayScrollbar } from '@core/shared/overlay-scrollbar/use-overlay-scrollbar';
 import { catchError, map, of, switchMap } from 'rxjs';
 import {
+  LAYER_DOWNLOAD_REFUSAL_MESSAGE_KEYS,
+  LayerFileDownloadService,
+} from './layer-file-download.service';
+import {
   buildConsideredLayerIdSet,
   implicitConsideredIncludeIds,
   scenarioCostLayerIds,
@@ -298,6 +302,8 @@ export class MapLayersPanelComponent implements OnDestroy {
   private readonly translate = inject(TranslateService);
   private readonly appLocaleService = inject(AppLocaleService);
   private readonly document = inject(DOCUMENT);
+  protected readonly layerFileDownloads = inject(LayerFileDownloadService);
+  protected readonly layerDownloadRefusalMessageKeys = LAYER_DOWNLOAD_REFUSAL_MESSAGE_KEYS;
   private readonly mapSync = new MapLayersPanelMapSync({
     solutionLayers: this.solutionLayerService,
     adminBoundaries: this.adminBoundaryService,

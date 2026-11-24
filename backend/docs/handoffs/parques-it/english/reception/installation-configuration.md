@@ -153,7 +153,7 @@ DMT_ARTIFACT_REQUIRED=true docker compose -f backend/docker-compose.yml up -d --
 
 Useful ops: `docker compose ps`, `docker compose logs --tail=100 backend`, `docker compose restart backend`. Details: [backend/README.md](../../../../../backend/README.md#vm-deployment-smoke-operations).
 
-To stand up the Metrics API on a fresh VM, including the Blob URL Signing Service, its key files, the Download Catalog, TLS, and uptime alerting, follow [metrics-api-vm-runbook.md](./metrics-api-vm-runbook.md).
+To stand up the Metrics API on a fresh VM, including the Blob URL Signing Service, its key files, the Signable File Registry, TLS, and uptime alerting, follow [metrics-api-vm-runbook.md](./metrics-api-vm-runbook.md).
 
 ## UI-only frontend
 
