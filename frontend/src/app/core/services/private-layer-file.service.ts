@@ -62,8 +62,8 @@ export function objectKeyFromBucketUrl(url: string, bucketUrl: string): string {
 @Injectable({ providedIn: 'root' })
 export class PrivateLayerFileService {
   private readonly firebase = inject(FirebaseClientService);
-  private readonly bucketUrl = environment.privateLayerBucketUrl;
-  private readonly proxyPath = environment.privateFileProxyPath;
+  private readonly bucketUrl: string = environment.privateLayerBucketUrl;
+  private readonly proxyPath: string = environment.privateFileProxyPath;
   private readonly signingServiceUrl = `${environment.metricsApiBaseUrl.replace(/\/$/, '')}/downloads/signed-url`;
   private readonly linksByObjectKey = new Map<string, SignedLink>();
   private readonly pendingLinksByObjectKey = new Map<string, Promise<SignedLink>>();
