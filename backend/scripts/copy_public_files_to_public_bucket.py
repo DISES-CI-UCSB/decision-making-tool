@@ -2,14 +2,22 @@
 
 Streams each object from the source host into Cloud Storage. Nothing is written
 to a local data file. Re-running is safe: a destination object whose size
-already matches the source Content-Length is skipped.
+already matches the source Content-Length is skipped, and only its
+Content-Disposition is corrected when it differs.
+
+Files copied: the stage-A catalog closure, the species files listed by each
+species manifest it names, the batch manifests of the runtime catalog index,
+and EXTRA_PATHS.
 
 Object names are urllib.parse.unquote of the URL path. This is not
 unquote_plus, so a literal plus sign stays a plus sign.
+
+Usage: python copy_public_files_to_public_bucket.py [--dry-run]
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import random
@@ -36,6 +44,8 @@ DEST_PREFIX = f"https://storage.googleapis.com/{BUCKET_NAME}/"
 CATALOG_INDEX_PATH = (
     "catalog-releases/3.7.1-test-site-stage-a/catalog-release-index.json"
 )
+RUNTIME_CATALOG_INDEX_PATH = "catalog-releases/3.7.1/catalog-release-index.json"
+USER_GUIDE_PREFIX = "docs/user-guides/"
 CREDENTIALS_PATH = (
     Path(__file__).resolve().parents[1]
     / "secrets"
@@ -166,6 +176,19 @@ def choose_content_type(header_value: str | None, name: str) -> str:
     return guess_content_type(name)
 
 
+def download_disposition(name: str, source_disposition: str | None) -> str | None:
+    """The Content-Disposition the public object should carry.
+
+    Only Vercel's `attachment` is kept: GCS without the header already behaves
+    like `inline`. The user-guide PDFs are linked only from Download buttons,
+    which relied on Vercel's `?download=1`, so they are always `attachment`.
+    """
+    if name.startswith(USER_GUIDE_PREFIX) and name.endswith(".pdf"):
+        return f'attachment; filename="{Path(name).name}"'
+    value = (source_disposition or "").strip()
+    return value if value.lower().startswith("attachment") else None
+
+
 def content_length_of(headers) -> int | None:
     raw = headers.get("Content-Length")
     if raw is None:
@@ -189,6 +212,21 @@ def collect_source_urls(document, found: set[str]) -> None:
     if isinstance(document, list):
         for value in document:
             collect_source_urls(value, found)
+
+
+def collect_species_manifest_urls(document, found: set[str]) -> None:
+    if isinstance(document, dict):
+        for key, value in document.items():
+            if key == "speciesManifestUrl" and isinstance(value, str):
+                url = value.strip()
+                if url.startswith(SOURCE_HOST):
+                    found.add(url.split("#", 1)[0].split("?", 1)[0])
+            else:
+                collect_species_manifest_urls(value, found)
+        return
+    if isinstance(document, list):
+        for value in document:
+            collect_species_manifest_urls(value, found)
 
 
 def make_session() -> requests.Session:
@@ -443,9 +481,15 @@ class ByteStream:
 
 
 class BucketCopy:
-    def __init__(self, progress: CopyProgress, dest_sizes: dict[str, int]):
+    def __init__(
+        self,
+        progress: CopyProgress,
+        dest_sizes: dict[str, int],
+        dest_dispositions: dict[str, str | None],
+    ):
         self.progress = progress
         self.dest_sizes = dest_sizes
+        self.dest_dispositions = dest_dispositions
         self._local = threading.local()
 
     def session(self) -> requests.Session:
@@ -542,10 +586,14 @@ class BucketCopy:
 
     def _attempt_once(self, name: str, url: str) -> tuple[str, int, str]:
         session = self.session()
-        length, content_type = self._source_metadata(session, url)
+        length, content_type, source_disposition = self._source_metadata(session, url)
+        disposition = download_disposition(name, source_disposition)
         with self.progress.lock:
             existing = self.dest_sizes.get(name)
+            existing_disposition = self.dest_dispositions.get(name)
         if existing is not None and existing == length:
+            if disposition != existing_disposition:
+                self._patch_disposition(name, disposition)
             return "skipped", length, content_type or ""
         response = self._open_body(session, url)
         try:
@@ -561,14 +609,22 @@ class BucketCopy:
                 content_type or response.headers.get("Content-Type"),
                 name,
             )
-            self._upload(name, response, body_length, chosen)
+            self._upload(name, response, body_length, chosen, disposition)
             return "copied", body_length, chosen
         finally:
             response.close()
 
+    def _patch_disposition(self, name: str, disposition: str | None) -> None:
+        blob = self.bucket().blob(name)
+        blob.content_disposition = disposition
+        blob.patch(timeout=120)
+        with self.progress.lock:
+            self.dest_dispositions[name] = disposition
+        logger.info("patched disposition=%s key=%s", disposition, name)
+
     def _source_metadata(
         self, session: requests.Session, url: str
-    ) -> tuple[int, str | None]:
+    ) -> tuple[int, str | None, str | None]:
         response = self._request(session, "HEAD", url, stream=False)
         try:
             status = response.status_code
@@ -585,19 +641,23 @@ class BucketCopy:
             content_type = response.headers.get("Content-Type")
             if length is None:
                 return self._metadata_from_get(session, url)
-            return length, content_type
+            return length, content_type, response.headers.get("Content-Disposition")
         finally:
             response.close()
 
     def _metadata_from_get(
         self, session: requests.Session, url: str
-    ) -> tuple[int, str | None]:
+    ) -> tuple[int, str | None, str | None]:
         response = self._open_body(session, url)
         try:
             length = content_length_of(response.headers)
             if length is None:
                 raise PermanentCopyError("source response has no Content-Length")
-            return length, response.headers.get("Content-Type")
+            return (
+                length,
+                response.headers.get("Content-Type"),
+                response.headers.get("Content-Disposition"),
+            )
         finally:
             response.close()
 
@@ -647,10 +707,13 @@ class BucketCopy:
         response: requests.Response,
         size: int,
         content_type: str,
+        disposition: str | None,
     ) -> None:
         stream = ByteStream(response.raw, self.progress.note_read)
         blob = self.bucket().blob(name)
         blob.chunk_size = CHUNK_SIZE
+        if disposition:
+            blob.content_disposition = disposition
         try:
             blob.upload_from_file(
                 stream,
@@ -679,6 +742,7 @@ class BucketCopy:
             raise TransientError(f"uploaded size {uploaded} != source {size}")
         with self.progress.lock:
             self.dest_sizes[name] = int(uploaded)
+            self.dest_dispositions[name] = disposition
 
 
 def classify_google_error(exc: google_exceptions.GoogleAPICallError) -> Exception:
@@ -754,15 +818,38 @@ def build_work_items(session: requests.Session) -> tuple[dict[str, str], list[st
     emit(
         f"discovery index_urls={len(discovered)} json_manifests={len(manifest_urls)}"
     )
+    species_manifest_urls: set[str] = set()
     for manifest_url in manifest_urls:
         document = fetch_json(session, manifest_url)
         before = len(discovered)
         collect_source_urls(document, discovered)
+        collect_species_manifest_urls(document, species_manifest_urls)
         emit(
             "discovery walked="
             f"{object_name_from_url(manifest_url)} added={len(discovered) - before} "
             f"total={len(discovered)}"
         )
+    for species_manifest_url in sorted(species_manifest_urls):
+        before = len(discovered)
+        collect_source_urls(fetch_json(session, species_manifest_url), discovered)
+        emit(
+            "discovery walked species manifest="
+            f"{object_name_from_url(species_manifest_url)} "
+            f"added={len(discovered) - before} total={len(discovered)}"
+        )
+
+    runtime_index_urls: set[str] = set()
+    collect_source_urls(
+        fetch_json(session, source_url_for_path(RUNTIME_CATALOG_INDEX_PATH)),
+        runtime_index_urls,
+    )
+    # Copied but never walked: these manifests name regional files that must stay
+    # off the public bucket.
+    runtime_manifest_urls = {
+        url for url in runtime_index_urls if urlparse(url).path.lower().endswith(".json")
+    }
+    emit(f"discovery runtime_manifests={sorted(runtime_manifest_urls)}")
+    discovered.update(runtime_manifest_urls)
 
     by_name: dict[str, str] = {}
     dropped: list[str] = []
@@ -781,13 +868,15 @@ def build_work_items(session: requests.Session) -> tuple[dict[str, str], list[st
     return by_name, dropped
 
 
-def load_destination_sizes() -> dict[str, int]:
+def load_destination_state() -> tuple[dict[str, int], dict[str, str | None]]:
     client = storage.Client.from_service_account_json(str(CREDENTIALS_PATH))
     sizes: dict[str, int] = {}
+    dispositions: dict[str, str | None] = {}
     for blob in client.list_blobs(BUCKET_NAME, timeout=300):
         if blob.size is not None:
             sizes[blob.name] = int(blob.size)
-    return sizes
+            dispositions[blob.name] = blob.content_disposition
+    return sizes, dispositions
 
 
 def assert_anonymous(request: urllib.request.Request) -> None:
@@ -984,6 +1073,13 @@ def write_summary(progress: CopyProgress, verification: dict[str, object], exit_
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="discover and compare with the bucket, then stop without writing",
+    )
+    args = parser.parse_args()
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     configure_logging()
@@ -1015,11 +1111,15 @@ def main() -> int:
     emit(f"planned={len(by_name)} dropped={len(dropped)} dropped_keys={dropped}")
     progress.set_phase("list-destination")
     try:
-        dest_sizes = load_destination_sizes()
+        dest_sizes, dest_dispositions = load_destination_state()
     except Exception as exc:
         emit(f"destination list failed {safe_error(exc)}")
         return 1
     emit(f"destination_existing={len(dest_sizes)}")
+    if args.dry_run:
+        absent = sorted(name for name in by_name if name not in dest_sizes)
+        emit(f"dry_run absent_from_bucket={len(absent)} sample={absent[:5]}")
+        return 0
 
     progress.set_phase("copy")
     stop = threading.Event()
@@ -1033,7 +1133,7 @@ def main() -> int:
     verification: dict[str, object] = {}
     exit_code = 1
     try:
-        copier = BucketCopy(progress, dest_sizes)
+        copier = BucketCopy(progress, dest_sizes, dest_dispositions)
         finished = copy_all(copier, by_name)
         progress.set_phase("verify")
         verification = {
