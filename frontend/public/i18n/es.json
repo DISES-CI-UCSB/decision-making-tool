@@ -1293,7 +1293,7 @@
         "included": "Incluido",
         "notSelected": "Sin seleccionar",
         "sourceLabel": "Fuente: catálogo certificado de escenarios SIRAP",
-        "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-31-v3/catalog.json",
+        "sourceUrl": "https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/releases/sirap-2026-08-31-v3/catalog.json",
         "step1": {
           "label": "Metas de conservación",
           "help": "Elija los elementos regionales y sus niveles de meta. Solo se pueden seleccionar combinaciones disponibles en el catálogo certificado.",
@@ -1416,7 +1416,7 @@
         "ecosystemServicesLabel": "Servicios ecosistémicos",
         "ecosystemServicesHelp": "La herramienta identificará áreas candidatas que proporcionan dos tipos de servicios ecosistémicos (beneficios para las personas y el ambiente): almacenamiento de carbono y recarga de agua subterránea. La herramienta identificará áreas candidatas que garanticen que la proporción seleccionada de cada tipo de servicio ecosistémico quede dentro de las áreas de conservación existentes y candidatas.",
         "ecosystemServicesCarbonSourceLabel": "Datos de biomasa SPAWN",
-        "ecosystemServicesCarbonSourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
+        "ecosystemServicesCarbonSourceUrl": "https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
         "ecosystemServicesWaterSourceLabel": "Datos de recarga de agua subterránea IDEAM",
         "ecosystemServicesWaterSourceUrl": "https://bart.ideam.gov.co/cneideam/Capasgeo/#:~:text=Zonas%5FPotenciales%5Fde%5FRecarga%5Fde%5FAgua%5FSubterraneas%5FEna2018",
         "inputLayerNotFoundBadge": "Capa no encontrada",

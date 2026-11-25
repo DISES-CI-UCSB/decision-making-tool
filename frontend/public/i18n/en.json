@@ -1293,7 +1293,7 @@
         "included": "Included",
         "notSelected": "Not selected",
         "sourceLabel": "Source: certified SIRAP scenario catalog",
-        "sourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/sirap-2026-08-31-v3/catalog.json",
+        "sourceUrl": "https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/releases/sirap-2026-08-31-v3/catalog.json",
         "step1": {
           "label": "Conservation targets",
           "help": "Choose the regional features and target levels to conserve. Only combinations available in the certified catalog can be selected.",
@@ -1416,7 +1416,7 @@
         "ecosystemServicesLabel": "Ecosystem services",
         "ecosystemServicesHelp": "The tool will identify candidate areas that provide two types of ecosystem services (benefits to humans and the environment): carbon storage and groundwater recharge. The tool will identify candidate areas that ensure that the selected proportion of each type of ecosystem service is contained within existing and candidate conservation areas.",
         "ecosystemServicesCarbonSourceLabel": "SPAWN biomass data",
-        "ecosystemServicesCarbonSourceUrl": "https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
+        "ecosystemServicesCarbonSourceUrl": "https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/inputs/features/biomass/biomasa_areara+subterranea_1km.tif",
         "ecosystemServicesWaterSourceLabel": "IDEAM groundwater recharge data",
         "ecosystemServicesWaterSourceUrl": "https://bart.ideam.gov.co/cneideam/Capasgeo/#:~:text=Zonas%5FPotenciales%5Fde%5FRecarga%5Fde%5FAgua%5FSubterraneas%5FEna2018",
         "inputLayerNotFoundBadge": "Layer not found",

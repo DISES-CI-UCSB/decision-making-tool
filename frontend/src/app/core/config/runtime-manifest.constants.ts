@@ -5,4 +5,5 @@ export {
   RUNTIME_CATALOG_RELEASE_INDEX_PATHNAME,
   RUNTIME_MANIFEST_BLOB_PATHNAME,
   RUNTIME_MANIFEST_BLOB_URL,
+  VERCEL_BLOB_HOST,
 } from '../../../../shared/runtime-manifest.constants.mjs';

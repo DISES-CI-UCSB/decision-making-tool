@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { toPublicFileUrl } from '@core/config/public-file-url';
 import {
   PrivateFileRefusal,
   PrivateLayerFileService,
@@ -39,14 +40,16 @@ export class LayerFileDownloadService {
 
   async download(rowId: string, fileUrl: string): Promise<void> {
     this.setRefusal(rowId, null);
-    const fileName = downloadFileName(fileUrl);
-    if (!this.privateFiles.isPrivateFile(fileUrl)) {
-      saveFromAddress(fileUrl, fileName);
+    // An `<a href>` download skips HttpClient and ArcGIS, so the public host is swapped here.
+    const readableFileUrl = toPublicFileUrl(fileUrl);
+    const fileName = downloadFileName(readableFileUrl);
+    if (!this.privateFiles.isPrivateFile(readableFileUrl)) {
+      saveFromAddress(readableFileUrl, fileName);
       return;
     }
     try {
       // Reading the file first means a failed read shows an explanation instead of a broken download.
-      await saveFromFetchedFile(await this.privateFiles.downloadUrl(fileUrl), fileName);
+      await saveFromFetchedFile(await this.privateFiles.downloadUrl(readableFileUrl), fileName);
     } catch (error) {
       this.setRefusal(
         rowId,

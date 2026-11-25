@@ -19,9 +19,9 @@ export const environment = {
   },
   googleClientId: '',
   manifestBlobUrl:
-    'https://aagibolq28slyfof.public.blob.vercel-storage.com/releases/catalog-v3-7-1/manifest.json',
+    'https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/releases/catalog-v3-7-1/manifest.json',
   catalogReleaseIndexBlobUrl:
-    'https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.7.1/catalog-release-index.json',
+    'https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/catalog-releases/3.7.1/catalog-release-index.json',
   sirapManifestBlobUrl: '',
   blobAssetProxyPath: '',
   solutionCapabilityOverrides: {

@@ -1,10 +1,32 @@
+import {
+  PUBLIC_BLOB_HOST,
+  VERCEL_BLOB_HOST,
+} from '../../../../shared/runtime-manifest.constants.mjs';
 import { serviceConfig } from './service-config.ts';
+
+/**
+ * Prefixes of a public file address. The published Runtime Catalog still names the Vercel host.
+ * The web app reads the public file bucket. An environment override is included when it differs.
+ */
+export function publicFilePrefixes(): string[] {
+  return [
+    ...new Set(
+      [VERCEL_BLOB_HOST, PUBLIC_BLOB_HOST, serviceConfig.publicBlobHost].map(
+        (host) => `${host.replace(/\/+$/, '')}/`,
+      ),
+    ),
+  ];
+}
 
 /**
  * Fields that point at shared Colombia-wide assets. The app loads them next to every regional solution,
  * but they hold national data, so they are not regional-only files.
  */
-export const COLOMBIA_WIDE_FIELDS = new Set(['mecNationalDenominator', 'speciesGoalsCatalog', 'speciesGoalsTargetOverlay']);
+export const COLOMBIA_WIDE_FIELDS = new Set([
+  'mecNationalDenominator',
+  'speciesGoalsCatalog',
+  'speciesGoalsTargetOverlay',
+]);
 
 export interface RegionalOnlyFile {
   objectName: string;
@@ -50,13 +72,15 @@ export async function loadRegionalFileInventory(): Promise<RegionalFileInventory
   for (const manifestUrl of manifestUrls) {
     const manifest = await fetchJson(manifestUrl);
     for (const [field, value] of Object.entries(manifest)) {
-      const records = (field === 'layers' || field === 'solutions') && Array.isArray(value) ? value : null;
+      const records =
+        (field === 'layers' || field === 'solutions') && Array.isArray(value) ? value : null;
       if (records === null) {
         collectReferences(value, field, false, (key) => nationalKeys.add(key));
         continue;
       }
       for (const record of records) {
-        const sirapId = isObject(record) && typeof record.sirapId === 'string' ? record.sirapId.trim() : '';
+        const sirapId =
+          isObject(record) && typeof record.sirapId === 'string' ? record.sirapId.trim() : '';
         collectReferences(record, '', false, (key, colombiaWide) => {
           if (!sirapId) {
             nationalKeys.add(key);
@@ -82,7 +106,9 @@ export async function loadRegionalFileInventory(): Promise<RegionalFileInventory
       files.push({ objectName, sirapId: [...regions][0] });
     }
   }
-  const colombiaWide = [...colombiaWideKeys].filter((key) => !regionsByKey.has(key) && !nationalKeys.has(key)).sort();
+  const colombiaWide = [...colombiaWideKeys]
+    .filter((key) => !regionsByKey.has(key) && !nationalKeys.has(key))
+    .sort();
   return { manifestUrls, files, sharedWithNational, colombiaWide, usedByMoreThanOneRegion };
 }
 
@@ -90,7 +116,7 @@ export async function loadRegionalFileInventory(): Promise<RegionalFileInventory
 export function objectKeyFromReference(value: string, field: string): string | null {
   const text = value.trim();
   const prefixes = [
-    `${serviceConfig.publicBlobHost}/`,
+    ...publicFilePrefixes(),
     `https://storage.googleapis.com/${serviceConfig.bucket}/`,
     `https://storage.cloud.google.com/${serviceConfig.bucket}/`,
     `gs://${serviceConfig.bucket}/`,
@@ -110,7 +136,9 @@ export function objectKeyFromReference(value: string, field: string): string | n
   } catch {
     return null;
   }
-  return key.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..') ? key : null;
+  return key.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..')
+    ? key
+    : null;
 }
 
 function collectReferences(
@@ -130,7 +158,12 @@ function collectReferences(
     }
   } else if (isObject(node)) {
     for (const [childField, child] of Object.entries(node)) {
-      collectReferences(child, childField, colombiaWide || COLOMBIA_WIDE_FIELDS.has(childField), found);
+      collectReferences(
+        child,
+        childField,
+        colombiaWide || COLOMBIA_WIDE_FIELDS.has(childField),
+        found,
+      );
     }
   }
 }

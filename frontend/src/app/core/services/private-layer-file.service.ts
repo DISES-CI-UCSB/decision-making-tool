@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import esriConfig from '@arcgis/core/config';
 import { environment } from '../../../environments/environment';
+import { toPublicFileUrl } from '../config/public-file-url';
+import { VERCEL_BLOB_HOST } from '../config/runtime-manifest.constants';
 import { FirebaseClientService } from './firebase-client.service';
 
 /** Why the Blob URL Signing Service gave no link, in the terms the layer panel explains to the person. */
@@ -74,10 +76,11 @@ export class PrivateLayerFileService {
 
   /** A browser-readable address for a map or metrics read. Reuses the file's signed link until it nears expiry. */
   async readableUrl(url: string): Promise<string> {
-    if (!this.isPrivateFile(url)) {
-      return url;
+    const publicUrl = toPublicFileUrl(url);
+    if (!this.isPrivateFile(publicUrl)) {
+      return publicUrl;
     }
-    const link = await this.currentLink(objectKeyFromBucketUrl(url, this.bucketUrl));
+    const link = await this.currentLink(objectKeyFromBucketUrl(publicUrl, this.bucketUrl));
     return this.browserUrl(link.url);
   }
 
@@ -91,14 +94,27 @@ export class PrivateLayerFileService {
     return this.browserUrl(link.url);
   }
 
-  /** Routes ArcGIS layer requests, including those its workers hand back to the page, through signed links. */
+  /**
+   * Routes ArcGIS layer requests, including those its workers hand back to the page.
+   * Public Vercel Blob addresses are rewritten onto the public file bucket. Private Layer
+   * Bucket addresses still go through signed links.
+   */
   registerMapRequestInterceptor(): void {
+    esriConfig.request.interceptors ??= [];
+    const interceptors = esriConfig.request.interceptors;
+    // ArcGIS applies only the first interceptor whose `urls` match. The Vercel host is
+    // registered alone, then the private-bucket interceptor is placed ahead of it, so a
+    // broader host cannot take a Private Layer Bucket read.
+    interceptors.unshift({
+      urls: VERCEL_BLOB_HOST,
+      before: (params: { url: string }) => {
+        params.url = toPublicFileUrl(params.url);
+      },
+    });
     if (!this.bucketUrl) {
       return;
     }
-    esriConfig.request.interceptors ??= [];
-    // ArcGIS applies only the first interceptor whose `urls` match.
-    esriConfig.request.interceptors.unshift({
+    interceptors.unshift({
       urls: this.bucketUrl,
       before: async (params: { url: string }) => {
         params.url = await this.readableUrl(params.url);

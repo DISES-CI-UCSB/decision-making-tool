@@ -1,4 +1,5 @@
 import { expect, type APIRequestContext } from '@playwright/test';
+import { VERCEL_BLOB_HOST } from '../../../../shared/runtime-manifest.constants.mjs';
 import { serviceConfig } from './service-config.ts';
 
 export interface SignedUrlReply {
@@ -68,20 +69,26 @@ export function plainBucketAddress(objectName: string): string {
   return `https://storage.googleapis.com/${serviceConfig.bucket}/${encodeObjectName(objectName)}`;
 }
 
-/** A file's address on the old public Vercel Blob host. */
+/** A file's address on the old public Vercel Blob host. The closed-address checks still use this host. */
 export function publicBlobAddress(objectName: string): string {
-  return `${serviceConfig.publicBlobHost}/${encodeObjectName(objectName)}`;
+  return `${VERCEL_BLOB_HOST}/${encodeObjectName(objectName)}`;
 }
 
 /** The same bucket file at its plain public address, with no signature. */
-export async function fetchPlainBucketAddress(request: APIRequestContext, objectName: string): Promise<number> {
+export async function fetchPlainBucketAddress(
+  request: APIRequestContext,
+  objectName: string,
+): Promise<number> {
   const response = await request.get(plainBucketAddress(objectName));
   await response.body();
   return response.status();
 }
 
 /** Status of an anonymous HEAD request, or the error text when no reply arrived. */
-export async function headStatus(request: APIRequestContext, url: string): Promise<number | string> {
+export async function headStatus(
+  request: APIRequestContext,
+  url: string,
+): Promise<number | string> {
   try {
     const response = await request.head(url, { maxRedirects: 0 });
     return response.status();
@@ -94,10 +101,17 @@ export async function headStatus(request: APIRequestContext, url: string): Promi
  * A refusal must carry a reason and never a link, in the parsed body or the raw text.
  * Link checks compare booleans so a wrongly issued signed URL never appears in a failure message.
  */
-export function expectRefusedWithoutLink(reply: SignedUrlReply, status: number, reason?: string): void {
+export function expectRefusedWithoutLink(
+  reply: SignedUrlReply,
+  status: number,
+  reason?: string,
+): void {
   expect(reply.status, `refusal reason: ${reply.body?.detail?.status}`).toBe(status);
   expect(reply.body?.url === undefined, 'refusal body must not contain a url').toBe(true);
-  expect(reply.rawText.includes('X-Goog-Signature'), 'refusal text must not contain a signature').toBe(false);
+  expect(
+    reply.rawText.includes('X-Goog-Signature'),
+    'refusal text must not contain a signature',
+  ).toBe(false);
   if (reason !== undefined) {
     expect(reply.body?.detail?.status).toBe(reason);
   }

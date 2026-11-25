@@ -1,15 +1,20 @@
 import { HttpErrorResponse, type HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, from, switchMap, throwError } from 'rxjs';
+import { toPublicFileUrl } from '../config/public-file-url';
 import { PrivateFileRefusal, PrivateLayerFileService } from './private-layer-file.service';
 
-/** Sends HttpClient reads of Private Layer Bucket files, such as metrics and goals, through signed links. */
+/**
+ * Rewrites a public Vercel Blob read onto the public file bucket, then sends a Private
+ * Layer Bucket read, such as metrics or goals, through a signed link.
+ */
 export const privateLayerFileInterceptor: HttpInterceptorFn = (request, next) => {
   const privateFiles = inject(PrivateLayerFileService);
-  if (!privateFiles.isPrivateFile(request.url)) {
-    return next(request);
+  const url = toPublicFileUrl(request.url);
+  if (!privateFiles.isPrivateFile(url)) {
+    return url === request.url ? next(request) : next(request.clone({ url }));
   }
-  return from(privateFiles.readableUrl(request.url)).pipe(
+  return from(privateFiles.readableUrl(url)).pipe(
     catchError((error: unknown) =>
       throwError(
         () =>
@@ -20,6 +25,6 @@ export const privateLayerFileInterceptor: HttpInterceptorFn = (request, next) =>
           }),
       ),
     ),
-    switchMap((url) => next(request.clone({ url }))),
+    switchMap((signedUrl) => next(request.clone({ url: signedUrl }))),
   );
 };

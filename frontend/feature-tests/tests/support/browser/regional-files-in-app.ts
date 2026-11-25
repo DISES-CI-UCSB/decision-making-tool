@@ -1,5 +1,9 @@
 import { expect, type Locator, type Page, type Request } from '@playwright/test';
-import { COLOMBIA_WIDE_FIELDS, objectKeyFromReference } from '../downloads/regional-files.ts';
+import {
+  COLOMBIA_WIDE_FIELDS,
+  objectKeyFromReference,
+  publicFilePrefixes,
+} from '../downloads/regional-files.ts';
 import { serviceConfig } from '../downloads/service-config.ts';
 import type { TestAccount } from '../downloads/test-accounts.ts';
 import { totpCode } from '../downloads/totp.ts';
@@ -31,8 +35,17 @@ function isObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isPublicFileRequest(url: URL): boolean {
+  const address = `${url.origin}${url.pathname}`;
+  return publicFilePrefixes().some((prefix) => address.startsWith(prefix));
+}
+
+/**
+ * Catalog batches are fetched from the public file bucket. Responses that still come from the
+ * Vercel host are recognized too. A Private Layer Bucket address does not match either prefix.
+ */
 function isCatalogBatchRequest(url: URL): boolean {
-  return url.origin === serviceConfig.publicBlobHost && url.pathname.endsWith('/manifest.json');
+  return url.pathname.endsWith('/manifest.json') && isPublicFileRequest(url);
 }
 
 /**
@@ -41,7 +54,10 @@ function isCatalogBatchRequest(url: URL): boolean {
  * Every other address is left as published, so the swap changes nothing once the published release already lists
  * bucket addresses. Call it before the page opens. Returns the object keys moved so far; the set fills as batches load.
  */
-export async function listRegionFilesOnPrivateBucket(page: Page, sirapId: string): Promise<Set<string>> {
+export async function listRegionFilesOnPrivateBucket(
+  page: Page,
+  sirapId: string,
+): Promise<Set<string>> {
   const movedKeys = new Set<string>();
   await page.route(isCatalogBatchRequest, async (route) => {
     const response = await route.fetch();
@@ -55,7 +71,9 @@ export async function listRegionFilesOnPrivateBucket(page: Page, sirapId: string
         const records = manifest[field];
         if (!Array.isArray(records)) continue;
         manifest[field] = records.map((record) =>
-          isObject(record) && typeof record.sirapId === 'string' && record.sirapId.trim() === sirapId
+          isObject(record) &&
+          typeof record.sirapId === 'string' &&
+          record.sirapId.trim() === sirapId
             ? moveToBucket(record, '', movedKeys)
             : record,
         );
@@ -72,8 +90,9 @@ export async function listRegionFilesOnPrivateBucket(page: Page, sirapId: string
 function moveToBucket(node: JsonValue, field: string, movedKeys: Set<string>): JsonValue {
   if (COLOMBIA_WIDE_FIELDS.has(field)) return node;
   if (typeof node === 'string') {
-    const publicPrefix = `${serviceConfig.publicBlobHost}/`;
-    const key = node.startsWith(publicPrefix) ? objectKeyFromReference(node, field) : null;
+    const publicPrefix = publicFilePrefixes().find((prefix) => node.startsWith(prefix));
+    if (!publicPrefix) return node;
+    const key = objectKeyFromReference(node, field);
     if (key === null) return node;
     movedKeys.add(key);
     return `${bucketAddressPrefix}${node.slice(publicPrefix.length)}`;
@@ -81,7 +100,10 @@ function moveToBucket(node: JsonValue, field: string, movedKeys: Set<string>): J
   if (Array.isArray(node)) return node.map((item) => moveToBucket(item, field, movedKeys));
   if (isObject(node)) {
     return Object.fromEntries(
-      Object.entries(node).map(([childField, child]) => [childField, moveToBucket(child, childField, movedKeys)]),
+      Object.entries(node).map(([childField, child]) => [
+        childField,
+        moveToBucket(child, childField, movedKeys),
+      ]),
     );
   }
   return node;
@@ -89,9 +111,13 @@ function moveToBucket(node: JsonValue, field: string, movedKeys: Set<string>): J
 
 /**
  * How the browser reached a file. `private-file-proxy` and `bucket-signed` both carry a signed link; `bucket-plain`
- * is the bucket address without one, and `public-blob` is the old public Vercel Blob address.
+ * is the bucket address without one, and `public-blob` is a public file address (the public bucket or the old Vercel host).
  */
-export type FileRequestRoute = 'private-file-proxy' | 'bucket-signed' | 'bucket-plain' | 'public-blob';
+export type FileRequestRoute =
+  | 'private-file-proxy'
+  | 'bucket-signed'
+  | 'bucket-plain'
+  | 'public-blob';
 
 /** One file request. Holds the address without its query, so a signature never reaches a report. */
 export interface FileRequestRecord {
@@ -113,16 +139,27 @@ function decodedKey(pathname: string): string {
   }
 }
 
+function publicObjectKey(url: URL): string {
+  const address = `${url.origin}${url.pathname}`;
+  const prefix = publicFilePrefixes().find((candidate) => address.startsWith(candidate));
+  return decodedKey(prefix ? address.slice(prefix.length) : url.pathname.slice(1));
+}
+
 /** `X-Goog-Date` is `YYYYMMDDTHHMMSSZ`; the link expires `X-Goog-Expires` seconds later. */
 function signedLinkExpiry(url: URL): number | null {
-  const date = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(url.searchParams.get('X-Goog-Date') ?? '');
+  const date = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(
+    url.searchParams.get('X-Goog-Date') ?? '',
+  );
   const expiresSeconds = Number(url.searchParams.get('X-Goog-Expires'));
   if (!date || !Number.isFinite(expiresSeconds)) return null;
   const [, year, month, day, hour, minute, second] = date.map(Number);
   return Date.UTC(year, month - 1, day, hour, minute, second) + expiresSeconds * 1000;
 }
 
-function classifyFileRequest(rawUrl: string, appOrigin: string): Omit<FileRequestRecord, 'startedAtMs' | 'status' | 'failure'> | null {
+function classifyFileRequest(
+  rawUrl: string,
+  appOrigin: string,
+): Omit<FileRequestRecord, 'startedAtMs' | 'status' | 'failure'> | null {
   const url = new URL(rawUrl);
   const address = `${url.origin}${url.pathname}`;
   const signed = url.searchParams.has('X-Goog-Signature');
@@ -143,8 +180,13 @@ function classifyFileRequest(rawUrl: string, appOrigin: string): Omit<FileReques
       signedLinkExpiresAtMs: expiry,
     };
   }
-  if (url.origin === serviceConfig.publicBlobHost) {
-    return { address, route: 'public-blob', objectKey: decodedKey(url.pathname.slice(1)), signedLinkExpiresAtMs: null };
+  if (isPublicFileRequest(url)) {
+    return {
+      address,
+      route: 'public-blob',
+      objectKey: publicObjectKey(url),
+      signedLinkExpiresAtMs: null,
+    };
   }
   return null;
 }
@@ -156,7 +198,12 @@ export function recordFileRequests(page: Page, appOrigin: string): FileRequestRe
   page.on('request', (request) => {
     const classified = classifyFileRequest(request.url(), appOrigin);
     if (!classified) return;
-    const record: FileRequestRecord = { ...classified, startedAtMs: Date.now(), status: null, failure: null };
+    const record: FileRequestRecord = {
+      ...classified,
+      startedAtMs: Date.now(),
+      status: null,
+      failure: null,
+    };
     records.push(record);
     byRequest.set(request, record);
   });
@@ -219,7 +266,9 @@ export function recordSigningRequests(page: Page): SigningRequestRecord[] {
 export async function shortenSignedLinks(page: Page, lifeSeconds: number): Promise<void> {
   await page.route(isSigningServiceRequest, async (route) => {
     const body = (route.request().postDataJSON() ?? {}) as Record<string, unknown>;
-    await route.continue({ postData: JSON.stringify({ ...body, expires_in_seconds: lifeSeconds }) });
+    await route.continue({
+      postData: JSON.stringify({ ...body, expires_in_seconds: lifeSeconds }),
+    });
   });
 }
 
@@ -242,7 +291,10 @@ export async function signInWithAuthenticatorCode(
   });
   await expect(codeScreen.getByRole('heading', { name: 'Enter authenticator code' })).toBeVisible();
   await waitForFreshCodeWindow(authenticator.lastCodeAcceptedAtMs, authenticator.parameters);
-  await submitAuthenticatorCode(codeScreen, totpCode(authenticator.secretKey, authenticator.parameters, Date.now()));
+  await submitAuthenticatorCode(
+    codeScreen,
+    totpCode(authenticator.secretKey, authenticator.parameters, Date.now()),
+  );
   await whenServicesRespond(async () => {
     await expect(codeScreen).toHaveCount(0, { timeout: 20_000 });
     await expect(approvedAccessControls(page).sirapAccessButton).toBeVisible({ timeout: 20_000 });
@@ -250,10 +302,14 @@ export async function signInWithAuthenticatorCode(
 }
 
 export const scenarioFinder = (page: Page) =>
-  page.getByRole('dialog').filter({ has: page.getByRole('radiogroup', { name: 'Planning domain' }) });
+  page
+    .getByRole('dialog')
+    .filter({ has: page.getByRole('radiogroup', { name: 'Planning domain' }) });
 
 export const mapLayersPanel = (page: Page) =>
-  page.getByRole('complementary').filter({ has: page.getByRole('heading', { name: 'Map Layers' }) });
+  page
+    .getByRole('complementary')
+    .filter({ has: page.getByRole('heading', { name: 'Map Layers' }) });
 
 /** The innermost layer-list card whose name button reads exactly `name`. */
 export function availableLayer(page: Page, name: string): Locator {
@@ -275,7 +331,10 @@ export function layerDisplayToggle(page: Page, name: string): Locator {
  * Waits until a scenario metrics file (a `.metrics` object key) started at or after `sinceMs` has loaded through a
  * signed link. The overview's export button is no proof: it turns on even when every metrics read failed.
  */
-export async function expectSignedMetricsRead(fileRequests: FileRequestRecord[], sinceMs: number): Promise<void> {
+export async function expectSignedMetricsRead(
+  fileRequests: FileRequestRecord[],
+  sinceMs: number,
+): Promise<void> {
   await expect
     .poll(
       () =>
@@ -300,7 +359,9 @@ export async function openScenarioFinder(page: Page): Promise<void> {
   } else {
     await page.getByRole('button', { name: 'Select scenario' }).click();
   }
-  await expect(scenarioFinder(page).getByRole('radiogroup', { name: 'Planning domain' })).toBeVisible();
+  await expect(
+    scenarioFinder(page).getByRole('radiogroup', { name: 'Planning domain' }),
+  ).toBeVisible();
 }
 
 /** Chooses View map in the open finder and waits for the scenario's layer list with the Ecosystems group open. */
@@ -315,7 +376,9 @@ export async function viewMap(
     await expect(viewMapButton).toBeEnabled({ timeout: 20_000 });
     await viewMapButton.click();
     await expect(finder).toHaveCount(0, { timeout: 20_000 });
-    await expect(panel.getByRole('heading', { name: 'Active Scenario' })).toBeVisible({ timeout: 20_000 });
+    await expect(panel.getByRole('heading', { name: 'Active Scenario' })).toBeVisible({
+      timeout: 20_000,
+    });
   });
   const ecosystemGroup = panel.getByRole('button', { name: /^Ecosystems \d+ layers?$/ });
   if ((await ecosystemGroup.getAttribute('aria-expanded')) !== 'true') await ecosystemGroup.click();
@@ -337,7 +400,9 @@ export async function displayLayer(
   whenServicesRespond: (action: () => Promise<void>) => Promise<void>,
 ): Promise<Buffer> {
   const fileLoaded = page.waitForResponse(
-    (response) => decodeURIComponent(new URL(response.url()).pathname).endsWith(`/${fileName}`) && response.ok(),
+    (response) =>
+      decodeURIComponent(new URL(response.url()).pathname).endsWith(`/${fileName}`) &&
+      response.ok(),
     { timeout: 30_000 },
   );
   await availableLayer(page, name).getByRole('button', { name: 'Display', exact: true }).click();
@@ -350,6 +415,9 @@ export async function displayLayer(
 }
 
 /** Report-safe copies of the records, with no signed link, token, or account detail. */
-export function requestEvidence(fileRequests: FileRequestRecord[], signingRequests: SigningRequestRecord[]): string {
+export function requestEvidence(
+  fileRequests: FileRequestRecord[],
+  signingRequests: SigningRequestRecord[],
+): string {
   return JSON.stringify({ fileRequests, signingRequests }, null, 2);
 }

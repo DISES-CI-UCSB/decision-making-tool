@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   LOCAL_RUNTIME_MANIFEST_RELATIVE_PATH,
   PUBLIC_BLOB_HOST,
+  VERCEL_BLOB_HOST,
 } from '../../shared/runtime-manifest.constants.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,7 +28,9 @@ export function usesLocalPreviewManifest(environmentSource) {
 function isReleaseArtifactUrl(url) {
   return (
     typeof url === 'string' &&
-    (url.startsWith('/releases/') || url.startsWith(`${PUBLIC_BLOB_HOST}/releases/`))
+    (url.startsWith('/releases/') ||
+      url.startsWith(`${PUBLIC_BLOB_HOST}/releases/`) ||
+      url.startsWith(`${VERCEL_BLOB_HOST}/releases/`))
   );
 }
 

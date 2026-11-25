@@ -1,4 +1,5 @@
 export const PUBLIC_BLOB_HOST: string;
+export const VERCEL_BLOB_HOST: string;
 export const RUNTIME_MANIFEST_BLOB_PATHNAME: string;
 export const RUNTIME_MANIFEST_BLOB_URL: string;
 export const RUNTIME_CATALOG_RELEASE_INDEX_PATHNAME: string;

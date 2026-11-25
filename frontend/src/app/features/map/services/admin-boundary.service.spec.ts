@@ -337,7 +337,7 @@ describe('AdminBoundaryService', () => {
 
   it('uses the immutable visual-only outline without changing AOI boundary sources', () => {
     expect(COLOMBIA_OUTLINE_VISUAL_URL).toBe(
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/colombia_outline_visual/v0.1.0/colombia_outline_visual.geojson',
+      'https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/inputs/reference/colombia_outline_visual/v0.1.0/colombia_outline_visual.geojson',
     );
     expect(PRODUCTION_SIRAP_BOUNDARY_SOURCE.pathname).not.toContain('colombia_outline_visual');
   });

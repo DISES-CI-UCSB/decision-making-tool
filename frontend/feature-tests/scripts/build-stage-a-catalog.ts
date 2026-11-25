@@ -1,6 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { loadRegionalFileInventory } from '../tests/support/downloads/regional-files.ts';
+import {
+  loadRegionalFileInventory,
+  publicFilePrefixes,
+} from '../tests/support/downloads/regional-files.ts';
 import { serviceConfig } from '../tests/support/downloads/service-config.ts';
 
 /**
@@ -21,16 +24,21 @@ if (!suffix || !outputDir) {
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 type JsonObject = { [key: string]: JsonValue };
 
-const publicPrefix = `${serviceConfig.publicBlobHost}/`;
+const publicWritePrefix = `${serviceConfig.publicBlobHost}/`;
 const bucketPrefix = `https://storage.googleapis.com/${serviceConfig.bucket}/`;
+
+function matchingPublicPrefix(url: string): string | undefined {
+  return publicFilePrefixes().find((prefix) => url.startsWith(prefix));
+}
 
 function isObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function blobPathname(url: string): string {
-  if (!url.startsWith(publicPrefix)) throw new Error(`${url} is not on the public Blob host.`);
-  return url.slice(publicPrefix.length);
+  const prefix = matchingPublicPrefix(url);
+  if (!prefix) throw new Error(`${url} is not on a public file host.`);
+  return url.slice(prefix.length);
 }
 
 function withSuffix(pathname: string): string {
@@ -39,18 +47,26 @@ function withSuffix(pathname: string): string {
   return parts.join('/');
 }
 
-function moveRegionalFiles(node: JsonValue, regionalKeys: Set<string>, moved: Set<string>): JsonValue {
+function moveRegionalFiles(
+  node: JsonValue,
+  regionalKeys: Set<string>,
+  moved: Set<string>,
+): JsonValue {
   if (typeof node === 'string') {
-    if (!node.startsWith(publicPrefix)) return node;
-    const key = decodeURIComponent(node.slice(publicPrefix.length).split(/[?#]/)[0]);
+    const prefix = matchingPublicPrefix(node);
+    if (!prefix) return node;
+    const key = decodeURIComponent(node.slice(prefix.length).split(/[?#]/)[0]);
     if (!regionalKeys.has(key)) return node;
     moved.add(key);
-    return `${bucketPrefix}${node.slice(publicPrefix.length)}`;
+    return `${bucketPrefix}${node.slice(prefix.length)}`;
   }
   if (Array.isArray(node)) return node.map((item) => moveRegionalFiles(item, regionalKeys, moved));
   if (isObject(node)) {
     return Object.fromEntries(
-      Object.entries(node).map(([field, child]) => [field, moveRegionalFiles(child, regionalKeys, moved)]),
+      Object.entries(node).map(([field, child]) => [
+        field,
+        moveRegionalFiles(child, regionalKeys, moved),
+      ]),
     );
   }
   return node;
@@ -71,7 +87,9 @@ async function writeJson(pathname: string, value: JsonValue): Promise<void> {
 
 const inventory = await loadRegionalFileInventory();
 if (inventory.usedByMoreThanOneRegion.length > 0) {
-  throw new Error(`${inventory.usedByMoreThanOneRegion.length} files are used by more than one region; fix the catalog first.`);
+  throw new Error(
+    `${inventory.usedByMoreThanOneRegion.length} files are used by more than one region; fix the catalog first.`,
+  );
 }
 const regionalKeys = new Set(inventory.files.map((file) => file.objectName));
 console.log(`${regionalKeys.size} regional-only files move to the bucket.`);
@@ -85,7 +103,11 @@ for (const batch of Array.isArray(index.batches) ? index.batches : []) {
     continue;
   }
   const moved = new Set<string>();
-  const manifest = moveRegionalFiles(await fetchJson(batch.manifestUrl), regionalKeys, moved) as JsonObject;
+  const manifest = moveRegionalFiles(
+    await fetchJson(batch.manifestUrl),
+    regionalKeys,
+    moved,
+  ) as JsonObject;
   if (moved.size === 0) {
     console.log(`Batch ${String(batch.id)}: no regional files, keeps ${batch.manifestUrl}`);
     batches.push(batch);
@@ -95,12 +117,14 @@ for (const batch of Array.isArray(index.batches) ? index.batches : []) {
   console.log(`Batch ${String(batch.id)}: ${moved.size} files moved.`);
   await writeJson(manifestPathname, manifest);
   moved.forEach((key) => allMoved.add(key));
-  batches.push({ ...batch, manifestUrl: `${publicPrefix}${manifestPathname}` });
+  batches.push({ ...batch, manifestUrl: `${publicWritePrefix}${manifestPathname}` });
 }
 
 const missing = [...regionalKeys].filter((key) => !allMoved.has(key));
 if (missing.length > 0) {
-  throw new Error(`${missing.length} regional files were not rewritten, for example ${missing[0]}.`);
+  throw new Error(
+    `${missing.length} regional files were not rewritten, for example ${missing[0]}.`,
+  );
 }
 
 const indexPathname = withSuffix(blobPathname(serviceConfig.catalogReleaseIndexUrl));
@@ -111,4 +135,4 @@ await writeJson(indexPathname, {
   stageA: { privateLayerBucket: serviceConfig.bucket, movedFileCount: allMoved.size },
 });
 await writeJson('moved-object-keys.json', [...allMoved].sort());
-console.log(`Catalog release index: ${publicPrefix}${indexPathname}`);
+console.log(`Catalog release index: ${publicWritePrefix}${indexPathname}`);

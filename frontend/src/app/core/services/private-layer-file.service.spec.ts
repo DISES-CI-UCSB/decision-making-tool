@@ -79,11 +79,14 @@ describe('PrivateLayerFileService', () => {
     expect(signingRequestKeys(fetchMock)).toEqual([savannasKey]);
   });
 
-  it('leaves public addresses alone and asks the signing service for nothing', async () => {
+  it('rewrites a public Vercel Blob address onto the public file bucket and asks the signing service for nothing', async () => {
     const publicUrl =
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/ramsar/v0.1.0/ramsar.geojson';
+      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/reference/ramsar/v0.1.0/ramsar.geojson?download=1';
+    const publicBucketUrl =
+      'https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/inputs/reference/ramsar/v0.1.0/ramsar.geojson?download=1';
 
-    await expect(service.readableUrl(publicUrl)).resolves.toBe(publicUrl);
+    await expect(service.readableUrl(publicUrl)).resolves.toBe(publicBucketUrl);
+    expect(service.isPrivateFile(publicBucketUrl)).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
