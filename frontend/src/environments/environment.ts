@@ -21,7 +21,7 @@ export const environment = {
   manifestBlobUrl:
     'https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/releases/catalog-v3-7-1/manifest.json',
   catalogReleaseIndexBlobUrl:
-    'https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/catalog-releases/3.7.1/catalog-release-index.json',
+    'https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/catalog-releases/3.7.1-test-site-stage-a/catalog-release-index.json',
   sirapManifestBlobUrl: '',
   blobAssetProxyPath: '',
   solutionCapabilityOverrides: {
