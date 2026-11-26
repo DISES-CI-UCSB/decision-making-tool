@@ -1,3 +1,5 @@
+import { PUBLIC_BLOB_HOST } from '@core/config/runtime-manifest.constants';
+
 export type EcosystemClassificationView =
   | 'biomeFamily'
   | 'broadBiomeContext'
@@ -32,8 +34,7 @@ export const ECOSYSTEM_CLASSIFICATION_VIEW_OPTIONS: readonly {
 
 export const ECOSYSTEM_CLASSIFICATION_VALUE_PREVIEW_LIMIT = 12;
 export const IAVH_BIOME_REGION_CLASS_COUNT = 430;
-export const IAVH_BIOME_REGION_LOOKUP_URL =
-  'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosistemas_IDs_IAVH_2024.csv';
+export const IAVH_BIOME_REGION_LOOKUP_URL = `${PUBLIC_BLOB_HOST}/inputs/features/ecosystems/ecosistemas_IDs_IAVH_2024.csv`;
 export const ECOSYSTEMS_COPY = {
   en: {
     groupTitle: 'Ecosystems',

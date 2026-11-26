@@ -37,6 +37,7 @@ import {
   type Solution,
   type SolutionIdentitySummary,
 } from '@core/models';
+import { PUBLIC_BLOB_HOST } from '@core/config/runtime-manifest.constants';
 import { AppLocaleService } from '@core/services/app-locale.service';
 import { AppStateService, type MapLegendLayerEntry } from '@core/services/app-state.service';
 import { SavedSolutionScenariosService } from '@core/services/saved-solution-scenarios.service';
@@ -234,8 +235,7 @@ interface ColorPickerComponentWithPrivateSliderDims {
   sliderDimMax?: { h: number; s: number; v: number; a: number } | null;
   updateColorPicker: (emit?: boolean, update?: boolean, cmykInput?: boolean) => void;
 }
-const SPECIES_TAXONOMY_CSV_URL =
-  'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/species/biomod_spp_ranges_updatedIUCN.csv';
+const SPECIES_TAXONOMY_CSV_URL = `${PUBLIC_BLOB_HOST}/inputs/features/species/biomod_spp_ranges_updatedIUCN.csv`;
 
 export function resolveSpeciesTaxonomyLookupUrl(
   manifest: RuntimeLayerManifest | null | undefined,
@@ -3672,8 +3672,7 @@ export class MapLayersPanelComponent implements OnDestroy {
         mapSync: {
           type: 'manifest-raster',
           layerId: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
-          displayUrl:
-            'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson',
+          displayUrl: `${PUBLIC_BLOB_HOST}/inputs/includes/runap_identify.geojson`,
           rendering: {
             valueType: 'binary',
             renderMode: 'mask',

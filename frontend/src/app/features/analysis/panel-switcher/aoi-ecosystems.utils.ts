@@ -1,3 +1,4 @@
+import { PUBLIC_BLOB_HOST } from '@core/config/runtime-manifest.constants';
 import {
   isMecCompactV2Document,
   type AOI,
@@ -97,8 +98,7 @@ export interface StrategicEcosystemBar {
   color: string;
 }
 
-export const ECOSYSTEM_CLASSIFICATION_SUMMARY_URL =
-  'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/features/ecosystems/ecosystem-classification-summary.json';
+export const ECOSYSTEM_CLASSIFICATION_SUMMARY_URL = `${PUBLIC_BLOB_HOST}/inputs/features/ecosystems/ecosystem-classification-summary.json`;
 
 export const STRATEGIC_ECOSYSTEM_BARS: readonly StrategicEcosystemBar[] = [
   {

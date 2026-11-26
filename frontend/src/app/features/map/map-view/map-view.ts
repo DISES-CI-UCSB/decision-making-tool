@@ -29,6 +29,7 @@ import CoordinateConversion from '@arcgis/core/widgets/CoordinateConversion';
 import ScaleBar from '@arcgis/core/widgets/ScaleBar';
 import SketchViewModel from '@arcgis/core/widgets/Sketch/SketchViewModel';
 import type Widget from '@arcgis/core/widgets/Widget';
+import { PUBLIC_BLOB_HOST } from '@core/config/runtime-manifest.constants';
 import type { Solution } from '@core/models';
 import { AppStateService } from '@core/services/app-state.service';
 import { AdminBoundaryService } from '@features/map/services/admin-boundary.service';
@@ -125,8 +126,7 @@ const VECTOR_OVERLAY_CONFIGS: readonly VectorOverlayConfig[] = [
   {
     overlayId: OMEC_OVERLAY_LAYER_ID,
     arcgisLayerId: OMEC_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
-    geojsonUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/omecs_identify.geojson',
+    geojsonUrl: `${PUBLIC_BLOB_HOST}/inputs/includes/omecs_identify.geojson`,
     outFields: ['SITE_ID', 'NAME', 'DESIG', 'STATUS'],
     aoiType: 'omec',
     idField: 'SITE_ID',
@@ -142,8 +142,7 @@ const VECTOR_OVERLAY_CONFIGS: readonly VectorOverlayConfig[] = [
   {
     overlayId: RUNAP_OVERLAY_LAYER_ID,
     arcgisLayerId: RUNAP_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
-    geojsonUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson',
+    geojsonUrl: `${PUBLIC_BLOB_HOST}/inputs/includes/runap_identify.geojson`,
     outFields: [
       'runap_id',
       'runap_name',
@@ -170,8 +169,7 @@ const VECTOR_OVERLAY_CONFIGS: readonly VectorOverlayConfig[] = [
   {
     overlayId: RUNAP_NATIONAL_PARKS_OVERLAY_LAYER_ID,
     arcgisLayerId: RUNAP_NATIONAL_PARKS_VECTOR_OVERLAY_ARCGIS_LAYER_ID,
-    geojsonUrl:
-      'https://aagibolq28slyfof.public.blob.vercel-storage.com/inputs/includes/runap_identify.geojson',
+    geojsonUrl: `${PUBLIC_BLOB_HOST}/inputs/includes/runap_identify.geojson`,
     definitionExpression: "runap_category = 'Parque Nacional Natural'",
     outFields: [
       'runap_id',

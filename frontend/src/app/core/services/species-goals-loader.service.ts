@@ -171,10 +171,12 @@ export class SpeciesGoalsLoaderService {
   }
 }
 
+/** Release folder of a species goals file. A bucket address puts the bucket name before `releases/`. */
 function releaseIdFromUrl(value: string): string | null {
   try {
     return (
-      new URL(value, 'http://runtime.local').pathname.match(/^\/releases\/([^/]+)\//)?.[1] ?? null
+      new URL(value, 'http://runtime.local').pathname.match(/(?:^|\/)releases\/([^/]+)\//)?.[1] ??
+      null
     );
   } catch {
     return null;
