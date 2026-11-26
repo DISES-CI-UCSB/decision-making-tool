@@ -104,7 +104,7 @@ Run every command on the VM unless the step says otherwise. Commands assume the 
 
    Group `10001` is the container's `appuser`, so the files stay readable if the container later runs as that user. `backend/secrets/` is ignored by Git and by the Docker build, so keys never enter a commit or an image.
 
-7. **Build the image and hydrate the runtime artifacts.** The first hydrate takes about 15 to 25 minutes.
+7. **Build the image and hydrate the runtime artifacts.** The first hydrate takes about 15 to 25 minutes. On Kubernetes, skip steps 7 and 8; the container does them on first boot. See [Kubernetes and other container platforms](#kubernetes-and-other-container-platforms).
 
    ```bash
    docker compose -f backend/docker-compose.yml build
@@ -185,11 +185,43 @@ Names only. Set them in `backend/.env` on the VM. Container paths are the defaul
 | `DMT_ARTIFACT_DIR`, `DMT_ARTIFACT_MANIFEST` | Keep the example values | Yes |
 | `DMT_SOLUTION_CACHE_DIR`, `DMT_CUSTOM_POLYGON_JOB_DB` | Keep the example values | Yes |
 | `MANIFEST_BLOB_URL`, `DMT_MANIFEST_URL` | Hydrate recipe manifest. Keep the example values unless Spatial Lab names a new catalog. | Yes |
+| `DMT_AUTO_HYDRATE` | `true` builds missing runtime artifacts and the Signable File Registry in the background on start. The image defaults to `true`; `docker-compose.yml` defaults to `false` because steps 7 and 8 do it by hand. See [Kubernetes and other container platforms](#kubernetes-and-other-container-platforms). | No |
+| `DMT_CATALOG_RELEASE_INDEX_URL` | Runtime Catalog Release Index the registry is built from. The image defaults to the GTIC test site's stage-A index on the public GCS bucket. | No |
 | `DMT_MESA_COVERAGE_REQUIRED`, `DMT_EXPECTED_COVERAGE_RELEASE_ID`, `DMT_EXPECTED_COVERAGE_CONTRACT_SHA256` | Keep the example values | No |
 | `DMT_MAX_POLYGON_VERTICES`, `DMT_MAX_POLYGON_AREA_KM2`, `DMT_RATE_LIMIT_PER_MINUTE` | Keep the example values | No |
 | `DMT_OPS_TOKEN` | Optional internal probe token. Leave empty unless Spatial Lab asks. | No |
 
 The full Metrics API list is in [installation-configuration.md](./installation-configuration.md#backend-runtime).
+
+## Kubernetes and other container platforms
+
+On GKE (Google Kubernetes Engine) and other platforms where nobody runs steps 7 and 8, the image prepares itself. With `DMT_AUTO_HYDRATE=true` (the image default), every start checks for four outputs and builds only the missing ones, in this order, in a background thread:
+
+1. `download_catalog`: the Signable File Registry, `download-catalog.json` (seconds).
+2. `national_artifact`: the national runtime artifact, `manifest.json`. Most of the time goes into building a 2.4 GB species bitset on one CPU core.
+3. `sirap_eje-cafetero` and `sirap_orinoquia`: the regional SIRAP kits. `/ready` is already 200 while these build; regional custom areas use the national kit until they finish.
+
+Measured on 26 November 2026 in Docker Desktop (12 CPUs, 8 GB): `/ready` returned 200 after 12 minutes, every step finished after 30 minutes, and the folder held 5.5 GB.
+
+The API answers from the first second. `/health` returns 200 the whole time. `/ready` returns 503 until the national artifact loads, then 200 without a restart.
+
+**Reading progress without logs.** `GET /ready` carries a `bootstrap` object, also saved as `/backend/runtime-artifacts/bootstrap-status.json`:
+
+| Field | Meaning |
+| --- | --- |
+| `status` | `running`, `succeeded`, `failed`, `not_needed` (everything was already present), or `disabled` |
+| `step` | The output being built now, for example `national_artifact` |
+| `progress` | The build's latest output line, for example `[hydrate] 6/8 species bitset` |
+| `steps[]` | Each output with `already_present`, `pending`, `running`, `succeeded`, `failed`, or `skipped`, and its times |
+| `error_summary` | One line per failed output: exit code and last output line. URL query strings are removed. |
+
+A failed output stays failed until the next pod start, which retries only what is still missing.
+
+**What to ask the platform for:**
+
+- **A persistent volume at `/backend/runtime-artifacts`** (at least 20 GB). Without one, every pod restart downloads and rebuilds everything again.
+- **Memory.** In the same test the container's working set stayed near 2.7 GiB through the build and after it, and peaked at 6.2 GB counting the Linux file cache. Ask for `resources.limits.memory` of at least 6 GiB, 8 GiB preferred, and report the current limit to Spatial Lab. A pod killed for memory restarts as `OOMKilled` and starts the build again.
+- **Probes.** Liveness on `/health`. Readiness on `/ready`, which stays 503 for the whole first build, so traffic waits. Do not use `/ready` as the liveness probe, or Kubernetes kills the pod mid-build.
 
 ## Service-account keys
 

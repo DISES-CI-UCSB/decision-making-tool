@@ -8,7 +8,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DMT_ARTIFACT_DIR=/backend/runtime-artifacts \
     DMT_CORS_ORIGINS=https://test-priorizandolanaturaleza.parquesnacionales.gov.co \
     MANIFEST_BLOB_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json \
-    DMT_MANIFEST_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json
+    DMT_MANIFEST_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json \
+    DMT_SPECIES_BITSET_INDEX_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/runtime-artifacts/species-bitsets/index.json \
+    DMT_DOWNLOAD_CATALOG_PATH=/backend/runtime-artifacts/download-catalog.json \
+    DMT_CATALOG_RELEASE_INDEX_URL=https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/catalog-releases/3.7.1-test-site-stage-a/catalog-release-index.json
+
+# On start, build missing runtime artifacts and the Signable File Registry in the background.
+# Status is in GET /ready under "bootstrap". docker-compose.yml turns this off for the VM.
+ENV DMT_AUTO_HYDRATE=true
 
 WORKDIR /backend
 

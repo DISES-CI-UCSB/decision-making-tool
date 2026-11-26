@@ -8,6 +8,9 @@
 .vercel
 branch-*-decision-making-tool.code-workspace
 
+# Pre-restructure local datasets left at the workspace root (tracked data lives in backend/data)
+/data/
+
 # Key material kept next to the checkout
 *_service_account_key.json
 *firebase-adminsdk*.json

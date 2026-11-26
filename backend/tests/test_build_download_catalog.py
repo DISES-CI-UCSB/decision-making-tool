@@ -66,3 +66,11 @@ def test_empty_manifests_write_no_catalog(tmp_path: Path) -> None:
 
     assert main(["--manifest", empty, "--output", str(output)]) == 1
     assert not output.exists()
+
+
+def test_release_index_url_comes_from_the_environment_first(monkeypatch) -> None:
+    from scripts.build_download_catalog import default_release_index_url
+
+    monkeypatch.setenv("DMT_CATALOG_RELEASE_INDEX_URL", "https://storage.test/stage-a/catalog-release-index.json")
+
+    assert default_release_index_url() == "https://storage.test/stage-a/catalog-release-index.json"

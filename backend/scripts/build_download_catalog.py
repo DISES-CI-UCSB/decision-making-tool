@@ -38,7 +38,9 @@ from app.downloads.catalog import index_catalog_document  # noqa: E402
 from app.downloads.object_names import object_name_from_reference  # noqa: E402
 
 RUNTIME_MANIFEST_CONSTANTS = BACKEND_ROOT / "layer-manifest" / "shared" / "runtime-manifest.constants.mjs"
-# Used when the frontend constants file is absent, as in the backend Docker image.
+# Overrides the release index. The Docker image sets it to the release index its web app loads.
+RELEASE_INDEX_URL_ENV = "DMT_CATALOG_RELEASE_INDEX_URL"
+# Used when neither the env var nor the frontend constants file is present.
 FALLBACK_RELEASE_INDEX_URL = (
     "https://aagibolq28slyfof.public.blob.vercel-storage.com/catalog-releases/3.7.1/catalog-release-index.json"
 )
@@ -53,7 +55,10 @@ def default_output_path() -> Path:
 
 
 def default_release_index_url() -> str:
-    """The web app's RUNTIME_CATALOG_RELEASE_INDEX_BLOB_URL, read from its shared constants file."""
+    """$DMT_CATALOG_RELEASE_INDEX_URL, else the web app's RUNTIME_CATALOG_RELEASE_INDEX_BLOB_URL from its constants file."""
+    configured = os.getenv(RELEASE_INDEX_URL_ENV, "").strip()
+    if configured:
+        return configured
     if not RUNTIME_MANIFEST_CONSTANTS.exists():
         return FALLBACK_RELEASE_INDEX_URL
     text = RUNTIME_MANIFEST_CONSTANTS.read_text(encoding="utf-8")
@@ -68,7 +73,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--release-index-url",
-        help="Catalog release index to read. Defaults to the one the production web app loads.",
+        help=(
+            f"Catalog release index to read. Defaults to ${RELEASE_INDEX_URL_ENV}, "
+            "else the one the production web app loads."
+        ),
     )
     parser.add_argument(
         "--manifest",

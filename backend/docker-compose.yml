@@ -27,6 +27,8 @@ services:
       DMT_RATE_LIMIT_PER_MINUTE: ${DMT_RATE_LIMIT_PER_MINUTE:-30}
       MANIFEST_BLOB_URL: ${MANIFEST_BLOB_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json}
       DMT_MANIFEST_URL: ${DMT_MANIFEST_URL:-https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json}
+      # The VM hydrates by hand (runbook steps 7-8), so first-boot hydrate stays off here.
+      DMT_AUTO_HYDRATE: ${DMT_AUTO_HYDRATE:-false}
     ports:
       - "8000:8000"
     volumes:

@@ -152,6 +152,8 @@ _RUNTIME_SETTINGS_KEY: tuple[
     str | None,
     str | None,
 ] | None = None
+# Manifest mtime seen by the last warmup, so a failed warmup retries once the file appears or changes.
+_RUNTIME_MANIFEST_MTIME_NS: int | None = None
 _SIRAP_RUNTIME_LOCK = Lock()
 _SIRAP_RUNTIME_ARTIFACTS: dict[str, RuntimeArtifact] = {}
 _SIRAP_RUNTIME_SETTINGS_KEY: str | None = None
@@ -1077,14 +1079,26 @@ def load_runtime_artifact(settings: Settings) -> tuple[RuntimeArtifact, Artifact
     return artifact, state
 
 
+def _manifest_mtime_ns(path: Path) -> int | None:
+    try:
+        return path.stat().st_mtime_ns
+    except OSError:
+        return None
+
+
 def warmup_artifacts(settings: Settings) -> ArtifactState:
-    global _RUNTIME_ARTIFACT, _RUNTIME_SETTINGS_KEY, _RUNTIME_STATE
+    global _RUNTIME_ARTIFACT, _RUNTIME_SETTINGS_KEY, _RUNTIME_STATE, _RUNTIME_MANIFEST_MTIME_NS
 
     key = _settings_key(settings)
     with _RUNTIME_LOCK:
+        manifest_mtime_ns = _manifest_mtime_ns(settings.artifact_manifest_path)
         if _RUNTIME_SETTINGS_KEY == key and _RUNTIME_STATE is not None:
-            return _RUNTIME_STATE
+            # A loaded artifact stays until restart. A failed one retries when first-boot
+            # hydrate (or an operator) writes the manifest.
+            if _RUNTIME_STATE.available or manifest_mtime_ns == _RUNTIME_MANIFEST_MTIME_NS:
+                return _RUNTIME_STATE
 
+        _RUNTIME_MANIFEST_MTIME_NS = manifest_mtime_ns
         previous_artifact = _RUNTIME_ARTIFACT
         started = time.perf_counter()
         try:
@@ -1189,7 +1203,7 @@ def get_runtime_artifact_for_solution(
 
 
 def reset_runtime_artifact_cache() -> None:
-    global _RUNTIME_ARTIFACT, _RUNTIME_SETTINGS_KEY, _RUNTIME_STATE
+    global _RUNTIME_ARTIFACT, _RUNTIME_SETTINGS_KEY, _RUNTIME_STATE, _RUNTIME_MANIFEST_MTIME_NS
     global _SIRAP_RUNTIME_ARTIFACTS, _SIRAP_RUNTIME_SETTINGS_KEY
 
     with _RUNTIME_LOCK:
@@ -1197,6 +1211,7 @@ def reset_runtime_artifact_cache() -> None:
         _RUNTIME_ARTIFACT = None
         _RUNTIME_SETTINGS_KEY = None
         _RUNTIME_STATE = None
+        _RUNTIME_MANIFEST_MTIME_NS = None
         _close_runtime_artifact(artifact)
 
     with _SIRAP_RUNTIME_LOCK:

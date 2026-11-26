@@ -29,6 +29,8 @@ from .artifacts import (
 from .config import get_settings
 from .accounts.router import router as accounts_router
 from .downloads.router import router as downloads_router
+from .downloads.settings import get_download_settings
+from .runtime_bootstrap import current_bootstrap_status, start_runtime_bootstrap
 from .coverage_target_validation import normalize_feature_name
 from .models import (
     CustomAreaProfileRequest,
@@ -142,6 +144,8 @@ async def lifespan(app: FastAPI):
     global _DETAILED_SPECIES_QUEUE
     settings = get_settings()
     warmup_artifacts(settings)
+    # Builds missing artifacts in a background thread, so /health answers during a long first boot.
+    start_runtime_bootstrap(settings, get_download_settings().catalog_path)
     _DETAILED_SPECIES_QUEUE = DetailedSpeciesJobQueue(
         settings.custom_polygon_job_db,
         _calculate_detailed_species_coverage,
@@ -213,11 +217,14 @@ def health() -> HealthResponse:
 def ready() -> ReadinessResponse:
     settings = get_settings()
     state = get_artifact_state(settings)
+    bootstrap = current_bootstrap_status()
 
     if not artifact_ready(settings, state):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=_http_detail(ReadinessResponse(status="not_ready", artifact_state=state)),
+            detail=_http_detail(
+                ReadinessResponse(status="not_ready", artifact_state=state, bootstrap=bootstrap)
+            ),
         )
 
     unavailable_reason = _detailed_species_unavailable_reason()
@@ -226,6 +233,7 @@ def ready() -> ReadinessResponse:
             ReadinessResponse(
                 status="not_ready",
                 artifact_state=state,
+                bootstrap=bootstrap,
             )
         )
         detail["detailed_species_status"] = unavailable_reason
@@ -235,7 +243,7 @@ def ready() -> ReadinessResponse:
             headers={"Retry-After": "10"},
         )
 
-    return ReadinessResponse(status="ready", artifact_state=state)
+    return ReadinessResponse(status="ready", artifact_state=state, bootstrap=bootstrap)
 
 
 @app.post(

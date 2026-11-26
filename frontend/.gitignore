@@ -42,7 +42,7 @@ firebase-debug.log
 
 # Miscellaneous
 /api/dev/.secrets-probe-handler.cjs
-/.angular/cache
+/.angular/
 .sass-cache/
 /connect.lock
 /coverage

@@ -6,6 +6,7 @@ from typing import Any, Literal, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .artifacts import ArtifactState
+from .runtime_bootstrap import BootstrapStatus
 
 
 class HealthResponse(BaseModel):
@@ -15,6 +16,8 @@ class HealthResponse(BaseModel):
 class ReadinessResponse(BaseModel):
     status: Literal["ready", "not_ready"]
     artifact_state: ArtifactState
+    # First-boot preparation of missing runtime files. Hosts without log access read this.
+    bootstrap: BootstrapStatus | None = None
 
 
 class PolygonMetricsRequest(BaseModel):
