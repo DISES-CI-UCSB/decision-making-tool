@@ -7,11 +7,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DMT_RELEASE_SPECS_DIR=/data/metrics/release-specs \
     DMT_ARTIFACT_DIR=/backend/runtime-artifacts \
     DMT_CORS_ORIGINS=https://test-priorizandolanaturaleza.parquesnacionales.gov.co \
-    MANIFEST_BLOB_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json \
-    DMT_MANIFEST_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/manifest/manifest.json \
-    DMT_SPECIES_BITSET_INDEX_URL=https://aagibolq28slyfof.public.blob.vercel-storage.com/runtime-artifacts/species-bitsets/index.json \
+    MANIFEST_BLOB_URL=https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/manifest-stage-b/manifest.json \
+    DMT_MANIFEST_URL=https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/manifest-stage-b/manifest.json \
+    DMT_SPECIES_BITSET_INDEX_URL=https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/runtime-artifacts/species-bitsets-gcs/index.json \
     DMT_DOWNLOAD_CATALOG_PATH=/backend/runtime-artifacts/download-catalog.json \
-    DMT_CATALOG_RELEASE_INDEX_URL=https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/catalog-releases/3.7.1-test-site-stage-a/catalog-release-index.json
+    DMT_CATALOG_RELEASE_INDEX_URL=https://storage.googleapis.com/pnn-priorizando-la-naturaleza-public/catalog-releases/3.7.1-test-site-stage-b/catalog-release-index.json
 
 # On start, build missing runtime artifacts and the Signable File Registry in the background.
 # Status is in GET /ready under "bootstrap". docker-compose.yml turns this off for the VM.
